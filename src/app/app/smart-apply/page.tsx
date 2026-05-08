@@ -316,7 +316,7 @@ export default function SmartJobSearchPage() {
 
   function UploadBox({ label, sublabel, fileName, inputRef, onFile, accept }: {
     label: string; sublabel: string; fileName: string
-    inputRef: React.RefObject<HTMLInputElement>
+    inputRef: React.RefObject<HTMLInputElement | null>
     onFile: (f: File) => void; accept: string
   }) {
     return (
