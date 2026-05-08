@@ -20,7 +20,7 @@ export default function Navbar() {
 
   const navItems = [
     { label: 'Career Scan', href: '/app/career-scan' },
-    { label: 'Smart Apply', href: '/app/smart-apply' },
+    { label: 'Smart Job Search', href: '/app/smart-apply' },
     { label: 'Tracker', href: '/app/tracker' },
   ]
 
