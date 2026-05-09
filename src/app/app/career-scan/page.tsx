@@ -183,7 +183,7 @@ export default function CareerScanPage() {
     </div>
   )
 
-  function UploadBox({ label, sublabel, fileName, inputRef, onFile, onClear, accept, icon }: {
+  function UploadBox({ label, sublabel, fileName, inputRef, onFile, onClear, accept }: {
     label: string; sublabel: string; fileName: string
     inputRef: { current: HTMLInputElement | null }
     onFile: (f: File) => void; onClear: () => void; accept: string

@@ -264,7 +264,7 @@ function SmartJobSearchPage() {
   const inp: React.CSSProperties = { width: '100%', padding: '9px 12px', borderRadius: 8, border: '1px solid rgba(255,255,255,0.2)', fontSize: 13, fontFamily: "'DM Sans', sans-serif", color: '#fff', background: 'rgba(255,255,255,0.1)', outline: 'none', boxSizing: 'border-box' }
   const secLabel = (text: string) => <div style={{ fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.6)', letterSpacing: 0.8, textTransform: 'uppercase' as const, marginBottom: 6 }}>{text}</div>
 
-  function UploadBox({ label, sublabel, fileName, inputRef, onFile, onClear, accept, icon }: {
+  function UploadBox({ label, sublabel, fileName, inputRef, onFile, onClear, accept }: {
     label: string; sublabel: string; fileName: string
     inputRef: React.RefObject<HTMLInputElement | null>
     onFile: (f: File) => void; onClear: () => void; accept: string
