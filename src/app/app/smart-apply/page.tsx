@@ -1,8 +1,7 @@
 ﻿'use client'
 
 import { useState, useRef, useEffect } from 'react'
-import { useSearchParams } from 'next/navigation'
-import { Suspense } from 'react'
+import { useSearchParams, Suspense } from 'next/navigation'
 import Navbar from '../components/Navbar'
 
 interface Job {
@@ -22,14 +21,6 @@ interface Job {
   matchScore?: number
 }
 
-export default function SmartJobSearchWrapper() {
-  return (
-    <Suspense fallback={<div style={{ minHeight: '100vh', background: '#f0f4f8', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><div style={{ width: 40, height: 40, borderRadius: '50%', border: '3px solid #edf1f6', borderTopColor: '#378ADD' }} /></div>}>
-      <SmartJobSearchPage />
-    </Suspense>
-  )
-}
-
 interface Profile {
   suggestedQuery: string
   skills: string[]
@@ -38,14 +29,6 @@ interface Profile {
   industries: string[]
   languages: string[]
   summary: string
-}
-
-export default function SmartJobSearchWrapper() {
-  return (
-    <Suspense fallback={<div style={{ minHeight: '100vh', background: '#f0f4f8', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><div style={{ width: 40, height: 40, borderRadius: '50%', border: '3px solid #edf1f6', borderTopColor: '#378ADD' }} /></div>}>
-      <SmartJobSearchPage />
-    </Suspense>
-  )
 }
 
 type JobTypeOption = 'Full-time' | 'Contract' | 'Hybrid' | 'Remote'
@@ -283,7 +266,7 @@ function SmartJobSearchPage() {
 
   function UploadBox({ label, sublabel, fileName, inputRef, onFile, onClear, accept, icon }: {
     label: string; sublabel: string; fileName: string
-    inputRef: { current: HTMLInputElement | null }
+    inputRef: React.RefObject<HTMLInputElement | null>
     onFile: (f: File) => void; onClear: () => void; accept: string; icon: string
   }) {
     return (
@@ -692,7 +675,7 @@ function SmartJobSearchPage() {
 
 export default function SmartJobSearchWrapper() {
   return (
-    <Suspense fallback={<div style={{ minHeight: '100vh', background: '#f0f4f8', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><div style={{ width: 40, height: 40, borderRadius: '50%', border: '3px solid #edf1f6', borderTopColor: '#378ADD' }} /></div>}>
+    <Suspense>
       <SmartJobSearchPage />
     </Suspense>
   )
