@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react'
 import { useSearchParams } from 'next/navigation'
+import { Suspense } from 'react'
 import Navbar from '../components/Navbar'
 
 interface Job {
@@ -21,6 +22,14 @@ interface Job {
   matchScore?: number
 }
 
+export default function SmartJobSearchWrapper() {
+  return (
+    <Suspense fallback={<div style={{ minHeight: '100vh', background: '#f0f4f8', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><div style={{ width: 40, height: 40, borderRadius: '50%', border: '3px solid #edf1f6', borderTopColor: '#378ADD' }} /></div>}>
+      <SmartJobSearchPage />
+    </Suspense>
+  )
+}
+
 interface Profile {
   suggestedQuery: string
   skills: string[]
@@ -31,13 +40,21 @@ interface Profile {
   summary: string
 }
 
+export default function SmartJobSearchWrapper() {
+  return (
+    <Suspense fallback={<div style={{ minHeight: '100vh', background: '#f0f4f8', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><div style={{ width: 40, height: 40, borderRadius: '50%', border: '3px solid #edf1f6', borderTopColor: '#378ADD' }} /></div>}>
+      <SmartJobSearchPage />
+    </Suspense>
+  )
+}
+
 type JobTypeOption = 'Full-time' | 'Contract' | 'Hybrid' | 'Remote'
 type RightTab = 'description' | 'cv' | 'cl'
 
 const JOB_TYPE_OPTIONS: JobTypeOption[] = ['Full-time', 'Contract', 'Hybrid', 'Remote']
 const EXPERIENCE_OPTIONS = ['Any level', 'Junior (0-3 yrs)', 'Mid (3-8 yrs)', 'Senior (8-15 yrs)', 'Director / VP (15+ yrs)']
 
-export default function SmartJobSearchPage() {
+function SmartJobSearchPage() {
   const searchParams = useSearchParams()
   const linkedinRef = useRef<HTMLInputElement>(null)
   const cvRef = useRef<HTMLInputElement>(null)
@@ -670,5 +687,13 @@ export default function SmartJobSearchPage() {
         </div>
       </div>
     </div>
+  )
+}
+
+export default function SmartJobSearchWrapper() {
+  return (
+    <Suspense fallback={<div style={{ minHeight: '100vh', background: '#f0f4f8', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><div style={{ width: 40, height: 40, borderRadius: '50%', border: '3px solid #edf1f6', borderTopColor: '#378ADD' }} /></div>}>
+      <SmartJobSearchPage />
+    </Suspense>
   )
 }
