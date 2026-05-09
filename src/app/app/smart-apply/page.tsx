@@ -76,18 +76,43 @@ export default function SmartJobSearchPage() {
 
   const hasProfile = !!(linkedinText || cvText)
 
-  function handleLinkedinFile(file: File) {
+  async function handleLinkedinFile(file: File) {
     setLinkedinFileName(file.name)
-    const r = new FileReader()
-    r.onload = e => setLinkedinText((e.target?.result as string) ?? '')
-    r.readAsText(file)
+    const form = new FormData()
+    form.append('file', file)
+    try {
+      const res = await fetch('/api/extract-pdf', { method: 'POST', body: form })
+      const data = await res.json()
+      if (data.text) setLinkedinText(data.text)
+    } catch {
+      // non-fatal — filename still set
+    }
   }
 
-  function handleCvFile(file: File) {
+  async function handleCvFile(file: File) {
     setCvFileName(file.name)
-    const r = new FileReader()
-    r.onload = e => setCvText((e.target?.result as string) ?? '')
-    r.readAsText(file)
+    setCvText('')
+    if (file.name.endsWith('.txt') || file.type === 'text/plain') {
+      const r = new FileReader()
+      r.onload = e => setCvText((e.target?.result as string) ?? '')
+      r.readAsText(file)
+    } else {
+      const form = new FormData()
+      form.append('file', file)
+      try {
+        const res = await fetch('/api/extract-pdf', { method: 'POST', body: form })
+        const data = await res.json()
+        if (data.text) {
+          setCvText(data.text)
+        } else {
+          alert(data.error || 'Could not read PDF. Please paste CV text manually.')
+          setCvFileName('')
+        }
+      } catch {
+        alert('Failed to read PDF. Please paste CV text manually.')
+        setCvFileName('')
+      }
+    }
   }
 
   function toggleJobType(t: JobTypeOption) {
@@ -316,7 +341,7 @@ export default function SmartJobSearchPage() {
 
   function UploadBox({ label, sublabel, fileName, inputRef, onFile, accept }: {
     label: string; sublabel: string; fileName: string
-    inputRef: React.RefObject<HTMLInputElement | null>
+    inputRef: React.RefObject<HTMLInputElement>
     onFile: (f: File) => void; accept: string
   }) {
     return (
