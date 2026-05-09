@@ -21,6 +21,9 @@ export default function Navbar() {
   const navItems = [
     { label: 'Career Scan', href: '/app/career-scan' },
     { label: 'Smart Job Search', href: '/app/smart-apply' },
+    { label: 'CV Builder', href: '/app/cv-builder' },
+    { label: 'Cover Letter', href: '/app/cover-letter' },
+    { label: 'Apply Now', href: '/app/apply-now' },
     { label: 'Tracker', href: '/app/tracker' },
   ]
 
