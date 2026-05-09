@@ -1,6 +1,6 @@
 ﻿'use client'
 
-import { useState, useEffect } from 'react'
+import React, { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Navbar from '../components/Navbar'
 
@@ -17,7 +17,7 @@ const TEMPLATES: { id: Template; label: string }[] = [
 ]
 
 const TemplateThumb = ({ id, selected, onClick }: { id: Template; selected: boolean; onClick: () => void }) => {
-  const thumbs: Record<Template, JSX.Element> = {
+  const thumbs: Record<Template, React.ReactElement> = {
     modern: (
       <div style={{ padding: 10, height: 90, display: 'flex', flexDirection: 'column', gap: 5 }}>
         <div style={{ height: 10, background: '#042C53', borderRadius: 2 }} />
