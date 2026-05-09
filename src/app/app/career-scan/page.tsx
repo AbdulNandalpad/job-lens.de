@@ -186,7 +186,7 @@ export default function CareerScanPage() {
   function UploadBox({ label, sublabel, fileName, inputRef, onFile, onClear, accept, icon }: {
     label: string; sublabel: string; fileName: string
     inputRef: { current: HTMLInputElement | null }
-    onFile: (f: File) => void; onClear: () => void; accept: string; icon: string
+    onFile: (f: File) => void; onClear: () => void; accept: string
   }) {
     return (
       <div>
@@ -205,7 +205,7 @@ export default function CareerScanPage() {
           >
             <input ref={inputRef} type="file" accept={accept} style={{ display: 'none' }}
               onChange={e => { const f = e.target.files?.[0]; if (f) onFile(f) }} />
-            <div style={{ fontSize: 20, flexShrink: 0 }}>{fileName ? 'âœ…' : icon}</div>
+            <div style={{ width: 20, height: 20, borderRadius: 4, background: fileName ? 'rgba(74,222,128,0.3)' : 'rgba(255,255,255,0.15)', flexShrink: 0 }} />
             <div>
               <div style={{ fontSize: 12, fontWeight: 600, color: fileName ? '#4ade80' : '#fff', marginBottom: 2 }}>
                 {fileName || sublabel}
@@ -235,9 +235,9 @@ export default function CareerScanPage() {
         <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.6)', marginTop: 3 }}>AI-powered profile analysis</div>
       </div>
 
-      <UploadBox label="LinkedIn PDF" sublabel="Export from LinkedIn, Save to PDF" fileName={linkedinFileName} inputRef={linkedinInputRef} onFile={handleLinkedinFile} onClear={clearLinkedinFile} accept=".pdf" icon="ðŸ’¼" />
+      <UploadBox label="LinkedIn PDF" sublabel="Export from LinkedIn, Save to PDF" fileName={linkedinFileName} inputRef={linkedinInputRef} onFile={handleLinkedinFile} onClear={clearLinkedinFile} accept=".pdf" />
 
-      <UploadBox label="CV / Resume" sublabel="PDF, DOCX or TXT" fileName={fileName} inputRef={fileInputRef} onFile={handleFile} onClear={clearCvFile} accept=".pdf,.txt,.doc,.docx" icon="ðŸ“„" />
+      <UploadBox label="CV / Resume" sublabel="PDF, DOCX or TXT" fileName={fileName} inputRef={fileInputRef} onFile={handleFile} onClear={clearCvFile} accept=".pdf,.txt,.doc,.docx" />
 
       {fileLoading && (
         <div style={{ fontSize: 11, color: '#60a5fa', textAlign: 'center', padding: '4px 0' }}>

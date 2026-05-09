@@ -267,7 +267,7 @@ function SmartJobSearchPage() {
   function UploadBox({ label, sublabel, fileName, inputRef, onFile, onClear, accept, icon }: {
     label: string; sublabel: string; fileName: string
     inputRef: React.RefObject<HTMLInputElement | null>
-    onFile: (f: File) => void; onClear: () => void; accept: string; icon: string
+    onFile: (f: File) => void; onClear: () => void; accept: string
   }) {
     return (
       <div>
@@ -275,7 +275,7 @@ function SmartJobSearchPage() {
         <div style={{ position: 'relative' }}>
           <div onClick={() => !fileName && inputRef.current?.click()} style={{ border: `1.5px ${fileName ? 'solid #4ade80' : 'dashed rgba(255,255,255,0.25)'}`, borderRadius: 10, padding: '11px 14px', cursor: fileName ? 'default' : 'pointer', background: fileName ? 'rgba(74,222,128,0.1)' : 'rgba(255,255,255,0.05)', transition: 'all 0.15s', display: 'flex', alignItems: 'center', gap: 10 }}>
             <input ref={inputRef} type="file" accept={accept} style={{ display: 'none' }} onChange={e => { const f = e.target.files?.[0]; if (f) onFile(f) }} />
-            <div style={{ fontSize: 18, flexShrink: 0 }}>{fileName ? 'âœ…' : icon}</div>
+            <div style={{ width: 20, height: 20, borderRadius: 4, background: fileName ? 'rgba(74,222,128,0.3)' : 'rgba(255,255,255,0.15)', flexShrink: 0 }} />
             <div>
               <div style={{ fontSize: 12, fontWeight: 600, color: fileName ? '#4ade80' : '#fff', marginBottom: 1 }}>{fileName || sublabel}</div>
               <div style={{ fontSize: 11, color: fileName ? '#4ade80' : 'rgba(255,255,255,0.5)' }}>{fileName ? 'Ready - click x to remove' : 'Click to upload'}</div>
@@ -503,8 +503,8 @@ function SmartJobSearchPage() {
         </div>
       )}
 
-      <UploadBox label="LinkedIn PDF" sublabel="Export from LinkedIn, Save to PDF" fileName={linkedinFileName} inputRef={linkedinRef} onFile={handleLinkedinFile} onClear={clearLinkedinFile} accept=".pdf" icon="ðŸ’¼" />
-      <UploadBox label="CV / Resume" sublabel="PDF, DOCX or TXT" fileName={cvFileName} inputRef={cvRef} onFile={handleCvFile} onClear={clearCvFile} accept=".pdf,.txt,.doc,.docx" icon="ðŸ“„" />
+      <UploadBox label="LinkedIn PDF" sublabel="Export from LinkedIn, Save to PDF" fileName={linkedinFileName} inputRef={linkedinRef} onFile={handleLinkedinFile} onClear={clearLinkedinFile} accept=".pdf" />
+      <UploadBox label="CV / Resume" sublabel="PDF, DOCX or TXT" fileName={cvFileName} inputRef={cvRef} onFile={handleCvFile} onClear={clearCvFile} accept=".pdf,.txt,.doc,.docx" />
 
       <div style={{ height: 1, background: 'rgba(255,255,255,0.1)' }} />
 
