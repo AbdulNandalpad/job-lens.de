@@ -13,6 +13,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
+  icons: { icon: "/favicon.svg" },
   title: "Job-Lens AI — Find your next role in DACH",
   description: "AI-powered career platform for Germany, Switzerland and Austria. CV analysis, job matching, tailored applications.",
 };
