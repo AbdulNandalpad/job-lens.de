@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { useState, useRef, useEffect, Suspense } from 'react'
 import { useRouter } from 'next/navigation'
@@ -67,10 +67,6 @@ function SmartJobSearchPage() {
   const [usedQuery, setUsedQuery] = useState('')
 
   const [activeRight, setActiveRight] = useState<RightTab>('description')
-  const [cvLoading, setCvLoading] = useState(false)
-  const [clLoading, setClLoading] = useState(false)
-  const [tailoredCv, setTailoredCv] = useState('')
-  const [coverLetter, setCoverLetter] = useState('')
   const [loggedJobs, setLoggedJobs] = useState<Set<string>>(new Set())
   const [mobOpen, setMobOpen] = useState(false)
 
@@ -159,13 +155,14 @@ function SmartJobSearchPage() {
     setTargetRole(''); setJobTypes(['Full-time']); setExperience('Senior (8-15 yrs)')
     setLocation('Stuttgart, Germany'); setCountry('de'); setSalaryMin(''); setSalaryMax('')
     setJobs([]); setSelectedJob(null); setProfile(null); setError(''); setUsedQuery('')
-    setTailoredCv(''); setCoverLetter(''); setLoggedJobs(new Set())
+    setLoggedJobs(new Set())
     if (linkedinRef.current) linkedinRef.current.value = ''
     if (cvRef.current) cvRef.current.value = ''
     sessionStorage.removeItem('jl_jobs'); sessionStorage.removeItem('jl_used_query')
     sessionStorage.removeItem('jl_sjs_cv_text'); sessionStorage.removeItem('jl_sjs_cv_name')
     sessionStorage.removeItem('jl_sjs_target_role'); sessionStorage.removeItem('jl_cv_text')
     sessionStorage.removeItem('jl_target_role')
+    sessionStorage.removeItem('jl_cvb_job')
   }
 
   function generateMatchChips(job: Job, extractedProfile: Profile | null): { label: string; positive: boolean }[] {
@@ -192,7 +189,7 @@ function SmartJobSearchPage() {
 
   async function handleFindJobs() {
     if (!targetRole.trim() && !hasProfile) return
-    setAnalysing(false); setLoading(false); setError(''); setJobs([]); setSelectedJob(null); setTailoredCv(''); setCoverLetter(''); setProfile(null)
+    setAnalysing(false); setLoading(false); setError(''); setJobs([]); setSelectedJob(null); setProfile(null)
     let extractedProfile: Profile | null = null
     let searchQuery = targetRole
     if (hasProfile) {
@@ -216,32 +213,21 @@ function SmartJobSearchPage() {
     setLoading(false)
   }
 
-  async function generateCv(job?: Job) {
-    const target = job || selectedJob; if (!target || !cvText) return
-    if (job) selectJob(job); setCvLoading(true); setActiveRight('cv')
-    try {
-      const res = await fetch('/api/tailor-cv', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ cvText, job: target }) })
-      const data = await res.json(); setTailoredCv(data.cv || '')
-    } catch { setTailoredCv('Failed to generate CV.') }
-    setCvLoading(false)
+  // Save job to sessionStorage and navigate to CV Builder
+  function openCvBuilder(job: Job) {
+    sessionStorage.setItem('jl_cvb_job', JSON.stringify(job))
+    // Clear any previously tailored CV so builder starts fresh for this job
+    sessionStorage.removeItem('jl_cvb_tailored')
+    router.push('/app/cv-builder')
   }
 
-  async function generateCoverLetter(job?: Job) {
-    const target = job || selectedJob; if (!target || !cvText) return
-    if (job) selectJob(job); setClLoading(true); setActiveRight('cl')
-    try {
-      const res = await fetch('/api/cover-letter', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ cvText, job: target }) })
-      const data = await res.json(); setCoverLetter(data.coverLetter || '')
-    } catch { setCoverLetter('Failed to generate cover letter.') }
-    setClLoading(false)
+  // Save job to sessionStorage and navigate to Cover Letter Builder
+  function openCoverLetter(job: Job) {
+    sessionStorage.setItem('jl_cvb_job', JSON.stringify(job))
+    router.push('/app/cover-letter')
   }
 
-  function selectJob(job: Job) { setSelectedJob(job); setTailoredCv(''); setCoverLetter(''); setActiveRight('description') }
-
-  function downloadText(content: string, filename: string) {
-    const b = new Blob([content], { type: 'text/plain' }); const u = URL.createObjectURL(b)
-    const a = document.createElement('a'); a.href = u; a.download = filename; a.click(); URL.revokeObjectURL(u)
-  }
+  function selectJob(job: Job) { setSelectedJob(job); setActiveRight('description') }
 
   function formatPostedDate(dateStr: string) {
     if (!dateStr) return ''; const diffDays = Math.floor((Date.now() - new Date(dateStr).getTime()) / 86400000)
@@ -297,7 +283,7 @@ function SmartJobSearchPage() {
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>
         {chips.map((chip, i) => (
           <span key={i} style={{ fontSize: 11, padding: '3px 9px', borderRadius: 6, fontWeight: 600, background: chip.positive ? 'rgba(29,158,117,0.12)' : 'rgba(245,158,11,0.12)', color: chip.positive ? '#1D9E75' : '#92400e', border: `1px solid ${chip.positive ? 'rgba(29,158,117,0.3)' : 'rgba(245,158,11,0.3)'}` }}>
-            {chip.positive ? 'Ã¢Å" ' : '~ '}{chip.label}
+            {chip.positive ? '\u2713 ' : '~ '}{chip.label}
           </span>
         ))}
       </div>
@@ -323,19 +309,29 @@ function SmartJobSearchPage() {
             )}
           </div>
           <div style={{ fontSize: 12, color: '#6b7c93', marginBottom: 8 }}>
-            {[job.employer_name, [job.job_city, job.job_country].filter(Boolean).join(', '), salary, job.job_posted_at_datetime_utc ? formatPostedDate(job.job_posted_at_datetime_utc) : null].filter(Boolean).join(' Ã· ')}
+            {[job.employer_name, [job.job_city, job.job_country].filter(Boolean).join(', '), salary, job.job_posted_at_datetime_utc ? formatPostedDate(job.job_posted_at_datetime_utc) : null].filter(Boolean).join(' Â· ')}
           </div>
           {job.matchChips && <MatchChips chips={job.matchChips} />}
         </div>
         <div style={{ display: 'flex', gap: 6, padding: '9px 16px', borderTop: '1px solid #f3f6fa', background: '#fafbfd', flexWrap: 'wrap', alignItems: 'center' }}>
-          <button onClick={() => generateCv(job)} disabled={!cvText} style={{ fontSize: 11, padding: '5px 12px', borderRadius: 7, border: 'none', background: cvText ? 'linear-gradient(135deg, #042C53, #185FA5)' : '#e8ecf1', color: cvText ? '#fff' : '#8fa3b8', cursor: cvText ? 'pointer' : 'not-allowed', fontFamily: 'inherit', fontWeight: 600 }}>
+          {/* Build CV â€” saves job + navigates to CV Builder */}
+          <button
+            onClick={() => openCvBuilder(job)}
+            disabled={!cvText}
+            style={{ fontSize: 11, padding: '5px 12px', borderRadius: 7, border: 'none', background: cvText ? 'linear-gradient(135deg, #042C53, #185FA5)' : '#e8ecf1', color: cvText ? '#fff' : '#8fa3b8', cursor: cvText ? 'pointer' : 'not-allowed', fontFamily: 'inherit', fontWeight: 600 }}
+          >
             Build CV
           </button>
-          <button onClick={() => generateCoverLetter(job)} disabled={!cvText} style={{ fontSize: 11, padding: '5px 12px', borderRadius: 7, border: '1px solid #dce4ef', background: '#fff', color: cvText ? '#185FA5' : '#8fa3b8', cursor: cvText ? 'pointer' : 'not-allowed', fontFamily: 'inherit', fontWeight: 500 }}>
+          {/* Cover Letter â€” saves job + navigates to Cover Letter Builder */}
+          <button
+            onClick={() => openCoverLetter(job)}
+            disabled={!cvText}
+            style={{ fontSize: 11, padding: '5px 12px', borderRadius: 7, border: '1px solid #dce4ef', background: '#fff', color: cvText ? '#185FA5' : '#8fa3b8', cursor: cvText ? 'pointer' : 'not-allowed', fontFamily: 'inherit', fontWeight: 500 }}
+          >
             Cover Letter
           </button>
           <button onClick={() => toggleLogged(job.job_id)} style={{ fontSize: 11, padding: '5px 12px', borderRadius: 7, border: `1px solid ${isLogged ? '#b6ecd8' : '#dce4ef'}`, background: isLogged ? '#f0fbf6' : '#fff', color: isLogged ? '#1D9E75' : '#6b7c93', cursor: 'pointer', fontFamily: 'inherit', fontWeight: 500 }}>
-            {isLogged ? 'Ã¢Å" Applied' : 'Log applied'}
+            {isLogged ? '\u2713 Applied' : 'Log applied'}
           </button>
           <a href={job.job_apply_link} target="_blank" rel="noopener noreferrer" style={{ fontSize: 11, padding: '5px 12px', borderRadius: 7, border: '1px solid #dce4ef', background: '#fff', color: '#6b7c93', textDecoration: 'none', fontFamily: 'inherit', fontWeight: 500, marginLeft: 'auto' }}>
             View job
@@ -350,7 +346,7 @@ function SmartJobSearchPage() {
       return (
         <div style={{ background: '#fff', border: '1.5px solid #edf1f6', borderRadius: 16, overflow: 'hidden' }}>
           <div style={{ background: 'linear-gradient(135deg, #042C53, #073d6e)', padding: '40px 32px', textAlign: 'center' }}>
-            <div style={{ fontSize: 40, marginBottom: 12, opacity: 0.4 }}>Ã°Å¸Å½Â¯</div>
+            <div style={{ fontSize: 40, marginBottom: 12, opacity: 0.4 }}>&#128269;</div>
             <div style={{ fontSize: 15, fontWeight: 700, color: '#fff', fontFamily: "'Outfit', sans-serif", marginBottom: 6 }}>Select a job</div>
             <div style={{ fontSize: 13, color: '#85B7EB', lineHeight: 1.6 }}>Click any job card to view details, build your CV, or write a cover letter.</div>
           </div>
@@ -367,8 +363,8 @@ function SmartJobSearchPage() {
     const salary = formatSalary(selectedJob)
     const tabs = [
       { key: 'description' as RightTab, label: 'Job Details' },
-      { key: 'cv' as RightTab, label: tailoredCv || cvLoading ? 'Ã¢Å" Tailored CV' : 'Build CV' },
-      { key: 'cl' as RightTab, label: coverLetter || clLoading ? 'Ã¢Å" Cover Letter' : 'Cover Letter' },
+      { key: 'cv' as RightTab, label: 'Build CV' },
+      { key: 'cl' as RightTab, label: 'Cover Letter' },
     ]
 
     return (
@@ -379,25 +375,25 @@ function SmartJobSearchPage() {
             <div style={{ flex: 1 }}>
               <div style={{ fontSize: 16, fontWeight: 700, color: '#fff', marginBottom: 4, fontFamily: "'Outfit', sans-serif" }}>{selectedJob.job_title}</div>
               <div style={{ fontSize: 12, color: '#85B7EB' }}>
-                {[selectedJob.employer_name, [selectedJob.job_city, selectedJob.job_country].filter(Boolean).join(', '), salary].filter(Boolean).join(' Ã· ')}
+                {[selectedJob.employer_name, [selectedJob.job_city, selectedJob.job_country].filter(Boolean).join(', '), salary].filter(Boolean).join(' Â· ')}
               </div>
             </div>
             <a href={selectedJob.job_apply_link} target="_blank" rel="noopener noreferrer" style={{ fontSize: 12, padding: '8px 16px', borderRadius: 8, background: '#378ADD', color: '#fff', textDecoration: 'none', fontWeight: 700, flexShrink: 0, fontFamily: "'Outfit', sans-serif" }}>
-              Apply Now Ã¢â '
+              Apply Now &rarr;
             </a>
           </div>
           {selectedJob.matchChips && selectedJob.matchChips.length > 0 && (
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>
               {selectedJob.matchChips.map((chip, i) => (
                 <span key={i} style={{ fontSize: 11, padding: '3px 9px', borderRadius: 6, fontWeight: 600, background: chip.positive ? 'rgba(74,222,128,0.2)' : 'rgba(245,158,11,0.2)', color: chip.positive ? '#4ade80' : '#fcd34d', border: `1px solid ${chip.positive ? 'rgba(74,222,128,0.3)' : 'rgba(245,158,11,0.3)'}` }}>
-                  {chip.positive ? 'Ã¢Å" ' : '~ '}{chip.label}
+                  {chip.positive ? '\u2713 ' : '~ '}{chip.label}
                 </span>
               ))}
             </div>
           )}
           {!cvText && (
             <div style={{ fontSize: 11, color: '#fbbf24', marginTop: 10, padding: '5px 10px', background: 'rgba(251,191,36,0.15)', borderRadius: 6, display: 'inline-block', border: '1px solid rgba(251,191,36,0.3)' }}>
-              Ã¢Å¡Â  Upload CV to enable AI tailoring
+              &#9888; Upload CV to enable AI tailoring
             </div>
           )}
         </div>
@@ -413,6 +409,8 @@ function SmartJobSearchPage() {
 
         {/* Content */}
         <div style={{ padding: 20, maxHeight: 520, overflowY: 'auto' }}>
+
+          {/* Job Details tab */}
           {activeRight === 'description' && (
             <div>
               <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 16 }}>
@@ -427,66 +425,61 @@ function SmartJobSearchPage() {
               </div>
               <div style={{ marginTop: 16, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                 <a href={selectedJob.job_apply_link} target="_blank" rel="noopener noreferrer" style={{ fontSize: 13, padding: '9px 20px', borderRadius: 8, background: 'linear-gradient(135deg, #042C53, #185FA5)', color: '#E6F1FB', textDecoration: 'none', fontWeight: 700, fontFamily: "'Outfit', sans-serif" }}>
-                  View Full Posting & Apply Ã¢â '
+                  View Full Posting &amp; Apply &rarr;
                 </a>
                 <button onClick={() => toggleLogged(selectedJob.job_id)} style={{ fontSize: 13, padding: '9px 16px', borderRadius: 8, border: `1px solid ${loggedJobs.has(selectedJob.job_id) ? '#b6ecd8' : '#dce4ef'}`, background: loggedJobs.has(selectedJob.job_id) ? '#f0fbf6' : '#fff', color: loggedJobs.has(selectedJob.job_id) ? '#1D9E75' : '#6b7c93', cursor: 'pointer', fontFamily: 'inherit', fontWeight: 500 }}>
-                  {loggedJobs.has(selectedJob.job_id) ? 'Ã¢Å" Applied' : 'Log applied'}
+                  {loggedJobs.has(selectedJob.job_id) ? '\u2713 Applied' : 'Log applied'}
                 </button>
               </div>
             </div>
           )}
 
+          {/* Build CV tab â€” navigate to CV Builder */}
           {activeRight === 'cv' && (
-            cvLoading ? (
-              <div style={{ textAlign: 'center', padding: '40px 0' }}>
-                <div style={{ width: 36, height: 36, borderRadius: '50%', border: '3px solid #edf1f6', borderTopColor: '#378ADD', animation: 'spin 0.8s linear infinite', margin: '0 auto 14px' }} />
-                <div style={{ fontSize: 13, color: '#6b7c93' }}>Tailoring your CV...</div>
+            <div style={{ textAlign: 'center', padding: '48px 24px' }}>
+              <div style={{ width: 60, height: 60, borderRadius: '50%', background: 'linear-gradient(135deg, #E6F1FB, #dbeafe)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 26, margin: '0 auto 16px' }}>&#128196;</div>
+              <div style={{ fontSize: 15, fontWeight: 700, color: '#1a2332', fontFamily: "'Outfit', sans-serif", marginBottom: 8 }}>
+                {cvText ? `Tailor your CV for ${selectedJob.employer_name}` : 'No CV uploaded yet'}
               </div>
-            ) : tailoredCv ? (
-              <div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-                  <div style={{ fontSize: 12, fontWeight: 600, color: '#1D9E75' }}>Ã¢Å" CV tailored for {selectedJob.employer_name}</div>
-                  <button onClick={() => downloadText(tailoredCv, `CV_${selectedJob.employer_name}.txt`)} style={{ fontSize: 12, padding: '6px 14px', borderRadius: 8, background: 'linear-gradient(135deg, #042C53, #185FA5)', color: '#fff', border: 'none', cursor: 'pointer', fontFamily: 'inherit', fontWeight: 600 }}>
-                    Ã¢â " Download
-                  </button>
-                </div>
-                <pre style={{ fontSize: 12, color: '#1a2332', lineHeight: 1.75, whiteSpace: 'pre-wrap', fontFamily: "'DM Sans', sans-serif", background: '#fafbfd', borderRadius: 10, padding: 16, margin: 0, border: '1px solid #edf1f6' }}>{tailoredCv}</pre>
+              <div style={{ fontSize: 13, color: '#8fa3b8', lineHeight: 1.7, marginBottom: 24, maxWidth: 280, margin: '0 auto 24px' }}>
+                {cvText
+                  ? 'Open the CV Builder to choose a template, tone, language and generate a tailored CV with full download options.'
+                  : 'Upload your CV in the left sidebar first, then come back to build a tailored version.'}
               </div>
-            ) : (
-              <div style={{ textAlign: 'center', padding: '40px 0' }}>
-                <div style={{ width: 56, height: 56, borderRadius: '50%', background: 'linear-gradient(135deg, #E6F1FB, #dbeafe)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24, margin: '0 auto 14px' }}>Ã¢Å¡Â¡</div>
-                <div style={{ fontSize: 14, fontWeight: 700, color: '#1a2332', marginBottom: 6 }}>{cvText ? 'Ready to tailor your CV' : 'No CV uploaded yet'}</div>
-                <div style={{ fontSize: 13, color: '#8fa3b8', lineHeight: 1.6, marginBottom: 16 }}>{cvText ? 'Click below to generate a role-specific CV' : 'Upload your CV in the left sidebar first'}</div>
-                {cvText && <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}><button onClick={() => generateCv()} style={{ fontSize: 13, padding: '10px 24px', borderRadius: 10, background: 'linear-gradient(135deg, #042C53, #185FA5)', color: '#fff', border: 'none', cursor: 'pointer', fontFamily: "'Outfit', sans-serif", fontWeight: 700 }}>Build Tailored CV</button><button onClick={() => { sessionStorage.setItem('jl_cvb_job', JSON.stringify(selectedJob)); router.push('/app/cv-builder') }} style={{ fontSize: 13, padding: '10px 24px', borderRadius: 10, background: '#fff', color: '#042C53', border: '1.5px solid #042C53', cursor: 'pointer', fontFamily: "'Outfit', sans-serif", fontWeight: 700 }}>Open in CV Builder →</button></div>}
-              </div>
-            )
+              {cvText && (
+                <button
+                  onClick={() => openCvBuilder(selectedJob)}
+                  style={{ padding: '11px 28px', borderRadius: 10, background: 'linear-gradient(135deg, #042C53, #185FA5)', color: '#fff', border: 'none', cursor: 'pointer', fontFamily: "'Outfit', sans-serif", fontSize: 14, fontWeight: 700 }}
+                >
+                  Open CV Builder &rarr;
+                </button>
+              )}
+            </div>
           )}
 
+          {/* Cover Letter tab â€” navigate to Cover Letter Builder */}
           {activeRight === 'cl' && (
-            clLoading ? (
-              <div style={{ textAlign: 'center', padding: '40px 0' }}>
-                <div style={{ width: 36, height: 36, borderRadius: '50%', border: '3px solid #edf1f6', borderTopColor: '#378ADD', animation: 'spin 0.8s linear infinite', margin: '0 auto 14px' }} />
-                <div style={{ fontSize: 13, color: '#6b7c93' }}>Writing your cover letter...</div>
+            <div style={{ textAlign: 'center', padding: '48px 24px' }}>
+              <div style={{ width: 60, height: 60, borderRadius: '50%', background: 'linear-gradient(135deg, #FFF8EC, #fef3c7)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 26, margin: '0 auto 16px' }}>&#9997;</div>
+              <div style={{ fontSize: 15, fontWeight: 700, color: '#1a2332', fontFamily: "'Outfit', sans-serif", marginBottom: 8 }}>
+                {cvText ? `Write a cover letter for ${selectedJob.employer_name}` : 'No CV uploaded yet'}
               </div>
-            ) : coverLetter ? (
-              <div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-                  <div style={{ fontSize: 12, fontWeight: 600, color: '#1D9E75' }}>Ã¢Å" Cover letter for {selectedJob.employer_name}</div>
-                  <button onClick={() => downloadText(coverLetter, `CoverLetter_${selectedJob.employer_name}.txt`)} style={{ fontSize: 12, padding: '6px 14px', borderRadius: 8, background: 'linear-gradient(135deg, #042C53, #185FA5)', color: '#fff', border: 'none', cursor: 'pointer', fontFamily: 'inherit', fontWeight: 600 }}>
-                    Ã¢â " Download
-                  </button>
-                </div>
-                <pre style={{ fontSize: 12, color: '#1a2332', lineHeight: 1.75, whiteSpace: 'pre-wrap', fontFamily: "'DM Sans', sans-serif", background: '#fafbfd', borderRadius: 10, padding: 16, margin: 0, border: '1px solid #edf1f6' }}>{coverLetter}</pre>
+              <div style={{ fontSize: 13, color: '#8fa3b8', lineHeight: 1.7, marginBottom: 24, maxWidth: 280, margin: '0 auto 24px' }}>
+                {cvText
+                  ? 'Open the Cover Letter Builder to set your tone, language and length, then generate and download a personalised letter.'
+                  : 'Upload your CV in the left sidebar first, then come back to write your cover letter.'}
               </div>
-            ) : (
-              <div style={{ textAlign: 'center', padding: '40px 0' }}>
-                <div style={{ width: 56, height: 56, borderRadius: '50%', background: 'linear-gradient(135deg, #FFF8EC, #fef3c7)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24, margin: '0 auto 14px' }}>Ã¢Åâ°</div>
-                <div style={{ fontSize: 14, fontWeight: 700, color: '#1a2332', marginBottom: 6 }}>{cvText ? 'Ready to write your cover letter' : 'No CV uploaded yet'}</div>
-                <div style={{ fontSize: 13, color: '#8fa3b8', lineHeight: 1.6, marginBottom: 16 }}>{cvText ? 'Click below to generate a personalised cover letter' : 'Upload your CV in the left sidebar first'}</div>
-                {cvText && <button onClick={() => generateCoverLetter()} style={{ fontSize: 13, padding: '10px 24px', borderRadius: 10, background: 'linear-gradient(135deg, #042C53, #185FA5)', color: '#fff', border: 'none', cursor: 'pointer', fontFamily: "'Outfit', sans-serif", fontWeight: 700 }}>Write Cover Letter</button>}
-              </div>
-            )
+              {cvText && (
+                <button
+                  onClick={() => openCoverLetter(selectedJob)}
+                  style={{ padding: '11px 28px', borderRadius: 10, background: 'linear-gradient(135deg, #042C53, #185FA5)', color: '#fff', border: 'none', cursor: 'pointer', fontFamily: "'Outfit', sans-serif", fontSize: 14, fontWeight: 700 }}
+                >
+                  Open Cover Letter Builder &rarr;
+                </button>
+              )}
+            </div>
           )}
+
         </div>
       </div>
     )
@@ -501,7 +494,7 @@ function SmartJobSearchPage() {
 
       {carriedOver && (
         <div style={{ background: 'rgba(74,222,128,0.15)', border: '1px solid rgba(74,222,128,0.3)', borderRadius: 8, padding: '8px 12px', fontSize: 12, color: '#4ade80', fontWeight: 500 }}>
-          Ã¢Å" CV carried over from Career Scan
+          &#10003; CV carried over from Career Scan
         </div>
       )}
 
@@ -617,21 +610,21 @@ function SmartJobSearchPage() {
           <div style={{ padding: 20 }}>
             {jobs.length > 0 && !loading && (
               <div style={{ marginBottom: 16 }}>
-                <div style={{ fontSize: 20, fontWeight: 700, color: '#042C53', fontFamily: "'Outfit', sans-serif" }}>Matching Jobs Ã¢â¬" {usedQuery}</div>
+                <div style={{ fontSize: 20, fontWeight: 700, color: '#042C53', fontFamily: "'Outfit', sans-serif" }}>Matching Jobs &mdash; {usedQuery}</div>
                 <div style={{ fontSize: 12, color: '#8fa3b8', marginTop: 2 }}>{jobs.length} live positions found</div>
               </div>
             )}
 
             {!loading && !analysing && jobs.length === 0 && !error && (
               <div style={{ textAlign: 'center', padding: '80px 20px' }}>
-                <div style={{ width: 80, height: 80, borderRadius: '50%', background: 'linear-gradient(135deg, #E6F1FB, #dbeafe)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 36, margin: '0 auto 20px' }}>Ã°Å¸"Â</div>
+                <div style={{ width: 80, height: 80, borderRadius: '50%', background: 'linear-gradient(135deg, #E6F1FB, #dbeafe)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 36, margin: '0 auto 20px' }}>&#128269;</div>
                 <div style={{ fontSize: 20, fontWeight: 700, color: '#1a2332', fontFamily: "'Outfit', sans-serif", marginBottom: 10 }}>Find your next role</div>
                 <div style={{ fontSize: 14, color: '#8fa3b8', lineHeight: 1.8, maxWidth: 380, margin: '0 auto' }}>
-                  Upload your LinkedIn PDF or CV Ã¢â¬" AI will extract your profile and find the best matching jobs automatically.
+                  Upload your LinkedIn PDF or CV &mdash; AI will extract your profile and find the best matching jobs automatically.
                 </div>
                 {carriedOver && (
                   <div style={{ marginTop: 16, fontSize: 13, color: '#1D9E75', background: '#f0fbf6', borderRadius: 10, padding: '10px 20px', display: 'inline-block', border: '1px solid #b6ecd8' }}>
-                    Ã¢Å" CV from Career Scan is loaded Ã¢â¬" click Find Matching Jobs
+                    &#10003; CV from Career Scan is loaded &mdash; click Find Matching Jobs
                   </div>
                 )}
               </div>
@@ -639,7 +632,7 @@ function SmartJobSearchPage() {
 
             {error && (
               <div style={{ background: '#FEF2F2', border: '1px solid #FECACA', borderRadius: 12, padding: '14px 16px', fontSize: 13, color: '#991B1B', marginBottom: 16 }}>
-                Ã¢ÂÅ {error}
+                &#10007; {error}
               </div>
             )}
 
