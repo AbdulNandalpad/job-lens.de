@@ -1,4 +1,4 @@
-﻿'use client'
+ï»¿'use client'
 
 import React, { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
@@ -98,7 +98,7 @@ export default function CVBuilderPage() {
       try {
         const parsed = JSON.parse(jobRaw)
         setJob(parsed)
-        setJobLabel(`${parsed.employer_name} — ${parsed.job_title}`)
+        setJobLabel(`${parsed.employer_name} - ${parsed.job_title}`)
       } catch { }
     } else if (savedRole) {
       setJobLabel(savedRole)
@@ -160,7 +160,7 @@ export default function CVBuilderPage() {
             {jobLabel && <div style={{ fontSize: 13, color: '#6b7c93', marginTop: 3 }}>Tailored for: {jobLabel}</div>}
           </div>
           <button onClick={() => router.push('/app/smart-apply')} style={{ fontSize: 13, color: '#378ADD', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit' }}>
-            ← Back to jobs
+            â Back to jobs
           </button>
         </div>
 
@@ -188,7 +188,7 @@ export default function CVBuilderPage() {
             <ToggleBtn value="2" current={pages} onClick={() => setPages('2')}>2 pages</ToggleBtn>
           </div>
           <button onClick={generate} disabled={loading || !cvText.trim()} style={{ padding: '8px 22px', borderRadius: 8, background: loading || !cvText.trim() ? '#dde4ee' : '#042C53', color: loading || !cvText.trim() ? '#9ab' : '#fff', border: 'none', cursor: loading || !cvText.trim() ? 'not-allowed' : 'pointer', fontFamily: "'Outfit', sans-serif", fontSize: 13, fontWeight: 700 }}>
-            {loading ? 'Generating...' : tailoredCv ? 'Regenerate ↗' : 'Generate ↗'}
+            {loading ? 'Generating...' : tailoredCv ? 'Regenerate â' : 'Generate â'}
           </button>
         </div>
 
@@ -203,7 +203,7 @@ export default function CVBuilderPage() {
           ) : (
             <div style={{ textAlign: 'center', padding: '60px 0', color: '#6b7c93' }}>
               <div style={{ fontSize: 15, fontWeight: 600, color: '#042C53', marginBottom: 8 }}>
-                {cvText ? 'Choose your options and click Generate' : 'No CV found — go back and upload your CV in Smart Job Search'}
+                {cvText ? 'Choose your options and click Generate' : 'No CV found - go back and upload your CV in Smart Job Search'}
               </div>
               <div style={{ fontSize: 13 }}>Your tailored CV will appear here</div>
             </div>
@@ -213,17 +213,17 @@ export default function CVBuilderPage() {
         {tailoredCv && (
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 20, flexWrap: 'wrap' }}>
             <button onClick={() => downloadText(tailoredCv, `CV_${job?.employer_name || 'JobLens'}.pdf`)} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '10px 20px', borderRadius: 8, background: '#042C53', color: '#fff', border: 'none', cursor: 'pointer', fontFamily: "'Outfit', sans-serif", fontSize: 13, fontWeight: 700 }}>
-              ⬇ Download PDF
+              â¬ Download PDF
             </button>
             <button onClick={() => downloadText(tailoredCv, `CV_${job?.employer_name || 'JobLens'}.docx`)} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '10px 20px', borderRadius: 8, background: '#fff', color: '#042C53', border: '1.5px solid #042C53', cursor: 'pointer', fontFamily: "'Outfit', sans-serif", fontSize: 13, fontWeight: 700 }}>
-              ⬇ Download DOCX
+              â¬ Download DOCX
             </button>
             <button onClick={() => navigator.clipboard.writeText(tailoredCv)} style={{ padding: '10px 20px', borderRadius: 8, background: '#fff', color: '#6b7c93', border: '1px solid #dde4ee', cursor: 'pointer', fontFamily: 'inherit', fontSize: 13 }}>
               Copy text
             </button>
             <div style={{ flex: 1 }} />
             <button onClick={goToCoverLetter} style={{ padding: '10px 24px', borderRadius: 8, background: 'linear-gradient(135deg, #1D9E75, #059669)', color: '#fff', border: 'none', cursor: 'pointer', fontFamily: "'Outfit', sans-serif", fontSize: 13, fontWeight: 700 }}>
-              Go to Cover Letter →
+              Go to Cover Letter ->
             </button>
           </div>
         )}

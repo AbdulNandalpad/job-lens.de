@@ -1,4 +1,4 @@
-﻿'use client'
+ï»¿'use client'
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
@@ -59,7 +59,7 @@ export default function ApplyNowPage() {
   const progressPct = Math.round((progress / 3) * 100)
 
   const salary = job?.job_min_salary && job?.job_max_salary
-    ? `${job.job_salary_currency || 'EUR'} ${Math.round(job.job_min_salary / 1000)}–${Math.round(job.job_max_salary / 1000)}k`
+    ? `${job.job_salary_currency || 'EUR'} ${Math.round(job.job_min_salary / 1000)}-${Math.round(job.job_max_salary / 1000)}k`
     : null
 
   const STEPS = [
@@ -120,7 +120,7 @@ export default function ApplyNowPage() {
           {/* CV Panel */}
           <div style={{ background: '#fff', border: '1px solid #edf1f6', borderRadius: 14, overflow: 'hidden' }}>
             <div style={{ padding: '12px 16px', borderBottom: '1px solid #edf1f6', fontSize: 13, fontWeight: 600, color: '#042C53' }}>
-              CV — {job?.employer_name || 'Your CV'}
+              CV - {job?.employer_name || 'Your CV'}
             </div>
             {/* Mini preview */}
             <div style={{ padding: '12px 16px', borderBottom: '1px solid #edf1f6', background: '#fafbfd', minHeight: 80 }}>
@@ -134,7 +134,7 @@ export default function ApplyNowPage() {
             </div>
             <div style={{ padding: 16 }}>
               <div style={{ fontSize: 12, color: '#6b7c93', marginBottom: 10 }}>
-                Step 1 — Get your tailored CV<br />
+                Step 1 - Get your tailored CV<br />
                 <span style={{ color: '#8fa3b8' }}>Modern template · {job?.job_title || 'Your role'}</span>
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 12 }}>
@@ -148,7 +148,7 @@ export default function ApplyNowPage() {
               <div style={{ display: 'flex', gap: 8 }}>
                 <input value={email} onChange={e => setEmail(e.target.value)} style={{ flex: 1, padding: '8px 12px', borderRadius: 8, border: '1px solid #dde4ee', fontSize: 12, fontFamily: 'inherit', outline: 'none', color: '#1a2332' }} />
                 <button onClick={() => sendEmail('cv')} style={{ padding: '8px 16px', borderRadius: 8, background: '#378ADD', color: '#fff', border: 'none', cursor: 'pointer', fontSize: 12, fontWeight: 700, fontFamily: 'inherit', minWidth: 60 }}>
-                  {sending === 'cv' ? '...' : sent.cv ? '✓' : 'Send'}
+                  {sending === 'cv' ? '...' : sent.cv ? 'v' : 'Send'}
                 </button>
               </div>
             </div>
@@ -157,7 +157,7 @@ export default function ApplyNowPage() {
           {/* Cover Letter Panel */}
           <div style={{ background: '#fff', border: '1px solid #edf1f6', borderRadius: 14, overflow: 'hidden' }}>
             <div style={{ padding: '12px 16px', borderBottom: '1px solid #edf1f6', fontSize: 13, fontWeight: 600, color: '#042C53' }}>
-              Cover Letter — {job?.employer_name || 'Company'}
+              Cover Letter - {job?.employer_name || 'Company'}
             </div>
             <div style={{ padding: '12px 16px', borderBottom: '1px solid #edf1f6', background: '#fafbfd', minHeight: 80 }}>
               {coverLetter ? (
@@ -170,7 +170,7 @@ export default function ApplyNowPage() {
             </div>
             <div style={{ padding: 16 }}>
               <div style={{ fontSize: 12, color: '#6b7c93', marginBottom: 10 }}>
-                Step 2 — Get your cover letter<br />
+                Step 2 - Get your cover letter<br />
                 <span style={{ color: '#8fa3b8' }}>Confident tone · Personalised for {job?.employer_name || 'company'}</span>
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 12 }}>
@@ -184,7 +184,7 @@ export default function ApplyNowPage() {
               <div style={{ display: 'flex', gap: 8 }}>
                 <input value={email} onChange={e => setEmail(e.target.value)} style={{ flex: 1, padding: '8px 12px', borderRadius: 8, border: '1px solid #dde4ee', fontSize: 12, fontFamily: 'inherit', outline: 'none', color: '#1a2332' }} />
                 <button onClick={() => sendEmail('cl')} style={{ padding: '8px 16px', borderRadius: 8, background: '#378ADD', color: '#fff', border: 'none', cursor: 'pointer', fontSize: 12, fontWeight: 700, fontFamily: 'inherit', minWidth: 60 }}>
-                  {sending === 'cl' ? '...' : sent.cl ? '✓' : 'Send'}
+                  {sending === 'cl' ? '...' : sent.cl ? 'v' : 'Send'}
                 </button>
               </div>
             </div>
@@ -213,14 +213,14 @@ export default function ApplyNowPage() {
               <a href={job.job_apply_link} target="_blank" rel="noopener noreferrer"
                 onClick={() => toggleCheck('applied')}
                 style={{ padding: '10px 24px', borderRadius: 8, background: 'linear-gradient(135deg, #042C53, #185FA5)', color: '#fff', textDecoration: 'none', fontFamily: "'Outfit', sans-serif", fontSize: 13, fontWeight: 700 }}>
-                Apply on company site →
+                Apply on company site ->
               </a>
             ) : (
               <div style={{ fontSize: 13, color: '#8fa3b8' }}>No job link available</div>
             )}
             <button onClick={logToTracker}
               style={{ padding: '10px 24px', borderRadius: 8, background: checks.applied ? 'linear-gradient(135deg, #1D9E75, #059669)' : '#edf1f6', color: checks.applied ? '#fff' : '#9ab', border: 'none', cursor: checks.applied ? 'pointer' : 'not-allowed', fontFamily: "'Outfit', sans-serif", fontSize: 13, fontWeight: 700, transition: 'all 0.2s' }}>
-              ✓ Log this application →
+              v Log this application ->
             </button>
           </div>
         </div>

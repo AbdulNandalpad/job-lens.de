@@ -1,4 +1,4 @@
-﻿'use client'
+ï»¿'use client'
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
@@ -66,7 +66,7 @@ export default function CoverLetterPage() {
     router.push('/app/apply-now')
   }
 
-  const jobLabel = job ? `${job.employer_name} — ${job.job_title}` : ''
+  const jobLabel = job ? `${job.employer_name} - ${job.job_title}` : ''
 
   const ToggleBtn = ({ value, current, onClick, children }: { value: string; current: string; onClick: () => void; children: React.ReactNode }) => (
     <button onClick={onClick} style={{ padding: '7px 18px', borderRadius: 8, border: `1.5px solid ${current === value ? '#042C53' : '#dde4ee'}`, background: current === value ? '#042C53' : '#fff', color: current === value ? '#fff' : '#6b7c93', fontSize: 13, fontWeight: current === value ? 700 : 400, cursor: 'pointer', fontFamily: "'DM Sans', sans-serif", transition: 'all 0.15s' }}>
@@ -91,7 +91,7 @@ export default function CoverLetterPage() {
             {jobLabel && <div style={{ fontSize: 13, color: '#6b7c93', marginTop: 3 }}>Tailored for: {jobLabel}</div>}
           </div>
           <button onClick={() => router.push('/app/cv-builder')} style={{ fontSize: 13, color: '#378ADD', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit' }}>
-            ← Back to CV
+            â Back to CV
           </button>
         </div>
 
@@ -118,7 +118,7 @@ export default function CoverLetterPage() {
             <ToggleBtn value="long" current={length} onClick={() => setLength('long')}>Long</ToggleBtn>
           </div>
           <button onClick={generate} disabled={loading || !cvText.trim()} style={{ padding: '8px 22px', borderRadius: 8, background: loading || !cvText.trim() ? '#dde4ee' : '#042C53', color: loading || !cvText.trim() ? '#9ab' : '#fff', border: 'none', cursor: loading || !cvText.trim() ? 'not-allowed' : 'pointer', fontFamily: "'Outfit', sans-serif", fontSize: 13, fontWeight: 700 }}>
-            {loading ? 'Generating...' : letter ? 'Regenerate ↗' : 'Generate ↗'}
+            {loading ? 'Generating...' : letter ? 'Regenerate â' : 'Generate â'}
           </button>
         </div>
 
@@ -134,7 +134,7 @@ export default function CoverLetterPage() {
           ) : (
             <div style={{ textAlign: 'center', padding: '60px 0' }}>
               <div style={{ fontSize: 15, fontWeight: 600, color: '#042C53', marginBottom: 8 }}>
-                {cvText ? 'Choose your tone and click Generate' : 'No CV found — go back and upload your CV first'}
+                {cvText ? 'Choose your tone and click Generate' : 'No CV found - go back and upload your CV first'}
               </div>
               <div style={{ fontSize: 13, color: '#6b7c93' }}>Your cover letter will appear here</div>
             </div>
@@ -145,17 +145,17 @@ export default function CoverLetterPage() {
         {letter && (
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 20, flexWrap: 'wrap' }}>
             <button onClick={() => downloadText(letter, `CoverLetter_${job?.employer_name || 'JobLens'}.pdf`)} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '10px 20px', borderRadius: 8, background: '#042C53', color: '#fff', border: 'none', cursor: 'pointer', fontFamily: "'Outfit', sans-serif", fontSize: 13, fontWeight: 700 }}>
-              ⬇ Download PDF
+              â¬ Download PDF
             </button>
             <button onClick={() => downloadText(letter, `CoverLetter_${job?.employer_name || 'JobLens'}.docx`)} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '10px 20px', borderRadius: 8, background: '#fff', color: '#042C53', border: '1.5px solid #042C53', cursor: 'pointer', fontFamily: "'Outfit', sans-serif", fontSize: 13, fontWeight: 700 }}>
-              ⬇ Download DOCX
+              â¬ Download DOCX
             </button>
             <button onClick={copyText} style={{ padding: '10px 20px', borderRadius: 8, background: '#fff', color: '#6b7c93', border: '1px solid #dde4ee', cursor: 'pointer', fontFamily: 'inherit', fontSize: 13 }}>
               Copy text
             </button>
             <div style={{ flex: 1 }} />
             <button onClick={goApply} style={{ padding: '10px 24px', borderRadius: 8, background: 'linear-gradient(135deg, #1D9E75, #059669)', color: '#fff', border: 'none', cursor: 'pointer', fontFamily: "'Outfit', sans-serif", fontSize: 13, fontWeight: 700 }}>
-              ✓ Applied — log it →
+              v Applied - log it ->
             </button>
           </div>
         )}

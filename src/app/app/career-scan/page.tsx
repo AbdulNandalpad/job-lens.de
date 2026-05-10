@@ -1,4 +1,4 @@
-﻿'use client'
+ï»¿'use client'
 
 import { useState, useRef, useEffect } from 'react'
 import Link from 'next/link'
@@ -314,7 +314,7 @@ export default function CareerScanPage() {
           </div>
           <div style={{ display: 'flex', gap: 8 }}>
             <button onClick={goToJobSearch} style={{ fontSize: 12, padding: '8px 18px', borderRadius: 8, background: '#fff', color: '#1D9E75', border: 'none', cursor: 'pointer', fontFamily: "'Outfit', sans-serif", fontWeight: 700 }}>
-              Find Matching Jobs â†’
+              Find Matching Jobs Ã¢â '
             </button>
             <button onClick={() => setShowJobSearchBanner(false)} style={{ fontSize: 12, padding: '8px 12px', borderRadius: 8, background: 'rgba(255,255,255,0.2)', color: '#fff', border: 'none', cursor: 'pointer' }}>
               Later
@@ -364,7 +364,7 @@ export default function CareerScanPage() {
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
             <div style={{ background: 'linear-gradient(135deg, #f0fbf6, #e8f8f2)', border: '1px solid #b6ecd8', borderRadius: 14, padding: 16 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
-                <div style={{ width: 28, height: 28, borderRadius: 8, background: '#1D9E75', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14 }}>âœ“</div>
+                <div style={{ width: 28, height: 28, borderRadius: 8, background: '#1D9E75', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14 }}>Ã¢Å"</div>
                 <div style={{ fontSize: 12, fontWeight: 700, color: '#0F6E56' }}>Strengths</div>
               </div>
               {result.strengths.map((s, i) => (
@@ -389,13 +389,13 @@ export default function CareerScanPage() {
           {/* Best-fit roles */}
           <div style={{ background: '#fff', border: '1px solid #edf1f6', borderRadius: 14, padding: 16 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
-              <div style={{ width: 28, height: 28, borderRadius: 8, background: '#E6F1FB', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14 }}>ðŸŽ¯</div>
+              <div style={{ width: 28, height: 28, borderRadius: 8, background: '#E6F1FB', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14 }}>Ã°Å¸Å½Â¯</div>
               <div style={{ fontSize: 12, fontWeight: 700, color: '#042C53' }}>Best-fit roles - click to search</div>
             </div>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
               {result.role_suggestions.map(r => (
                 <Link key={r} href={`/app/smart-apply?q=${encodeURIComponent(r)}`} style={{ display: 'inline-flex', alignItems: 'center', fontSize: 12, padding: '6px 14px', borderRadius: 20, background: 'linear-gradient(135deg, #E6F1FB, #dbeafe)', color: '#185FA5', border: '1px solid #bfdbfe', textDecoration: 'none', fontWeight: 600, transition: 'all 0.15s' }}>
-                  {r} â†’
+                  {r} Ã¢â '
                 </Link>
               ))}
             </div>
@@ -404,7 +404,7 @@ export default function CareerScanPage() {
           {/* Quick wins */}
           <div style={{ background: '#fff', border: '1px solid #edf1f6', borderRadius: 14, padding: 16 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
-              <div style={{ width: 28, height: 28, borderRadius: 8, background: '#FFF8EC', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14 }}>âš¡</div>
+              <div style={{ width: 28, height: 28, borderRadius: 8, background: '#FFF8EC', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14 }}>Ã¢Å¡Â¡</div>
               <div style={{ fontSize: 12, fontWeight: 700, color: '#042C53' }}>Quick wins - do these before applying</div>
             </div>
             {result.quick_wins.map((w, i) => (
@@ -433,7 +433,7 @@ export default function CareerScanPage() {
               Scan again
             </button>
             <button onClick={goToJobSearch} style={{ padding: '9px 20px', borderRadius: 8, background: 'linear-gradient(135deg, #042C53, #185FA5)', color: '#E6F1FB', border: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 700, fontFamily: "'Outfit', sans-serif" }}>
-              Find matching jobs â†’
+              Find matching jobs Ã¢â '
             </button>
           </div>
         </>
@@ -453,7 +453,7 @@ export default function CareerScanPage() {
             </div>
           </div>
           {[
-            result.gaps[0] && `Your CV says "${result.readiness}" but recruiters see zero quantified results. That is not a profile â€” that is a blank canvas.`,
+            result.gaps[0] && `Your CV says "${result.readiness}" but recruiters see zero quantified results. That is not a profile Ã¢â¬" that is a blank canvas.`,
             result.gaps[1] && `${result.gaps[1]} Fix it before you send a single application.`,
             result.gaps[2] && `${result.gaps[2]} You are invisible to ATS filters right now.`,
             `The good news: ${result.strengths[0]}. That is genuinely rare. You just buried it under terrible presentation.`,
@@ -479,7 +479,7 @@ export default function CareerScanPage() {
         <div style={{ background: '#fff', border: '1px solid #edf1f6', borderRadius: 16, overflow: 'hidden' }}>
           <div style={{ background: 'linear-gradient(135deg, #042C53, #073d6e)', padding: '16px 20px' }}>
             <div style={{ fontFamily: "'Outfit', sans-serif", fontSize: 15, fontWeight: 700, color: '#fff' }}>
-              Your upgrade path â€” to Senior {role}
+              Your upgrade path Ã¢â¬" to Senior {role}
             </div>
             <div style={{ fontSize: 12, color: '#85B7EB', marginTop: 4 }}>
               Estimated: 3-4 months to {result.salary_currency} {fmt(result.salary_max)}+ roles
@@ -543,7 +543,7 @@ export default function CareerScanPage() {
       `}</style>
       <Navbar />
       <div style={{ display: 'flex', minHeight: 'calc(100vh - 52px)' }}>
-        {/* Sidebar â€” dark gradient */}
+        {/* Sidebar Ã¢â¬" dark gradient */}
         <div className="jl-dsb" style={{ width: 290, flexShrink: 0, background: 'linear-gradient(180deg, #042C53 0%, #073d6e 100%)', padding: '20px 16px', flexDirection: 'column', overflowY: 'auto' }}>
           {SB}
         </div>
@@ -561,7 +561,7 @@ export default function CareerScanPage() {
           <div style={{ padding: 20 }}>
             {phase === 'upload' && (
               <div style={{ textAlign: 'center', padding: '80px 20px' }}>
-                <div style={{ width: 80, height: 80, borderRadius: '50%', background: 'linear-gradient(135deg, #E6F1FB, #dbeafe)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 36, margin: '0 auto 20px' }}>â—Ž</div>
+                <div style={{ width: 80, height: 80, borderRadius: '50%', background: 'linear-gradient(135deg, #E6F1FB, #dbeafe)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 36, margin: '0 auto 20px' }}>Ã¢-Å½</div>
                 <div style={{ fontSize: 20, fontWeight: 700, color: '#042C53', fontFamily: "'Outfit', sans-serif", marginBottom: 10 }}>Upload your CV and run the scan</div>
                 <div style={{ fontSize: 14, color: '#6b7c93', lineHeight: 1.7, maxWidth: 380, margin: '0 auto' }}>
                   Add your CV in the sidebar, enter your target role, then click Analyse My Profile.
