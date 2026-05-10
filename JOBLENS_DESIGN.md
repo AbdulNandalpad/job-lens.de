@@ -252,6 +252,16 @@ git show HEAD:src/path/to/file.tsx     # view last committed version
 - Fixed JSX.Element -> React.ReactElement type error in cv-builder
 - All 6 pages live on job-lens.de
 
+### Session — May 2026 (continued)
+- Fixed middleware redirect from /auth/login to /login
+- Fixed browser tab title from 'Create Next App' to 'Job-Lens AI'
+- Added favicon matching radar logo
+- Fixed home page buttons pointing to wrong login URL
+- Added current page name in mobile navbar header
+- Fixed BOM encoding corruption across all pages
+- Fixed broken arrow chars in JSX
+- Wired Build CV button in smart-apply to navigate to /app/cv-builder
+
 ### Next Session — TODO
 - Test full flow: Smart Apply -> CV Builder -> Cover Letter -> Apply Now -> Tracker
 - Fix any functional issues found during testing
