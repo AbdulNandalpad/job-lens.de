@@ -1,4 +1,4 @@
-ï»¿'use client'
+'use client'
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
@@ -213,15 +213,13 @@ export default function ApplyNowPage() {
               <a href={job.job_apply_link} target="_blank" rel="noopener noreferrer"
                 onClick={() => toggleCheck('applied')}
                 style={{ padding: '10px 24px', borderRadius: 8, background: 'linear-gradient(135deg, #042C53, #185FA5)', color: '#fff', textDecoration: 'none', fontFamily: "'Outfit', sans-serif", fontSize: 13, fontWeight: 700 }}>
-                Apply on company site ->
-              </a>
+                Apply on company site →</a>
             ) : (
               <div style={{ fontSize: 13, color: '#8fa3b8' }}>No job link available</div>
             )}
             <button onClick={logToTracker}
               style={{ padding: '10px 24px', borderRadius: 8, background: checks.applied ? 'linear-gradient(135deg, #1D9E75, #059669)' : '#edf1f6', color: checks.applied ? '#fff' : '#9ab', border: 'none', cursor: checks.applied ? 'pointer' : 'not-allowed', fontFamily: "'Outfit', sans-serif", fontSize: 13, fontWeight: 700, transition: 'all 0.2s' }}>
-              v Log this application ->
-            </button>
+              v Log this application →</button>
           </div>
         </div>
       </div>

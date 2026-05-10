@@ -1,4 +1,4 @@
-ï»¿'use client'
+'use client'
 
 import React, { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
@@ -223,8 +223,7 @@ export default function CVBuilderPage() {
             </button>
             <div style={{ flex: 1 }} />
             <button onClick={goToCoverLetter} style={{ padding: '10px 24px', borderRadius: 8, background: 'linear-gradient(135deg, #1D9E75, #059669)', color: '#fff', border: 'none', cursor: 'pointer', fontFamily: "'Outfit', sans-serif", fontSize: 13, fontWeight: 700 }}>
-              Go to Cover Letter ->
-            </button>
+              Go to Cover Letter →</button>
           </div>
         )}
 

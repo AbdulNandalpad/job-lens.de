@@ -1,4 +1,4 @@
-ï»¿'use client'
+'use client'
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
@@ -119,8 +119,7 @@ export default function TrackerPage() {
             <div style={{ fontSize: 15, fontWeight: 600, color: '#042C53', marginBottom: 8 }}>No applications logged yet</div>
             <div style={{ fontSize: 13, color: '#6b7c93', marginBottom: 20 }}>Applications logged via Job-Lens or manually will appear here</div>
             <button onClick={() => router.push('/app/smart-apply')} style={{ padding: '10px 24px', borderRadius: 8, background: 'linear-gradient(135deg, #042C53, #185FA5)', color: '#fff', border: 'none', cursor: 'pointer', fontFamily: "'Outfit', sans-serif", fontSize: 13, fontWeight: 700 }}>
-              Find jobs ->
-            </button>
+              Find jobs →</button>
           </div>
         ) : (
           <div style={{ background: '#fff', border: '1px solid #edf1f6', borderRadius: 14, overflow: 'hidden' }}>

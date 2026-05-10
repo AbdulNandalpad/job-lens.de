@@ -1,4 +1,4 @@
-ï»¿'use client'
+'use client'
 
 import { useState, useRef, useEffect, Suspense } from 'react'
 import { useRouter } from 'next/navigation'
@@ -457,7 +457,7 @@ function SmartJobSearchPage() {
                 <div style={{ width: 56, height: 56, borderRadius: '50%', background: 'linear-gradient(135deg, #E6F1FB, #dbeafe)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24, margin: '0 auto 14px' }}>Ã¢Å¡Â¡</div>
                 <div style={{ fontSize: 14, fontWeight: 700, color: '#1a2332', marginBottom: 6 }}>{cvText ? 'Ready to tailor your CV' : 'No CV uploaded yet'}</div>
                 <div style={{ fontSize: 13, color: '#8fa3b8', lineHeight: 1.6, marginBottom: 16 }}>{cvText ? 'Click below to generate a role-specific CV' : 'Upload your CV in the left sidebar first'}</div>
-                {cvText && <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}><button onClick={() => generateCv()} style={{ fontSize: 13, padding: '10px 24px', borderRadius: 10, background: 'linear-gradient(135deg, #042C53, #185FA5)', color: '#fff', border: 'none', cursor: 'pointer', fontFamily: "'Outfit', sans-serif", fontWeight: 700 }}>Build Tailored CV</button><button onClick={() => { sessionStorage.setItem('jl_cvb_job', JSON.stringify(selectedJob)); router.push('/app/cv-builder') }} style={{ fontSize: 13, padding: '10px 24px', borderRadius: 10, background: '#fff', color: '#042C53', border: '1.5px solid #042C53', cursor: 'pointer', fontFamily: "'Outfit', sans-serif", fontWeight: 700 }}>Open in CV Builder -></button></div>}
+                {cvText && <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}><button onClick={() => generateCv()} style={{ fontSize: 13, padding: '10px 24px', borderRadius: 10, background: 'linear-gradient(135deg, #042C53, #185FA5)', color: '#fff', border: 'none', cursor: 'pointer', fontFamily: "'Outfit', sans-serif", fontWeight: 700 }}>Build Tailored CV</button><button onClick={() => { sessionStorage.setItem('jl_cvb_job', JSON.stringify(selectedJob)); router.push('/app/cv-builder') }} style={{ fontSize: 13, padding: '10px 24px', borderRadius: 10, background: '#fff', color: '#042C53', border: '1.5px solid #042C53', cursor: 'pointer', fontFamily: "'Outfit', sans-serif", fontWeight: 700 }}>Open in CV Builder →</button></div>}
               </div>
             )
           )}
