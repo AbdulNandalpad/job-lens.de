@@ -63,9 +63,9 @@ export default function HomePage() {
   }, [])
 
   const features = [
-    { icon: '◎', title: 'Career Scan', desc: 'Upload your CV and get an honest AI analysis. Strengths, gaps, salary estimate, quick wins - in 30 seconds.', href: user ? '/app/career-scan' : '/auth/login', cta: 'Scan my profile', bg: '#E6F1FB', color: '#185FA5' },
-    { icon: '🔍', title: 'Smart Job Search', desc: 'AI reads your CV and finds the best matching jobs across Germany and Switzerland. Live postings, real companies.', href: user ? '/app/smart-apply' : '/auth/login', cta: 'Find matching jobs', bg: '#E1F5EE', color: '#1D9E75' },
-    { icon: '📄', title: 'AI CV & Cover Letter', desc: 'One click to generate a tailored CV and cover letter for any job. Optimised for ATS and DACH hiring managers.', href: user ? '/app/smart-apply' : '/auth/login', cta: 'Tailor my CV', bg: '#FFF8EC', color: '#BA7517' },
+    { icon: '◎', title: 'Career Scan', desc: 'Upload your CV and get an honest AI analysis. Strengths, gaps, salary estimate, quick wins - in 30 seconds.', href: user ? '/app/career-scan' : '/login', cta: 'Scan my profile', bg: '#E6F1FB', color: '#185FA5' },
+    { icon: '🔍', title: 'Smart Job Search', desc: 'AI reads your CV and finds the best matching jobs across Germany and Switzerland. Live postings, real companies.', href: user ? '/app/smart-apply' : '/login', cta: 'Find matching jobs', bg: '#E1F5EE', color: '#1D9E75' },
+    { icon: '📄', title: 'AI CV & Cover Letter', desc: 'One click to generate a tailored CV and cover letter for any job. Optimised for ATS and DACH hiring managers.', href: user ? '/app/smart-apply' : '/login', cta: 'Tailor my CV', bg: '#FFF8EC', color: '#BA7517' },
   ]
 
   const steps = [
@@ -179,10 +179,10 @@ export default function HomePage() {
           </p>
 
           <div className="jl-hero-btns" style={{ display: 'flex', gap: 14, justifyContent: 'center', flexWrap: 'wrap' }}>
-            <Link href={user ? '/app/career-scan' : '/auth/login'} className="jl-cta-btn" style={{ padding: '14px 32px', borderRadius: 12, background: '#378ADD', color: '#fff', textDecoration: 'none', fontWeight: 700, fontFamily: "'Outfit', sans-serif", fontSize: 15 }}>
+            <Link href={user ? '/app/career-scan' : '/login'} className="jl-cta-btn" style={{ padding: '14px 32px', borderRadius: 12, background: '#378ADD', color: '#fff', textDecoration: 'none', fontWeight: 700, fontFamily: "'Outfit', sans-serif", fontSize: 15 }}>
               Get Started Free
             </Link>
-            <Link href={user ? '/app/smart-apply' : '/auth/login'} className="jl-cta-btn" style={{ padding: '14px 32px', borderRadius: 12, background: 'rgba(255,255,255,0.08)', color: '#E6F1FB', textDecoration: 'none', fontWeight: 600, fontFamily: "'Outfit', sans-serif", fontSize: 15, border: '1px solid rgba(255,255,255,0.2)', backdropFilter: 'blur(4px)' }}>
+            <Link href={user ? '/app/smart-apply' : '/login'} className="jl-cta-btn" style={{ padding: '14px 32px', borderRadius: 12, background: 'rgba(255,255,255,0.08)', color: '#E6F1FB', textDecoration: 'none', fontWeight: 600, fontFamily: "'Outfit', sans-serif", fontSize: 15, border: '1px solid rgba(255,255,255,0.2)', backdropFilter: 'blur(4px)' }}>
               Smart Job Search
             </Link>
           </div>
@@ -278,10 +278,10 @@ export default function HomePage() {
               Free to use - No credit card required - Built for DACH job seekers
             </div>
             <div className="jl-cta-grid" style={{ maxWidth: 420, margin: '0 auto' }}>
-              <Link href={user ? '/app/career-scan' : '/auth/login'} className="jl-cta-btn" style={{ padding: '13px 0', borderRadius: 10, background: '#378ADD', color: '#fff', textDecoration: 'none', fontWeight: 700, fontFamily: "'Outfit', sans-serif", fontSize: 14, display: 'block', textAlign: 'center' }}>
+              <Link href={user ? '/app/career-scan' : '/login'} className="jl-cta-btn" style={{ padding: '13px 0', borderRadius: 10, background: '#378ADD', color: '#fff', textDecoration: 'none', fontWeight: 700, fontFamily: "'Outfit', sans-serif", fontSize: 14, display: 'block', textAlign: 'center' }}>
                 Career Scan
               </Link>
-              <Link href={user ? '/app/smart-apply' : '/auth/login'} className="jl-cta-btn" style={{ padding: '13px 0', borderRadius: 10, background: 'rgba(255,255,255,0.1)', color: '#E6F1FB', textDecoration: 'none', fontWeight: 600, fontFamily: "'Outfit', sans-serif", fontSize: 14, border: '1px solid rgba(255,255,255,0.2)', display: 'block', textAlign: 'center' }}>
+              <Link href={user ? '/app/smart-apply' : '/login'} className="jl-cta-btn" style={{ padding: '13px 0', borderRadius: 10, background: 'rgba(255,255,255,0.1)', color: '#E6F1FB', textDecoration: 'none', fontWeight: 600, fontFamily: "'Outfit', sans-serif", fontSize: 14, border: '1px solid rgba(255,255,255,0.2)', display: 'block', textAlign: 'center' }}>
                 Smart Job Search
               </Link>
             </div>
