@@ -63,9 +63,10 @@ export default function HomePage() {
   }, [])
 
   const features = [
-    { icon: '◎', title: 'Career Scan', desc: 'Upload your CV and get an honest AI analysis. Strengths, gaps, salary estimate, quick wins - in 30 seconds.', href: user ? '/app/career-scan' : '/login', cta: 'Scan my profile', bg: '#E6F1FB', color: '#185FA5' },
-    { icon: '🔍', title: 'Smart Job Search', desc: 'AI reads your CV and finds the best matching jobs across Germany and Switzerland. Live postings, real companies.', href: user ? '/app/smart-apply' : '/login', cta: 'Find matching jobs', bg: '#E1F5EE', color: '#1D9E75' },
-    { icon: '📄', title: 'AI CV & Cover Letter', desc: 'One click to generate a tailored CV and cover letter for any job. Optimised for ATS and DACH hiring managers.', href: user ? '/app/cv-builder' : '/login', cta: 'Tailor my CV', bg: '#FFF8EC', color: '#BA7517' },
+    { icon: '◎', title: 'Career Scan', desc: 'Upload your CV and get an honest AI analysis. Strengths, gaps, salary estimate, quick wins — in 30 seconds.', href: user ? '/app/career-scan' : '/login', cta: 'Scan my profile', bg: '#E6F1FB', color: '#185FA5', badge: null },
+    { icon: '🔍', title: 'Smart Job Search', desc: 'AI reads your CV and finds the best matching jobs across Germany and Switzerland. Live postings, real companies.', href: user ? '/app/smart-apply' : '/login', cta: 'Find matching jobs', bg: '#E1F5EE', color: '#1D9E75', badge: null },
+    { icon: '📄', title: 'AI CV & Cover Letter', desc: 'One click to generate a tailored CV and cover letter for any job. Optimised for ATS and DACH hiring managers.', href: user ? '/app/cv-builder' : '/login', cta: 'Tailor my CV', bg: '#FFF8EC', color: '#BA7517', badge: null },
+    { icon: '⚡', title: 'Auto Apply', desc: 'Point it at any job listing and AI fills the application form for you — name, experience, cover letter, file uploads. You just review and submit.', href: user ? '/app/auto-apply' : '/login', cta: 'Try Auto Apply', bg: '#F0EEFF', color: '#6D28D9', badge: 'Beta' },
   ]
 
   const steps = [
@@ -79,7 +80,7 @@ export default function HomePage() {
     <div style={{ minHeight: '100vh', background: '#f0f4f8', fontFamily: "'DM Sans', system-ui, sans-serif", overflowX: 'hidden' }}>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=Outfit:wght@400;600;700&display=swap');
-        .jl-feature-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+        .jl-feature-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; }
         .jl-cta-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
         @media (max-width: 768px) {
           .jl-feature-grid { grid-template-columns: 1fr !important; }
@@ -212,7 +213,7 @@ export default function HomePage() {
       </div>
 
       {/* Features */}
-      <div style={{ maxWidth: 1000, margin: '0 auto', padding: '56px 24px' }}>
+      <div style={{ maxWidth: 1100, margin: '0 auto', padding: '56px 24px' }}>
         <div style={{ textAlign: 'center', marginBottom: 40 }}>
           <div style={{ fontFamily: "'Outfit', sans-serif", fontSize: 24, fontWeight: 700, color: '#042C53', marginBottom: 8 }}>
             Everything you need to land your next role
@@ -230,13 +231,20 @@ export default function HomePage() {
               className={`jl-card${visibleCards.includes(idx) ? ' visible' : ''}`}
               style={{ background: '#fff', border: '1px solid #edf1f6', borderRadius: 16, padding: 28, display: 'flex', flexDirection: 'column', gap: 14, animationDelay: `${idx * 0.15}s` }}
             >
-              <div style={{ width: 52, height: 52, borderRadius: 14, background: feat.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 26 }}>
-                {feat.icon}
+              <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
+                <div style={{ width: 52, height: 52, borderRadius: 14, background: feat.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 26 }}>
+                  {feat.icon}
+                </div>
+                {feat.badge && (
+                  <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: 0.5, textTransform: 'uppercase' as const, background: feat.bg, color: feat.color, padding: '3px 10px', borderRadius: 20, border: `1px solid ${feat.color}22` }}>
+                    {feat.badge}
+                  </span>
+                )}
               </div>
               <div style={{ fontFamily: "'Outfit', sans-serif", fontSize: 17, fontWeight: 700, color: '#042C53' }}>{feat.title}</div>
               <div style={{ fontSize: 13, color: '#6b7c93', lineHeight: 1.75, flex: 1 }}>{feat.desc}</div>
               <Link href={feat.href} style={{ fontSize: 13, padding: '9px 18px', borderRadius: 9, background: '#042C53', color: '#E6F1FB', textDecoration: 'none', fontWeight: 600, display: 'inline-block', textAlign: 'center', fontFamily: "'Outfit', sans-serif", transition: 'background 0.15s' }}>
-                {feat.cta} →
+                {feat.cta} &rarr;
               </Link>
             </div>
           ))}
@@ -277,12 +285,15 @@ export default function HomePage() {
             <div style={{ fontSize: 14, color: '#85B7EB', marginBottom: 28, lineHeight: 1.6 }}>
               Free to use - No credit card required - Built for DACH job seekers
             </div>
-            <div className="jl-cta-grid" style={{ maxWidth: 420, margin: '0 auto' }}>
-              <Link href={user ? '/app/career-scan' : '/login'} className="jl-cta-btn" style={{ padding: '13px 0', borderRadius: 10, background: '#378ADD', color: '#fff', textDecoration: 'none', fontWeight: 700, fontFamily: "'Outfit', sans-serif", fontSize: 14, display: 'block', textAlign: 'center' }}>
+            <div style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap', maxWidth: 560, margin: '0 auto' }}>
+              <Link href={user ? '/app/career-scan' : '/login'} className="jl-cta-btn" style={{ padding: '13px 24px', borderRadius: 10, background: '#378ADD', color: '#fff', textDecoration: 'none', fontWeight: 700, fontFamily: "'Outfit', sans-serif", fontSize: 14, display: 'block', textAlign: 'center' }}>
                 Career Scan
               </Link>
-              <Link href={user ? '/app/smart-apply' : '/login'} className="jl-cta-btn" style={{ padding: '13px 0', borderRadius: 10, background: 'rgba(255,255,255,0.1)', color: '#E6F1FB', textDecoration: 'none', fontWeight: 600, fontFamily: "'Outfit', sans-serif", fontSize: 14, border: '1px solid rgba(255,255,255,0.2)', display: 'block', textAlign: 'center' }}>
+              <Link href={user ? '/app/smart-apply' : '/login'} className="jl-cta-btn" style={{ padding: '13px 24px', borderRadius: 10, background: 'rgba(255,255,255,0.1)', color: '#E6F1FB', textDecoration: 'none', fontWeight: 600, fontFamily: "'Outfit', sans-serif", fontSize: 14, border: '1px solid rgba(255,255,255,0.2)', display: 'block', textAlign: 'center' }}>
                 Smart Job Search
+              </Link>
+              <Link href={user ? '/app/auto-apply' : '/login'} className="jl-cta-btn" style={{ padding: '13px 24px', borderRadius: 10, background: 'rgba(109,40,217,0.3)', color: '#E6F1FB', textDecoration: 'none', fontWeight: 600, fontFamily: "'Outfit', sans-serif", fontSize: 14, border: '1px solid rgba(109,40,217,0.5)', display: 'block', textAlign: 'center' }}>
+                ⚡ Auto Apply
               </Link>
             </div>
           </div>
