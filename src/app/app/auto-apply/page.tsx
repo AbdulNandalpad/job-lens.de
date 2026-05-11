@@ -1,9 +1,12 @@
-﻿'use client'
+'use client'
 
 import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import Navbar from '../components/Navbar'
 import type { FieldMapping, AnalyzeResult, ExecuteEvent } from '@/lib/auto-apply-engine'
+import { theme } from '@/lib/theme'
+
+const { colors: c, gradients: g, fonts: f } = theme
 
 type Phase = 'idle' | 'analyzing' | 'review' | 'executing' | 'done'
 
@@ -57,13 +60,11 @@ function flattenCvJson(raw: string): string {
 export default function AutoApplyPage() {
   const router = useRouter()
 
-  // ── inputs ──────────────────────────────────────────────────────────────────
   const [jobUrl, setJobUrl] = useState('')
   const [cvText, setCvText] = useState('')
   const [coverLetter, setCoverLetter] = useState('')
   const [useCoverLetter, setUseCoverLetter] = useState(false)
 
-  // ── state machine ───────────────────────────────────────────────────────────
   const [phase, setPhase] = useState<Phase>('idle')
   const [analyzeResult, setAnalyzeResult] = useState<AnalyzeResult | null>(null)
   const [mapping, setMapping] = useState<FieldMapping[]>([])
@@ -74,14 +75,12 @@ export default function AutoApplyPage() {
   const logRef = useRef<HTMLDivElement>(null)
   const logCounter = useRef(0)
 
-  // ── load profile from session ───────────────────────────────────────────────
   useEffect(() => {
     const raw =
       sessionStorage.getItem('jl_cvb_tailored') ||
       sessionStorage.getItem('jl_sjs_cv_text') ||
       sessionStorage.getItem('jl_cv_text') ||
       ''
-    // CV Builder stores structured JSON — flatten it to readable text for Claude
     const cv = flattenCvJson(raw)
     const cl = sessionStorage.getItem('jl_cl_letter') || ''
     setCvText(cv)
@@ -95,7 +94,6 @@ export default function AutoApplyPage() {
     }
   }, [log])
 
-  // ── analyse form ─────────────────────────────────────────────────────────────
   async function handleAnalyse() {
     if (!jobUrl.trim()) { setError('Please enter the application URL.'); return }
     if (!cvText.trim()) { setError('No CV found. Please complete the CV Builder first.'); return }
@@ -127,12 +125,10 @@ export default function AutoApplyPage() {
     }
   }
 
-  // ── update a single mapping value inline ────────────────────────────────────
   function updateValue(idx: number, value: string) {
     setMapping(prev => prev.map((m, i) => (i === idx ? { ...m, value } : m)))
   }
 
-  // ── execute fill + submit ───────────────────────────────────────────────────
   async function handleExecute() {
     setPhase('executing')
     setLog([])
@@ -207,7 +203,6 @@ export default function AutoApplyPage() {
     }
   }
 
-  // ── log to tracker ───────────────────────────────────────────────────────────
   function logToTracker() {
     const job = (() => {
       try { return JSON.parse(sessionStorage.getItem('jl_cvb_job') || '{}') } catch { return {} }
@@ -225,41 +220,38 @@ export default function AutoApplyPage() {
     router.push('/app/tracker')
   }
 
-  // ─────────────────────────────────────────────────────────────────────────────
-  //  Styles (shared tokens)
-  // ─────────────────────────────────────────────────────────────────────────────
   const card: React.CSSProperties = {
-    background: '#fff',
-    border: '1px solid #edf1f6',
+    background: c.bgCard,
+    border: `1px solid ${c.border}`,
     borderRadius: 14,
     overflow: 'hidden',
   }
   const cardHead: React.CSSProperties = {
     padding: '12px 16px',
-    borderBottom: '1px solid #edf1f6',
+    borderBottom: `1px solid ${c.border}`,
     fontSize: 13,
     fontWeight: 700,
-    color: '#042C53',
-    fontFamily: "'Outfit', sans-serif",
+    color: c.primary,
+    fontFamily: f.heading,
   }
   const label12: React.CSSProperties = {
     fontSize: 12,
     fontWeight: 600,
-    color: '#6b7c93',
+    color: c.textMuted,
     marginBottom: 6,
     display: 'block',
   }
 
-  const confidenceBadge = (c: string) => {
+  const confidenceBadge = (conf: string) => {
     const map: Record<string, { bg: string; color: string }> = {
-      high: { bg: '#E6F6F0', color: '#1D9E75' },
-      medium: { bg: '#FEF3C7', color: '#92400E' },
-      low: { bg: '#FEE2E2', color: '#991B1B' },
+      high:   { bg: c.successLight,  color: c.success },
+      medium: { bg: c.warningLight,  color: c.warning },
+      low:    { bg: c.errorLight,    color: c.error },
     }
-    const s = map[c] || map.low
+    const s = map[conf] || map.low
     return (
       <span style={{ fontSize: 10, padding: '2px 8px', borderRadius: 10, fontWeight: 700, background: s.bg, color: s.color }}>
-        {c}
+        {conf}
       </span>
     )
   }
@@ -267,21 +259,18 @@ export default function AutoApplyPage() {
   const isUrlValid = jobUrl.trim().startsWith('http')
   const hasCv = cvText.trim().length > 50
 
-  // ─────────────────────────────────────────────────────────────────────────────
-  //  Render
-  // ─────────────────────────────────────────────────────────────────────────────
   if (process.env.NEXT_PUBLIC_AUTO_APPLY_ENABLED !== 'true') {
     return (
-      <div style={{ minHeight: '100vh', background: '#f0f4f8', fontFamily: "'DM Sans', system-ui, sans-serif" }}>
+      <div style={{ minHeight: '100vh', background: c.bg, fontFamily: f.body }}>
         <style>{`@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=Outfit:wght@400;600;700&display=swap');`}</style>
         <Navbar />
         <div style={{ maxWidth: 600, margin: '80px auto', padding: '0 20px', textAlign: 'center' }}>
-          <div style={{ background: '#fff', border: '1px solid #edf1f6', borderRadius: 14, padding: '48px 32px' }}>
+          <div style={{ background: c.bgCard, border: `1px solid ${c.border}`, borderRadius: 14, padding: '48px 32px' }}>
             <div style={{ fontSize: 32, marginBottom: 16 }}>&#128187;</div>
-            <div style={{ fontSize: 18, fontWeight: 700, color: '#042C53', fontFamily: "'Outfit', sans-serif", marginBottom: 8 }}>
+            <div style={{ fontSize: 18, fontWeight: 700, color: c.primary, fontFamily: f.heading, marginBottom: 8 }}>
               Desktop only for now
             </div>
-            <div style={{ fontSize: 14, color: '#6b7c93', lineHeight: 1.7 }}>
+            <div style={{ fontSize: 14, color: c.textMuted, lineHeight: 1.7 }}>
               Auto Apply uses a real browser to fill in forms on your behalf.
               This requires the desktop version of Job-Lens running on your computer.
               We&apos;re working on a fully hosted version &mdash; coming soon.
@@ -293,23 +282,23 @@ export default function AutoApplyPage() {
   }
 
   return (
-    <div style={{ minHeight: '100vh', background: '#f0f4f8', fontFamily: "'DM Sans', system-ui, sans-serif" }}>
+    <div style={{ minHeight: '100vh', background: c.bg, fontFamily: f.body }}>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=Outfit:wght@400;600;700&display=swap');
-        .aa-input { width: 100%; padding: 10px 12px; border-radius: 8px; border: 1.5px solid #dde4ee; font-size: 13px; font-family: inherit; outline: none; color: #1a2332; box-sizing: border-box; transition: border-color 0.15s; }
-        .aa-input:focus { border-color: #378ADD; }
-        .aa-btn-primary { padding: 11px 28px; border-radius: 9px; background: linear-gradient(135deg,#042C53,#185FA5); color: #fff; border: none; cursor: pointer; font-family: 'Outfit',sans-serif; font-size: 14px; font-weight: 700; transition: opacity 0.15s; }
+        .aa-input { width: 100%; padding: 10px 12px; border-radius: 8px; border: 1.5px solid ${c.borderLight}; font-size: 13px; font-family: inherit; outline: none; color: ${c.text}; box-sizing: border-box; transition: border-color 0.15s; }
+        .aa-input:focus { border-color: ${c.accent}; }
+        .aa-btn-primary { padding: 11px 28px; border-radius: 9px; background: ${g.primaryBtn}; color: #fff; border: none; cursor: pointer; font-family: ${f.heading}; font-size: 14px; font-weight: 700; transition: opacity 0.15s; }
         .aa-btn-primary:hover { opacity: 0.9; }
-        .aa-btn-primary:disabled { background: #d1d9e0; cursor: not-allowed; }
-        .aa-btn-outline { padding: 10px 20px; border-radius: 9px; background: #fff; color: #042C53; border: 1.5px solid #042C53; cursor: pointer; font-family: 'Outfit',sans-serif; font-size: 13px; font-weight: 700; }
-        .aa-btn-success { padding: 11px 28px; border-radius: 9px; background: linear-gradient(135deg,#1D9E75,#059669); color: #fff; border: none; cursor: pointer; font-family: 'Outfit',sans-serif; font-size: 14px; font-weight: 700; }
+        .aa-btn-primary:disabled { background: ${c.border}; color: ${c.textFaint}; cursor: not-allowed; }
+        .aa-btn-outline { padding: 10px 20px; border-radius: 9px; background: ${c.bgCard}; color: ${c.primary}; border: 1.5px solid ${c.primary}; cursor: pointer; font-family: ${f.heading}; font-size: 13px; font-weight: 700; }
+        .aa-btn-success { padding: 11px 28px; border-radius: 9px; background: ${g.successBtn}; color: #fff; border: none; cursor: pointer; font-family: ${f.heading}; font-size: 14px; font-weight: 700; }
         .aa-toggle { position: relative; display: inline-block; width: 36px; height: 20px; }
         .aa-toggle input { opacity: 0; width: 0; height: 0; }
-        .aa-slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background: #dde4ee; border-radius: 20px; transition: 0.2s; }
+        .aa-slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background: ${c.borderLight}; border-radius: 20px; transition: 0.2s; }
         .aa-slider:before { position: absolute; content: ''; height: 14px; width: 14px; left: 3px; bottom: 3px; background: white; border-radius: 50%; transition: 0.2s; }
-        input:checked + .aa-slider { background: #378ADD; }
+        input:checked + .aa-slider { background: ${c.accent}; }
         input:checked + .aa-slider:before { transform: translateX(16px); }
-        .log-entry { display: flex; align-items: flex-start; gap: 8px; padding: 6px 0; border-bottom: 1px solid #f5f7fa; font-size: 12px; color: #1a2332; }
+        .log-entry { display: flex; align-items: flex-start; gap: 8px; padding: 6px 0; border-bottom: 1px solid ${c.border}; font-size: 12px; color: ${c.text}; }
         .spin { animation: spin 1s linear infinite; }
         @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
       `}</style>
@@ -318,21 +307,19 @@ export default function AutoApplyPage() {
 
       <div style={{ maxWidth: 1240, margin: '0 auto', padding: '24px 20px' }}>
 
-        {/* ── Page header ── */}
-        <div style={{ marginBottom: 24 }}>
-          <div style={{ fontSize: 22, fontWeight: 700, color: '#042C53', fontFamily: "'Outfit', sans-serif" }}>
+        {/* Page header */}
+        <div style={{ marginBottom: 24, paddingLeft: 14, borderLeft: `3px solid ${c.accent}` }}>
+          <div style={{ fontSize: 22, fontWeight: 700, color: c.primary, fontFamily: f.heading }}>
             Auto Apply
           </div>
-          <div style={{ fontSize: 13, color: '#6b7c93', marginTop: 3 }}>
-            Playwright + Claude vision fills the application form for you — review before submitting
+          <div style={{ fontSize: 13, color: c.textMuted, marginTop: 3 }}>
+            Paste a job application URL and let Claude fill the form for you — review before submitting
           </div>
         </div>
 
         <div style={{ display: 'grid', gridTemplateColumns: '340px 1fr', gap: 20, alignItems: 'start' }}>
 
-          {/* ════════════════════════════════════════════════════════════════
-              LEFT COLUMN — setup
-          ════════════════════════════════════════════════════════════════ */}
+          {/* LEFT COLUMN */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
 
             {/* Job URL */}
@@ -348,7 +335,7 @@ export default function AutoApplyPage() {
                   disabled={phase === 'analyzing' || phase === 'executing'}
                 />
                 {jobUrl && !isUrlValid && (
-                  <div style={{ fontSize: 11, color: '#E24B4A', marginTop: 4 }}>Must start with http</div>
+                  <div style={{ fontSize: 11, color: c.danger, marginTop: 4 }}>Must start with http</div>
                 )}
               </div>
             </div>
@@ -359,26 +346,26 @@ export default function AutoApplyPage() {
               <div style={{ padding: 16 }}>
                 {hasCv ? (
                   <>
-                    <div style={{ fontSize: 12, color: '#1D9E75', fontWeight: 600, marginBottom: 6 }}>
+                    <div style={{ fontSize: 12, color: c.success, fontWeight: 600, marginBottom: 6 }}>
                       ✓ CV loaded ({Math.round(cvText.length / 5)} words)
                     </div>
-                    <div style={{ fontSize: 11, color: '#6b7c93', lineHeight: 1.5, background: '#fafbfd', borderRadius: 6, padding: '8px 10px', maxHeight: 70, overflow: 'hidden' }}>
+                    <div style={{ fontSize: 11, color: c.textMuted, lineHeight: 1.5, background: c.bgSubtle, borderRadius: 6, padding: '8px 10px', maxHeight: 70, overflow: 'hidden' }}>
                       {cvText.slice(0, 180)}…
                     </div>
                   </>
                 ) : (
-                  <div style={{ fontSize: 12, color: '#E24B4A' }}>
+                  <div style={{ fontSize: 12, color: c.danger }}>
                     No CV found.{' '}
                     <span
                       onClick={() => router.push('/app/cv-builder')}
-                      style={{ textDecoration: 'underline', cursor: 'pointer', color: '#378ADD' }}
+                      style={{ textDecoration: 'underline', cursor: 'pointer', color: c.accent }}
                     >
                       Go to CV Builder →
                     </span>
                   </div>
                 )}
                 <div style={{ marginTop: 14, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                  <span style={{ fontSize: 12, color: '#6b7c93' }}>Include cover letter</span>
+                  <span style={{ fontSize: 12, color: c.textMuted }}>Include cover letter</span>
                   <label className="aa-toggle">
                     <input
                       type="checkbox"
@@ -390,9 +377,9 @@ export default function AutoApplyPage() {
                   </label>
                 </div>
                 {!coverLetter && (
-                  <div style={{ fontSize: 11, color: '#8fa3b8', marginTop: 4 }}>
+                  <div style={{ fontSize: 11, color: c.textFaint, marginTop: 4 }}>
                     Generate one in{' '}
-                    <span onClick={() => router.push('/app/cover-letter')} style={{ textDecoration: 'underline', cursor: 'pointer', color: '#378ADD' }}>Cover Letter</span>
+                    <span onClick={() => router.push('/app/cover-letter')} style={{ textDecoration: 'underline', cursor: 'pointer', color: c.accent }}>Cover Letter</span>
                   </div>
                 )}
               </div>
@@ -401,7 +388,7 @@ export default function AutoApplyPage() {
             {/* Action */}
             <div>
               {error && (
-                <div style={{ fontSize: 12, color: '#991B1B', background: '#FEE2E2', border: '1px solid #FECACA', borderRadius: 8, padding: '10px 14px', marginBottom: 12 }}>
+                <div style={{ fontSize: 12, color: c.error, background: c.errorLight, border: `1px solid ${c.errorBorder}`, borderRadius: 8, padding: '10px 14px', marginBottom: 12 }}>
                   {error}
                 </div>
               )}
@@ -427,86 +414,84 @@ export default function AutoApplyPage() {
                   style={{ width: '100%', marginTop: 10 }}
                   onClick={() => { setPhase('idle'); setAnalyzeResult(null); setMapping([]); setError('') }}
                 >
-                  ← Start over
+                  &larr; Start over
                 </button>
               )}
             </div>
 
             {/* Info box */}
-            <div style={{ background: '#E6F1FB', border: '1px solid #C3D9F5', borderRadius: 10, padding: '12px 14px' }}>
-              <div style={{ fontSize: 12, fontWeight: 700, color: '#042C53', marginBottom: 4 }}>How it works</div>
-              <ol style={{ margin: 0, paddingLeft: 16, fontSize: 11, color: '#185FA5', lineHeight: 1.8 }}>
+            <div style={{ background: c.primaryLight, border: `1px solid ${c.accentLight}`, borderRadius: 10, padding: '12px 14px' }}>
+              <div style={{ fontSize: 12, fontWeight: 700, color: c.primary, marginBottom: 4 }}>How it works</div>
+              <ol style={{ margin: 0, paddingLeft: 16, fontSize: 11, color: c.navy, lineHeight: 1.8 }}>
                 <li>Paste the direct application form URL</li>
                 <li>Claude analyses the form fields via Playwright</li>
-                <li>Review & edit the pre-filled values</li>
-                <li>Click Launch — browser fills &amp; submits</li>
+                <li>Review &amp; edit the pre-filled values</li>
+                <li>Click Launch &mdash; browser fills &amp; submits</li>
               </ol>
-              <div style={{ fontSize: 10, color: '#6b7c93', marginTop: 8 }}>
-                Local dev: a browser window opens so you can watch. File upload fields are skipped (upload manually).
+              <div style={{ fontSize: 10, color: c.textMuted, marginTop: 8 }}>
+                A browser window opens so you can watch. File upload fields are skipped (upload manually).
               </div>
             </div>
           </div>
 
-          {/* ════════════════════════════════════════════════════════════════
-              RIGHT COLUMN — results
-          ════════════════════════════════════════════════════════════════ */}
+          {/* RIGHT COLUMN */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
 
-            {/* ── IDLE ── */}
+            {/* IDLE */}
             {phase === 'idle' && !analyzeResult && (
               <div style={{ ...card, padding: '60px 20px', textAlign: 'center' }}>
                 <svg width="52" height="52" viewBox="0 0 52 52" fill="none" style={{ margin: '0 auto 16px' }}>
-                  <circle cx="26" cy="26" r="25" fill="#E6F1FB"/>
-                  <path d="M18 26h16M26 18v16" stroke="#378ADD" strokeWidth="2.5" strokeLinecap="round"/>
-                  <circle cx="26" cy="26" r="10" stroke="#042C53" strokeWidth="1.5" fill="none" strokeDasharray="4 2"/>
+                  <circle cx="26" cy="26" r="25" fill={c.primaryLight}/>
+                  <path d="M18 26h16M26 18v16" stroke={c.accent} strokeWidth="2.5" strokeLinecap="round"/>
+                  <circle cx="26" cy="26" r="10" stroke={c.primary} strokeWidth="1.5" fill="none" strokeDasharray="4 2"/>
                 </svg>
-                <div style={{ fontSize: 15, fontWeight: 600, color: '#042C53', marginBottom: 6 }}>
+                <div style={{ fontSize: 15, fontWeight: 600, color: c.primary, marginBottom: 6 }}>
                   Enter a job application URL to begin
                 </div>
-                <div style={{ fontSize: 13, color: '#6b7c93' }}>
+                <div style={{ fontSize: 13, color: c.textMuted }}>
                   Paste the URL of the actual application form (not the job listing)
                 </div>
               </div>
             )}
 
-            {/* ── ANALYZING ── */}
+            {/* ANALYZING */}
             {phase === 'analyzing' && (
               <div style={{ ...card, padding: '50px 20px', textAlign: 'center' }}>
-                <svg className="spin" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#378ADD" strokeWidth="2" style={{ margin: '0 auto 16px' }}>
+                <svg className="spin" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke={c.accent} strokeWidth="2" style={{ margin: '0 auto 16px' }}>
                   <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/>
                 </svg>
-                <div style={{ fontSize: 14, fontWeight: 600, color: '#042C53' }}>Opening page with Playwright…</div>
-                <div style={{ fontSize: 12, color: '#6b7c93', marginTop: 6 }}>Extracting form fields and mapping your CV</div>
+                <div style={{ fontSize: 14, fontWeight: 600, color: c.primary }}>Opening page with Playwright…</div>
+                <div style={{ fontSize: 12, color: c.textMuted, marginTop: 6 }}>Extracting form fields and mapping your CV</div>
               </div>
             )}
 
-            {/* ── REVIEW ── */}
+            {/* REVIEW / EXECUTING / DONE */}
             {(phase === 'review' || phase === 'executing' || phase === 'done') && analyzeResult && (
               <>
                 {/* Form info bar */}
                 <div style={{ ...card }}>
                   <div style={{ padding: '14px 18px', display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap' }}>
                     <div>
-                      <div style={{ fontSize: 14, fontWeight: 700, color: '#042C53', fontFamily: "'Outfit', sans-serif" }}>
+                      <div style={{ fontSize: 14, fontWeight: 700, color: c.primary, fontFamily: f.heading }}>
                         {analyzeResult.pageTitle || new URL(jobUrl).hostname}
                       </div>
-                      <div style={{ fontSize: 12, color: '#6b7c93', marginTop: 2 }}>{jobUrl.slice(0, 70)}{jobUrl.length > 70 ? '…' : ''}</div>
+                      <div style={{ fontSize: 12, color: c.textMuted, marginTop: 2 }}>{jobUrl.slice(0, 70)}{jobUrl.length > 70 ? '…' : ''}</div>
                     </div>
                     <div style={{ marginLeft: 'auto', display: 'flex', gap: 8, alignItems: 'center', flexShrink: 0 }}>
-                      <span style={{ fontSize: 11, padding: '3px 10px', borderRadius: 20, background: '#E6F1FB', color: '#185FA5', fontWeight: 700 }}>
+                      <span style={{ fontSize: 11, padding: '3px 10px', borderRadius: 20, background: c.primaryLight, color: c.navy, fontWeight: 700 }}>
                         {analyzeResult.formType}
                       </span>
-                      <span style={{ fontSize: 11, padding: '3px 10px', borderRadius: 20, background: '#f0f4f8', color: '#6b7c93', fontWeight: 600 }}>
+                      <span style={{ fontSize: 11, padding: '3px 10px', borderRadius: 20, background: c.bg, color: c.textMuted, fontWeight: 600 }}>
                         {analyzeResult.fields.length} fields
                       </span>
                     </div>
                   </div>
                   {analyzeResult.screenshotB64 && (
-                    <div style={{ borderTop: '1px solid #edf1f6', padding: '10px 16px', background: '#fafbfd' }}>
+                    <div style={{ borderTop: `1px solid ${c.border}`, padding: '10px 16px', background: c.bgSubtle }}>
                       <img
                         src={`data:image/png;base64,${analyzeResult.screenshotB64}`}
                         alt="Form screenshot"
-                        style={{ width: '100%', maxHeight: 220, objectFit: 'cover', objectPosition: 'top', borderRadius: 6, border: '1px solid #edf1f6' }}
+                        style={{ width: '100%', maxHeight: 220, objectFit: 'cover', objectPosition: 'top', borderRadius: 6, border: `1px solid ${c.border}` }}
                       />
                     </div>
                   )}
@@ -515,34 +500,33 @@ export default function AutoApplyPage() {
                 {/* Field mapping table */}
                 <div style={card}>
                   <div style={{ ...cardHead, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <span>Field Mapping — review &amp; edit values</span>
-                    <span style={{ fontSize: 11, fontWeight: 400, color: '#6b7c93' }}>
+                    <span>Field Mapping &mdash; review &amp; edit values</span>
+                    <span style={{ fontSize: 11, fontWeight: 400, color: c.textMuted }}>
                       {mapping.filter(m => m.value && m.value !== '__SKIP_FILE__').length} / {mapping.length} filled
                     </span>
                   </div>
                   <div style={{ maxHeight: 420, overflowY: 'auto' }}>
-                    {/* Header row */}
-                    <div style={{ display: 'grid', gridTemplateColumns: '160px 1fr 70px', padding: '8px 16px', background: '#fafbfd', borderBottom: '1px solid #edf1f6' }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: '160px 1fr 70px', padding: '8px 16px', background: c.bgSubtle, borderBottom: `1px solid ${c.border}` }}>
                       {['Field', 'Value', 'Confidence'].map(h => (
-                        <div key={h} style={{ fontSize: 10, fontWeight: 700, color: '#8fa3b8', textTransform: 'uppercase', letterSpacing: 0.5 }}>{h}</div>
+                        <div key={h} style={{ fontSize: 10, fontWeight: 700, color: c.textFaint, textTransform: 'uppercase', letterSpacing: 0.5 }}>{h}</div>
                       ))}
                     </div>
                     {mapping.map((m, idx) => (
-                      <div key={`field-${idx}`} style={{ display: 'grid', gridTemplateColumns: '160px 1fr 70px', padding: '8px 16px', borderBottom: '1px solid #f5f7fa', alignItems: 'center', background: m.field.required && !m.value ? '#FFFBF0' : undefined }}>
+                      <div key={`field-${idx}`} style={{ display: 'grid', gridTemplateColumns: '160px 1fr 70px', padding: '8px 16px', borderBottom: `1px solid ${c.border}`, alignItems: 'center', background: m.field.required && !m.value ? c.warningLight : undefined }}>
                         <div>
-                          <div style={{ fontSize: 12, fontWeight: 600, color: '#1a2332' }}>
+                          <div style={{ fontSize: 12, fontWeight: 600, color: c.text }}>
                             {m.field.label}
-                            {m.field.required && <span style={{ color: '#E24B4A', marginLeft: 2 }}>*</span>}
+                            {m.field.required && <span style={{ color: c.danger, marginLeft: 2 }}>*</span>}
                           </div>
-                          <div style={{ fontSize: 10, color: '#8fa3b8', textTransform: 'uppercase' }}>{m.field.type}</div>
+                          <div style={{ fontSize: 10, color: c.textFaint, textTransform: 'uppercase' }}>{m.field.type}</div>
                         </div>
                         <div style={{ paddingRight: 12 }}>
                           {m.value === '__CV_FILE__' ? (
-                            <span style={{ fontSize: 11, color: '#1D9E75', fontWeight: 600 }}>📎 Will attach CV text file</span>
+                            <span style={{ fontSize: 11, color: c.success, fontWeight: 600 }}>&#128206; Will attach CV text file</span>
                           ) : m.value === '__CL_FILE__' ? (
-                            <span style={{ fontSize: 11, color: '#1D9E75', fontWeight: 600 }}>📎 Will attach cover letter file</span>
+                            <span style={{ fontSize: 11, color: c.success, fontWeight: 600 }}>&#128206; Will attach cover letter file</span>
                           ) : m.value === '__SKIP_FILE__' ? (
-                            <span style={{ fontSize: 11, color: '#6b7c93', fontStyle: 'italic' }}>File upload — upload manually</span>
+                            <span style={{ fontSize: 11, color: c.textMuted, fontStyle: 'italic' }}>File upload &mdash; upload manually</span>
                           ) : m.field.type === 'select' && m.field.options ? (
                             <select
                               className="aa-input"
@@ -551,7 +535,7 @@ export default function AutoApplyPage() {
                               onChange={e => updateValue(idx, e.target.value)}
                               disabled={phase === 'executing'}
                             >
-                              <option value="">— select —</option>
+                              <option value="">-- select --</option>
                               {m.field.options.map((o, oi) => (
                                 <option key={`${oi}-${o}`} value={o}>{o}</option>
                               ))}
@@ -586,13 +570,13 @@ export default function AutoApplyPage() {
                 {phase === 'review' && (
                   <div style={{ display: 'flex', gap: 12 }}>
                     <button className="aa-btn-primary" style={{ flex: 1 }} onClick={handleExecute}>
-                      Launch Auto Fill &amp; Submit →
+                      Launch Auto Fill &amp; Submit &rarr;
                     </button>
                     <a
                       href={jobUrl}
                       target="_blank"
                       rel="noopener noreferrer"
-                      style={{ flex: '0 0 auto', padding: '11px 20px', borderRadius: 9, background: '#fff', color: '#042C53', border: '1.5px solid #042C53', textDecoration: 'none', fontFamily: "'Outfit',sans-serif", fontSize: 13, fontWeight: 700 }}
+                      style={{ flex: '0 0 auto', padding: '11px 20px', borderRadius: 9, background: c.bgCard, color: c.primary, border: `1.5px solid ${c.primary}`, textDecoration: 'none', fontFamily: f.heading, fontSize: 13, fontWeight: 700 }}
                     >
                       Open manually
                     </a>
@@ -602,7 +586,7 @@ export default function AutoApplyPage() {
                 {phase === 'done' && (
                   <div style={{ display: 'flex', gap: 12 }}>
                     <button className="aa-btn-success" style={{ flex: 1 }} onClick={logToTracker}>
-                      ✓ Log to Tracker →
+                      &#10003; Log to Tracker &rarr;
                     </button>
                     <button
                       className="aa-btn-outline"
@@ -615,12 +599,12 @@ export default function AutoApplyPage() {
               </>
             )}
 
-            {/* ── EXECUTING — live log ── */}
+            {/* EXECUTING — live log */}
             {(phase === 'executing' || (phase === 'done' && log.length > 0)) && (
               <div style={card}>
                 <div style={{ ...cardHead, display: 'flex', alignItems: 'center', gap: 8 }}>
-                  {phase === 'executing' && <svg className="spin" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#378ADD" strokeWidth="2.5"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>}
-                  {phase === 'done' ? '✓ Completed' : 'Live Log'}
+                  {phase === 'executing' && <svg className="spin" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={c.accent} strokeWidth="2.5"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>}
+                  {phase === 'done' ? '&#10003; Completed' : 'Live Log'}
                 </div>
 
                 <div ref={logRef} style={{ maxHeight: 280, overflowY: 'auto', padding: '4px 16px' }}>
@@ -633,23 +617,22 @@ export default function AutoApplyPage() {
                          entry.type === 'screenshot' ? '📸' :
                          entry.type === 'submitting' ? '⬆' : '·'}
                       </span>
-                      <span style={{ color: entry.type === 'error' ? '#991B1B' : entry.type === 'done' ? '#1D9E75' : entry.success === false ? '#6b7c93' : undefined }}>
+                      <span style={{ color: entry.type === 'error' ? c.error : entry.type === 'done' ? c.success : entry.success === false ? c.textMuted : undefined }}>
                         {entry.message}
                       </span>
                     </div>
                   ))}
                 </div>
 
-                {/* Live screenshot */}
                 {liveShot && (
-                  <div style={{ padding: '10px 16px', borderTop: '1px solid #edf1f6' }}>
-                    <div style={{ fontSize: 11, color: '#8fa3b8', marginBottom: 6 }}>
+                  <div style={{ padding: '10px 16px', borderTop: `1px solid ${c.border}` }}>
+                    <div style={{ fontSize: 11, color: c.textFaint, marginBottom: 6 }}>
                       {phase === 'done' ? 'Confirmation screenshot' : 'Current state'}
                     </div>
                     <img
                       src={`data:image/png;base64,${liveShot}`}
                       alt="Live browser state"
-                      style={{ width: '100%', borderRadius: 6, border: '1px solid #edf1f6' }}
+                      style={{ width: '100%', borderRadius: 6, border: `1px solid ${c.border}` }}
                     />
                   </div>
                 )}
