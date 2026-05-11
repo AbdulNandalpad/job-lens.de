@@ -4,6 +4,9 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase'
+import { theme } from '@/lib/theme'
+
+const { colors: c, gradients: g, fonts: f } = theme
 
 export default function Navbar() {
   const pathname = usePathname()
@@ -51,7 +54,7 @@ export default function Navbar() {
         }
       `}</style>
 
-      <div style={{ background: '#042C53', padding: '0 16px', height: 52, display: 'flex', alignItems: 'center', justifyContent: 'space-between', position: 'sticky', top: 0, zIndex: 100 }}>
+      <div style={{ background: c.primary, padding: '0 16px', height: theme.navbar.height, display: 'flex', alignItems: 'center', justifyContent: 'space-between', position: 'sticky', top: 0, zIndex: 100, borderBottom: `1px solid ${theme.navbar.border}` }}>
 
         {/* Logo */}
         <Link href="/" style={{ display: 'flex', alignItems: 'center', gap: 10, textDecoration: 'none', flexShrink: 0 }}>
@@ -75,7 +78,7 @@ export default function Navbar() {
         {/* Desktop nav */}
         <div className="jl-desktop-nav" style={{ gap: 4 }}>
           {navItems.map(item => (
-            <Link key={item.href} href={item.href} style={{ fontSize: 12, padding: '6px 14px', borderRadius: 20, textDecoration: 'none', color: isActive(item.href) ? '#E6F1FB' : '#85B7EB', background: isActive(item.href) ? 'rgba(55,138,221,0.25)' : 'transparent', fontWeight: isActive(item.href) ? 500 : 400 }}>
+            <Link key={item.href} href={item.href} style={{ fontSize: 12, padding: '6px 14px', borderRadius: 20, textDecoration: 'none', color: isActive(item.href) ? theme.navbar.text : theme.navbar.textMuted, background: isActive(item.href) ? g.navActivePill : 'transparent', fontWeight: isActive(item.href) ? 600 : 400, transition: 'all 0.15s' }}>
               {item.label}
             </Link>
           ))}
@@ -98,7 +101,7 @@ export default function Navbar() {
 
       {/* Mobile dropdown */}
       {menuOpen && (
-        <div className="jl-mobile-menu" style={{ background: '#042C53', borderBottom: '1px solid rgba(255,255,255,0.1)', padding: '8px 16px 12px', zIndex: 99, position: 'sticky', top: 52 }}>
+        <div className="jl-mobile-menu" style={{ background: c.primary, borderBottom: `1px solid ${theme.navbar.border}`, padding: '8px 16px 12px', zIndex: 99, position: 'sticky', top: 52 }}>
           {navItems.map(item => (
             <Link key={item.href} href={item.href} onClick={() => setMenuOpen(false)}
               style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 12px', borderRadius: 8, textDecoration: 'none', fontSize: 14, marginBottom: 4, color: isActive(item.href) ? '#E6F1FB' : '#85B7EB', background: isActive(item.href) ? 'rgba(55,138,221,0.2)' : 'transparent', fontWeight: isActive(item.href) ? 600 : 400 }}>
