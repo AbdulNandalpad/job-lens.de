@@ -1,0 +1,211 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Test Job Application Form</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f4f6f9; min-height: 100vh; display: flex; align-items: flex-start; justify-content: center; padding: 40px 16px; }
+    .card { background: #fff; border-radius: 12px; box-shadow: 0 2px 16px rgba(0,0,0,0.08); max-width: 680px; width: 100%; padding: 40px; }
+    h1 { font-size: 22px; font-weight: 700; color: #1a1f2e; margin-bottom: 4px; }
+    .subtitle { font-size: 14px; color: #6b7280; margin-bottom: 32px; }
+    .section { margin-bottom: 28px; }
+    .section-title { font-size: 12px; font-weight: 700; color: #9ca3af; text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 16px; padding-bottom: 8px; border-bottom: 1px solid #f3f4f6; }
+    .row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    .field { display: flex; flex-direction: column; gap: 6px; margin-bottom: 16px; }
+    label { font-size: 13px; font-weight: 600; color: #374151; }
+    label .req { color: #ef4444; margin-left: 2px; }
+    input[type="text"], input[type="email"], input[type="tel"], input[type="date"], input[type="number"], input[type="url"], select, textarea {
+      width: 100%; padding: 10px 12px; border: 1.5px solid #d1d5db; border-radius: 8px; font-size: 14px; color: #111827; outline: none; transition: border-color 0.15s, box-shadow 0.15s; background: #fff;
+    }
+    input:focus, select:focus, textarea:focus { border-color: #3b82f6; box-shadow: 0 0 0 3px rgba(59,130,246,0.12); }
+    textarea { resize: vertical; min-height: 100px; }
+    .radio-group, .checkbox-group { display: flex; flex-direction: column; gap: 8px; }
+    .radio-item, .checkbox-item { display: flex; align-items: center; gap: 8px; font-size: 14px; color: #374151; cursor: pointer; }
+    .radio-item input, .checkbox-item input { width: 16px; height: 16px; cursor: pointer; accent-color: #3b82f6; }
+    .file-field { border: 2px dashed #d1d5db; border-radius: 8px; padding: 24px; text-align: center; cursor: pointer; transition: border-color 0.15s; }
+    .file-field:hover { border-color: #3b82f6; }
+    .file-field input[type="file"] { width: 100%; cursor: pointer; }
+    .file-hint { font-size: 12px; color: #9ca3af; margin-top: 6px; }
+    .submit-row { display: flex; gap: 12px; margin-top: 32px; padding-top: 24px; border-top: 1px solid #f3f4f6; }
+    button[type="submit"] { flex: 1; padding: 13px; background: #1d4ed8; color: #fff; border: none; border-radius: 9px; font-size: 15px; font-weight: 700; cursor: pointer; transition: background 0.15s; }
+    button[type="submit"]:hover { background: #1e40af; }
+    button[type="reset"] { padding: 13px 24px; background: #f9fafb; color: #6b7280; border: 1.5px solid #e5e7eb; border-radius: 9px; font-size: 14px; cursor: pointer; }
+    #success { display: none; background: #ecfdf5; border: 1.5px solid #6ee7b7; border-radius: 10px; padding: 20px 24px; margin-top: 24px; }
+    #success h2 { font-size: 16px; font-weight: 700; color: #065f46; margin-bottom: 4px; }
+    #success p { font-size: 14px; color: #047857; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>Software Engineer — Application Form</h1>
+    <p class="subtitle">Test Corp GmbH · Berlin, Germany · Full-time</p>
+
+    <form id="appForm" novalidate>
+
+      <!-- Personal Info -->
+      <div class="section">
+        <div class="section-title">Personal Information</div>
+        <div class="row">
+          <div class="field">
+            <label for="firstName">First Name <span class="req">*</span></label>
+            <input type="text" id="firstName" name="firstName" placeholder="Maria" required />
+          </div>
+          <div class="field">
+            <label for="lastName">Last Name <span class="req">*</span></label>
+            <input type="text" id="lastName" name="lastName" placeholder="Müller" required />
+          </div>
+        </div>
+        <div class="row">
+          <div class="field">
+            <label for="email">Email Address <span class="req">*</span></label>
+            <input type="email" id="email" name="email" placeholder="maria@example.com" required />
+          </div>
+          <div class="field">
+            <label for="phone">Phone Number</label>
+            <input type="tel" id="phone" name="phone" placeholder="+49 170 1234567" />
+          </div>
+        </div>
+        <div class="row">
+          <div class="field">
+            <label for="city">City</label>
+            <input type="text" id="city" name="city" placeholder="Berlin" />
+          </div>
+          <div class="field">
+            <label for="linkedin">LinkedIn URL</label>
+            <input type="url" id="linkedin" name="linkedin" placeholder="https://linkedin.com/in/..." />
+          </div>
+        </div>
+      </div>
+
+      <!-- Role Details -->
+      <div class="section">
+        <div class="section-title">Role &amp; Experience</div>
+        <div class="row">
+          <div class="field">
+            <label for="position">Position Applying For <span class="req">*</span></label>
+            <select id="position" name="position" required>
+              <option value="">— select a role —</option>
+              <option value="frontend">Frontend Engineer</option>
+              <option value="backend">Backend Engineer</option>
+              <option value="fullstack">Full-Stack Engineer</option>
+              <option value="devops">DevOps / Platform Engineer</option>
+              <option value="mobile">Mobile Engineer</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="experience">Years of Experience <span class="req">*</span></label>
+            <select id="experience" name="experience" required>
+              <option value="">— select —</option>
+              <option value="0-1">Less than 1 year</option>
+              <option value="1-3">1–3 years</option>
+              <option value="3-5">3–5 years</option>
+              <option value="5-10">5–10 years</option>
+              <option value="10+">10+ years</option>
+            </select>
+          </div>
+        </div>
+        <div class="row">
+          <div class="field">
+            <label for="salary">Expected Salary (EUR / year)</label>
+            <input type="number" id="salary" name="salary" placeholder="75000" min="0" step="1000" />
+          </div>
+          <div class="field">
+            <label for="startDate">Earliest Start Date</label>
+            <input type="date" id="startDate" name="startDate" />
+          </div>
+        </div>
+        <div class="field">
+          <label>Employment Type <span class="req">*</span></label>
+          <div class="radio-group">
+            <label class="radio-item"><input type="radio" name="employmentType" value="full-time" /> Full-time</label>
+            <label class="radio-item"><input type="radio" name="employmentType" value="part-time" /> Part-time</label>
+            <label class="radio-item"><input type="radio" name="employmentType" value="contract" /> Contract / Freelance</label>
+          </div>
+        </div>
+      </div>
+
+      <!-- Documents -->
+      <div class="section">
+        <div class="section-title">Documents</div>
+        <div class="field">
+          <label for="resumeFile">CV / Resume <span class="req">*</span></label>
+          <div class="file-field">
+            <input type="file" id="resumeFile" name="resumeFile" accept=".pdf,.doc,.docx" />
+            <p class="file-hint">PDF, DOC or DOCX · max 5 MB</p>
+          </div>
+        </div>
+        <div class="field">
+          <label for="coverLetterFile">Cover Letter (optional)</label>
+          <div class="file-field">
+            <input type="file" id="coverLetterFile" name="coverLetterFile" accept=".pdf,.doc,.docx,.txt" />
+            <p class="file-hint">PDF, DOC, DOCX or TXT · max 5 MB</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Free text -->
+      <div class="section">
+        <div class="section-title">Your Application</div>
+        <div class="field">
+          <label for="coverLetterText">Cover Letter / Motivation <span class="req">*</span></label>
+          <textarea id="coverLetterText" name="coverLetterText" rows="6" placeholder="Tell us why you're interested in this role and what makes you a great fit…"></textarea>
+        </div>
+        <div class="field">
+          <label for="portfolio">Portfolio / GitHub URL</label>
+          <input type="url" id="portfolio" name="portfolio" placeholder="https://github.com/yourusername" />
+        </div>
+      </div>
+
+      <!-- Checkboxes -->
+      <div class="section">
+        <div class="section-title">Additional Information</div>
+        <div class="field">
+          <label>Work authorisation</label>
+          <div class="checkbox-group">
+            <label class="checkbox-item"><input type="checkbox" name="euWorkAuth" value="yes" /> I am authorised to work in the EU without sponsorship</label>
+            <label class="checkbox-item"><input type="checkbox" name="remoteOk" value="yes" /> I am open to remote / hybrid work</label>
+            <label class="checkbox-item"><input type="checkbox" name="willingToRelocate" value="yes" /> I am willing to relocate to Berlin</label>
+          </div>
+        </div>
+        <div class="field">
+          <label>How did you hear about us?</label>
+          <select id="source" name="source">
+            <option value="">— select —</option>
+            <option value="linkedin">LinkedIn</option>
+            <option value="job-board">Job Board (Indeed, StepStone…)</option>
+            <option value="referral">Employee Referral</option>
+            <option value="company-site">Company Website</option>
+            <option value="other">Other</option>
+          </select>
+        </div>
+        <div class="field">
+          <label class="checkbox-item" style="font-size:13px;">
+            <input type="checkbox" id="gdprConsent" name="gdprConsent" value="yes" required />
+            I consent to Test Corp GmbH storing my application data in accordance with GDPR. <span class="req">*</span>
+          </label>
+        </div>
+      </div>
+
+      <div class="submit-row">
+        <button type="reset">Clear</button>
+        <button type="submit">Submit Application →</button>
+      </div>
+    </form>
+
+    <div id="success">
+      <h2>✓ Application submitted successfully!</h2>
+      <p>This is a test form. No data was actually sent anywhere.</p>
+    </div>
+  </div>
+
+  <script>
+    document.getElementById('appForm').addEventListener('submit', function(e) {
+      e.preventDefault()
+      this.style.display = 'none'
+      document.getElementById('success').style.display = 'block'
+    })
+  </script>
+</body>
+</html>

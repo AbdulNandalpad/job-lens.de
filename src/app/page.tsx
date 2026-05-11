@@ -65,7 +65,7 @@ export default function HomePage() {
   const features = [
     { icon: '◎', title: 'Career Scan', desc: 'Upload your CV and get an honest AI analysis. Strengths, gaps, salary estimate, quick wins - in 30 seconds.', href: user ? '/app/career-scan' : '/login', cta: 'Scan my profile', bg: '#E6F1FB', color: '#185FA5' },
     { icon: '🔍', title: 'Smart Job Search', desc: 'AI reads your CV and finds the best matching jobs across Germany and Switzerland. Live postings, real companies.', href: user ? '/app/smart-apply' : '/login', cta: 'Find matching jobs', bg: '#E1F5EE', color: '#1D9E75' },
-    { icon: '📄', title: 'AI CV & Cover Letter', desc: 'One click to generate a tailored CV and cover letter for any job. Optimised for ATS and DACH hiring managers.', href: user ? '/app/smart-apply' : '/login', cta: 'Tailor my CV', bg: '#FFF8EC', color: '#BA7517' },
+    { icon: '📄', title: 'AI CV & Cover Letter', desc: 'One click to generate a tailored CV and cover letter for any job. Optimised for ATS and DACH hiring managers.', href: user ? '/app/cv-builder' : '/login', cta: 'Tailor my CV', bg: '#FFF8EC', color: '#BA7517' },
   ]
 
   const steps = [
@@ -136,7 +136,7 @@ export default function HomePage() {
                 <>
                   <Link href="/app/career-scan" className="jl-nav-link" style={{ fontSize: 13, color: '#85B7EB', textDecoration: 'none' }}>Career Scan</Link>
                   <Link href="/app/smart-apply" className="jl-nav-link" style={{ fontSize: 13, color: '#85B7EB', textDecoration: 'none' }}>Job Search</Link>
-                  <Link href="/auth/login" className="jl-cta-btn" style={{ fontSize: 12, padding: '6px 16px', borderRadius: 20, background: '#378ADD', color: '#fff', textDecoration: 'none', fontWeight: 600 }}>
+                  <Link href="/login" className="jl-cta-btn" style={{ fontSize: 12, padding: '6px 16px', borderRadius: 20, background: '#378ADD', color: '#fff', textDecoration: 'none', fontWeight: 600 }}>
                     Sign In
                   </Link>
                 </>

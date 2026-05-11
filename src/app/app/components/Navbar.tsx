@@ -24,6 +24,9 @@ export default function Navbar() {
     { label: 'CV Builder', href: '/app/cv-builder' },
     { label: 'Cover Letter', href: '/app/cover-letter' },
     { label: 'Apply Now', href: '/app/apply-now' },
+    ...(process.env.NEXT_PUBLIC_AUTO_APPLY_ENABLED === 'true'
+      ? [{ label: 'Auto Apply', href: '/app/auto-apply' }]
+      : []),
     { label: 'Tracker', href: '/app/tracker' },
   ]
 

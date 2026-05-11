@@ -309,12 +309,12 @@ function SmartJobSearchPage() {
             )}
           </div>
           <div style={{ fontSize: 12, color: '#6b7c93', marginBottom: 8 }}>
-            {[job.employer_name, [job.job_city, job.job_country].filter(Boolean).join(', '), salary, job.job_posted_at_datetime_utc ? formatPostedDate(job.job_posted_at_datetime_utc) : null].filter(Boolean).join(' Â· ')}
+            {[job.employer_name, [job.job_city, job.job_country].filter(Boolean).join(', '), salary, job.job_posted_at_datetime_utc ? formatPostedDate(job.job_posted_at_datetime_utc) : null].filter(Boolean).join(' · ')}
           </div>
           {job.matchChips && <MatchChips chips={job.matchChips} />}
         </div>
         <div style={{ display: 'flex', gap: 6, padding: '9px 16px', borderTop: '1px solid #f3f6fa', background: '#fafbfd', flexWrap: 'wrap', alignItems: 'center' }}>
-          {/* Build CV â€” saves job + navigates to CV Builder */}
+          {/* Build CV -- saves job + navigates to CV Builder */}
           <button
             onClick={() => openCvBuilder(job)}
             disabled={!cvText}
@@ -322,7 +322,7 @@ function SmartJobSearchPage() {
           >
             Build CV
           </button>
-          {/* Cover Letter â€” saves job + navigates to Cover Letter Builder */}
+          {/* Cover Letter -- saves job + navigates to Cover Letter Builder */}
           <button
             onClick={() => openCoverLetter(job)}
             disabled={!cvText}
@@ -375,7 +375,7 @@ function SmartJobSearchPage() {
             <div style={{ flex: 1 }}>
               <div style={{ fontSize: 16, fontWeight: 700, color: '#fff', marginBottom: 4, fontFamily: "'Outfit', sans-serif" }}>{selectedJob.job_title}</div>
               <div style={{ fontSize: 12, color: '#85B7EB' }}>
-                {[selectedJob.employer_name, [selectedJob.job_city, selectedJob.job_country].filter(Boolean).join(', '), salary].filter(Boolean).join(' Â· ')}
+                {[selectedJob.employer_name, [selectedJob.job_city, selectedJob.job_country].filter(Boolean).join(', '), salary].filter(Boolean).join(' · ')}
               </div>
             </div>
             <a href={selectedJob.job_apply_link} target="_blank" rel="noopener noreferrer" style={{ fontSize: 12, padding: '8px 16px', borderRadius: 8, background: '#378ADD', color: '#fff', textDecoration: 'none', fontWeight: 700, flexShrink: 0, fontFamily: "'Outfit', sans-serif" }}>
@@ -434,7 +434,7 @@ function SmartJobSearchPage() {
             </div>
           )}
 
-          {/* Build CV tab â€” navigate to CV Builder */}
+          {/* Build CV tab -- navigate to CV Builder */}
           {activeRight === 'cv' && (
             <div style={{ textAlign: 'center', padding: '48px 24px' }}>
               <div style={{ width: 60, height: 60, borderRadius: '50%', background: 'linear-gradient(135deg, #E6F1FB, #dbeafe)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 26, margin: '0 auto 16px' }}>&#128196;</div>
@@ -457,7 +457,7 @@ function SmartJobSearchPage() {
             </div>
           )}
 
-          {/* Cover Letter tab â€” navigate to Cover Letter Builder */}
+          {/* Cover Letter tab -- navigate to Cover Letter Builder */}
           {activeRight === 'cl' && (
             <div style={{ textAlign: 'center', padding: '48px 24px' }}>
               <div style={{ width: 60, height: 60, borderRadius: '50%', background: 'linear-gradient(135deg, #FFF8EC, #fef3c7)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 26, margin: '0 auto 16px' }}>&#9997;</div>
