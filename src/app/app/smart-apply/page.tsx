@@ -71,6 +71,7 @@ function SmartJobSearchPage() {
   const [mobOpen, setMobOpen] = useState(false)
 
   const hasProfile = !!(linkedinText || cvText)
+  const autoSearchDone = useRef(false)
 
   useEffect(() => {
     const fromCareerScan = searchParams.get('from') === 'career-scan'
@@ -106,6 +107,14 @@ function SmartJobSearchPage() {
   useEffect(() => {
     if (cvText) { sessionStorage.setItem('jl_sjs_cv_text', cvText); sessionStorage.setItem('jl_sjs_cv_name', cvFileName) }
   }, [cvText, cvFileName])
+
+  // Auto-trigger job search when CV is carried over from Career Scan
+  useEffect(() => {
+    if (carriedOver && cvText && !autoSearchDone.current) {
+      autoSearchDone.current = true
+      handleFindJobs()
+    }
+  }, [carriedOver, cvText])
 
   useEffect(() => {
     if (targetRole) sessionStorage.setItem('jl_sjs_target_role', targetRole)
@@ -629,6 +638,22 @@ function SmartJobSearchPage() {
               </div>
             )}
 
+            {/* Keywords banner — shows extracted profile after analyse-profile runs */}
+            {profile && (
+              <div style={{ background: '#EEF6FF', border: '1px solid #C3DDF7', borderRadius: 10, padding: '12px 16px', marginBottom: 16 }}>
+                <div style={{ fontSize: 11, fontWeight: 700, color: '#185FA5', marginBottom: 6, textTransform: 'uppercase' as const, letterSpacing: 0.5 }}>
+                  Profile detected — searching for: <span style={{ fontFamily: "'Outfit', sans-serif", fontSize: 13 }}>{profile.suggestedQuery}</span>
+                </div>
+                {profile.skills.length > 0 && (
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5, marginTop: 6 }}>
+                    {profile.skills.map(skill => (
+                      <span key={skill} style={{ fontSize: 11, padding: '3px 9px', borderRadius: 10, background: '#C3DDF7', color: '#042C53', fontWeight: 600 }}>{skill}</span>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
             {!loading && !analysing && jobs.length === 0 && !error && (
               <div style={{ textAlign: 'center', padding: '80px 20px' }}>
                 <div style={{ width: 80, height: 80, borderRadius: '50%', background: 'linear-gradient(135deg, #E6F1FB, #dbeafe)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 36, margin: '0 auto 20px' }}>&#128269;</div>
@@ -636,11 +661,6 @@ function SmartJobSearchPage() {
                 <div style={{ fontSize: 14, color: '#8fa3b8', lineHeight: 1.8, maxWidth: 380, margin: '0 auto' }}>
                   Upload your LinkedIn PDF or CV &mdash; AI will extract your profile and find the best matching jobs automatically.
                 </div>
-                {carriedOver && (
-                  <div style={{ marginTop: 16, fontSize: 13, color: '#1D9E75', background: '#f0fbf6', borderRadius: 10, padding: '10px 20px', display: 'inline-block', border: '1px solid #b6ecd8' }}>
-                    &#10003; CV from Career Scan is loaded &mdash; click Find Matching Jobs
-                  </div>
-                )}
               </div>
             )}
 

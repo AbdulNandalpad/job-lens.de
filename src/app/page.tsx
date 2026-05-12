@@ -159,6 +159,8 @@ export default function HomePage() {
 
         .jl-feature-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; }
         @media (max-width: 768px) { .jl-feature-grid { grid-template-columns: 1fr; } }
+        .jl-pricing-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; max-width: 860px; margin: 0 auto; }
+        @media (max-width: 700px) { .jl-pricing-grid { grid-template-columns: 1fr; } }
       `}</style>
 
       {/* ── Navbar ── */}
@@ -330,7 +332,7 @@ export default function HomePage() {
           </div>
 
           {/* Pack cards */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16, maxWidth: 860, margin: '0 auto' }}>
+          <div className="jl-pricing-grid">
             {[
               { label: 'Starter', price: '€4.99', credits: 20, desc: 'A quick CV refresh or a few targeted applications.', color: c.accent, popular: false, cta: 'Get Starter' },
               { label: 'Job Hunt', price: '€12.99', credits: 60, desc: 'A full 1–2 month active job search. Most popular.', color: c.accent, popular: true, cta: 'Get Job Hunt' },
@@ -369,7 +371,7 @@ export default function HomePage() {
           <div style={{ position: 'absolute', inset: 0, backgroundImage: `linear-gradient(rgba(55,138,221,0.04) 1px, transparent 1px), linear-gradient(90deg, rgba(55,138,221,0.04) 1px, transparent 1px)`, backgroundSize: '56px 56px', pointerEvents: 'none' }} />
           <div style={{ position: 'relative', zIndex: 1 }}>
             <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 11, color: c.accentLight, background: gl.dark, border: `1px solid ${gl.borderDark}`, padding: '4px 14px', borderRadius: 20, marginBottom: 20, letterSpacing: 0.5, fontWeight: 600 }}>
-              Free to use &nbsp;&middot;&nbsp; No credit card needed
+              5 free credits on signup &nbsp;&middot;&nbsp; No card needed
             </div>
             <div style={{ fontFamily: f.heading, fontSize: 28, fontWeight: 700, color: theme.navbar.text, marginBottom: 10, letterSpacing: -0.3 }}>
               Ready to find your next role?
@@ -395,7 +397,11 @@ export default function HomePage() {
         <div style={{ textAlign: 'center', marginTop: 48, paddingBottom: 8, display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 20, flexWrap: 'wrap' }}>
           <span style={{ fontSize: 12, color: c.textFaint }}>Job-Lens AI &mdash; Built for DACH job seekers</span>
           <span style={{ fontSize: 12, color: c.border }}>|</span>
-          <Link href="/login" style={{ fontSize: 12, color: c.textFaint, textDecoration: 'none' }}>Sign in</Link>
+          {user ? (
+            <Link href="/app/career-scan" style={{ fontSize: 12, color: c.textFaint, textDecoration: 'none' }}>Go to App</Link>
+          ) : (
+            <Link href="/login" style={{ fontSize: 12, color: c.textFaint, textDecoration: 'none' }}>Sign in</Link>
+          )}
           <Link href="/app/career-scan" style={{ fontSize: 12, color: c.textFaint, textDecoration: 'none' }}>Career Scan</Link>
           <Link href="/app/smart-apply" style={{ fontSize: 12, color: c.textFaint, textDecoration: 'none' }}>Job Search</Link>
         </div>
