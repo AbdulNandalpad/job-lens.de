@@ -1,4 +1,4 @@
-﻿'use client'
+'use client'
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
@@ -12,6 +12,7 @@ export default function Navbar() {
   const pathname = usePathname()
   const [userName, setUserName] = useState('')
   const [menuOpen, setMenuOpen] = useState(false)
+  const [cleared, setCleared] = useState(false)
 
   useEffect(() => {
     const supabase = createClient()
@@ -20,6 +21,14 @@ export default function Navbar() {
       setUserName(full.split(' ')[0] || 'User')
     })
   }, [])
+
+  function clearSession() {
+    Object.keys(sessionStorage)
+      .filter(k => k.startsWith('jl_'))
+      .forEach(k => sessionStorage.removeItem(k))
+    setCleared(true)
+    setTimeout(() => setCleared(false), 2500)
+  }
 
   const navItems = [
     { label: 'Career Scan', href: '/app/career-scan' },
@@ -45,12 +54,14 @@ export default function Navbar() {
         .jl-mobile-menu { display: none; }
         .jl-mobile-page { display: none; }
         .jl-logo-text { display: flex; }
+        .jl-clear-btn { display: flex; }
         @media (max-width: 768px) {
           .jl-desktop-nav { display: none !important; }
           .jl-hamburger { display: flex !important; }
           .jl-mobile-menu { display: block !important; }
           .jl-mobile-page { display: block !important; }
           .jl-logo-text { display: none !important; }
+          .jl-clear-btn { display: none !important; }
         }
       `}</style>
 
@@ -84,14 +95,29 @@ export default function Navbar() {
           ))}
         </div>
 
-        {/* User + hamburger */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
+        {/* User + clear session + hamburger */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
+
+          {/* Clear session button */}
+          <button
+            className="jl-clear-btn"
+            onClick={clearSession}
+            title="Clear all session data (CV, jobs, letters)"
+            style={{ alignItems: 'center', gap: 5, padding: '4px 10px', borderRadius: 16, background: cleared ? 'rgba(29,158,117,0.2)' : 'rgba(255,255,255,0.06)', border: `1px solid ${cleared ? 'rgba(29,158,117,0.4)' : 'rgba(255,255,255,0.12)'}`, cursor: 'pointer', transition: 'all 0.2s' }}
+          >
+            <span style={{ fontSize: 11, color: cleared ? '#4ade80' : 'rgba(255,255,255,0.45)', fontFamily: f.body, fontWeight: 500 }}>
+              {cleared ? '✓ Cleared' : '⟳ New session'}
+            </span>
+          </button>
+
+          {/* User avatar */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'rgba(255,255,255,0.08)', border: '0.5px solid rgba(255,255,255,0.15)', borderRadius: 20, padding: '4px 10px 4px 5px' }}>
             <div style={{ width: 22, height: 22, borderRadius: '50%', background: '#378ADD', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 9, fontWeight: 700, color: '#fff' }}>
               {userName.charAt(0).toUpperCase()}
             </div>
             <span style={{ fontSize: 12, color: '#E6F1FB' }}>{userName}</span>
           </div>
+
           <button className="jl-hamburger" onClick={() => setMenuOpen(!menuOpen)}
             style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#E6F1FB', fontSize: 20, padding: 4, alignItems: 'center', justifyContent: 'center' }}>
             {menuOpen ? '✕' : '☰'}
@@ -109,6 +135,10 @@ export default function Navbar() {
               {isActive(item.href) && <span style={{ fontSize: 10, background: '#378ADD', color: '#fff', padding: '2px 8px', borderRadius: 10, fontWeight: 700 }}>Current</span>}
             </Link>
           ))}
+          <button onClick={() => { clearSession(); setMenuOpen(false) }}
+            style={{ width: '100%', marginTop: 8, padding: '10px 12px', borderRadius: 8, background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', color: 'rgba(255,255,255,0.5)', fontSize: 13, cursor: 'pointer', textAlign: 'left' as const }}>
+            ⟳ New session — clear all data
+          </button>
         </div>
       )}
     </>

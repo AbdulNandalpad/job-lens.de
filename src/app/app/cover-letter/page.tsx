@@ -465,7 +465,7 @@ export default function CoverLetterPage() {
                 </button>
                 <button onClick={goApply}
                   style={{ padding: '7px 16px', borderRadius: 7, border: 'none', background: 'linear-gradient(135deg, #1D9E75, #059669)', color: '#fff', fontSize: 11, fontWeight: 700, cursor: 'pointer', fontFamily: "'Outfit', sans-serif", transition: 'all 0.15s' }}>
-                  Applied - log it {'->'}
+                  Apply Now &rarr;
                 </button>
               </div>
             )}
@@ -570,7 +570,7 @@ export default function CoverLetterPage() {
                   </button>
                   <button onClick={goApply}
                     style={{ padding: '10px 26px', borderRadius: 9, border: 'none', background: 'linear-gradient(135deg, #1D9E75, #059669)', color: '#fff', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: "'Outfit', sans-serif", boxShadow: '0 6px 20px rgba(29,158,117,0.3)' }}>
-                    Applied - log it {'->'}
+                    Apply Now &rarr;
                   </button>
                 </div>
               </div>
