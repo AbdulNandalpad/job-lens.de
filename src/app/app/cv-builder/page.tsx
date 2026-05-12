@@ -676,6 +676,8 @@ export default function CVBuilderPage() {
   const [rawCv, setRawCv] = useState('')
   const [loading, setLoading] = useState(false)
   const [openSections, setOpenSections] = useState<Record<string, boolean>>({ template: true, style: true, output: false })
+  const [feedback, setFeedback] = useState('')
+  const [applyingFeedback, setApplyingFeedback] = useState(false)
 
   function toggleSection(id: string) {
     setOpenSections(prev => ({ ...prev, [id]: !prev[id] }))
@@ -782,6 +784,34 @@ ${job?.job_description ? `- Job context: ${job.job_description.slice(0, 800)}` :
       setRawCv('Failed to generate. Please try again.')
     }
     setLoading(false)
+  }
+
+  async function applyFeedback() {
+    if (!feedback.trim() || !rawCv) return
+    setApplyingFeedback(true)
+
+    const systemPrompt = `You are an elite CV designer. The user has requested changes to their CV. Apply the feedback and return updated JSON matching the same schema. Return ONLY valid JSON, no markdown.`
+
+    try {
+      const res = await fetch('/api/tailor-cv', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ cvText, job, template, tone, pages, lang, systemPrompt, returnJson: true, feedback, currentCv: rawCv }),
+      })
+      if (res.status === 402) { alert('Not enough credits to apply changes.'); setApplyingFeedback(false); return }
+      const data = await res.json()
+      const raw = data.cv || ''
+      setRawCv(raw)
+      sessionStorage.setItem('jl_cvb_tailored', raw)
+      try {
+        const clean = raw.replace(/```json|```/g, '').trim()
+        const parsed: CVData = JSON.parse(clean)
+        setCvData(parsed)
+        sessionStorage.setItem('jl_cvb_data', JSON.stringify(parsed))
+      } catch { /* keep existing */ }
+      setFeedback('')
+    } catch { /* silent */ }
+    setApplyingFeedback(false)
   }
 
   const [downloading, setDownloading] = useState<'pdf' | 'docx' | null>(null)
@@ -1610,8 +1640,26 @@ ${job?.job_description ? `- Job context: ${job.job_description.slice(0, 800)}` :
                   {renderCV()}
                 </div>
 
+                {/* Feedback input */}
+                <div style={{ marginTop: 20, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 10, padding: '14px 16px' }}>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.4)', letterSpacing: 0.5, textTransform: 'uppercase' as const, marginBottom: 8 }}>Request changes</div>
+                  <textarea
+                    value={feedback}
+                    onChange={e => setFeedback(e.target.value)}
+                    placeholder="e.g. Make the summary shorter, add more focus on leadership, switch to German…"
+                    rows={2}
+                    style={{ width: '100%', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 7, color: '#E6F1FB', fontSize: 12, padding: '8px 10px', resize: 'vertical' as const, fontFamily: "'DM Sans', sans-serif", outline: 'none', boxSizing: 'border-box' as const }}
+                  />
+                  <button
+                    onClick={applyFeedback}
+                    disabled={!feedback.trim() || applyingFeedback}
+                    style={{ marginTop: 8, padding: '7px 18px', borderRadius: 7, border: 'none', background: feedback.trim() && !applyingFeedback ? currentAccent : 'rgba(255,255,255,0.08)', color: feedback.trim() && !applyingFeedback ? '#042C53' : 'rgba(255,255,255,0.25)', fontSize: 12, fontWeight: 700, cursor: feedback.trim() && !applyingFeedback ? 'pointer' : 'not-allowed', fontFamily: "'Outfit', sans-serif" }}>
+                    {applyingFeedback ? 'Applying…' : 'Apply changes — 1 credit'}
+                  </button>
+                </div>
+
                 {/* Footer actions */}
-                <div style={{ display: 'flex', gap: 10, marginTop: 24, justifyContent: 'center', flexWrap: 'wrap', paddingBottom: 32 }}>
+                <div style={{ display: 'flex', gap: 10, marginTop: 20, justifyContent: 'center', flexWrap: 'wrap', paddingBottom: 32 }}>
                   <button onClick={downloadPDF} disabled={downloading === 'pdf'}
                     style={{ padding: '10px 22px', borderRadius: 9, border: '1px solid rgba(255,255,255,0.1)', background: 'rgba(255,255,255,0.05)', color: downloading === 'pdf' ? currentAccent : 'rgba(255,255,255,0.7)', fontSize: 12, fontWeight: 600, cursor: downloading === 'pdf' ? 'wait' : 'pointer', fontFamily: "'Outfit', sans-serif" }}>
                     {downloading === 'pdf' ? 'Building PDF...' : 'Download PDF'}

@@ -300,6 +300,70 @@ export default function HomePage() {
           </div>
         </div>
 
+        {/* ── Pricing ── */}
+        <div style={{ marginTop: 80 }}>
+          <div style={{ textAlign: 'center', marginBottom: 16 }}>
+            <div style={{ fontFamily: f.heading, fontSize: 26, fontWeight: 700, color: c.primary, marginBottom: 10 }}>Simple credit pricing</div>
+            <div style={{ fontSize: 14, color: c.textMuted, maxWidth: 480, margin: '0 auto', lineHeight: 1.65 }}>
+              Buy once, use anytime. Credits never expire — perfect for a seasonal job search.
+            </div>
+          </div>
+
+          {/* Cost table */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 10, maxWidth: 860, margin: '0 auto 36px', background: '#fff', border: `1px solid ${c.border}`, borderRadius: 14, overflow: 'hidden', padding: '18px 20px' }}>
+            {[
+              { feature: 'Smart Job Search', cost: 'Free', icon: '🔍', note: 'Always free' },
+              { feature: 'Career Scan', cost: '2 credits', icon: '◎', note: 'Full AI analysis' },
+              { feature: 'CV Tailoring', cost: '1 credit', icon: '📄', note: 'Per job application' },
+              { feature: 'Cover Letter', cost: '1 credit', icon: '✉️', note: 'Per job application' },
+              { feature: 'Feedback & Edits', cost: '1 credit', icon: '✏️', note: 'Each revision round' },
+              { feature: 'Auto Apply', cost: '3 credits', icon: '⚡', note: 'Per application' },
+            ].map(item => (
+              <div key={item.feature} style={{ display: 'flex', flexDirection: 'column' as const, gap: 4, padding: '12px 14px', background: c.bg, borderRadius: 10, border: `1px solid ${c.border}` }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <span style={{ fontSize: 13, fontWeight: 600, color: c.primary }}>{item.icon} {item.feature}</span>
+                  <span style={{ fontSize: 13, fontWeight: 700, color: item.cost === 'Free' ? c.success : c.accent, fontFamily: f.heading }}>{item.cost}</span>
+                </div>
+                <span style={{ fontSize: 11, color: c.textMuted }}>{item.note}</span>
+              </div>
+            ))}
+          </div>
+
+          {/* Pack cards */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16, maxWidth: 860, margin: '0 auto' }}>
+            {[
+              { label: 'Starter', price: '€4.99', credits: 20, desc: 'A quick CV refresh or a few targeted applications.', color: c.accent, popular: false, cta: 'Get Starter' },
+              { label: 'Job Hunt', price: '€12.99', credits: 60, desc: 'A full 1–2 month active job search. Most popular.', color: c.accent, popular: true, cta: 'Get Job Hunt' },
+              { label: 'Full Sprint', price: '€24.99', credits: 150, desc: 'Aggressive multi-apply strategy with Auto Apply.', color: c.ai, popular: false, cta: 'Get Full Sprint' },
+            ].map((pack) => (
+              <div key={pack.label} style={{ position: 'relative', background: '#fff', border: `1.5px solid ${pack.popular ? pack.color : c.border}`, borderRadius: 16, padding: '24px 20px', display: 'flex', flexDirection: 'column' as const, gap: 10, transition: 'box-shadow 0.2s', boxShadow: pack.popular ? `0 8px 32px ${pack.color}20` : 'none' }}>
+                {pack.popular && (
+                  <div style={{ position: 'absolute', top: -13, left: '50%', transform: 'translateX(-50%)', background: pack.color, color: '#fff', fontSize: 10, fontWeight: 700, padding: '4px 14px', borderRadius: 20, letterSpacing: 0.5, whiteSpace: 'nowrap' as const }}>
+                    MOST POPULAR
+                  </div>
+                )}
+                <div style={{ fontFamily: f.heading, fontSize: 16, fontWeight: 700, color: c.primary }}>{pack.label}</div>
+                <div style={{ fontSize: 13, color: c.textMuted, lineHeight: 1.6 }}>{pack.desc}</div>
+                <div>
+                  <span style={{ fontFamily: f.heading, fontSize: 32, fontWeight: 700, color: c.primary }}>{pack.price}</span>
+                  <span style={{ fontSize: 13, color: c.textMuted }}> one-time</span>
+                </div>
+                <div style={{ fontSize: 13, fontWeight: 600, color: pack.color }}>{pack.credits} AI credits</div>
+                <div style={{ fontSize: 11, color: c.textMuted }}>Credits never expire</div>
+                <Link href={go('/app/account')} style={{ marginTop: 6, padding: '11px 0', borderRadius: 9, background: pack.popular ? g.primaryBtn : c.primaryLight, color: pack.popular ? '#fff' : c.navy, textDecoration: 'none', fontWeight: 700, fontFamily: f.heading, fontSize: 13, textAlign: 'center' as const, display: 'block' }}>
+                  {pack.cta} &rarr;
+                </Link>
+              </div>
+            ))}
+          </div>
+
+          <div style={{ textAlign: 'center', marginTop: 20 }}>
+            <span style={{ fontSize: 13, color: c.textMuted }}>
+              New accounts get <strong style={{ color: c.success }}>5 free credits</strong> to try the app — no payment needed.
+            </span>
+          </div>
+        </div>
+
         {/* ── Bottom CTA ── */}
         <div style={{ marginTop: 80, background: g.ctaBlock, borderRadius: 20, padding: '56px 32px', textAlign: 'center', position: 'relative', overflow: 'hidden' }}>
           <div style={{ position: 'absolute', inset: 0, backgroundImage: `linear-gradient(rgba(55,138,221,0.04) 1px, transparent 1px), linear-gradient(90deg, rgba(55,138,221,0.04) 1px, transparent 1px)`, backgroundSize: '56px 56px', pointerEvents: 'none' }} />

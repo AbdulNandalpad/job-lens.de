@@ -32,6 +32,8 @@ export default function CoverLetterPage() {
   const [personalization, setPersonalization] = useState('')
   const [optional, setOptional] = useState('')
   const [downloading, setDownloading] = useState<'pdf' | 'docx' | null>(null)
+  const [feedback, setFeedback] = useState('')
+  const [applyingFeedback, setApplyingFeedback] = useState(false)
   const [openSections, setOpenSections] = useState<Record<string, boolean>>({ style: true, format: true, summary: false })
 
   const jobLabel = job ? `${job.employer_name} - ${job.job_title}` : ''
@@ -67,6 +69,25 @@ export default function CoverLetterPage() {
       setOpenSections(prev => ({ ...prev, summary: true }))
     } catch { setLetter('Failed to generate. Please try again.') }
     finally { setLoading(false) }
+  }
+
+  async function applyFeedback() {
+    if (!feedback.trim() || !letter) return
+    setApplyingFeedback(true)
+    try {
+      const res = await fetch('/api/cover-letter', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ cvText, job, tone, length, lang, feedback, currentLetter: letter }),
+      })
+      if (res.status === 402) { alert('Not enough credits to apply changes.'); setApplyingFeedback(false); return }
+      const data = await res.json()
+      const cl = data.coverLetter || data.letter || ''
+      setLetter(cl)
+      sessionStorage.setItem('jl_cl_letter', cl)
+      setFeedback('')
+    } catch { /* silent */ }
+    setApplyingFeedback(false)
   }
 
   async function downloadPDF() {
@@ -558,8 +579,26 @@ export default function CoverLetterPage() {
                   </div>
                 </div>
 
+                {/* Feedback input */}
+                <div style={{ marginTop: 16, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 10, padding: '14px 16px' }}>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.4)', letterSpacing: 0.5, textTransform: 'uppercase' as const, marginBottom: 8 }}>Request changes</div>
+                  <textarea
+                    value={feedback}
+                    onChange={e => setFeedback(e.target.value)}
+                    placeholder="e.g. Make it shorter, add more enthusiasm, mention my Python skills, switch to German…"
+                    rows={2}
+                    style={{ width: '100%', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 7, color: '#E6F1FB', fontSize: 12, padding: '8px 10px', resize: 'vertical' as const, fontFamily: "'DM Sans', sans-serif", outline: 'none', boxSizing: 'border-box' as const }}
+                  />
+                  <button
+                    onClick={applyFeedback}
+                    disabled={!feedback.trim() || applyingFeedback}
+                    style={{ marginTop: 8, padding: '7px 18px', borderRadius: 7, border: 'none', background: feedback.trim() && !applyingFeedback ? accentColor : 'rgba(255,255,255,0.08)', color: feedback.trim() && !applyingFeedback ? '#042C53' : 'rgba(255,255,255,0.25)', fontSize: 12, fontWeight: 700, cursor: feedback.trim() && !applyingFeedback ? 'pointer' : 'not-allowed', fontFamily: "'Outfit', sans-serif" }}>
+                    {applyingFeedback ? 'Applying…' : 'Apply changes — 1 credit'}
+                  </button>
+                </div>
+
                 {/* Footer actions */}
-                <div style={{ display: 'flex', gap: 10, marginTop: 24, justifyContent: 'center', flexWrap: 'wrap', paddingBottom: 32 }}>
+                <div style={{ display: 'flex', gap: 10, marginTop: 20, justifyContent: 'center', flexWrap: 'wrap', paddingBottom: 32 }}>
                   <button onClick={downloadPDF} disabled={downloading === 'pdf'}
                     style={{ padding: '10px 22px', borderRadius: 9, border: '1px solid rgba(255,255,255,0.1)', background: 'rgba(255,255,255,0.05)', color: downloading === 'pdf' ? accentColor : 'rgba(255,255,255,0.7)', fontSize: 12, fontWeight: 600, cursor: downloading === 'pdf' ? 'wait' : 'pointer', fontFamily: "'Outfit', sans-serif" }}>
                     {downloading === 'pdf' ? 'Building PDF...' : 'Download PDF'}

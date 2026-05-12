@@ -40,6 +40,7 @@ export default function Navbar() {
       ? [{ label: 'Auto Apply', href: '/app/auto-apply' }]
       : []),
     { label: 'Tracker', href: '/app/tracker' },
+    { label: 'Account', href: '/app/account' },
   ]
 
   const isActive = (href: string) => pathname === href

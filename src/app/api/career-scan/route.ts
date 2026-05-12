@@ -1,9 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server'
 import Anthropic from '@anthropic-ai/sdk'
+import { createServerSupabase, checkAndDeductCredits } from '@/lib/supabase-server'
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
+const COST = 2
 
 export async function POST(req: NextRequest) {
+  const supabase = await createServerSupabase()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
+  const credits = await checkAndDeductCredits(user.id, COST, 'career_scan')
+  if (!credits.ok) {
+    return NextResponse.json({ error: 'Insufficient credits', credits: credits.remaining, required: COST }, { status: 402 })
+  }
+
   try {
     const { prompt } = await req.json()
 
@@ -17,7 +28,6 @@ export async function POST(req: NextRequest) {
     const clean = raw.replace(/```json|```/g, '').trim()
     const data = JSON.parse(clean)
 
-    // Ensure all array fields exist with defaults
     const safe = {
       score: data.score ?? 50,
       readiness: data.readiness ?? 'Developing',
@@ -32,6 +42,7 @@ export async function POST(req: NextRequest) {
       salary_currency: data.salary_currency ?? 'EUR',
       top_keyword: data.top_keyword ?? '',
       market_insight: data.market_insight ?? '',
+      creditsRemaining: credits.remaining,
     }
 
     return NextResponse.json(safe)
