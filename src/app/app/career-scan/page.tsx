@@ -322,7 +322,15 @@ export default function CareerScanPage() {
           transition: 'all 0.2s',
         }}
       >
-        {extracting ? 'Reading PDF…' : phase === 'loading' ? 'Analysing…' : 'Analyse My Profile'}
+        {extracting
+          ? 'Reading PDF…'
+          : phase === 'loading'
+          ? 'Analysing…'
+          : !cvText.trim()
+          ? 'Upload or paste your CV'
+          : !role.trim()
+          ? 'Enter a target role ↑'
+          : 'Analyse My Profile'}
       </button>
     </div>
   )
