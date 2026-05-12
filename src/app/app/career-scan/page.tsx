@@ -598,12 +598,73 @@ export default function CareerScanPage() {
           )}
           <div style={{ padding: 20 }}>
             {phase === 'upload' && (
-              <div style={{ textAlign: 'center', padding: '80px 20px' }}>
-                <div style={{ width: 80, height: 80, borderRadius: '50%', background: c.primaryLight, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 36, margin: '0 auto 20px' }}>&#128203;</div>
-                <div style={{ fontSize: 20, fontWeight: 700, color: c.primary, fontFamily: f.heading, marginBottom: 10 }}>Upload your CV and run the scan</div>
-                <div style={{ fontSize: 14, color: c.textMuted, lineHeight: 1.7, maxWidth: 380, margin: '0 auto' }}>
-                  Add your CV in the sidebar, enter your target role, then click Analyse My Profile.
+              <div style={{ maxWidth: 480, margin: '48px auto 0', padding: '0 20px' }}>
+                <div style={{ fontFamily: f.heading, fontSize: 20, fontWeight: 700, color: c.primary, marginBottom: 6 }}>
+                  3 steps to your Career Scan
                 </div>
+                <div style={{ fontSize: 13, color: c.textMuted, marginBottom: 28 }}>
+                  Complete the checklist on the left, then hit Analyse.
+                </div>
+
+                {(() => {
+                  const hasCV = cvText.trim().length > 0
+                  const hasRole = role.trim().length > 0
+                  const steps = [
+                    {
+                      done: hasCV || extracting,
+                      loading: extracting,
+                      num: 1,
+                      title: extracting ? 'Reading your PDF…' : hasCV ? 'CV loaded' : 'Add your CV',
+                      desc: extracting
+                        ? 'Extracting text from your PDF, hang tight.'
+                        : hasCV
+                        ? `${Math.round(cvText.length / 5)} words ready to analyse.`
+                        : 'Upload a PDF/DOCX in the sidebar, or paste your CV text.',
+                    },
+                    {
+                      done: hasRole,
+                      loading: false,
+                      num: 2,
+                      title: hasRole ? `Target role: ${role}` : 'Enter your target role',
+                      desc: hasRole
+                        ? 'Claude will benchmark your profile against this role.'
+                        : 'Type the job title you\'re aiming for in the sidebar.',
+                    },
+                    {
+                      done: false,
+                      loading: false,
+                      num: 3,
+                      title: 'Click Analyse My Profile',
+                      desc: 'Get your score, strengths, gaps, salary range and a personalised upgrade plan.',
+                    },
+                  ]
+                  return (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                      {steps.map((s, i) => (
+                        <div key={i} style={{ display: 'flex', gap: 16, padding: '14px 18px', borderRadius: 12, background: s.done ? c.successLight : c.bgCard, border: `1px solid ${s.done ? c.successBorder : c.border}`, transition: 'all 0.3s', alignItems: 'flex-start' }}>
+                          <div style={{ width: 32, height: 32, borderRadius: '50%', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: 13, background: s.loading ? c.primaryLight : s.done ? c.success : c.bg, color: s.loading ? c.accent : s.done ? '#fff' : c.textFaint, border: `2px solid ${s.loading ? c.accent : s.done ? c.success : c.border}`, transition: 'all 0.3s' }}>
+                            {s.loading
+                              ? <div style={{ width: 14, height: 14, borderRadius: '50%', border: `2px solid ${c.accent}`, borderTopColor: 'transparent', animation: 'spin 0.8s linear infinite' }} />
+                              : s.done ? '✓' : s.num}
+                          </div>
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <div style={{ fontSize: 13, fontWeight: 700, color: s.done ? '#0F6E56' : c.primary, fontFamily: f.heading, marginBottom: 3 }}>{s.title}</div>
+                            <div style={{ fontSize: 12, color: s.done ? c.success : c.textMuted, lineHeight: 1.5 }}>{s.desc}</div>
+                          </div>
+                        </div>
+                      ))}
+
+                      {canScan && (
+                        <div style={{ marginTop: 4, padding: '12px 18px', borderRadius: 12, background: `linear-gradient(135deg, ${c.primaryLight}, #dbeafe)`, border: `1px solid ${c.accentLight}`, display: 'flex', alignItems: 'center', gap: 12 }}>
+                          <div style={{ fontSize: 20 }}>&#127919;</div>
+                          <div style={{ fontSize: 13, color: c.navy, fontWeight: 600 }}>
+                            All set! Hit <strong style={{ color: c.primary }}>&ldquo;Analyse My Profile&rdquo;</strong> in the sidebar.
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )
+                })()}
               </div>
             )}
             {phase === 'loading' && (
