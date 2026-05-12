@@ -187,6 +187,18 @@ function SmartJobSearchPage() {
     return chips
   }
 
+  // Real skill-overlap score — only shown when we have an extracted profile with skills.
+  // Percentage = matched skills / total profile skills. No invented numbers.
+  function computeMatchScore(job: Job, extractedProfile: Profile | null): number | undefined {
+    if (!extractedProfile || !extractedProfile.skills.length) return undefined
+    const desc = (job.job_description || '').toLowerCase()
+    const title = (job.job_title || '').toLowerCase()
+    const matched = extractedProfile.skills.filter(s =>
+      desc.includes(s.toLowerCase()) || title.includes(s.toLowerCase())
+    ).length
+    return Math.round((matched / extractedProfile.skills.length) * 100)
+  }
+
   async function handleFindJobs() {
     if (!targetRole.trim() && !hasProfile) return
     setAnalysing(false); setLoading(false); setError(''); setJobs([]); setSelectedJob(null); setProfile(null)
@@ -208,7 +220,7 @@ function SmartJobSearchPage() {
       const res = await fetch(`/api/jobs?${params}`)
       const data = await res.json()
       if (data.error) { setError(data.error); setLoading(false); return }
-      setJobs((data.jobs || []).map((job: Job) => ({ ...job, matchChips: generateMatchChips(job, extractedProfile) })))
+      setJobs((data.jobs || []).map((job: Job) => ({ ...job, matchChips: generateMatchChips(job, extractedProfile), matchScore: computeMatchScore(job, extractedProfile) })))
     } catch { setError('Failed to fetch jobs. Please try again.') }
     setLoading(false)
   }
@@ -302,9 +314,9 @@ function SmartJobSearchPage() {
         <div onClick={() => selectJob(job)} style={{ padding: '14px 16px', cursor: 'pointer' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 4 }}>
             <div style={{ fontSize: 14, fontWeight: 700, color: '#042C53', flex: 1, marginRight: 8 }}>{job.job_title}</div>
-            {matchCount > 0 && (
-              <div style={{ fontSize: 10, padding: '2px 8px', borderRadius: 10, background: matchCount >= 3 ? '#f0fbf6' : '#fffbeb', color: matchCount >= 3 ? '#1D9E75' : '#92400e', fontWeight: 700, flexShrink: 0, border: `1px solid ${matchCount >= 3 ? '#b6ecd8' : '#fcd98a'}` }}>
-                {matchCount >= 3 ? 'Strong match' : 'Partial match'}
+            {job.matchScore !== undefined && (
+              <div style={{ fontSize: 11, padding: '3px 9px', borderRadius: 10, fontWeight: 700, flexShrink: 0, background: job.matchScore >= 60 ? '#f0fbf6' : job.matchScore >= 30 ? '#fffbeb' : '#f5f7fa', color: job.matchScore >= 60 ? '#1D9E75' : job.matchScore >= 30 ? '#92400e' : '#6b7c93', border: `1px solid ${job.matchScore >= 60 ? '#b6ecd8' : job.matchScore >= 30 ? '#fcd98a' : '#edf1f6'}` }}>
+                {job.matchScore}% match
               </div>
             )}
           </div>
@@ -371,16 +383,18 @@ function SmartJobSearchPage() {
       <div style={{ background: '#fff', border: '1.5px solid #edf1f6', borderRadius: 16, overflow: 'hidden', boxShadow: '0 4px 24px rgba(4,44,83,0.08)' }}>
         {/* Gradient header */}
         <div style={{ background: 'linear-gradient(135deg, #042C53 0%, #073d6e 100%)', padding: '20px 20px 16px' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12, marginBottom: 12 }}>
-            <div style={{ flex: 1 }}>
-              <div style={{ fontSize: 16, fontWeight: 700, color: '#fff', marginBottom: 4, fontFamily: "'Outfit', sans-serif" }}>{selectedJob.job_title}</div>
-              <div style={{ fontSize: 12, color: '#85B7EB' }}>
-                {[selectedJob.employer_name, [selectedJob.job_city, selectedJob.job_country].filter(Boolean).join(', '), salary].filter(Boolean).join(' · ')}
-              </div>
+          <div style={{ marginBottom: 12 }}>
+            <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 10, marginBottom: 4 }}>
+              <div style={{ fontSize: 16, fontWeight: 700, color: '#fff', fontFamily: "'Outfit', sans-serif" }}>{selectedJob.job_title}</div>
+              {selectedJob.matchScore !== undefined && (
+                <div style={{ fontSize: 12, padding: '4px 10px', borderRadius: 10, fontWeight: 700, flexShrink: 0, background: selectedJob.matchScore >= 60 ? 'rgba(29,158,117,0.25)' : selectedJob.matchScore >= 30 ? 'rgba(245,158,11,0.25)' : 'rgba(255,255,255,0.12)', color: selectedJob.matchScore >= 60 ? '#4ade80' : selectedJob.matchScore >= 30 ? '#fcd34d' : 'rgba(255,255,255,0.6)', border: `1px solid ${selectedJob.matchScore >= 60 ? 'rgba(74,222,128,0.4)' : selectedJob.matchScore >= 30 ? 'rgba(245,158,11,0.4)' : 'rgba(255,255,255,0.2)'}` }}>
+                  {selectedJob.matchScore}% skill match
+                </div>
+              )}
             </div>
-            <a href={selectedJob.job_apply_link} target="_blank" rel="noopener noreferrer" style={{ fontSize: 12, padding: '8px 16px', borderRadius: 8, background: '#378ADD', color: '#fff', textDecoration: 'none', fontWeight: 700, flexShrink: 0, fontFamily: "'Outfit', sans-serif" }}>
-              Apply Now &rarr;
-            </a>
+            <div style={{ fontSize: 12, color: '#85B7EB' }}>
+              {[selectedJob.employer_name, [selectedJob.job_city, selectedJob.job_country].filter(Boolean).join(', '), salary].filter(Boolean).join(' · ')}
+            </div>
           </div>
           {selectedJob.matchChips && selectedJob.matchChips.length > 0 && (
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>
