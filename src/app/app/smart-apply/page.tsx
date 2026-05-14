@@ -394,7 +394,7 @@ function SmartJobSearchPage() {
         { icon: '⚡', label: 'Auto Apply', desc: 'AI fills the whole application form for you', cost: '3 credits', enabled: false },
       ]
       return (
-        <div style={{ background: '#fff', border: '1.5px solid #edf1f6', borderRadius: 16, overflow: 'hidden', boxShadow: '0 4px 24px rgba(4,44,83,0.06)' }}>
+        <div className="jl-right-panel-empty" style={{ background: '#fff', border: '1.5px solid #edf1f6', borderRadius: 16, overflow: 'hidden', boxShadow: '0 4px 24px rgba(4,44,83,0.06)' }}>
           {/* Header */}
           <div style={{ background: 'linear-gradient(135deg, #152233 0%, #0e1a28 100%)', padding: '24px 24px 20px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12 }}>
@@ -691,6 +691,8 @@ function SmartJobSearchPage() {
         .jl-main-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; align-items: start; }
         @media (max-width: 1100px) { .jl-main-grid { grid-template-columns: 1fr !important; } }
         @media (max-width: 768px) { .jl-dsb { display: none !important; } .jl-mbtn { display: block !important; } .jl-main-grid { grid-template-columns: 1fr !important; } }
+        .jl-right-panel-empty { display: block; }
+        @media (max-width: 1100px) { .jl-right-panel-empty { display: none !important; } }
         input:focus, select:focus { border-color: rgba(55,138,221,0.6) !important; }
         textarea::placeholder { color: rgba(255,255,255,0.35); }
         input::placeholder { color: rgba(255,255,255,0.35); }

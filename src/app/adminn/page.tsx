@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import { createBrowserClient } from '@supabase/ssr'
 import { theme } from '@/lib/theme'
 
-const { colors: c, fonts: f, gradients: g } = theme
+const { colors: c, fonts: f } = theme
 
 interface AdminUser {
   id: string
@@ -19,10 +19,27 @@ interface AdminUser {
   last_sign_in: string
 }
 
+interface Purchase {
+  id: string
+  user_id: string
+  user_email: string
+  paypal_txn_id: string | null
+  paypal_payer_email: string | null
+  amount_eur: number
+  credits_added: number
+  created_at: string
+}
+
+type Tab = 'users' | 'purchases'
+
 export default function AdminPage() {
   const router = useRouter()
+  const [tab, setTab] = useState<Tab>('users')
   const [users, setUsers] = useState<AdminUser[]>([])
+  const [purchases, setPurchases] = useState<Purchase[]>([])
+  const [missingTable, setMissingTable] = useState(false)
   const [loading, setLoading] = useState(true)
+  const [purchasesLoading, setPurchasesLoading] = useState(false)
   const [error, setError] = useState('')
   const [search, setSearch] = useState('')
   const [updating, setUpdating] = useState<string | null>(null)
@@ -39,6 +56,12 @@ export default function AdminPage() {
     })
   }, [])
 
+  useEffect(() => {
+    if (tab === 'purchases' && purchases.length === 0 && !purchasesLoading) {
+      loadPurchases()
+    }
+  }, [tab])
+
   async function loadUsers() {
     setLoading(true)
     const res = await fetch('/api/admin/users')
@@ -47,6 +70,15 @@ export default function AdminPage() {
     if (data.error) { setError(data.error); setLoading(false); return }
     setUsers(data.users || [])
     setLoading(false)
+  }
+
+  async function loadPurchases() {
+    setPurchasesLoading(true)
+    const res = await fetch('/api/admin/purchases')
+    const data = await res.json()
+    setPurchases(data.purchases || [])
+    setMissingTable(!!data.missing_table)
+    setPurchasesLoading(false)
   }
 
   async function updateUser(id: string, updates: Record<string, unknown>) {
@@ -68,6 +100,9 @@ export default function AdminPage() {
   const activeUsers = users.filter(u => u.status === 'active').length
   const blockedUsers = users.filter(u => u.status === 'blocked').length
   const totalCreditsSpent = users.reduce((s, u) => s + (u.credits_spent || 0), 0)
+  const totalRevenue = purchases.reduce((s, p) => s + (p.amount_eur || 0), 0)
+
+  const fmtDate = (d: string) => d ? new Date(d).toLocaleString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '—'
 
   return (
     <div style={{ minHeight: '100vh', background: c.bg, fontFamily: f.body }}>
@@ -79,8 +114,7 @@ export default function AdminPage() {
           <span style={{ fontFamily: f.heading, fontSize: 15, fontWeight: 700, color: '#E6F1FB' }}>Job-Lens <span style={{ color: '#378ADD' }}>Admin</span></span>
           <span style={{ fontSize: 10, fontWeight: 700, color: '#378ADD', background: 'rgba(55,138,221,0.15)', padding: '2px 8px', borderRadius: 10, border: '1px solid rgba(55,138,221,0.3)' }}>INTERNAL</span>
         </div>
-        <button onClick={() => router.push('/app/career-scan')}
-          style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)', background: 'none', border: 'none', cursor: 'pointer' }}>
+        <button onClick={() => router.push('/app/career-scan')} style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)', background: 'none', border: 'none', cursor: 'pointer' }}>
           ← Back to App
         </button>
       </div>
@@ -90,99 +124,147 @@ export default function AdminPage() {
         {error ? (
           <div style={{ background: `${c.danger}15`, border: `1px solid ${c.danger}40`, borderRadius: 12, padding: 24, color: c.danger, textAlign: 'center' }}>{error}</div>
         ) : loading ? (
-          <div style={{ textAlign: 'center', color: c.textMuted, paddingTop: 80 }}>Loading users…</div>
+          <div style={{ textAlign: 'center', color: c.textMuted, paddingTop: 80 }}>Loading…</div>
         ) : (
           <>
             {/* Stats row */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12, marginBottom: 24 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 12, marginBottom: 24 }}>
               {[
                 { label: 'Total Users', value: totalUsers, color: c.accent },
                 { label: 'Active', value: activeUsers, color: c.success },
                 { label: 'Blocked', value: blockedUsers, color: c.danger },
                 { label: 'AI Calls Made', value: totalCreditsSpent, color: c.warning },
+                { label: 'Revenue (EUR)', value: `€${totalRevenue.toFixed(2)}`, color: '#10b981' },
               ].map(stat => (
                 <div key={stat.label} style={{ background: c.bgCard, border: `1px solid ${c.border}`, borderRadius: 12, padding: '16px 20px' }}>
                   <div style={{ fontSize: 11, color: c.textMuted, marginBottom: 4 }}>{stat.label}</div>
-                  <div style={{ fontFamily: f.heading, fontSize: 26, fontWeight: 700, color: stat.color }}>{stat.value}</div>
+                  <div style={{ fontFamily: f.heading, fontSize: 22, fontWeight: 700, color: stat.color }}>{stat.value}</div>
                 </div>
               ))}
             </div>
 
-            {/* Search */}
-            <div style={{ marginBottom: 16 }}>
-              <input
-                type="text"
-                placeholder="Search by name or email…"
-                value={search}
-                onChange={e => setSearch(e.target.value)}
-                style={{ width: '100%', padding: '10px 16px', borderRadius: 9, border: `1px solid ${c.border}`, background: c.bgCard, color: c.primary, fontSize: 13, fontFamily: f.body, outline: 'none', boxSizing: 'border-box' }}
-              />
+            {/* Tab nav */}
+            <div style={{ display: 'flex', gap: 4, background: c.bgSubtle, borderRadius: 10, padding: 4, marginBottom: 20, width: 'fit-content', border: `1px solid ${c.border}` }}>
+              {(['users', 'purchases'] as Tab[]).map(t => (
+                <button key={t} onClick={() => setTab(t)} style={{ padding: '7px 20px', borderRadius: 8, border: 'none', background: tab === t ? c.bgCard : 'transparent', color: tab === t ? c.primary : c.textMuted, fontWeight: tab === t ? 700 : 400, fontSize: 13, cursor: 'pointer', fontFamily: f.body, boxShadow: tab === t ? `0 1px 4px rgba(0,0,0,0.08)` : 'none', transition: 'all 0.15s' }}>
+                  {t === 'users' ? `Users (${totalUsers})` : `Purchases (${purchases.length})`}
+                </button>
+              ))}
             </div>
 
-            {/* Users table */}
-            <div style={{ background: c.bgCard, border: `1px solid ${c.border}`, borderRadius: 14, overflow: 'hidden' }}>
-              <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 80px 90px 80px 130px', gap: 0, padding: '10px 16px', borderBottom: `1px solid ${c.border}`, background: c.bgSubtle }}>
-                {['User', 'Provider', 'Credits', 'Spent', 'Status', 'Actions'].map(h => (
-                  <div key={h} style={{ fontSize: 10, fontWeight: 700, color: c.textMuted, textTransform: 'uppercase' as const, letterSpacing: 0.5 }}>{h}</div>
-                ))}
-              </div>
+            {/* USERS TAB */}
+            {tab === 'users' && (
+              <>
+                <div style={{ marginBottom: 16 }}>
+                  <input type="text" placeholder="Search by name or email…" value={search} onChange={e => setSearch(e.target.value)}
+                    style={{ width: '100%', padding: '10px 16px', borderRadius: 9, border: `1px solid ${c.border}`, background: c.bgCard, color: c.primary, fontSize: 13, fontFamily: f.body, outline: 'none', boxSizing: 'border-box' as const }} />
+                </div>
 
-              {filtered.map(user => (
-                <div key={user.id} style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 80px 90px 80px 130px', gap: 0, padding: '12px 16px', borderBottom: `1px solid ${c.border}`, alignItems: 'center', opacity: user.status === 'blocked' ? 0.6 : 1 }}>
-                  <div>
-                    <div style={{ fontSize: 13, fontWeight: 600, color: c.primary }}>{user.name || '—'}</div>
-                    <div style={{ fontSize: 11, color: c.textMuted }}>{user.email}</div>
-                    <div style={{ fontSize: 10, color: c.textFaint }}>{user.last_sign_in ? `Last: ${new Date(user.last_sign_in).toLocaleDateString('de-DE')}` : 'Never signed in'}</div>
+                <div style={{ background: c.bgCard, border: `1px solid ${c.border}`, borderRadius: 14, overflow: 'hidden' }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 80px 90px 80px 130px', gap: 0, padding: '10px 16px', borderBottom: `1px solid ${c.border}`, background: c.bgSubtle }}>
+                    {['User', 'Provider', 'Credits', 'Spent', 'Status', 'Actions'].map(h => (
+                      <div key={h} style={{ fontSize: 10, fontWeight: 700, color: c.textMuted, textTransform: 'uppercase' as const, letterSpacing: 0.5 }}>{h}</div>
+                    ))}
                   </div>
-                  <div>
-                    <span style={{ fontSize: 11, fontWeight: 600, color: user.provider === 'google' ? '#EA4335' : '#0A66C2', background: user.provider === 'google' ? '#EA433515' : '#0A66C215', padding: '3px 8px', borderRadius: 10 }}>
-                      {user.provider === 'linkedin_oidc' ? 'LinkedIn' : 'Google'}
-                    </span>
-                  </div>
-                  <div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                      <input
-                        type="number"
-                        value={creditEdits[user.id] ?? user.credits}
-                        onChange={e => setCreditEdits(prev => ({ ...prev, [user.id]: e.target.value }))}
-                        onBlur={e => {
-                          const val = parseInt(e.target.value)
-                          if (!isNaN(val) && val !== user.credits) updateUser(user.id, { credits: val })
-                        }}
-                        style={{ width: 52, padding: '3px 6px', borderRadius: 6, border: `1px solid ${c.border}`, background: c.bg, color: c.primary, fontSize: 12, textAlign: 'center' as const }}
-                      />
+
+                  {filtered.map(user => (
+                    <div key={user.id} style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 80px 90px 80px 130px', gap: 0, padding: '12px 16px', borderBottom: `1px solid ${c.border}`, alignItems: 'center', opacity: user.status === 'blocked' ? 0.6 : 1 }}>
+                      <div>
+                        <div style={{ fontSize: 13, fontWeight: 600, color: c.primary }}>{user.name || '—'}</div>
+                        <div style={{ fontSize: 11, color: c.textMuted }}>{user.email}</div>
+                        <div style={{ fontSize: 10, color: c.textFaint }}>{user.last_sign_in ? `Last: ${new Date(user.last_sign_in).toLocaleDateString('de-DE')}` : 'Never signed in'}</div>
+                      </div>
+                      <div>
+                        <span style={{ fontSize: 11, fontWeight: 600, color: user.provider === 'google' ? '#EA4335' : '#0A66C2', background: user.provider === 'google' ? '#EA433515' : '#0A66C215', padding: '3px 8px', borderRadius: 10 }}>
+                          {user.provider === 'linkedin_oidc' ? 'LinkedIn' : 'Google'}
+                        </span>
+                      </div>
+                      <div>
+                        <input type="number" value={creditEdits[user.id] ?? user.credits}
+                          onChange={e => setCreditEdits(prev => ({ ...prev, [user.id]: e.target.value }))}
+                          onBlur={e => { const val = parseInt(e.target.value); if (!isNaN(val) && val !== user.credits) updateUser(user.id, { credits: val }) }}
+                          style={{ width: 52, padding: '3px 6px', borderRadius: 6, border: `1px solid ${c.border}`, background: c.bg, color: c.primary, fontSize: 12, textAlign: 'center' as const }} />
+                      </div>
+                      <div style={{ fontSize: 13, color: c.textMuted }}>{user.credits_spent}</div>
+                      <div>
+                        <span style={{ fontSize: 11, fontWeight: 700, color: user.status === 'active' ? c.success : c.danger, background: user.status === 'active' ? c.successLight : `${c.danger}15`, padding: '3px 8px', borderRadius: 10 }}>
+                          {user.status}
+                        </span>
+                      </div>
+                      <div style={{ display: 'flex', gap: 6 }}>
+                        {user.status === 'active' ? (
+                          <button onClick={() => updateUser(user.id, { status: 'blocked' })} disabled={updating === user.id}
+                            style={{ padding: '5px 10px', borderRadius: 6, border: `1px solid ${c.danger}40`, background: `${c.danger}10`, color: c.danger, fontSize: 11, fontWeight: 600, cursor: 'pointer' }}>
+                            {updating === user.id ? '…' : 'Block'}
+                          </button>
+                        ) : (
+                          <button onClick={() => updateUser(user.id, { status: 'active' })} disabled={updating === user.id}
+                            style={{ padding: '5px 10px', borderRadius: 6, border: `1px solid ${c.success}40`, background: `${c.success}10`, color: c.success, fontSize: 11, fontWeight: 600, cursor: 'pointer' }}>
+                            {updating === user.id ? '…' : 'Unblock'}
+                          </button>
+                        )}
+                      </div>
                     </div>
-                  </div>
-                  <div style={{ fontSize: 13, color: c.textMuted }}>{user.credits_spent}</div>
-                  <div>
-                    <span style={{ fontSize: 11, fontWeight: 700, color: user.status === 'active' ? c.success : c.danger, background: user.status === 'active' ? c.successLight : `${c.danger}15`, padding: '3px 8px', borderRadius: 10 }}>
-                      {user.status}
-                    </span>
-                  </div>
-                  <div style={{ display: 'flex', gap: 6 }}>
-                    {user.status === 'active' ? (
-                      <button
-                        onClick={() => updateUser(user.id, { status: 'blocked' })}
-                        disabled={updating === user.id}
-                        style={{ padding: '5px 10px', borderRadius: 6, border: `1px solid ${c.danger}40`, background: `${c.danger}10`, color: c.danger, fontSize: 11, fontWeight: 600, cursor: 'pointer' }}>
-                        {updating === user.id ? '…' : 'Block'}
-                      </button>
-                    ) : (
-                      <button
-                        onClick={() => updateUser(user.id, { status: 'active' })}
-                        disabled={updating === user.id}
-                        style={{ padding: '5px 10px', borderRadius: 6, border: `1px solid ${c.success}40`, background: `${c.success}10`, color: c.success, fontSize: 11, fontWeight: 600, cursor: 'pointer' }}>
-                        {updating === user.id ? '…' : 'Unblock'}
-                      </button>
-                    )}
-                  </div>
-                </div>
-              ))}
+                  ))}
 
-              {filtered.length === 0 && (
-                <div style={{ padding: 32, textAlign: 'center', color: c.textMuted, fontSize: 13 }}>No users found.</div>
-              )}
-            </div>
+                  {filtered.length === 0 && (
+                    <div style={{ padding: 32, textAlign: 'center', color: c.textMuted, fontSize: 13 }}>No users found.</div>
+                  )}
+                </div>
+              </>
+            )}
+
+            {/* PURCHASES TAB */}
+            {tab === 'purchases' && (
+              <>
+                {missingTable && (
+                  <div style={{ background: '#fffbeb', border: '1px solid #fcd98a', borderRadius: 10, padding: '14px 18px', marginBottom: 16, fontSize: 13, color: '#92400e', lineHeight: 1.6 }}>
+                    <strong>purchase_events table not found.</strong> Run the SQL migration in your Supabase dashboard to enable purchase tracking.
+                    <pre style={{ marginTop: 10, background: '#fff', padding: '10px 14px', borderRadius: 8, fontSize: 12, overflowX: 'auto', border: '1px solid #fcd98a', color: '#374151' }}>{`CREATE TABLE purchase_events (
+  id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
+  user_id uuid REFERENCES auth.users(id),
+  paypal_txn_id text UNIQUE,
+  paypal_payer_email text,
+  amount_eur numeric(8,2),
+  credits_added integer,
+  created_at timestamptz DEFAULT now()
+);
+ALTER TABLE purchase_events ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Admin only" ON purchase_events FOR ALL USING (false);`}</pre>
+                  </div>
+                )}
+
+                {purchasesLoading ? (
+                  <div style={{ textAlign: 'center', padding: 48, color: c.textMuted }}>Loading purchases…</div>
+                ) : purchases.length === 0 && !missingTable ? (
+                  <div style={{ textAlign: 'center', padding: 48, color: c.textMuted, fontSize: 13 }}>No purchases recorded yet.</div>
+                ) : (
+                  <div style={{ background: c.bgCard, border: `1px solid ${c.border}`, borderRadius: 14, overflow: 'auto' }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 80px 90px 120px', gap: 0, padding: '10px 16px', borderBottom: `1px solid ${c.border}`, background: c.bgSubtle, minWidth: 600 }}>
+                      {['User / Payer', 'PayPal Txn', 'Amount', 'Credits', 'Date'].map(h => (
+                        <div key={h} style={{ fontSize: 10, fontWeight: 700, color: c.textMuted, textTransform: 'uppercase' as const, letterSpacing: 0.5 }}>{h}</div>
+                      ))}
+                    </div>
+                    {purchases.map(p => (
+                      <div key={p.id} style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 80px 90px 120px', gap: 0, padding: '12px 16px', borderBottom: `1px solid ${c.border}`, alignItems: 'center', minWidth: 600 }}>
+                        <div>
+                          <div style={{ fontSize: 13, fontWeight: 600, color: c.primary }}>{p.user_email}</div>
+                          {p.paypal_payer_email && p.paypal_payer_email !== p.user_email && (
+                            <div style={{ fontSize: 11, color: c.textMuted }}>PayPal: {p.paypal_payer_email}</div>
+                          )}
+                        </div>
+                        <div style={{ fontSize: 11, color: c.textFaint, fontFamily: 'monospace' }}>{p.paypal_txn_id || '—'}</div>
+                        <div style={{ fontFamily: f.heading, fontSize: 14, fontWeight: 700, color: '#10b981' }}>€{p.amount_eur?.toFixed(2)}</div>
+                        <div>
+                          <span style={{ fontSize: 12, fontWeight: 700, color: c.accent, background: c.primaryLight, padding: '3px 10px', borderRadius: 8 }}>+{p.credits_added}</span>
+                        </div>
+                        <div style={{ fontSize: 11, color: c.textMuted }}>{fmtDate(p.created_at)}</div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </>
+            )}
           </>
         )}
       </div>

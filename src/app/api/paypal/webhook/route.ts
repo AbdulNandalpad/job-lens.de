@@ -14,20 +14,21 @@ export async function POST(req: NextRequest) {
     const params = new URLSearchParams(body)
 
     const paymentStatus = params.get('payment_status')
-    const userId        = params.get('custom')          // user id passed in form
+    const userId        = params.get('custom')
     const grossAmount   = params.get('mc_gross') ?? ''
     const currency      = params.get('mc_currency')
+    const txnId         = params.get('txn_id') ?? ''
+    const payerEmail    = params.get('payer_email') ?? ''
 
     // Verify IPN with PayPal
     const verifyUrl = process.env.PAYPAL_SANDBOX === 'true'
       ? 'https://ipnpb.sandbox.paypal.com/cgi-bin/webscr'
       : 'https://ipnpb.paypal.com/cgi-bin/webscr'
 
-    const verifyBody = 'cmd=_notify-validate&' + body
     const verifyRes = await fetch(verifyUrl, {
       method: 'POST',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: verifyBody,
+      body: 'cmd=_notify-validate&' + body,
     })
     const verifyText = await verifyRes.text()
 
@@ -45,7 +46,6 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: false }, { status: 400 })
     }
 
-    // Normalise amount: trim to 2 decimal places
     const normalised = parseFloat(grossAmount).toFixed(2)
     const creditsToAdd = CREDIT_PACKS[normalised]
 
@@ -56,16 +56,29 @@ export async function POST(req: NextRequest) {
 
     const admin = createAdminSupabase()
 
-    // Add credits (upsert so even first-time buyers get a profile)
+    // Get current credits
     const { data: profile } = await admin.from('profiles').select('credits').eq('id', userId).single()
     const current = profile?.credits ?? 5
 
+    // Add credits (no updated_at — column does not exist)
     await admin.from('profiles').upsert({
       id: userId,
       credits: current + creditsToAdd,
-      paypal_payer_email: params.get('payer_email') ?? undefined,
-      updated_at: new Date().toISOString(),
+      paypal_payer_email: payerEmail || undefined,
     })
+
+    // Record purchase for audit (table may not exist yet — fail silently)
+    try {
+      await admin.from('purchase_events').insert({
+        user_id: userId,
+        paypal_txn_id: txnId || null,
+        paypal_payer_email: payerEmail || null,
+        amount_eur: parseFloat(normalised),
+        credits_added: creditsToAdd,
+      })
+    } catch (auditErr) {
+      console.warn('[paypal] Could not write purchase_events (table may not exist):', auditErr)
+    }
 
     console.log(`[paypal] +${creditsToAdd} credits → user ${userId} (was ${current})`)
     return NextResponse.json({ ok: true, credits_added: creditsToAdd })

@@ -11,6 +11,8 @@ const { colors: c, gradients: g, fonts: f } = theme
 
 interface ScanResult {
   score: number
+  market_fit_score: number | null
+  keyword_score: number | null
   readiness: string
   headline: string
   summary: string
@@ -23,6 +25,10 @@ interface ScanResult {
   salary_currency: string
   top_keyword: string
   market_insight: string
+  ai_vulnerability: number
+  ai_vulnerability_label: string
+  ai_vulnerability_reason: string
+  career_path_steps: { timeframe: string; focus: string; actions: string[] }[]
   roast_lines: string[]
   creditsRemaining?: number
 }
@@ -160,42 +166,7 @@ export default function CareerScanPage() {
       const res = await fetch('/api/career-scan', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          prompt: `You are a senior career coach for ${market}. Analyse this CV for "${role}" in ${market}.
-
-CV TEXT (read every word carefully — do not infer anything that is not explicitly written):
----
-${cvText.slice(0, 6000)}
----
-
-Return ONLY valid JSON, no markdown, no backticks. Use this exact schema:
-{
-  "score": <0-100>,
-  "readiness": "<Ready|Strong|Developing|Entry>",
-  "headline": "<10-15 words that summarise the profile>",
-  "summary": "<2 sentences based only on what is in the CV>",
-  "strengths": ["<specific strength from CV>", "<specific strength from CV>", "<specific strength from CV>", "<specific strength from CV>"],
-  "gaps": ["<gap relative to ${role}>", "<gap relative to ${role}>", "<gap relative to ${role}>"],
-  "quick_wins": ["<actionable fix #1>", "<actionable fix #2>", "<actionable fix #3>"],
-  "role_suggestions": ["<role 1>", "<role 2>", "<role 3>", "<role 4>"],
-  "salary_min": <integer annual gross in ${market === 'Switzerland' ? 'CHF' : 'EUR'}>,
-  "salary_max": <integer annual gross>,
-  "salary_currency": "<EUR|CHF>",
-  "top_keyword": "<single most impactful missing keyword>",
-  "market_insight": "<1-2 sentences about ${role} market in ${market}>",
-  "roast_lines": [
-    "<Roast line 1: quote something specific from the CV and explain why it's weak for ${role}>",
-    "<Roast line 2: call out a real gap that IS visible in the CV — no guessing>",
-    "<Roast line 3: contrast a genuine strength from the CV with the presentation or positioning>",
-    "<Roast line 4: one brutally honest observation about AI automation risk for this exact profile>"
-  ]
-}
-
-Rules for roast_lines:
-- Every line MUST reference something explicitly in the CV text above
-- Never say something is missing if you cannot confirm it from the CV
-- Be honest and specific, not generic`,
-        }),
+        body: JSON.stringify({ cvText, role, market }),
       })
       const data = await res.json()
       clearInterval(t)
@@ -439,10 +410,14 @@ Rules for roast_lines:
       {mode === 'insights' && (
         <>
           {/* Score rings */}
-          <div style={{ background: `linear-gradient(135deg, ${c.primary} 0%, #073d6e 60%, #0a4d8a 100%)`, borderRadius: 16, padding: '24px 20px', display: 'flex', justifyContent: 'space-around', alignItems: 'center', flexWrap: 'wrap', gap: 16 }}>
+          <div className="jl-score-rings" style={{ background: `linear-gradient(135deg, ${c.primary} 0%, #073d6e 60%, #0a4d8a 100%)`, borderRadius: 16, padding: '24px 20px' }}>
             <ScoreRing value={result.score} color={scoreColor(result.score)} label="Profile Strength" size={90} />
-            <ScoreRing value={Math.round(result.score * 0.9)} color="#F59E0B" label="Market Fit" size={90} />
-            <ScoreRing value={Math.min(100, Math.round(result.score * 1.1))} color={c.success} label="Keyword Match" size={90} />
+            {result.market_fit_score !== null && result.market_fit_score !== undefined
+              ? <ScoreRing value={result.market_fit_score} color="#F59E0B" label="Market Fit" size={90} />
+              : null}
+            {result.keyword_score !== null && result.keyword_score !== undefined
+              ? <ScoreRing value={result.keyword_score} color={c.success} label="Keyword Match" size={90} />
+              : null}
             <div style={{ textAlign: 'center' }}>
               <div style={{ fontFamily: f.heading, fontSize: 22, fontWeight: 700, color: '#fff' }}>{result.readiness}</div>
               <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.6)', marginTop: 2 }}>Readiness</div>
@@ -458,7 +433,7 @@ Rules for roast_lines:
           </div>
 
           {/* Strengths + Gaps */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+          <div className="jl-cs-grid">
             <div style={{ background: c.successLight, border: `1px solid ${c.successBorder}`, borderRadius: 14, padding: 16 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
                 <div style={{ width: 28, height: 28, borderRadius: 8, background: c.success, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, color: '#fff' }}>&#10003;</div>
@@ -517,6 +492,33 @@ Rules for roast_lines:
             )}
           </div>
 
+          {/* AI Era Vulnerability */}
+          {result.ai_vulnerability_reason && (
+            <div style={{ background: '#1a0a2e', border: '1px solid rgba(109,40,217,0.4)', borderRadius: 14, padding: 16, position: 'relative', overflow: 'hidden' }}>
+              <div style={{ position: 'absolute', top: -20, right: -20, width: 80, height: 80, borderRadius: '50%', background: 'rgba(109,40,217,0.15)' }} />
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
+                <div style={{ width: 28, height: 28, borderRadius: 8, background: 'rgba(109,40,217,0.25)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14 }}>⚡</div>
+                <div>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: '#c4b5fd' }}>AI Era Risk</div>
+                  <div style={{ fontSize: 10, color: 'rgba(196,181,253,0.6)' }}>How much of your work can AI automate today</div>
+                </div>
+                <div style={{ marginLeft: 'auto', textAlign: 'right' }}>
+                  <div style={{ fontFamily: f.heading, fontSize: 20, fontWeight: 700, color: result.ai_vulnerability >= 70 ? '#f87171' : result.ai_vulnerability >= 40 ? '#fbbf24' : '#4ade80' }}>
+                    {result.ai_vulnerability}%
+                  </div>
+                  <div style={{ fontSize: 10, fontWeight: 700, color: result.ai_vulnerability >= 70 ? '#f87171' : result.ai_vulnerability >= 40 ? '#fbbf24' : '#4ade80' }}>
+                    {result.ai_vulnerability_label}
+                  </div>
+                </div>
+              </div>
+              {/* Vulnerability bar */}
+              <div style={{ height: 6, background: 'rgba(255,255,255,0.1)', borderRadius: 3, marginBottom: 12, overflow: 'hidden' }}>
+                <div style={{ height: '100%', width: `${result.ai_vulnerability}%`, background: result.ai_vulnerability >= 70 ? 'linear-gradient(90deg, #f87171, #ef4444)' : result.ai_vulnerability >= 40 ? 'linear-gradient(90deg, #fbbf24, #f59e0b)' : 'linear-gradient(90deg, #4ade80, #22c55e)', borderRadius: 3, transition: 'width 1s ease' }} />
+              </div>
+              <div style={{ fontSize: 12, color: 'rgba(196,181,253,0.85)', lineHeight: 1.65 }}>{result.ai_vulnerability_reason}</div>
+            </div>
+          )}
+
           {/* Market insight */}
           {result.market_insight && (
             <div style={{ background: `linear-gradient(135deg, ${c.primary}, #073d6e)`, borderRadius: 14, padding: 16 }}>
@@ -570,45 +572,55 @@ Rules for roast_lines:
         <div style={{ background: c.bgCard, border: `1px solid ${c.border}`, borderRadius: 16, overflow: 'hidden' }}>
           <div style={{ background: `linear-gradient(135deg, ${c.primary}, #073d6e)`, padding: '16px 20px' }}>
             <div style={{ fontFamily: f.heading, fontSize: 15, fontWeight: 700, color: '#fff' }}>
-              Your upgrade path &mdash; to Senior {role}
+              Your path to {role}
             </div>
             <div style={{ fontSize: 12, color: c.accentLight, marginTop: 4 }}>
-              Estimated: 3&ndash;4 months to {result.salary_currency} {fmt(result.salary_max)}+ roles
+              Personalised roadmap based on your actual CV — no generic advice
             </div>
           </div>
           <div style={{ padding: 20 }}>
-            {[
-              { status: 'done', period: 'Completed', title: 'Foundation - credentials and experience', tasks: result.strengths.map(s => ({ text: s, done: true })) },
-              { status: 'now', period: 'Now - Week 1-2', title: 'CV and profile overhaul', tasks: result.quick_wins.map(w => ({ text: w, done: false })) },
-              { status: 'next', period: 'Month 1', step: 3, title: 'Certification and visibility', tasks: [
-                { text: `Enroll in a formal ${role} certification`, done: false },
-                { text: 'Publish 2 LinkedIn articles demonstrating expertise', done: false },
-                { text: `Apply to 5-8 high-match ${role} roles`, done: false },
-              ]},
-              { status: 'next', period: 'Month 2-3', step: 4, title: 'Interview readiness and offers', tasks: [
-                { text: 'Complete certification', done: false },
-                { text: 'Run 3-5 mock interviews (behavioural + technical)', done: false },
-                { text: `Negotiate ${result.salary_currency} ${fmt(result.salary_min)}–${fmt(result.salary_max)} salary`, done: false },
-              ]},
-            ].map((s, idx, arr) => (
-              <div key={idx} style={{ display: 'flex', gap: 14, paddingBottom: idx < arr.length - 1 ? 20 : 0 }}>
-                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', flexShrink: 0 }}>
-                  <div style={{ width: 30, height: 30, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 700, background: s.status === 'done' ? c.success : s.status === 'now' ? c.primary : c.bg, color: s.status === 'done' ? '#fff' : s.status === 'now' ? c.primaryLight : c.textMuted, border: s.status === 'done' ? `2px solid ${c.success}` : s.status === 'now' ? `2px solid ${c.accent}` : `2px solid ${c.border}` }}>
-                    {s.status === 'done' ? '✓' : s.status === 'now' ? '›' : s.step}
-                  </div>
-                  {idx < arr.length - 1 && <div style={{ width: 2, flex: 1, background: `linear-gradient(to bottom, ${c.primary}, ${c.border})`, marginTop: 4 }} />}
-                </div>
-                <div style={{ flex: 1, paddingTop: 4 }}>
-                  <div style={{ fontSize: 10, color: c.accent, fontWeight: 600, marginBottom: 3, textTransform: 'uppercase' as const, letterSpacing: 0.4 }}>{s.period}</div>
-                  <div style={{ fontSize: 13, fontWeight: 600, color: c.primary, marginBottom: 8 }}>{s.title}</div>
-                  {s.tasks.map((t, ti) => (
-                    <div key={ti} style={{ fontSize: 11, padding: '5px 10px', borderRadius: 7, marginBottom: 4, color: t.done ? c.success : c.textMuted, background: t.done ? c.successLight : c.bgSubtle, textDecoration: t.done ? 'line-through' : 'none', borderLeft: t.done ? `3px solid ${c.success}` : `3px solid ${c.border}` }}>
-                      {t.text}
+            {result.career_path_steps && result.career_path_steps.length > 0 ? (
+              result.career_path_steps.map((step, idx, arr) => (
+                <div key={idx} style={{ display: 'flex', gap: 14, paddingBottom: idx < arr.length - 1 ? 20 : 0 }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', flexShrink: 0 }}>
+                    <div style={{ width: 30, height: 30, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 700, background: idx === 0 ? c.primary : c.bg, color: idx === 0 ? c.primaryLight : c.textMuted, border: idx === 0 ? `2px solid ${c.accent}` : `2px solid ${c.border}` }}>
+                      {idx + 1}
                     </div>
-                  ))}
+                    {idx < arr.length - 1 && <div style={{ width: 2, flex: 1, background: `linear-gradient(to bottom, ${c.primary}, ${c.border})`, marginTop: 4 }} />}
+                  </div>
+                  <div style={{ flex: 1, paddingTop: 4 }}>
+                    <div style={{ fontSize: 10, color: c.accent, fontWeight: 600, marginBottom: 2, textTransform: 'uppercase' as const, letterSpacing: 0.4 }}>{step.timeframe}</div>
+                    <div style={{ fontSize: 13, fontWeight: 600, color: c.primary, marginBottom: 8 }}>{step.focus}</div>
+                    {step.actions.map((action, ai) => (
+                      <div key={ai} style={{ fontSize: 11, padding: '6px 10px', borderRadius: 7, marginBottom: 5, color: c.text, background: c.bgSubtle, borderLeft: `3px solid ${c.border}`, lineHeight: 1.5 }}>
+                        {action}
+                      </div>
+                    ))}
+                  </div>
                 </div>
-              </div>
-            ))}
+              ))
+            ) : (
+              /* Fallback if no career_path_steps from AI */
+              [
+                { period: 'Now — 2 weeks', title: 'CV & profile overhaul', tasks: result.quick_wins },
+                { period: 'Month 1', title: 'Skills & visibility', tasks: [`Enroll in a ${role} certification`, 'Publish 2 LinkedIn articles', `Apply to 5-8 high-match ${role} roles`] },
+                { period: 'Month 2–3', title: 'Active search & offers', tasks: [`Negotiate ${result.salary_currency} ${fmt(result.salary_min)}–${fmt(result.salary_max)}`, 'Run mock interviews', 'Network at DACH industry events'] },
+              ].map((s, idx, arr) => (
+                <div key={idx} style={{ display: 'flex', gap: 14, paddingBottom: idx < arr.length - 1 ? 20 : 0 }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', flexShrink: 0 }}>
+                    <div style={{ width: 30, height: 30, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 700, background: idx === 0 ? c.primary : c.bg, color: idx === 0 ? c.primaryLight : c.textMuted, border: idx === 0 ? `2px solid ${c.accent}` : `2px solid ${c.border}` }}>{idx + 1}</div>
+                    {idx < arr.length - 1 && <div style={{ width: 2, flex: 1, background: `linear-gradient(to bottom, ${c.primary}, ${c.border})`, marginTop: 4 }} />}
+                  </div>
+                  <div style={{ flex: 1, paddingTop: 4 }}>
+                    <div style={{ fontSize: 10, color: c.accent, fontWeight: 600, marginBottom: 2, textTransform: 'uppercase' as const, letterSpacing: 0.4 }}>{s.period}</div>
+                    <div style={{ fontSize: 13, fontWeight: 600, color: c.primary, marginBottom: 8 }}>{s.title}</div>
+                    {s.tasks.map((t, ti) => (
+                      <div key={ti} style={{ fontSize: 11, padding: '6px 10px', borderRadius: 7, marginBottom: 5, color: c.text, background: c.bgSubtle, borderLeft: `3px solid ${c.border}`, lineHeight: 1.5 }}>{t}</div>
+                    ))}
+                  </div>
+                </div>
+              ))
+            )}
           </div>
         </div>
       )}
@@ -632,6 +644,10 @@ Rules for roast_lines:
         textarea::placeholder { color: rgba(255,255,255,0.35); }
         input::placeholder { color: rgba(255,255,255,0.35); }
         select option { background: ${c.primary}; color: #fff; }
+        .jl-cs-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+        @media (max-width: 600px) { .jl-cs-grid { grid-template-columns: 1fr !important; } }
+        .jl-score-rings { display: flex; justify-content: space-around; align-items: center; flex-wrap: wrap; gap: 16px; }
+        @media (max-width: 480px) { .jl-score-rings { gap: 10px; } }
       `}</style>
       <Navbar />
       <div style={{ display: 'flex', minHeight: 'calc(100vh - 52px)' }}>
