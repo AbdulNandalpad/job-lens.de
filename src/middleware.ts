@@ -26,18 +26,27 @@ export async function middleware(request: NextRequest) {
 
   const path = request.nextUrl.pathname
 
-  if (!user &&
-    !path.startsWith('/login') &&
-    !path.startsWith('/auth') &&
-    !path.endsWith('.html') &&
-    path !== '/') {
+  // Public paths — no auth required
+  const isPublic =
+    path === '/' ||
+    path === '/in' ||
+    path.startsWith('/login') ||
+    path.startsWith('/auth') ||
+    path.startsWith('/impressum') ||
+    path.startsWith('/datenschutz') ||
+    path.startsWith('/agb') ||
+    path.endsWith('.html')
+
+  if (!user && !isPublic) {
     const url = request.nextUrl.clone()
     url.pathname = '/login'
+    // Preserve the intended destination so the user lands in the right market after sign-in
+    url.searchParams.set('next', path)
     return NextResponse.redirect(url)
   }
 
-  // Check blocked status for app routes
-  if (user && path.startsWith('/app')) {
+  // Check blocked status for app routes (both DE and IN markets)
+  if (user && (path.startsWith('/app') || path.startsWith('/in/'))) {
     const admin = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.SUPABASE_SERVICE_ROLE_KEY!,
@@ -53,6 +62,7 @@ export async function middleware(request: NextRequest) {
       const url = request.nextUrl.clone()
       url.pathname = '/login'
       url.searchParams.set('error', 'blocked')
+      url.searchParams.delete('next')
       return NextResponse.redirect(url)
     }
   }
