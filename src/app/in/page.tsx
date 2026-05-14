@@ -295,7 +295,7 @@ export default function IndiaHomePage() {
           Built in Germany. Made for India.
         </p>
         <div style={{ display: 'flex', gap: 16, justifyContent: 'center', flexWrap: 'wrap' }}>
-          <Link href="/" style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)', textDecoration: 'none' }}>Job-Lens Germany</Link>
+          <Link href="/" style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)', textDecoration: 'none' }}>Job-Lens DACH</Link>
           <Link href="/impressum" style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)', textDecoration: 'none' }}>Impressum</Link>
           <Link href="/datenschutz" style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)', textDecoration: 'none' }}>Privacy</Link>
         </div>

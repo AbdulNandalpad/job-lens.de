@@ -104,7 +104,7 @@ export default function NavbarIndia() {
           {/* Country switcher */}
           <div style={{ display: 'flex', alignItems: 'center', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 20, overflow: 'hidden', flexShrink: 0 }}>
             <button onClick={switchToDE} style={{ padding: '4px 10px', background: 'transparent', border: 'none', cursor: 'pointer', fontSize: 11, color: 'rgba(255,255,255,0.45)', fontFamily: f.body, fontWeight: 500 }}>
-              DE
+              DACH
             </button>
             <div style={{ padding: '4px 10px', background: 'rgba(255,153,51,0.2)', fontSize: 11, color: '#ff9933', fontFamily: f.body, fontWeight: 700 }}>
               IN
@@ -145,7 +145,7 @@ export default function NavbarIndia() {
             </Link>
           ))}
           <button onClick={() => switchToDE()} style={{ width: '100%', marginTop: 8, padding: '10px 12px', borderRadius: 8, background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', color: 'rgba(255,255,255,0.5)', fontSize: 13, cursor: 'pointer', textAlign: 'left' as const }}>
-            Switch to Germany (DE)
+            Switch to DACH (Germany, Austria, Switzerland)
           </button>
         </div>
       )}

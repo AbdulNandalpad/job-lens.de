@@ -108,7 +108,7 @@ export default function Navbar() {
           {/* Country switcher */}
           <div style={{ display: 'flex', alignItems: 'center', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 20, overflow: 'hidden', flexShrink: 0 }}>
             <div style={{ padding: '4px 10px', background: 'rgba(55,138,221,0.2)', fontSize: 11, color: '#378ADD', fontFamily: f.body, fontWeight: 700 }}>
-              DE
+              DACH
             </div>
             <button onClick={switchToIN} style={{ padding: '4px 10px', background: 'transparent', border: 'none', cursor: 'pointer', fontSize: 11, color: 'rgba(255,255,255,0.45)', fontFamily: f.body, fontWeight: 500 }}>
               IN

@@ -63,7 +63,7 @@ export default function GeoBanner() {
       <span style={{ fontSize: 13, color: '#c8d8e8' }}>
         {isGoingToIndia
           ? 'Visiting from India? Job-Lens India has ATS tools built for you.'
-          : 'Looking for jobs in Germany / DACH?'}
+          : 'Looking for jobs in Germany, Austria or Switzerland?'}
       </span>
       <button onClick={switchMarket} style={{
         padding: '6px 14px', borderRadius: 8,
@@ -71,7 +71,7 @@ export default function GeoBanner() {
         color: '#fff', border: 'none', cursor: 'pointer',
         fontSize: 12, fontWeight: 700,
       }}>
-        {isGoingToIndia ? 'Switch to India' : 'Switch to Germany'}
+        {isGoingToIndia ? 'Switch to India' : 'Switch to DACH'}
       </button>
       <button onClick={dismiss} style={{
         background: 'none', border: 'none', cursor: 'pointer',
