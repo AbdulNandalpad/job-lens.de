@@ -779,6 +779,7 @@ The JSON must follow this exact schema:
 }
 
 Rules:
+- CONTACT FIELDS (email, phone, location, linkedin): copy these EXACTLY character-for-character from the CV text. NEVER invent, guess, or generate a contact field. If you cannot find a field in the CV text, return an empty string "".
 - stats: 3-5 impressive metrics (years exp, projects, certifications, industries etc)
 - skills: up to 12, each with a percentage level 60-99 — include all major skills from the CV
 - languages: level is percentage (native=98, fluent=85, good=65, basic=45)
