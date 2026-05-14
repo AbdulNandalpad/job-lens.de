@@ -1,15 +1,43 @@
 import Link from 'next/link'
 
-const orange = '#ff9933'
+const saffron = '#FF9933'
+const indiaGreen = '#138808'
 const navy = '#042C53'
-const blue = '#378ADD'
-const green = '#1D9E75'
+const blue = '#000080'
+const white = '#FFFFFF'
 
-function ScoreRing({ score, size = 120, label }: { score: number; size?: number; label: string }) {
+function IndiaFlag({ size = 48 }: { size?: number }) {
+  const w = size * 1.5
+  const h = size
+  const bandH = h / 3
+  const cx = w / 2
+  const cy = h / 2
+  const r = bandH * 0.38
+  const spokes = 24
+  return (
+    <svg width={w} height={h} viewBox={`0 0 ${w} ${h}`} style={{ borderRadius: 3, boxShadow: '0 2px 8px rgba(0,0,0,0.25)', flexShrink: 0 }}>
+      <rect x={0} y={0} width={w} height={bandH} fill={saffron} />
+      <rect x={0} y={bandH} width={w} height={bandH} fill={white} />
+      <rect x={0} y={bandH * 2} width={w} height={bandH} fill={indiaGreen} />
+      <circle cx={cx} cy={cy} r={r} fill="none" stroke={blue} strokeWidth={1.2} />
+      <circle cx={cx} cy={cy} r={1.8} fill={blue} />
+      {Array.from({ length: spokes }).map((_, i) => {
+        const angle = (i * 360) / spokes * Math.PI / 180
+        return (
+          <line key={i}
+            x1={cx + Math.cos(angle) * 2} y1={cy + Math.sin(angle) * 2}
+            x2={cx + Math.cos(angle) * r} y2={cy + Math.sin(angle) * r}
+            stroke={blue} strokeWidth={0.7} />
+        )
+      })}
+    </svg>
+  )
+}
+
+function ScoreRing({ score, size = 120, label, color }: { score: number; size?: number; label: string; color: string }) {
   const r = (size / 2) - 10
   const circ = 2 * Math.PI * r
   const fill = circ * (1 - score / 100)
-  const color = score >= 75 ? green : score >= 50 ? orange : '#E24B4A'
   return (
     <div style={{ textAlign: 'center' }}>
       <svg width={size} height={size} style={{ transform: 'rotate(-90deg)' }}>
@@ -17,7 +45,7 @@ function ScoreRing({ score, size = 120, label }: { score: number; size?: number;
         <circle cx={size/2} cy={size/2} r={r} fill="none" stroke={color} strokeWidth={8}
           strokeDasharray={circ} strokeDashoffset={fill} strokeLinecap="round"/>
         <text x="50%" y="50%" textAnchor="middle" dominantBaseline="middle"
-          fill="#fff" fontSize={size * 0.22} fontWeight="700"
+          fill={white} fontSize={size * 0.22} fontWeight="700"
           style={{ transform: 'rotate(90deg)', transformOrigin: '50% 50%', fontFamily: "'Outfit',sans-serif" }}>
           {score}
         </text>
@@ -31,176 +59,272 @@ export default function IndiaHomePage() {
   return (
     <div style={{ fontFamily: "'DM Sans', sans-serif" }}>
 
+      {/* Tricolor top stripe */}
+      <div style={{ display: 'flex', height: 5 }}>
+        <div style={{ flex: 1, background: saffron }} />
+        <div style={{ flex: 1, background: white }} />
+        <div style={{ flex: 1, background: indiaGreen }} />
+      </div>
+
       {/* Hero */}
       <section style={{
-        background: `radial-gradient(ellipse at 20% 55%, rgba(255,153,51,0.12) 0%, transparent 55%), radial-gradient(ellipse at 75% 20%, rgba(29,158,117,0.08) 0%, transparent 50%), linear-gradient(160deg, #0a1520 0%, #0f2035 60%, #0a1c2e 100%)`,
-        padding: '72px 24px 80px', minHeight: 540,
+        background: `radial-gradient(ellipse at 15% 60%, rgba(255,153,51,0.18) 0%, transparent 50%), radial-gradient(ellipse at 80% 20%, rgba(19,136,8,0.1) 0%, transparent 50%), linear-gradient(160deg, #0a1520 0%, #0f2035 60%, #0a1c2e 100%)`,
+        padding: '64px 24px 72px',
       }}>
-        <div style={{ maxWidth: 1100, margin: '0 auto', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 60, alignItems: 'center' }}>
-
-          <div>
-            <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: 'rgba(255,153,51,0.12)', border: '1px solid rgba(255,153,51,0.3)', borderRadius: 20, padding: '5px 14px', marginBottom: 24 }}>
-              <span style={{ fontSize: 13, color: orange, fontWeight: 600 }}>Built in Germany. Made for India.</span>
-            </div>
-
-            <h1 style={{ fontFamily: "'Outfit', sans-serif", fontSize: 44, fontWeight: 700, color: '#fff', lineHeight: 1.15, marginBottom: 20 }}>
-              Your CV is being<br/>
-              <span style={{ color: orange }}>rejected by a bot</span><br/>
-              before humans see it.
-            </h1>
-
-            <p style={{ fontSize: 16, color: 'rgba(255,255,255,0.65)', lineHeight: 1.7, marginBottom: 32, maxWidth: 460 }}>
-              90% of CVs never reach a recruiter. ATS systems at TCS, Infosys, Wipro and every funded startup filter you out silently. Job-Lens scans, scores and fixes your CV before you apply.
-            </p>
-
-            <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
-              <Link href="/in/career-scan" style={{
-                display: 'inline-block', padding: '14px 28px', borderRadius: 10,
-                background: 'linear-gradient(135deg, #ff9933 0%, #e67300 100%)',
-                color: '#fff', fontWeight: 700, fontSize: 15, textDecoration: 'none',
-                boxShadow: '0 6px 20px rgba(255,153,51,0.4)',
-              }}>
-                Scan Your CV Free
-              </Link>
-              <Link href="/in/jobs" style={{
-                display: 'inline-block', padding: '14px 28px', borderRadius: 10,
-                background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.2)',
-                color: '#E6F1FB', fontWeight: 600, fontSize: 15, textDecoration: 'none',
-              }}>
-                Browse Jobs
-              </Link>
-            </div>
-          </div>
-
-          {/* ATS Score visual */}
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 24 }}>
-            <div style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 20, padding: '32px 40px', textAlign: 'center' }}>
-              <div style={{ fontSize: 11, color: orange, fontWeight: 700, letterSpacing: 1.5, textTransform: 'uppercase', marginBottom: 16 }}>Your ATS Score</div>
-              <ScoreRing score={72} size={140} label="Overall" />
-              <div style={{ display: 'flex', gap: 20, marginTop: 20, justifyContent: 'center' }}>
-                <ScoreRing score={65} size={72} label="Keywords" />
-                <ScoreRing score={80} size={72} label="Format" />
-                <ScoreRing score={60} size={72} label="Impact" />
-              </div>
-              <div style={{ marginTop: 20, padding: '10px 16px', background: 'rgba(226,75,74,0.15)', border: '1px solid rgba(226,75,74,0.3)', borderRadius: 8 }}>
-                <div style={{ fontSize: 12, color: '#f87171', fontWeight: 600 }}>High Risk — Needs Work</div>
-                <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)', marginTop: 4 }}>8 critical keywords missing from JD</div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Stats bar */}
-      <section style={{ background: navy, padding: '20px 24px', borderTop: '1px solid rgba(255,255,255,0.06)' }}>
-        <div style={{ maxWidth: 1100, margin: '0 auto', display: 'flex', justifyContent: 'space-around', flexWrap: 'wrap', gap: 16 }}>
-          {[
-            { stat: '90%', label: 'CVs rejected by ATS before human review' },
-            { stat: '3x', label: 'More interviews with ATS-optimized CV' },
-            { stat: '8 sec', label: 'Time recruiter spends on each CV' },
-            { stat: '500+', label: 'Companies using ATS in India' },
-          ].map((item, i) => (
-            <div key={i} style={{ textAlign: 'center' }}>
-              <div style={{ fontSize: 24, fontWeight: 700, color: orange, fontFamily: "'Outfit',sans-serif" }}>{item.stat}</div>
-              <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.45)', maxWidth: 120 }}>{item.label}</div>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      {/* Features */}
-      <section style={{ padding: '72px 24px', background: '#f0f4f8' }}>
         <div style={{ maxWidth: 1100, margin: '0 auto' }}>
-          <div style={{ textAlign: 'center', marginBottom: 48 }}>
-            <h2 style={{ fontFamily: "'Outfit',sans-serif", fontSize: 32, fontWeight: 700, color: navy, marginBottom: 12 }}>
-              Everything you need to beat the bots
-            </h2>
-            <p style={{ fontSize: 15, color: '#6b7c93', maxWidth: 480, margin: '0 auto' }}>
-              Built specifically for the Indian job market — Naukri, LinkedIn India, company career portals.
-            </p>
+
+          {/* Flag + badge */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 28 }}>
+            <IndiaFlag size={36} />
+            <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: 'rgba(255,153,51,0.12)', border: '1px solid rgba(255,153,51,0.3)', borderRadius: 20, padding: '5px 14px' }}>
+              <span style={{ fontSize: 13, color: saffron, fontWeight: 600 }}>Built in Germany. Made for India.</span>
+            </div>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 20 }}>
-            {[
-              {
-                icon: '87',
-                iconBg: 'linear-gradient(135deg, #ff9933, #e67300)',
-                title: 'ATS Score',
-                desc: 'Upload your CV + paste any JD. Get a score out of 100 with exact keyword gaps, format issues and quick fixes.',
-                href: '/in/career-scan',
-                cta: 'Scan Now',
-                badge: 'Hero Feature',
-              },
-              {
-                icon: '#',
-                iconBg: 'linear-gradient(135deg, #378ADD, #185FA5)',
-                title: 'JD Keyword Analyzer',
-                desc: 'Paste any Naukri or LinkedIn JD. See exactly which keywords your CV is missing — ranked by impact.',
-                href: '/in/career-scan',
-                cta: 'Analyze',
-              },
-              {
-                icon: 'CV',
-                iconBg: 'linear-gradient(135deg, #1D9E75, #059669)',
-                title: 'CV Rewriter',
-                desc: 'Bullet-by-bullet rewrites with action verbs and measurable results. Single-column ATS-safe output.',
-                href: '/in/cv-builder',
-                cta: 'Rewrite CV',
-              },
-              {
-                icon: '~',
-                iconBg: 'linear-gradient(135deg, #6D28D9, #4C1D95)',
-                title: 'ATS Simulator',
-                desc: 'See how Taleo, Workday and iCIMS actually parse your CV. Spot what the bot reads vs what you wrote.',
-                href: '/in/career-scan',
-                cta: 'Coming Soon',
-                disabled: true,
-              },
-            ].map((f, i) => (
-              <div key={i} style={{
-                background: '#fff', borderRadius: 16, padding: 24,
-                border: i === 0 ? `2px solid ${orange}` : '1px solid #edf1f6',
-                boxShadow: i === 0 ? `0 8px 32px rgba(255,153,51,0.15)` : '0 2px 12px rgba(4,44,83,0.06)',
-                position: 'relative',
-              }}>
-                {f.badge && (
-                  <div style={{ position: 'absolute', top: -1, right: 20, background: orange, color: '#fff', fontSize: 10, fontWeight: 700, padding: '3px 10px', borderRadius: '0 0 8px 8px', letterSpacing: 0.5 }}>
-                    {f.badge}
-                  </div>
-                )}
-                <div style={{ width: 44, height: 44, borderRadius: 12, background: f.iconBg, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, fontWeight: 800, color: '#fff', marginBottom: 16, fontFamily: "'Outfit',sans-serif" }}>
-                  {f.icon}
-                </div>
-                <h3 style={{ fontFamily: "'Outfit',sans-serif", fontSize: 17, fontWeight: 700, color: navy, marginBottom: 8 }}>{f.title}</h3>
-                <p style={{ fontSize: 13, color: '#6b7c93', lineHeight: 1.6, marginBottom: 16 }}>{f.desc}</p>
-                <Link href={f.href} style={{
-                  display: 'inline-block', padding: '8px 16px', borderRadius: 8,
-                  background: f.disabled ? '#f0f4f8' : (i === 0 ? orange : blue),
-                  color: f.disabled ? '#9aafbc' : '#fff',
-                  fontSize: 12, fontWeight: 600, textDecoration: 'none',
-                  pointerEvents: f.disabled ? 'none' : 'auto',
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: 48, alignItems: 'center' }}>
+            <div>
+              <h1 style={{ fontFamily: "'Outfit', sans-serif", fontSize: 46, fontWeight: 800, color: white, lineHeight: 1.12, marginBottom: 22 }}>
+                Your CV is being
+                <span style={{ color: saffron }}> rejected by a bot</span>
+                <br />before any human
+                <span style={{ color: indiaGreen }}> ever sees it.</span>
+              </h1>
+              <p style={{ fontSize: 16, color: 'rgba(255,255,255,0.65)', lineHeight: 1.75, marginBottom: 36, maxWidth: 500 }}>
+                In India, lakhs of candidates apply for every job. Companies use software called ATS to automatically filter out 90% of CVs — before a recruiter even opens them. Job-Lens scans, scores and fixes your CV so the bot says yes.
+              </p>
+              <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+                <Link href="/in/career-scan" style={{
+                  display: 'inline-block', padding: '14px 30px', borderRadius: 10,
+                  background: `linear-gradient(135deg, ${saffron} 0%, #e67300 100%)`,
+                  color: white, fontWeight: 700, fontSize: 15, textDecoration: 'none',
+                  boxShadow: '0 6px 24px rgba(255,153,51,0.45)',
                 }}>
-                  {f.cta}
+                  Check My ATS Score — Free
                 </Link>
+                <a href="#what-is-ats" style={{
+                  display: 'inline-block', padding: '14px 28px', borderRadius: 10,
+                  background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.18)',
+                  color: 'rgba(255,255,255,0.8)', fontWeight: 600, fontSize: 15, textDecoration: 'none',
+                }}>
+                  What is ATS?
+                </a>
+              </div>
+            </div>
+
+            {/* Score card */}
+            <div style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.09)', borderRadius: 20, padding: '28px 32px', textAlign: 'center', minWidth: 260 }}>
+              <div style={{ fontSize: 10, color: saffron, fontWeight: 700, letterSpacing: 1.5, textTransform: 'uppercase', marginBottom: 14 }}>Sample ATS Score</div>
+              <ScoreRing score={48} size={130} label="Overall" color={saffron} />
+              <div style={{ display: 'flex', gap: 16, marginTop: 18, justifyContent: 'center' }}>
+                <ScoreRing score={38} size={68} label="Keywords" color="#E24B4A" />
+                <ScoreRing score={70} size={68} label="Format" color={indiaGreen} />
+                <ScoreRing score={42} size={68} label="Impact" color={saffron} />
+              </div>
+              <div style={{ marginTop: 16, padding: '9px 14px', background: 'rgba(226,75,74,0.15)', border: '1px solid rgba(226,75,74,0.3)', borderRadius: 8 }}>
+                <div style={{ fontSize: 12, color: '#f87171', fontWeight: 700 }}>High Risk — Bot will reject</div>
+                <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)', marginTop: 3 }}>12 keywords missing from job description</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* THE PROBLEM — stark numbers */}
+      <section style={{ background: '#fff', padding: '60px 24px', borderTop: `4px solid ${saffron}` }}>
+        <div style={{ maxWidth: 1000, margin: '0 auto', textAlign: 'center' }}>
+          <div style={{ fontSize: 12, fontWeight: 700, color: saffron, letterSpacing: 2, textTransform: 'uppercase', marginBottom: 12 }}>The Reality</div>
+          <h2 style={{ fontFamily: "'Outfit',sans-serif", fontSize: 32, fontWeight: 800, color: navy, marginBottom: 40, lineHeight: 1.2 }}>
+            Most Indian job seekers have no idea<br />this is happening to them.
+          </h2>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 32 }}>
+            {[
+              { stat: '90%', color: '#E24B4A', label: 'CVs rejected by ATS before a human reads them' },
+              { stat: 'Lakhs', color: saffron, label: 'of applicants compete for every tech role in India' },
+              { stat: '6 sec', color: navy, label: 'is all a recruiter spends on each CV that does get through' },
+              { stat: '0', color: indiaGreen, label: 'Indian platforms do full ATS optimization end-to-end' },
+            ].map((item, i) => (
+              <div key={i} style={{ padding: '24px 16px', borderRadius: 14, background: '#f8fafc', border: '1px solid #edf1f6' }}>
+                <div style={{ fontFamily: "'Outfit',sans-serif", fontSize: 36, fontWeight: 800, color: item.color, marginBottom: 10 }}>{item.stat}</div>
+                <div style={{ fontSize: 13, color: '#6b7c93', lineHeight: 1.6 }}>{item.label}</div>
               </div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* How it works */}
-      <section style={{ padding: '72px 24px', background: '#fff' }}>
-        <div style={{ maxWidth: 900, margin: '0 auto', textAlign: 'center' }}>
-          <h2 style={{ fontFamily: "'Outfit',sans-serif", fontSize: 30, fontWeight: 700, color: navy, marginBottom: 12 }}>How it works</h2>
-          <p style={{ color: '#6b7c93', fontSize: 14, marginBottom: 48 }}>Three steps to a job-ready CV</p>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 32 }}>
+      {/* WHAT IS ATS — education section */}
+      <section id="what-is-ats" style={{ background: '#f8fafc', padding: '72px 24px' }}>
+        <div style={{ maxWidth: 940, margin: '0 auto' }}>
+          <div style={{ textAlign: 'center', marginBottom: 52 }}>
+            <div style={{ fontSize: 12, fontWeight: 700, color: indiaGreen, letterSpacing: 2, textTransform: 'uppercase', marginBottom: 12 }}>ATS Explained Simply</div>
+            <h2 style={{ fontFamily: "'Outfit',sans-serif", fontSize: 32, fontWeight: 800, color: navy, marginBottom: 16 }}>
+              What is ATS and why should you care?
+            </h2>
+            <p style={{ fontSize: 15, color: '#6b7c93', maxWidth: 580, margin: '0 auto', lineHeight: 1.7 }}>
+              ATS stands for <strong style={{ color: navy }}>Applicant Tracking System</strong>. It is software that companies use to automatically screen job applications before any human sees them.
+            </p>
+          </div>
+
+          {/* Visual flow diagram */}
+          <div style={{ background: white, borderRadius: 20, padding: '36px 32px', border: '1px solid #edf1f6', boxShadow: '0 4px 24px rgba(4,44,83,0.07)', marginBottom: 48 }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 0, flexWrap: 'wrap' }}>
+
+              {/* You apply */}
+              <div style={{ textAlign: 'center', padding: '20px 24px' }}>
+                <div style={{ width: 64, height: 64, borderRadius: 16, background: 'rgba(55,138,221,0.1)', border: '2px solid rgba(55,138,221,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 12px', fontSize: 28 }}>
+                  <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
+                    <rect x="4" y="4" width="24" height="28" rx="3" fill="#E6F1FB" stroke="#378ADD" strokeWidth="1.5"/>
+                    <line x1="9" y1="11" x2="23" y2="11" stroke="#378ADD" strokeWidth="1.5" strokeLinecap="round"/>
+                    <line x1="9" y1="16" x2="23" y2="16" stroke="#378ADD" strokeWidth="1.5" strokeLinecap="round"/>
+                    <line x1="9" y1="21" x2="18" y2="21" stroke="#378ADD" strokeWidth="1.5" strokeLinecap="round"/>
+                  </svg>
+                </div>
+                <div style={{ fontFamily: "'Outfit',sans-serif", fontSize: 14, fontWeight: 700, color: navy }}>You Apply</div>
+                <div style={{ fontSize: 12, color: '#9aafbc', marginTop: 4 }}>Submit CV online</div>
+              </div>
+
+              {/* Arrow */}
+              <div style={{ fontSize: 24, color: '#dce4ef', padding: '0 8px' }}>-&gt;</div>
+
+              {/* ATS Bot */}
+              <div style={{ textAlign: 'center', padding: '20px 24px', background: 'rgba(4,44,83,0.04)', borderRadius: 16, border: '2px solid rgba(4,44,83,0.1)' }}>
+                <div style={{ width: 64, height: 64, borderRadius: 16, background: navy, display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 12px' }}>
+                  <svg width="30" height="30" viewBox="0 0 30 30" fill="none">
+                    <rect x="5" y="8" width="20" height="16" rx="3" fill="none" stroke={white} strokeWidth="1.5"/>
+                    <rect x="11" y="4" width="8" height="4" rx="1" fill={white}/>
+                    <line x1="11" y1="14" x2="19" y2="14" stroke={saffron} strokeWidth="1.5" strokeLinecap="round"/>
+                    <line x1="11" y1="18" x2="16" y2="18" stroke={saffron} strokeWidth="1.5" strokeLinecap="round"/>
+                    <circle cx="9" cy="14" r="1.5" fill={saffron}/>
+                    <circle cx="9" cy="18" r="1.5" fill="#E24B4A"/>
+                  </svg>
+                </div>
+                <div style={{ fontFamily: "'Outfit',sans-serif", fontSize: 14, fontWeight: 700, color: navy }}>ATS Bot Reads</div>
+                <div style={{ fontSize: 12, color: '#6b7c93', marginTop: 4, maxWidth: 120 }}>Scans for keywords from the job description</div>
+              </div>
+
+              {/* Arrow */}
+              <div style={{ fontSize: 24, color: '#dce4ef', padding: '0 8px' }}>-&gt;</div>
+
+              {/* Decision */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                <div style={{ textAlign: 'center', padding: '14px 20px', background: 'rgba(29,158,117,0.08)', borderRadius: 12, border: '2px solid rgba(29,158,117,0.3)' }}>
+                  <div style={{ fontSize: 18, marginBottom: 4 }}>+</div>
+                  <div style={{ fontFamily: "'Outfit',sans-serif", fontSize: 13, fontWeight: 700, color: indiaGreen }}>Keywords match</div>
+                  <div style={{ fontSize: 11, color: '#6b7c93', marginTop: 2 }}>Moves to recruiter</div>
+                </div>
+                <div style={{ textAlign: 'center', padding: '14px 20px', background: 'rgba(226,75,74,0.08)', borderRadius: 12, border: '2px solid rgba(226,75,74,0.3)' }}>
+                  <div style={{ fontSize: 18, marginBottom: 4 }}>x</div>
+                  <div style={{ fontFamily: "'Outfit',sans-serif", fontSize: 13, fontWeight: 700, color: '#E24B4A' }}>Keywords missing</div>
+                  <div style={{ fontSize: 11, color: '#6b7c93', marginTop: 2 }}>Auto rejected</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Plain English explanation */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: 20 }}>
             {[
-              { n: '1', title: 'Upload Your CV', desc: 'Paste your CV text or upload a PDF. We read every section.' },
-              { n: '2', title: 'Paste the JD', desc: 'Copy any job description from Naukri, LinkedIn or a company portal.' },
-              { n: '3', title: 'Get Your Score', desc: 'Instant ATS score, keyword gaps, format fixes and rewritten bullets.' },
+              {
+                border: saffron,
+                icon: '?',
+                iconBg: `rgba(255,153,51,0.12)`,
+                iconColor: saffron,
+                title: 'What does ATS actually do?',
+                body: 'When you apply for a job on Naukri, LinkedIn, or a company portal, your CV first goes into ATS software — not to a recruiter. The bot reads your CV like a machine, looking for specific words from the job description. No keywords match = instant rejection.',
+              },
+              {
+                border: '#E24B4A',
+                icon: '!',
+                iconBg: `rgba(226,75,74,0.1)`,
+                iconColor: '#E24B4A',
+                title: 'Why does your CV fail ATS?',
+                body: 'Three main reasons: (1) Missing keywords the JD requires, (2) CV format uses tables or graphics that the bot cannot read, (3) No clear sections like Skills or Summary. The bot does not read meaning — only exact matches.',
+              },
+              {
+                border: indiaGreen,
+                icon: '+',
+                iconBg: `rgba(19,136,8,0.1)`,
+                iconColor: indiaGreen,
+                title: 'How do you fix it?',
+                body: 'Match keywords from the job description in your CV. Use a clean single-column format — no tables, no sidebars, no graphics. Quantify your achievements. Job-Lens does all of this analysis for you in seconds.',
+              },
+            ].map((card, i) => (
+              <div key={i} style={{ background: white, borderRadius: 14, padding: '24px 22px', border: '1px solid #edf1f6', borderTop: `3px solid ${card.border}`, boxShadow: '0 2px 12px rgba(4,44,83,0.05)' }}>
+                <div style={{ width: 36, height: 36, borderRadius: 10, background: card.iconBg, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, fontWeight: 800, color: card.iconColor, marginBottom: 14, fontFamily: "'Outfit',sans-serif" }}>
+                  {card.icon}
+                </div>
+                <h3 style={{ fontFamily: "'Outfit',sans-serif", fontSize: 15, fontWeight: 700, color: navy, marginBottom: 10 }}>{card.title}</h3>
+                <p style={{ fontSize: 13, color: '#6b7c93', lineHeight: 1.7, margin: 0 }}>{card.body}</p>
+              </div>
+            ))}
+          </div>
+
+          {/* Companies that use ATS */}
+          <div style={{ marginTop: 36, padding: '20px 28px', background: white, borderRadius: 14, border: '1px solid #edf1f6', textAlign: 'center' }}>
+            <div style={{ fontSize: 12, color: '#9aafbc', marginBottom: 14, fontWeight: 600, letterSpacing: 0.5 }}>Companies in India using ATS to screen CVs</div>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, justifyContent: 'center' }}>
+              {['TCS', 'Infosys', 'Wipro', 'HCL', 'Cognizant', 'Accenture', 'Flipkart', 'Swiggy', 'Zomato', 'Razorpay', 'CRED', 'PhonePe', 'Zepto', 'Meesho', 'Ola', 'Paytm'].map(co => (
+                <span key={co} style={{ padding: '5px 14px', borderRadius: 20, background: '#f0f4f8', fontSize: 12, color: '#374151', fontWeight: 500 }}>{co}</span>
+              ))}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* THE SOLUTION */}
+      <section style={{ background: navy, padding: '64px 24px', borderTop: `4px solid ${indiaGreen}` }}>
+        <div style={{ maxWidth: 1000, margin: '0 auto', textAlign: 'center' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 14, marginBottom: 20 }}>
+            <IndiaFlag size={32} />
+            <div style={{ fontSize: 12, fontWeight: 700, color: indiaGreen, letterSpacing: 2, textTransform: 'uppercase' }}>The Solution</div>
+          </div>
+          <h2 style={{ fontFamily: "'Outfit',sans-serif", fontSize: 32, fontWeight: 800, color: white, marginBottom: 16 }}>
+            Job-Lens India — built for this exact problem
+          </h2>
+          <p style={{ fontSize: 15, color: 'rgba(255,255,255,0.6)', maxWidth: 560, margin: '0 auto 40px', lineHeight: 1.7 }}>
+            Paste your CV and any job description. Job-Lens reads both, scores your CV against ATS criteria, and tells you exactly what to fix — keyword by keyword.
+          </p>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 16, maxWidth: 800, margin: '0 auto' }}>
+            {[
+              { color: saffron, label: 'ATS Score out of 100', desc: 'Know exactly where you stand' },
+              { color: indiaGreen, label: 'Missing keywords listed', desc: 'Add them and your score jumps' },
+              { color: '#378ADD', label: 'Format issues flagged', desc: 'Fix what the bot cannot read' },
+              { color: white, label: 'Bullet rewrites', desc: 'Action verbs + measurable impact' },
+            ].map((item, i) => (
+              <div key={i} style={{ padding: '20px', borderRadius: 12, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', textAlign: 'left' }}>
+                <div style={{ width: 8, height: 8, borderRadius: '50%', background: item.color, marginBottom: 12 }} />
+                <div style={{ fontFamily: "'Outfit',sans-serif", fontSize: 14, fontWeight: 700, color: white, marginBottom: 6 }}>{item.label}</div>
+                <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.45)' }}>{item.desc}</div>
+              </div>
+            ))}
+          </div>
+          <div style={{ marginTop: 40 }}>
+            <Link href="/in/career-scan" style={{
+              display: 'inline-block', padding: '15px 36px', borderRadius: 10,
+              background: `linear-gradient(135deg, ${saffron} 0%, #e67300 100%)`,
+              color: white, fontWeight: 700, fontSize: 16, textDecoration: 'none',
+              boxShadow: '0 6px 24px rgba(255,153,51,0.4)',
+            }}>
+              Scan Your CV Now — Free
+            </Link>
+          </div>
+        </div>
+      </section>
+
+      {/* HOW IT WORKS */}
+      <section style={{ background: white, padding: '72px 24px' }}>
+        <div style={{ maxWidth: 860, margin: '0 auto', textAlign: 'center' }}>
+          <div style={{ fontSize: 12, fontWeight: 700, color: saffron, letterSpacing: 2, textTransform: 'uppercase', marginBottom: 12 }}>Simple Process</div>
+          <h2 style={{ fontFamily: "'Outfit',sans-serif", fontSize: 30, fontWeight: 800, color: navy, marginBottom: 48 }}>Three steps. One minute.</h2>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 32, position: 'relative' }}>
+            <div style={{ position: 'absolute', top: 28, left: '20%', right: '20%', height: 2, background: 'linear-gradient(90deg, rgba(255,153,51,0.3), rgba(19,136,8,0.3))', zIndex: 0 }} />
+            {[
+              { n: '1', color: saffron, title: 'Upload Your CV', desc: 'Paste the text or upload a PDF. We extract everything.' },
+              { n: '2', color: '#378ADD', title: 'Paste the Job Description', desc: 'Copy any JD from Naukri, LinkedIn, or a company portal.' },
+              { n: '3', color: indiaGreen, title: 'Get Your ATS Score', desc: 'Instant score, keyword gaps, format fixes and rewritten bullets.' },
             ].map((s, i) => (
-              <div key={i} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16 }}>
-                <div style={{ width: 52, height: 52, borderRadius: '50%', background: `linear-gradient(135deg, ${orange}, #e67300)`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20, fontWeight: 800, color: '#fff', fontFamily: "'Outfit',sans-serif" }}>
+              <div key={i} style={{ position: 'relative', zIndex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16 }}>
+                <div style={{ width: 56, height: 56, borderRadius: '50%', background: s.color, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22, fontWeight: 800, color: white, fontFamily: "'Outfit',sans-serif", boxShadow: `0 4px 16px ${s.color}55` }}>
                   {s.n}
                 </div>
                 <h3 style={{ fontFamily: "'Outfit',sans-serif", fontSize: 16, fontWeight: 700, color: navy }}>{s.title}</h3>
@@ -208,68 +332,69 @@ export default function IndiaHomePage() {
               </div>
             ))}
           </div>
-          <div style={{ marginTop: 48 }}>
-            <Link href="/in/career-scan" style={{
-              display: 'inline-block', padding: '14px 32px', borderRadius: 10,
-              background: 'linear-gradient(135deg, #ff9933, #e67300)',
-              color: '#fff', fontWeight: 700, fontSize: 15, textDecoration: 'none',
-              boxShadow: '0 6px 20px rgba(255,153,51,0.35)',
-            }}>
-              Scan Your CV — Free
-            </Link>
-          </div>
         </div>
       </section>
 
-      {/* Pricing */}
-      <section style={{ padding: '72px 24px', background: '#f0f4f8' }}>
+      {/* PRICING */}
+      <section style={{ padding: '72px 24px', background: '#f8fafc' }}>
         <div style={{ maxWidth: 900, margin: '0 auto', textAlign: 'center' }}>
-          <h2 style={{ fontFamily: "'Outfit',sans-serif", fontSize: 30, fontWeight: 700, color: navy, marginBottom: 12 }}>Simple pricing in INR</h2>
-          <p style={{ color: '#6b7c93', fontSize: 14, marginBottom: 48 }}>No dollar conversions. No hidden fees.</p>
+          <div style={{ fontSize: 12, fontWeight: 700, color: indiaGreen, letterSpacing: 2, textTransform: 'uppercase', marginBottom: 12 }}>Pricing</div>
+          <h2 style={{ fontFamily: "'Outfit',sans-serif", fontSize: 30, fontWeight: 800, color: navy, marginBottom: 8 }}>Simple pricing in INR</h2>
+          <p style={{ color: '#9aafbc', fontSize: 13, marginBottom: 48 }}>No dollar conversions. No credit card required to start.</p>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 20, alignItems: 'start' }}>
             {[
               {
-                name: 'Free', price: '0', period: '', features: ['5 credits on signup', '2 ATS scans', 'Basic score + gaps', 'Keyword report'],
-                cta: 'Get Started', ctaHref: '/login?next=/in/career-scan', raised: false,
+                name: 'Free', price: '0', period: '', color: '#378ADD',
+                features: ['5 credits on signup', '2 full ATS scans', 'Keyword gap report', 'Format issues flagged', 'Quick fixes list'],
+                cta: 'Get Started Free', ctaHref: '/login?next=/in/career-scan', raised: false,
               },
               {
-                name: 'Pro', price: '499', period: '/month', features: ['Unlimited ATS scans', 'CV Rewriter', 'JD Keyword Analyzer', 'Job Search', 'Cover Letter'],
+                name: 'Pro', price: '499', period: '/month', color: saffron,
+                features: ['Unlimited ATS scans', 'CV Rewriter', 'JD Keyword Analyzer', 'Job Search India', 'Cover Letter Builder'],
                 cta: 'Go Pro', ctaHref: '/app/account', raised: true, badge: 'Most Popular',
               },
               {
-                name: 'Premium', price: '999', period: '/month', features: ['Everything in Pro', 'ATS Simulator', 'Application Tracker', 'Priority AI queue', 'Dedicated support'],
+                name: 'Premium', price: '999', period: '/month', color: indiaGreen,
+                features: ['Everything in Pro', 'ATS Simulator (Taleo / Workday)', 'Application Tracker', 'Priority AI', 'Dedicated support'],
                 cta: 'Go Premium', ctaHref: '/app/account', raised: false,
               },
-            ].map((plan, i) => (
-              <div key={i} style={{
-                background: '#fff', borderRadius: 16, padding: '28px 24px',
-                border: plan.raised ? `2px solid ${orange}` : '1px solid #edf1f6',
-                boxShadow: plan.raised ? '0 16px 48px rgba(255,153,51,0.2)' : '0 2px 12px rgba(4,44,83,0.06)',
-                marginTop: plan.raised ? -12 : 0,
+            ].map((plan) => (
+              <div key={plan.name} style={{
+                background: white, borderRadius: 18, padding: '28px 22px',
+                border: plan.raised ? `2px solid ${saffron}` : '1px solid #edf1f6',
+                boxShadow: plan.raised ? '0 20px 56px rgba(255,153,51,0.18)' : '0 2px 12px rgba(4,44,83,0.05)',
+                marginTop: plan.raised ? -14 : 0,
                 position: 'relative',
               }}>
                 {plan.badge && (
-                  <div style={{ position: 'absolute', top: -1, left: '50%', transform: 'translateX(-50%)', background: orange, color: '#fff', fontSize: 10, fontWeight: 700, padding: '3px 12px', borderRadius: '0 0 8px 8px', whiteSpace: 'nowrap' }}>
+                  <div style={{ position: 'absolute', top: -1, left: '50%', transform: 'translateX(-50%)', background: saffron, color: white, fontSize: 10, fontWeight: 700, padding: '3px 14px', borderRadius: '0 0 10px 10px', whiteSpace: 'nowrap' }}>
                     {plan.badge}
                   </div>
                 )}
+                <div style={{ width: 8, height: 8, borderRadius: '50%', background: plan.color, marginBottom: 12 }} />
                 <div style={{ fontFamily: "'Outfit',sans-serif", fontSize: 18, fontWeight: 700, color: navy, marginBottom: 4 }}>{plan.name}</div>
-                <div style={{ display: 'flex', alignItems: 'baseline', gap: 2, marginBottom: 20 }}>
-                  <span style={{ fontSize: 13, color: '#6b7c93' }}>Rs.</span>
-                  <span style={{ fontFamily: "'Outfit',sans-serif", fontSize: 32, fontWeight: 800, color: navy }}>{plan.price}</span>
-                  {plan.period && <span style={{ fontSize: 13, color: '#6b7c93' }}>{plan.period}</span>}
+                <div style={{ display: 'flex', alignItems: 'baseline', gap: 2, marginBottom: 22 }}>
+                  {plan.price !== '0' && <span style={{ fontSize: 13, color: '#9aafbc' }}>Rs.</span>}
+                  <span style={{ fontFamily: "'Outfit',sans-serif", fontSize: 34, fontWeight: 800, color: plan.raised ? saffron : navy }}>
+                    {plan.price === '0' ? 'Free' : plan.price}
+                  </span>
+                  {plan.period && <span style={{ fontSize: 13, color: '#9aafbc' }}>{plan.period}</span>}
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 24 }}>
                   {plan.features.map((feat, j) => (
-                    <div key={j} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: '#374151', textAlign: 'left' }}>
-                      <span style={{ color: green, fontSize: 14, flexShrink: 0 }}>+</span> {feat}
+                    <div key={j} style={{ display: 'flex', alignItems: 'flex-start', gap: 8, fontSize: 13, color: '#374151', textAlign: 'left' }}>
+                      <span style={{ color: plan.color, fontWeight: 700, flexShrink: 0, marginTop: 1 }}>+</span> {feat}
                     </div>
                   ))}
                 </div>
                 <Link href={plan.ctaHref} style={{
-                  display: 'block', padding: '11px', borderRadius: 8, textAlign: 'center',
-                  background: plan.raised ? `linear-gradient(135deg, ${orange}, #e67300)` : `linear-gradient(135deg, ${navy}, #185FA5)`,
-                  color: '#fff', fontWeight: 700, fontSize: 14, textDecoration: 'none',
+                  display: 'block', padding: '11px', borderRadius: 9, textAlign: 'center',
+                  background: plan.raised
+                    ? `linear-gradient(135deg, ${saffron}, #e67300)`
+                    : plan.color === indiaGreen
+                    ? `linear-gradient(135deg, ${indiaGreen}, #0a6b04)`
+                    : `linear-gradient(135deg, ${navy}, #185FA5)`,
+                  color: white, fontWeight: 700, fontSize: 14, textDecoration: 'none',
                 }}>
                   {plan.cta}
                 </Link>
@@ -280,24 +405,26 @@ export default function IndiaHomePage() {
       </section>
 
       {/* Footer */}
-      <footer style={{ background: navy, padding: '32px 24px', textAlign: 'center' }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, marginBottom: 12 }}>
-          <svg width="22" height="22" viewBox="0 0 44 44">
-            <circle cx="20" cy="20" r="13" fill="none" stroke="#378ADD" strokeWidth="2.5"/>
-            <circle cx="20" cy="20" r="3" fill="#378ADD"/>
-            <line x1="28" y1="28" x2="36" y2="36" stroke="#378ADD" strokeWidth="3" strokeLinecap="round"/>
-          </svg>
-          <span style={{ fontFamily: "'Outfit',sans-serif", fontSize: 15, fontWeight: 700, color: '#E6F1FB' }}>
-            Job-Lens <span style={{ color: orange }}>India</span>
-          </span>
+      <footer style={{ background: navy, padding: '36px 24px 28px' }}>
+        {/* Tricolor stripe */}
+        <div style={{ display: 'flex', height: 3, maxWidth: 200, margin: '0 auto 28px', borderRadius: 2, overflow: 'hidden' }}>
+          <div style={{ flex: 1, background: saffron }} />
+          <div style={{ flex: 1, background: white }} />
+          <div style={{ flex: 1, background: indiaGreen }} />
         </div>
-        <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.35)', marginBottom: 8 }}>
-          Built in Germany. Made for India.
-        </p>
-        <div style={{ display: 'flex', gap: 16, justifyContent: 'center', flexWrap: 'wrap' }}>
-          <Link href="/" style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)', textDecoration: 'none' }}>Job-Lens DACH</Link>
-          <Link href="/impressum" style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)', textDecoration: 'none' }}>Impressum</Link>
-          <Link href="/datenschutz" style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)', textDecoration: 'none' }}>Privacy</Link>
+        <div style={{ textAlign: 'center' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, marginBottom: 10 }}>
+            <IndiaFlag size={24} />
+            <span style={{ fontFamily: "'Outfit',sans-serif", fontSize: 15, fontWeight: 700, color: 'rgba(255,255,255,0.9)' }}>
+              Job-Lens <span style={{ color: saffron }}>India</span>
+            </span>
+          </div>
+          <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.3)', marginBottom: 16 }}>Built in Germany. Made for India.</p>
+          <div style={{ display: 'flex', gap: 20, justifyContent: 'center', flexWrap: 'wrap' }}>
+            <Link href="/" style={{ fontSize: 12, color: 'rgba(255,255,255,0.35)', textDecoration: 'none' }}>Job-Lens DACH</Link>
+            <Link href="/impressum" style={{ fontSize: 12, color: 'rgba(255,255,255,0.35)', textDecoration: 'none' }}>Impressum</Link>
+            <Link href="/datenschutz" style={{ fontSize: 12, color: 'rgba(255,255,255,0.35)', textDecoration: 'none' }}>Privacy</Link>
+          </div>
         </div>
       </footer>
 
