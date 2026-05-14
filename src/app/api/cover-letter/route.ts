@@ -10,7 +10,7 @@ export async function POST(req: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const credits = await checkAndDeductCredits(user.id, COST, 'cover_letter')
+  const credits = await checkAndDeductCredits(user.id, COST, 'cover_letter', user.email ?? '')
   if (!credits.ok) {
     return NextResponse.json({ error: 'Insufficient credits', credits: credits.remaining, required: COST }, { status: 402 })
   }

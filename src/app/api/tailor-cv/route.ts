@@ -10,7 +10,7 @@ export async function POST(req: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const credits = await checkAndDeductCredits(user.id, COST, 'tailor_cv')
+  const credits = await checkAndDeductCredits(user.id, COST, 'tailor_cv', user.email ?? '')
   if (!credits.ok) {
     return NextResponse.json({ error: 'Insufficient credits', credits: credits.remaining, required: COST }, { status: 402 })
   }
@@ -33,7 +33,7 @@ ${job ? `Target Job: ${job.job_title} at ${job.employer_name}` : ''}
 Return ONLY the updated JSON object. No markdown, no backticks, no explanation.`
         : `Here is the candidate's CV to extract and enhance:
 
-${cvText.slice(0, 4000)}
+${cvText.slice(0, 10000)}
 
 ${job ? `Target Job: ${job.job_title} at ${job.employer_name}` : ''}
 ${job?.job_description ? `Job Description: ${job.job_description.slice(0, 800)}` : ''}
@@ -42,7 +42,7 @@ Return ONLY the JSON object. No markdown, no backticks, no explanation.`
 
       const message = await anthropic.messages.create({
         model: 'claude-opus-4-5',
-        max_tokens: 4000,
+        max_tokens: 6000,
         system: systemPrompt,
         messages: [{ role: 'user', content: userContent }],
       })
@@ -88,7 +88,7 @@ Company: ${company}
 Job Description: ${jobDesc}
 
 Original CV:
-${cvText.slice(0, 3000)}${feedbackSection}
+${cvText.slice(0, 8000)}${feedbackSection}
 
 Return the tailored CV in plain text format.`,
       }],

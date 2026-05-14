@@ -10,7 +10,7 @@ export async function POST(req: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const credits = await checkAndDeductCredits(user.id, COST, 'career_scan')
+  const credits = await checkAndDeductCredits(user.id, COST, 'career_scan', user.email ?? '')
   if (!credits.ok) {
     return NextResponse.json({ error: 'Insufficient credits', credits: credits.remaining, required: COST }, { status: 402 })
   }
@@ -20,7 +20,7 @@ export async function POST(req: NextRequest) {
 
     const message = await anthropic.messages.create({
       model: 'claude-opus-4-5',
-      max_tokens: 1500,
+      max_tokens: 2000,
       messages: [{ role: 'user', content: prompt }],
     })
 
@@ -42,6 +42,7 @@ export async function POST(req: NextRequest) {
       salary_currency: data.salary_currency ?? 'EUR',
       top_keyword: data.top_keyword ?? '',
       market_insight: data.market_insight ?? '',
+      roast_lines: Array.isArray(data.roast_lines) ? data.roast_lines : [],
       creditsRemaining: credits.remaining,
     }
 

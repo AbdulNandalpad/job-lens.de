@@ -33,8 +33,14 @@ export function createAdminSupabase() {
 export async function checkAndDeductCredits(
   userId: string,
   cost: number,
-  action: string
+  action: string,
+  userEmail?: string
 ): Promise<{ ok: boolean; remaining: number }> {
+  const adminEmails = (process.env.ADMIN_EMAILS || '').split(',').map(e => e.trim().toLowerCase())
+  if (userEmail && adminEmails.includes(userEmail.toLowerCase())) {
+    return { ok: true, remaining: 9999 }
+  }
+
   const admin = createAdminSupabase()
 
   let currentCredits = 5
