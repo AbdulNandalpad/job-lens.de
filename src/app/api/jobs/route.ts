@@ -60,7 +60,7 @@ export async function GET(req: NextRequest) {
         job_posted_at_datetime_utc: String(j.created || ''),
         job_min_salary: (j.salary_min as number) || null,
         job_max_salary: (j.salary_max as number) || null,
-        job_salary_currency: country === 'ch' ? 'CHF' : country === 'gb' ? 'GBP' : '€',
+        job_salary_currency: country === 'ch' ? 'CHF' : country === 'gb' ? 'GBP' : country === 'in' ? 'INR' : 'EUR',
         job_category: String((cat as Record<string, unknown>)?.label || ''),
       }
     })
