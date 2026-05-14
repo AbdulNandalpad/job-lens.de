@@ -37,6 +37,8 @@ export async function checkAndDeductCredits(
 ): Promise<{ ok: boolean; remaining: number }> {
   const admin = createAdminSupabase()
 
+  let currentCredits = 5
+
   const { data: profile } = await admin
     .from('profiles')
     .select('credits')
@@ -44,24 +46,27 @@ export async function checkAndDeductCredits(
     .single()
 
   if (!profile) {
-    // Profile not created yet (old user) — create it with 5 credits
+    // Profile not created yet — create it with 5 credits
     await admin.from('profiles').insert({ id: userId, credits: 5 })
-    if (5 < cost) return { ok: false, remaining: 5 }
-    await admin.from('profiles').update({ credits: 5 - cost }).eq('id', userId)
-    await admin.from('usage_events').insert({ user_id: userId, action, credits_used: cost })
-    return { ok: true, remaining: 5 - cost }
+  } else {
+    currentCredits = profile.credits
   }
 
-  if (profile.credits < cost) return { ok: false, remaining: profile.credits }
+  if (currentCredits < cost) return { ok: false, remaining: currentCredits }
 
-  await admin
+  const { error: updateError } = await admin
     .from('profiles')
-    .update({ credits: profile.credits - cost, updated_at: new Date().toISOString() })
+    .update({ credits: currentCredits - cost })
     .eq('id', userId)
+
+  if (updateError) {
+    console.error('Credits update failed:', updateError.message)
+    return { ok: false, remaining: currentCredits }
+  }
 
   await admin
     .from('usage_events')
     .insert({ user_id: userId, action, credits_used: cost })
 
-  return { ok: true, remaining: profile.credits - cost }
+  return { ok: true, remaining: currentCredits - cost }
 }

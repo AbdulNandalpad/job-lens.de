@@ -55,7 +55,7 @@ export async function PATCH(req: NextRequest) {
   if (!id) return NextResponse.json({ error: 'id required' }, { status: 400 })
 
   const admin = createAdminSupabase()
-  const updates: Record<string, unknown> = { updated_at: new Date().toISOString() }
+  const updates: Record<string, unknown> = {}
   if (status !== undefined) updates.status = status
   if (credits !== undefined) updates.credits = credits
 
