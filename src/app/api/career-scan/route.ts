@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import Anthropic from '@anthropic-ai/sdk'
-import { createServerSupabase, checkAndDeductCredits } from '@/lib/supabase-server'
+import { createServerSupabase, checkAndDeductCredits, refundCredits } from '@/lib/supabase-server'
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
 const COST = 2
@@ -13,6 +13,7 @@ ABSOLUTE RULES — violating any of these makes your output worthless:
 3. Every strength, gap, and roast_line MUST quote or directly reference specific text from the CV. If you cannot find evidence in the CV, do not mention it.
 4. Roast lines must be surgical: quote exact job titles, company names, dates, or wording from the CV, then explain why it is weak for the target role. NEVER say "your CV lacks X" unless X is genuinely absent from the text shown.
 5. Salary ranges must reflect real DACH market data for the seniority level evidenced in the CV.
+6. Keep all string values concise — max 2 sentences each. Do not pad responses.
 
 CONSISTENT SCORING RUBRIC (apply this exactly):
 - 85–100: 10+ years directly relevant experience, strong DACH market presence, leadership credentials, 90%+ skills alignment with target role
@@ -22,94 +23,61 @@ CONSISTENT SCORING RUBRIC (apply this exactly):
 - 0–34: Entry level, major gaps, career change territory
 
 AI VULNERABILITY SCORING (0 = fully automation-proof, 100 = fully automatable today):
-- Consider: how much of the listed work is pattern-matching, data entry, report generation, templated writing?
-- Consider: how much requires physical presence, creative judgment, political navigation, stakeholder empathy?
-- Be specific: name the tasks that are high-risk and those that provide protection.`
+- High risk: pattern-matching, data entry, report generation, templated writing, basic analysis
+- Low risk: physical presence, creative judgment, political navigation, stakeholder empathy, complex negotiation`
 
 function buildPrompt(cvText: string, role: string, market: string): string {
   const salaryUnit = market === 'Switzerland' ? 'CHF' : 'EUR'
   return `CV TEXT — read every word; do not reference anything not present here:
 ---
-${cvText.slice(0, 8000)}
+${cvText.slice(0, 7000)}
 ---
 
-Target role requested by candidate: "${role}"
-Target market: ${market}
+Target role: "${role}"
+Market: ${market}
 
-Return ONLY this exact JSON structure. No other text:
+Return ONLY valid JSON matching this schema exactly:
 {
-  "score": <integer 0-100 using the scoring rubric>,
-  "market_fit_score": <integer 0-100, how well profile fits DACH demand for this role specifically>,
-  "keyword_score": <integer 0-100, percentage of role-critical keywords present in the CV>,
-  "readiness": "<exactly one of: Ready | Strong | Developing | Entry>",
-  "headline": "<10-15 word neutral summary of the actual profile — no hype>",
-  "summary": "<2 sentences based strictly on CV content, no assumptions>",
-  "strengths": [
-    "<specific strength with evidence from CV text>",
-    "<specific strength with evidence from CV text>",
-    "<specific strength with evidence from CV text>",
-    "<specific strength with evidence from CV text>"
-  ],
-  "gaps": [
-    "<gap relative to '${role}' with explanation>",
-    "<gap relative to '${role}' with explanation>",
-    "<gap relative to '${role}' with explanation>"
-  ],
-  "quick_wins": [
-    "<specific, actionable fix #1 — reference CV content where relevant>",
-    "<specific, actionable fix #2>",
-    "<specific, actionable fix #3>"
-  ],
-  "role_suggestions": [
-    "<best-fit role title given CV>",
-    "<second-fit role title>",
-    "<third-fit role title>",
-    "<stretch role title>"
-  ],
-  "salary_min": <realistic annual gross in ${salaryUnit} for this seniority in ${market}>,
-  "salary_max": <realistic annual gross in ${salaryUnit}>,
+  "score": <integer 0-100>,
+  "market_fit_score": <integer 0-100>,
+  "keyword_score": <integer 0-100>,
+  "readiness": "<Ready|Strong|Developing|Entry>",
+  "headline": "<12 words max — neutral summary of actual profile>",
+  "summary": "<2 sentences from CV content only>",
+  "strengths": ["<CV evidence>", "<CV evidence>", "<CV evidence>", "<CV evidence>"],
+  "gaps": ["<gap vs role>", "<gap vs role>", "<gap vs role>"],
+  "quick_wins": ["<actionable fix>", "<actionable fix>", "<actionable fix>"],
+  "role_suggestions": ["<title>", "<title>", "<title>", "<title>"],
+  "salary_min": <annual gross ${salaryUnit}>,
+  "salary_max": <annual gross ${salaryUnit}>,
   "salary_currency": "${salaryUnit}",
-  "top_keyword": "<single most impactful missing keyword for '${role}' ATS>",
-  "market_insight": "<1-2 sentences on demand and competition for '${role}' in ${market} right now>",
-  "ai_vulnerability": <integer 0-100 — how much of this role is automatable by AI today>,
-  "ai_vulnerability_label": "<exactly one of: Very High | High | Medium | Low | Very Low>",
-  "ai_vulnerability_reason": "<2-3 sentences: name specific tasks in this CV that are at risk and which skills provide protection. Be honest and specific, not reassuring.>",
+  "top_keyword": "<single ATS keyword>",
+  "market_insight": "<1-2 sentences on ${role} demand in ${market}>",
+  "ai_vulnerability": <integer 0-100>,
+  "ai_vulnerability_label": "<Very High|High|Medium|Low|Very Low>",
+  "ai_vulnerability_reason": "<2 sentences: name at-risk tasks and protective skills>",
   "career_path_steps": [
-    {
-      "timeframe": "Now — 2 weeks",
-      "focus": "Profile & CV overhaul",
-      "actions": [
-        "<action referencing actual CV gaps>",
-        "<action referencing quick win>",
-        "<action>"
-      ]
-    },
-    {
-      "timeframe": "Month 1",
-      "focus": "Skills & visibility",
-      "actions": [
-        "<specific certification or course for '${role}' in ${market}>",
-        "<LinkedIn or community action>",
-        "<application targets: number and seniority>"
-      ]
-    },
-    {
-      "timeframe": "Month 2–3",
-      "focus": "Active search & offers",
-      "actions": [
-        "<interview prep specific to '${role}'>",
-        "<salary negotiation target in ${salaryUnit}>",
-        "<networking action>"
-      ]
-    }
+    {"timeframe": "Now — 2 weeks", "focus": "Profile overhaul", "actions": ["<action>", "<action>", "<action>"]},
+    {"timeframe": "Month 1", "focus": "Skills & visibility", "actions": ["<action>", "<action>", "<action>"]},
+    {"timeframe": "Month 2–3", "focus": "Active search", "actions": ["<action>", "<action>", "<action>"]}
   ],
   "roast_lines": [
-    "<Line 1: quote exact wording from CV, explain why it signals weakness for '${role}'>",
-    "<Line 2: identify a real gap that IS visible — no assumptions>",
-    "<Line 3: contrast a genuine strength in the CV with poor presentation or positioning>",
-    "<Line 4: honest, specific observation about how AI will affect this exact profile in 2–3 years>"
+    "<quote exact CV wording + explain weakness for role>",
+    "<real visible gap — no assumptions>",
+    "<strength vs poor positioning>",
+    "<AI impact on this profile in 2-3 years>"
   ]
 }`
+}
+
+function extractJson(raw: string): string {
+  // Strip markdown fences
+  let s = raw.replace(/```json\s*/g, '').replace(/```\s*/g, '').trim()
+  // Find outermost JSON object
+  const start = s.indexOf('{')
+  const end = s.lastIndexOf('}')
+  if (start === -1 || end === -1 || end <= start) throw new Error('No JSON object found in response')
+  return s.slice(start, end + 1)
 }
 
 export async function POST(req: NextRequest) {
@@ -125,39 +93,47 @@ export async function POST(req: NextRequest) {
   try {
     const { cvText, role, market } = await req.json()
     if (!cvText?.trim()) {
+      await refundCredits(user.id, COST, 'career_scan')
       return NextResponse.json({ error: 'CV text is required' }, { status: 400 })
     }
 
     const message = await anthropic.messages.create({
       model: 'claude-sonnet-4-6',
-      max_tokens: 2500,
+      max_tokens: 4096,
       system: SYSTEM_PROMPT,
       messages: [{ role: 'user', content: buildPrompt(cvText, role || 'the target role', market || 'Germany') }],
     })
 
     const raw = (message.content[0] as { text: string }).text
-    const clean = raw.replace(/```json\n?|```/g, '').trim()
-    const data = JSON.parse(clean)
+
+    let data: Record<string, unknown>
+    try {
+      data = JSON.parse(extractJson(raw))
+    } catch (parseErr) {
+      console.error('Career scan JSON parse failed:', parseErr, '\nRaw:', raw.slice(0, 500))
+      await refundCredits(user.id, COST, 'career_scan')
+      return NextResponse.json({ error: 'Analysis failed — credits refunded' }, { status: 500 })
+    }
 
     const safe = {
       score: typeof data.score === 'number' ? Math.max(0, Math.min(100, data.score)) : 50,
       market_fit_score: typeof data.market_fit_score === 'number' ? Math.max(0, Math.min(100, data.market_fit_score)) : null,
       keyword_score: typeof data.keyword_score === 'number' ? Math.max(0, Math.min(100, data.keyword_score)) : null,
-      readiness: data.readiness ?? 'Developing',
-      headline: data.headline ?? 'Professional profile',
-      summary: data.summary ?? '',
+      readiness: (data.readiness as string) ?? 'Developing',
+      headline: (data.headline as string) ?? 'Professional profile',
+      summary: (data.summary as string) ?? '',
       strengths: Array.isArray(data.strengths) ? data.strengths : [],
       gaps: Array.isArray(data.gaps) ? data.gaps : [],
       quick_wins: Array.isArray(data.quick_wins) ? data.quick_wins : [],
       role_suggestions: Array.isArray(data.role_suggestions) ? data.role_suggestions : [],
-      salary_min: data.salary_min ?? 60000,
-      salary_max: data.salary_max ?? 90000,
-      salary_currency: data.salary_currency ?? 'EUR',
-      top_keyword: data.top_keyword ?? '',
-      market_insight: data.market_insight ?? '',
+      salary_min: (data.salary_min as number) ?? 60000,
+      salary_max: (data.salary_max as number) ?? 90000,
+      salary_currency: (data.salary_currency as string) ?? 'EUR',
+      top_keyword: (data.top_keyword as string) ?? '',
+      market_insight: (data.market_insight as string) ?? '',
       ai_vulnerability: typeof data.ai_vulnerability === 'number' ? Math.max(0, Math.min(100, data.ai_vulnerability)) : 50,
-      ai_vulnerability_label: data.ai_vulnerability_label ?? 'Medium',
-      ai_vulnerability_reason: data.ai_vulnerability_reason ?? '',
+      ai_vulnerability_label: (data.ai_vulnerability_label as string) ?? 'Medium',
+      ai_vulnerability_reason: (data.ai_vulnerability_reason as string) ?? '',
       career_path_steps: Array.isArray(data.career_path_steps) ? data.career_path_steps : [],
       roast_lines: Array.isArray(data.roast_lines) ? data.roast_lines : [],
       creditsRemaining: credits.remaining,
@@ -166,6 +142,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json(safe)
   } catch (err) {
     console.error('Career scan error:', err)
-    return NextResponse.json({ error: 'Analysis failed' }, { status: 500 })
+    await refundCredits(user.id, COST, 'career_scan')
+    return NextResponse.json({ error: 'Analysis failed — credits refunded' }, { status: 500 })
   }
 }

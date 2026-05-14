@@ -30,6 +30,22 @@ export function createAdminSupabase() {
   )
 }
 
+export async function refundCredits(
+  userId: string,
+  amount: number,
+  action: string
+): Promise<void> {
+  try {
+    const admin = createAdminSupabase()
+    const { data: profile } = await admin.from('profiles').select('credits').eq('id', userId).single()
+    if (!profile) return
+    await admin.from('profiles').update({ credits: profile.credits + amount }).eq('id', userId)
+    await admin.from('usage_events').insert({ user_id: userId, action: `refund_${action}`, credits_used: -amount })
+  } catch (err) {
+    console.error('Credit refund failed:', err)
+  }
+}
+
 export async function checkAndDeductCredits(
   userId: string,
   cost: number,

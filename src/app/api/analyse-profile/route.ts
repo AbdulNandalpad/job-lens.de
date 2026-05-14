@@ -1,91 +1,107 @@
 import { NextRequest, NextResponse } from 'next/server'
+import Anthropic from '@anthropic-ai/sdk'
+
+const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
+
+const FALLBACK = {
+  suggestedQuery: '',
+  queryFallbacks: [] as string[],
+  skills: [] as string[],
+  titles: [] as string[],
+  seniority: '',
+  industries: [] as string[],
+  languages: [] as string[],
+  summary: '',
+}
 
 export async function POST(req: NextRequest) {
+  let targetRole = ''
   try {
-    const { linkedinText, cvText, targetRole, experience, jobTypes, salaryMin, salaryMax } = await req.json()
+    const body = await req.json()
+    const { linkedinText, cvText, experience, jobTypes } = body
+    targetRole = body.targetRole || ''
+    const profileText = (linkedinText || cvText || '').trim()
 
-    const profileText = linkedinText || cvText || ''
+    // No profile and no role — nothing to work with
+    if (!profileText && !targetRole) return NextResponse.json(FALLBACK)
 
-    if (!profileText && !targetRole) {
-      return NextResponse.json({
-        suggestedQuery: '',
-        skills: [],
-        titles: [],
-        seniority: '',
-        industries: [],
-        languages: [],
-        summary: '',
-      })
-    }
-
-    // If no CV/LinkedIn, just use target role as-is
+    // No profile — return targetRole simplified, no AI needed
     if (!profileText) {
+      const simplified = targetRole.split(/[\s,]+/).slice(0, 3).join(' ')
       return NextResponse.json({
-        suggestedQuery: targetRole,
-        skills: [],
+        ...FALLBACK,
+        suggestedQuery: simplified,
+        queryFallbacks: [targetRole.split(/\s+/)[0]],
         titles: [targetRole],
         seniority: experience || '',
-        industries: [],
-        languages: [],
-        summary: '',
       })
     }
 
-    const systemPrompt = `You are a career profile analyser. Extract structured data from a CV or LinkedIn profile.
-Return ONLY valid JSON, no markdown, no explanation.`
+    const prompt = `You are a DACH job search expert. Read the candidate's CV and their target role, then produce a search query that finds real job listings on Adzuna.
 
-    const userPrompt = `Analyse this profile and return a JSON object with these fields:
-- suggestedQuery: string — CRITICAL: a SHORT 2-3 word job search query using only the core job title. Must be simple enough to match real job board results. Examples of GOOD queries: "Product Manager", "SAP Consultant", "Software Engineer", "Data Analyst". Examples of BAD queries: "SAP Customer Experience Lead DACH", "Senior Full Stack JavaScript Developer". ${targetRole ? `User's target role is "${targetRole}" — simplify it to its 2-3 core words for the query.` : 'Extract the most prominent job title from the profile and simplify to 2-3 words.'}
-- queryFallbacks: string[] — 2 alternative queries (each 1-2 words) if the main query returns no results. E.g. ["SAP", "Product Owner"]
-- skills: string[] — top 8 most relevant technical and professional skills (exact tool/technology names)
-- titles: string[] — 3 most suitable job titles for this person
-- seniority: string — one of: Junior, Mid, Senior, Lead, Director
-- industries: string[] — top 3 industries this person has worked in
-- languages: string[] — spoken languages with level e.g. ["German C2", "English C1"]
-- summary: string — one sentence profile summary
+CRITICAL RULE FOR suggestedQuery:
+- Must be 2–3 words maximum. Job boards fail on long queries.
+- Must reflect BOTH what the CV shows AND what the candidate wants.
+- If the target role aligns with the CV: simplify it (e.g. "SAP CX Consultant" → "SAP Consultant")
+- If the target role is aspirational but plausible given the CV: use an intermediate title (e.g. CV shows "Project Lead", target is "Director" → "Senior Project Manager")
+- If the target role is completely unrelated to the CV: use the strongest role from the CV and put target role in queryFallbacks.
+- NEVER output a query longer than 3 words. NEVER include company names, locations, or seniority adjectives.
 
-Additional context from user:
+${targetRole ? `Candidate's target role: "${targetRole}"` : 'No target role specified — extract best-fit role from CV.'}
+
+CV / Profile text:
+---
+${profileText.slice(0, 7000)}
+---
+
+Additional context:
 ${experience ? `- Experience level: ${experience}` : ''}
-${jobTypes?.length ? `- Job types wanted: ${jobTypes.join(', ')}` : ''}
-${salaryMin || salaryMax ? `- Salary expectation: ${salaryMin || ''}${salaryMax ? ` - ${salaryMax}` : ''}` : ''}
+${jobTypes?.length ? `- Job types: ${jobTypes.join(', ')}` : ''}
 
-Profile text:
-${profileText.slice(0, 8000)}`
+Return ONLY valid JSON, no markdown:
+{
+  "suggestedQuery": "<2-3 word job search query that bridges CV and target role>",
+  "queryFallbacks": ["<1-2 word alternative>", "<1-2 word alternative>", "<core skill from CV>"],
+  "skills": ["<top 8 specific technical/professional skills from CV>"],
+  "titles": ["<most accurate current title from CV>", "<second fit>", "<target-aligned title>"],
+  "seniority": "<Junior|Mid|Senior|Lead|Director>",
+  "industries": ["<industry 1>", "<industry 2>", "<industry 3>"],
+  "languages": ["<language + level e.g. German C2>"],
+  "summary": "<one sentence profile summary from CV content>"
+}`
 
-    const res = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': process.env.ANTHROPIC_API_KEY!,
-        'anthropic-version': '2023-06-01',
-      },
-      body: JSON.stringify({
-        model: 'claude-opus-4-5',
-        max_tokens: 1000,
-        system: systemPrompt,
-        messages: [{ role: 'user', content: userPrompt }],
-      }),
+    const message = await anthropic.messages.create({
+      model: 'claude-haiku-4-5-20251001',
+      max_tokens: 800,
+      messages: [{ role: 'user', content: prompt }],
     })
 
-    const data = await res.json()
-    const text = data.content?.[0]?.text || ''
+    const raw = (message.content[0] as { text: string }).text
+    const clean = raw.replace(/```json\s*/g, '').replace(/```\s*/g, '').trim()
+    const start = clean.indexOf('{')
+    const end = clean.lastIndexOf('}')
+    if (start === -1 || end === -1) throw new Error('No JSON in response')
 
-    // Parse JSON response
-    const clean = text.replace(/```json|```/g, '').trim()
-    const profile = JSON.parse(clean)
+    const profile = JSON.parse(clean.slice(start, end + 1))
+
+    // Ensure suggestedQuery is never empty or too long
+    if (!profile.suggestedQuery?.trim()) {
+      profile.suggestedQuery = targetRole
+        ? targetRole.split(/\s+/).slice(0, 2).join(' ')
+        : (profile.titles?.[0] || '').split(/\s+/).slice(0, 2).join(' ')
+    } else {
+      // Hard-limit to 3 words in case AI ignores the instruction
+      const words = profile.suggestedQuery.trim().split(/\s+/)
+      if (words.length > 3) profile.suggestedQuery = words.slice(0, 3).join(' ')
+    }
 
     return NextResponse.json(profile)
   } catch (err) {
     console.error('Profile analysis error:', err)
-    // Fallback — don't break the search, just return basic data
     return NextResponse.json({
-      suggestedQuery: '',
-      skills: [],
-      titles: [],
-      seniority: '',
-      industries: [],
-      languages: [],
-      summary: '',
+      ...FALLBACK,
+      suggestedQuery: targetRole ? targetRole.split(/\s+/).slice(0, 2).join(' ') : '',
+      queryFallbacks: targetRole ? [targetRole.split(/\s+/)[0]] : [],
     })
   }
 }

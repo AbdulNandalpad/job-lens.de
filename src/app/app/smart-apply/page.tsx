@@ -215,17 +215,18 @@ function SmartJobSearchPage() {
         const res = await fetch('/api/analyse-profile', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ linkedinText, cvText, targetRole, experience, jobTypes }) })
         extractedProfile = await res.json()
         setProfile(extractedProfile)
-        // Use targetRole as search query when provided — user knows what they want.
-        // Fall back to AI-suggested query only if no role was typed.
-        searchQuery = targetRole.trim() || extractedProfile?.suggestedQuery || ''
-      } catch { searchQuery = targetRole }
+        // AI has read both the CV and target role together and produced a clean, short query.
+        // Always use the AI-combined query first — raw targetRole text is often too long/specific for job boards.
+        // targetRole stays in the fallback chain in case the combined query returns nothing.
+        searchQuery = extractedProfile?.suggestedQuery || targetRole.trim() || ''
+      } catch { searchQuery = targetRole.split(/\s+/).slice(0, 2).join(' ') }
       setAnalysing(false)
     }
     setLoading(true); setUsedQuery(searchQuery)
     try {
-      // Build a fallback query chain: primary → targetRole → AI fallbacks → first skill
+      // Fallback chain: AI-combined query → raw targetRole → AI fallbacks → first title from CV
       const queryChain = [searchQuery]
-      if (targetRole.trim() && targetRole !== searchQuery) queryChain.push(targetRole.trim())
+      if (targetRole.trim() && targetRole.trim() !== searchQuery) queryChain.push(targetRole.trim())
       if (extractedProfile?.queryFallbacks) queryChain.push(...(extractedProfile.queryFallbacks || []))
       if (extractedProfile?.titles?.[0] && !queryChain.includes(extractedProfile.titles[0])) queryChain.push(extractedProfile.titles[0])
 
