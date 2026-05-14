@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
+import { createBrowserClient } from '@supabase/ssr'
 import { theme } from '@/lib/theme'
 
 const { colors: c, fonts: f, gradients: g } = theme
@@ -27,12 +28,21 @@ export default function AdminPage() {
   const [updating, setUpdating] = useState<string | null>(null)
   const [creditEdits, setCreditEdits] = useState<Record<string, string>>({})
 
-  useEffect(() => { loadUsers() }, [])
+  useEffect(() => {
+    const supabase = createBrowserClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+    )
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (!session) { router.replace('/login'); return }
+      loadUsers()
+    })
+  }, [])
 
   async function loadUsers() {
     setLoading(true)
     const res = await fetch('/api/admin/users')
-    if (res.status === 403) { setError('Access denied.'); setLoading(false); return }
+    if (res.status === 403) { router.replace('/app/career-scan'); return }
     const data = await res.json()
     if (data.error) { setError(data.error); setLoading(false); return }
     setUsers(data.users || [])

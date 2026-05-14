@@ -24,6 +24,7 @@ interface Job {
 
 interface Profile {
   suggestedQuery: string
+  queryFallbacks?: string[]
   skills: string[]
   titles: string[]
   seniority: string
@@ -55,8 +56,7 @@ function SmartJobSearchPage() {
   const [experience, setExperience] = useState('Senior (8-15 yrs)')
   const [location, setLocation] = useState('Stuttgart, Germany')
   const [country, setCountry] = useState('de')
-  const [salaryMin, setSalaryMin] = useState('')
-  const [salaryMax, setSalaryMax] = useState('')
+  const [daysOld, setDaysOld] = useState('')
 
   const [profile, setProfile] = useState<Profile | null>(null)
   const [jobs, setJobs] = useState<Job[]>([])
@@ -162,7 +162,7 @@ function SmartJobSearchPage() {
   function resetAll() {
     setLinkedinFileName(''); setLinkedinText(''); setCvFileName(''); setCvText(''); setCarriedOver(false)
     setTargetRole(''); setJobTypes(['Full-time']); setExperience('Senior (8-15 yrs)')
-    setLocation('Stuttgart, Germany'); setCountry('de'); setSalaryMin(''); setSalaryMax('')
+    setLocation('Stuttgart, Germany'); setCountry('de'); setDaysOld('')
     setJobs([]); setSelectedJob(null); setProfile(null); setError(''); setUsedQuery('')
     setLoggedJobs(new Set())
     if (linkedinRef.current) linkedinRef.current.value = ''
@@ -186,10 +186,6 @@ function SmartJobSearchPage() {
     }
     const cityLower = location.split(',')[0].toLowerCase()
     if (cityLower && job.job_city?.toLowerCase().includes(cityLower)) chips.push({ label: 'Location match', positive: true })
-    if (job.job_min_salary && salaryMin) {
-      const min = parseInt(salaryMin.replace(/\D/g, '')) * 1000
-      if (!isNaN(min) && job.job_min_salary >= min) chips.push({ label: 'Salary fits', positive: true })
-    }
     if (job.job_employment_type && jobTypes.some(t => job.job_employment_type.toLowerCase().includes(t.toLowerCase().replace('-', '')))) {
       chips.push({ label: job.job_employment_type, positive: true })
     }
@@ -216,20 +212,43 @@ function SmartJobSearchPage() {
     if (hasProfile) {
       setAnalysing(true)
       try {
-        const res = await fetch('/api/analyse-profile', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ linkedinText, cvText, targetRole, experience, jobTypes, salaryMin, salaryMax }) })
+        const res = await fetch('/api/analyse-profile', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ linkedinText, cvText, targetRole, experience, jobTypes }) })
         extractedProfile = await res.json()
         setProfile(extractedProfile)
-        searchQuery = extractedProfile?.suggestedQuery || targetRole
+        // Use targetRole as search query when provided — user knows what they want.
+        // Fall back to AI-suggested query only if no role was typed.
+        searchQuery = targetRole.trim() || extractedProfile?.suggestedQuery || ''
       } catch { searchQuery = targetRole }
       setAnalysing(false)
     }
     setLoading(true); setUsedQuery(searchQuery)
     try {
-      const params = new URLSearchParams({ q: searchQuery, location, country })
-      const res = await fetch(`/api/jobs?${params}`)
-      const data = await res.json()
-      if (data.error) { setError(data.error); setLoading(false); return }
-      setJobs((data.jobs || []).map((job: Job) => ({ ...job, matchChips: generateMatchChips(job, extractedProfile), matchScore: computeMatchScore(job, extractedProfile) })))
+      // Build a fallback query chain: primary → targetRole → AI fallbacks → first skill
+      const queryChain = [searchQuery]
+      if (targetRole.trim() && targetRole !== searchQuery) queryChain.push(targetRole.trim())
+      if (extractedProfile?.queryFallbacks) queryChain.push(...(extractedProfile.queryFallbacks || []))
+      if (extractedProfile?.titles?.[0] && !queryChain.includes(extractedProfile.titles[0])) queryChain.push(extractedProfile.titles[0])
+
+      let jobs: Job[] = []
+      let usedQ = searchQuery
+
+      for (const q of queryChain) {
+        if (!q.trim()) continue
+        const params = new URLSearchParams({ q: q.trim(), location, country })
+        if (daysOld) params.set('max_days_old', daysOld)
+        const res = await fetch(`/api/jobs?${params}`)
+        const data = await res.json()
+        if (!data.error && (data.jobs || []).length > 0) {
+          jobs = data.jobs
+          usedQ = q.trim()
+          break
+        }
+      }
+
+      setUsedQuery(usedQ)
+      if (jobs.length === 0) { setError('No jobs found. Try a different role or location.'); setLoading(false); return }
+
+      setJobs(jobs.map((job: Job) => ({ ...job, matchChips: generateMatchChips(job, extractedProfile), matchScore: computeMatchScore(job, extractedProfile) })))
     } catch { setError('Failed to fetch jobs. Please try again.') }
     setLoading(false)
   }
@@ -364,18 +383,79 @@ function SmartJobSearchPage() {
 
   function RightPanel() {
     if (!selectedJob) {
+      const tips = [
+        { color: '#1D9E75', borderLabel: 'Green border', chipLabel: 'Strong match', desc: 'High skill overlap with your profile. Apply first.' },
+        { color: '#F59E0B', borderLabel: 'Amber border', chipLabel: 'Partial match', desc: 'Some overlap — worth reviewing.' },
+        { color: '#edf1f6', borderLabel: 'No border', chipLabel: 'Keyword match', desc: 'Matched your role query — may still be a fit.' },
+      ]
+      const actions = [
+        { icon: '📄', label: 'Build CV', desc: 'AI-tailors your CV for the exact job posting', cost: '1 credit', enabled: !!cvText },
+        { icon: '✉️', label: 'Cover Letter', desc: 'Writes a personalised letter in your tone', cost: '1 credit', enabled: !!cvText },
+        { icon: '⚡', label: 'Auto Apply', desc: 'AI fills the whole application form for you', cost: '3 credits', enabled: false },
+      ]
       return (
-        <div style={{ background: '#fff', border: '1.5px solid #edf1f6', borderRadius: 16, overflow: 'hidden' }}>
-          <div style={{ background: 'linear-gradient(135deg, #042C53, #073d6e)', padding: '40px 32px', textAlign: 'center' }}>
-            <div style={{ fontSize: 40, marginBottom: 12, opacity: 0.4 }}>&#128269;</div>
-            <div style={{ fontSize: 15, fontWeight: 700, color: '#fff', fontFamily: "'Outfit', sans-serif", marginBottom: 6 }}>Select a job</div>
-            <div style={{ fontSize: 13, color: '#85B7EB', lineHeight: 1.6 }}>Click any job card to view details, build your CV, or write a cover letter.</div>
-          </div>
-          <div style={{ padding: 20 }}>
-            <div style={{ fontSize: 12, color: '#8fa3b8', textAlign: 'center', lineHeight: 1.7 }}>
-              Jobs with a <span style={{ color: '#1D9E75', fontWeight: 600 }}>green border</span> are strong matches.
-              <br /><span style={{ color: '#F59E0B', fontWeight: 600 }}>Amber border</span> means partial match.
+        <div style={{ background: '#fff', border: '1.5px solid #edf1f6', borderRadius: 16, overflow: 'hidden', boxShadow: '0 4px 24px rgba(4,44,83,0.06)' }}>
+          {/* Header */}
+          <div style={{ background: 'linear-gradient(135deg, #152233 0%, #0e1a28 100%)', padding: '24px 24px 20px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12 }}>
+              <div style={{ width: 40, height: 40, borderRadius: 12, background: 'rgba(55,138,221,0.2)', border: '1px solid rgba(55,138,221,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, flexShrink: 0 }}>
+                ◎
+              </div>
+              <div>
+                <div style={{ fontSize: 15, fontWeight: 700, color: '#fff', fontFamily: "'Outfit', sans-serif" }}>
+                  {jobs.length > 0 ? 'Select a job to get started' : 'Your workspace'}
+                </div>
+                <div style={{ fontSize: 12, color: '#85B7EB', marginTop: 2 }}>
+                  {jobs.length > 0 ? `${jobs.length} matched positions ready` : 'Run a search to see matching jobs'}
+                </div>
+              </div>
             </div>
+          </div>
+
+          <div style={{ padding: '20px 20px 24px', display: 'flex', flexDirection: 'column', gap: 20 }}>
+            {/* Border guide */}
+            {jobs.length > 0 && (
+              <div>
+                <div style={{ fontSize: 10, fontWeight: 700, color: '#8fa3b8', letterSpacing: 0.8, textTransform: 'uppercase' as const, marginBottom: 10 }}>Reading match quality</div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
+                  {tips.map(t => (
+                    <div key={t.borderLabel} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                      <div style={{ width: 4, height: 32, borderRadius: 2, background: t.color, flexShrink: 0 }} />
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontSize: 12, fontWeight: 600, color: '#1a2332' }}>{t.chipLabel}</div>
+                        <div style={{ fontSize: 11, color: '#8fa3b8', lineHeight: 1.4 }}>{t.desc}</div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* What you can do per job */}
+            <div>
+              <div style={{ fontSize: 10, fontWeight: 700, color: '#8fa3b8', letterSpacing: 0.8, textTransform: 'uppercase' as const, marginBottom: 10 }}>What you can do per job</div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                {actions.map(a => (
+                  <div key={a.label} style={{ display: 'flex', alignItems: 'flex-start', gap: 10, padding: '10px 12px', borderRadius: 10, background: a.enabled ? '#fafbfd' : '#fafbfd', border: `1px solid ${a.enabled ? '#edf1f6' : '#edf1f6'}`, opacity: a.enabled || a.label === 'Auto Apply' ? 1 : 0.6 }}>
+                    <div style={{ fontSize: 18, lineHeight: 1, marginTop: 1, flexShrink: 0 }}>{a.icon}</div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6, marginBottom: 2 }}>
+                        <span style={{ fontSize: 13, fontWeight: 700, color: '#1a2332', fontFamily: "'Outfit', sans-serif" }}>{a.label}</span>
+                        <span style={{ fontSize: 10, padding: '2px 7px', borderRadius: 8, background: '#E6F1FB', color: '#185FA5', fontWeight: 600, flexShrink: 0 }}>{a.cost}</span>
+                      </div>
+                      <div style={{ fontSize: 11, color: '#8fa3b8', lineHeight: 1.4 }}>{a.desc}</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* CV hint if not uploaded */}
+            {!cvText && (
+              <div style={{ padding: '10px 14px', borderRadius: 10, background: '#fffbeb', border: '1px solid #fcd98a', fontSize: 12, color: '#92400e', lineHeight: 1.55 }}>
+                <strong>Tip:</strong> Upload your CV in the sidebar to enable AI-tailored CV & cover letter generation, and to see skill-match scores on job cards.
+              </div>
+            )}
           </div>
         </div>
       )
@@ -391,7 +471,7 @@ function SmartJobSearchPage() {
     return (
       <div style={{ background: '#fff', border: '1.5px solid #edf1f6', borderRadius: 16, overflow: 'hidden', boxShadow: '0 4px 24px rgba(4,44,83,0.08)' }}>
         {/* Gradient header */}
-        <div style={{ background: 'linear-gradient(135deg, #042C53 0%, #073d6e 100%)', padding: '20px 20px 16px' }}>
+        <div style={{ background: 'linear-gradient(135deg, #152233 0%, #0e1a28 100%)', padding: '20px 20px 16px' }}>
           <div style={{ marginBottom: 12 }}>
             <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 10, marginBottom: 4 }}>
               <div style={{ fontSize: 16, fontWeight: 700, color: '#fff', fontFamily: "'Outfit', sans-serif" }}>{selectedJob.job_title}</div>
@@ -567,11 +647,14 @@ function SmartJobSearchPage() {
       </div>
 
       <div>
-        {secLabel('Salary (Gross/Yr)')}
-        <div style={{ display: 'flex', gap: 8 }}>
-          <input value={salaryMin} onChange={e => setSalaryMin(e.target.value)} placeholder="120k" style={{ ...inp, width: '50%' }} />
-          <input value={salaryMax} onChange={e => setSalaryMax(e.target.value)} placeholder="160k" style={{ ...inp, width: '50%' }} />
-        </div>
+        {secLabel('Posted Within')}
+        <select value={daysOld} onChange={e => setDaysOld(e.target.value)} style={inp}>
+          <option value="">Any time</option>
+          <option value="1">Today</option>
+          <option value="7">This week</option>
+          <option value="14">Last 2 weeks</option>
+          <option value="30">Last month</option>
+        </select>
       </div>
 
       <div style={{ height: 1, background: 'rgba(255,255,255,0.1)' }} />
@@ -617,18 +700,18 @@ function SmartJobSearchPage() {
       <Navbar />
 
       <div style={{ display: 'flex', minHeight: 'calc(100vh - 52px)' }}>
-        <div className="jl-dsb" style={{ width: 270, flexShrink: 0, background: 'linear-gradient(180deg, #042C53 0%, #073d6e 100%)', padding: '20px 16px', flexDirection: 'column', overflowY: 'auto' }}>
+        <div className="jl-dsb" style={{ width: 270, flexShrink: 0, background: 'linear-gradient(180deg, #152233 0%, #0e1a28 100%)', padding: '20px 16px', flexDirection: 'column', overflowY: 'auto' }}>
           {Sidebar}
         </div>
 
         <div style={{ flex: 1, minWidth: 0, overflowY: 'auto' }}>
           <div className="jl-mbtn" style={{ padding: '10px 16px', background: '#fff', borderBottom: '1px solid #edf1f6', display: 'flex', gap: 10, alignItems: 'center' }}>
-            <button onClick={() => setMobOpen(o => !o)} style={{ background: '#042C53', color: '#E6F1FB', border: 'none', borderRadius: 8, padding: '8px 16px', fontSize: 13, cursor: 'pointer', fontFamily: 'inherit' }}>
+            <button onClick={() => setMobOpen(o => !o)} style={{ background: '#152233', color: '#E6F1FB', border: 'none', borderRadius: 8, padding: '8px 16px', fontSize: 13, cursor: 'pointer', fontFamily: 'inherit' }}>
               {mobOpen ? 'Close' : 'Search Settings'}
             </button>
             {jobs.length > 0 && <span style={{ fontSize: 12, color: '#6b7c93' }}>{jobs.length} jobs found</span>}
           </div>
-          {mobOpen && <div style={{ background: 'linear-gradient(180deg, #042C53 0%, #073d6e 100%)', borderBottom: '1px solid #edf1f6', padding: 16 }}>{Sidebar}</div>}
+          {mobOpen && <div style={{ background: 'linear-gradient(180deg, #152233 0%, #0e1a28 100%)', borderBottom: '1px solid #edf1f6', padding: 16 }}>{Sidebar}</div>}
 
           <div style={{ padding: 20 }}>
             {jobs.length > 0 && !loading && (
@@ -655,11 +738,26 @@ function SmartJobSearchPage() {
             )}
 
             {!loading && !analysing && jobs.length === 0 && !error && (
-              <div style={{ textAlign: 'center', padding: '80px 20px' }}>
-                <div style={{ width: 80, height: 80, borderRadius: '50%', background: 'linear-gradient(135deg, #E6F1FB, #dbeafe)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 36, margin: '0 auto 20px' }}>&#128269;</div>
-                <div style={{ fontSize: 20, fontWeight: 700, color: '#1a2332', fontFamily: "'Outfit', sans-serif", marginBottom: 10 }}>Find your next role</div>
-                <div style={{ fontSize: 14, color: '#8fa3b8', lineHeight: 1.8, maxWidth: 380, margin: '0 auto' }}>
-                  Upload your LinkedIn PDF or CV &mdash; AI will extract your profile and find the best matching jobs automatically.
+              <div style={{ maxWidth: 560, margin: '48px auto 0', padding: '0 20px' }}>
+                <div style={{ fontFamily: "'Outfit', sans-serif", fontSize: 18, fontWeight: 700, color: '#042C53', marginBottom: 6 }}>How Smart Job Search works</div>
+                <div style={{ fontSize: 13, color: '#8fa3b8', marginBottom: 28, lineHeight: 1.6 }}>Upload your CV and target role — AI does the rest.</div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                  {[
+                    { step: '01', icon: '📄', title: hasProfile ? 'CV loaded' : 'Upload your CV', desc: hasProfile ? 'Profile ready to analyse.' : 'Drop your PDF, DOCX or paste CV text in the sidebar.', done: hasProfile },
+                    { step: '02', icon: '🎯', title: targetRole ? `Searching for: ${targetRole}` : 'Enter a target role', desc: targetRole ? 'AI will use this as the primary search anchor.' : 'Type the job title you want in the sidebar. Optional with a CV.', done: !!targetRole },
+                    { step: '03', icon: '◎', title: 'AI analyses your profile', desc: 'Extracts skills, seniority, industries and builds the best search query.', done: false },
+                    { step: '04', icon: '✅', title: 'Live DACH jobs ranked by match', desc: 'Green border = strong match. Amber = partial. Click any job for details.', done: false },
+                  ].map((s, i) => (
+                    <div key={i} style={{ display: 'flex', gap: 14, padding: '14px 18px', borderRadius: 12, background: s.done ? '#f0fbf6' : '#fff', border: `1px solid ${s.done ? '#b6ecd8' : '#edf1f6'}`, alignItems: 'flex-start' }}>
+                      <div style={{ width: 32, height: 32, borderRadius: '50%', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, background: s.done ? '#1D9E75' : '#f0f4f8', border: `2px solid ${s.done ? '#1D9E75' : '#edf1f6'}` }}>
+                        {s.done ? '✓' : s.icon}
+                      </div>
+                      <div>
+                        <div style={{ fontSize: 13, fontWeight: 700, color: s.done ? '#0F6E56' : '#042C53', fontFamily: "'Outfit', sans-serif", marginBottom: 2 }}>{s.title}</div>
+                        <div style={{ fontSize: 12, color: s.done ? '#1D9E75' : '#8fa3b8', lineHeight: 1.5 }}>{s.desc}</div>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </div>
             )}

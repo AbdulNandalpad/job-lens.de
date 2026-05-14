@@ -35,8 +35,9 @@ export async function POST(req: NextRequest) {
 Return ONLY valid JSON, no markdown, no explanation.`
 
     const userPrompt = `Analyse this profile and return a JSON object with these fields:
-- suggestedQuery: string — best job search query (2-5 words, job title focused) based on the profile${targetRole ? `. User's target role is "${targetRole}" — use this as the primary anchor` : ''}
-- skills: string[] — top 8 most relevant technical and professional skills
+- suggestedQuery: string — CRITICAL: a SHORT 2-3 word job search query using only the core job title. Must be simple enough to match real job board results. Examples of GOOD queries: "Product Manager", "SAP Consultant", "Software Engineer", "Data Analyst". Examples of BAD queries: "SAP Customer Experience Lead DACH", "Senior Full Stack JavaScript Developer". ${targetRole ? `User's target role is "${targetRole}" — simplify it to its 2-3 core words for the query.` : 'Extract the most prominent job title from the profile and simplify to 2-3 words.'}
+- queryFallbacks: string[] — 2 alternative queries (each 1-2 words) if the main query returns no results. E.g. ["SAP", "Product Owner"]
+- skills: string[] — top 8 most relevant technical and professional skills (exact tool/technology names)
 - titles: string[] — 3 most suitable job titles for this person
 - seniority: string — one of: Junior, Mid, Senior, Lead, Director
 - industries: string[] — top 3 industries this person has worked in

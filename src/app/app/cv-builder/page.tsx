@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import Navbar from '../components/Navbar'
+import { useCredits } from '@/lib/useCredits'
 
 type Template = 'executive' | 'modern' | 'minimal' | 'technical'
 type Tone = 'professional' | 'concise' | 'detailed'
@@ -664,8 +665,11 @@ function TechnicalTemplate({ cv }: { cv: CVData }) {
 export default function CVBuilderPage() {
   const router = useRouter()
   const previewRef = useRef<HTMLDivElement>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   const [cvText, setCvText] = useState('')
+  const [cvFileName, setCvFileName] = useState('')
+  const [fileLoading, setFileLoading] = useState(false)
   const [job, setJob] = useState<{ job_title: string; employer_name: string; job_description?: string } | null>(null)
   const [jobLabel, setJobLabel] = useState('')
   const [template, setTemplate] = useState<Template>('executive')
@@ -675,9 +679,43 @@ export default function CVBuilderPage() {
   const [cvData, setCvData] = useState<CVData | null>(null)
   const [rawCv, setRawCv] = useState('')
   const [loading, setLoading] = useState(false)
-  const [openSections, setOpenSections] = useState<Record<string, boolean>>({ template: true, style: true, output: false })
+  const [openSections, setOpenSections] = useState<Record<string, boolean>>({ template: false, style: false, output: false })
   const [feedback, setFeedback] = useState('')
   const [applyingFeedback, setApplyingFeedback] = useState(false)
+  const { credits, setCredits } = useCredits()
+  const CV_COST = 1
+  const [mobOpen, setMobOpen] = useState(false)
+
+  async function handleCvFile(file: File) {
+    setCvFileName(file.name)
+    setCvText('')
+    setFileLoading(true)
+    if (file.name.endsWith('.txt') || file.type === 'text/plain') {
+      const r = new FileReader()
+      r.onload = e => {
+        const text = (e.target?.result as string) ?? ''
+        setCvText(text)
+        sessionStorage.setItem('jl_cv_text', text)
+        setFileLoading(false)
+      }
+      r.readAsText(file)
+    } else {
+      const form = new FormData()
+      form.append('file', file)
+      try {
+        const res = await fetch('/api/extract-pdf', { method: 'POST', body: form })
+        const data = await res.json()
+        if (data.text) {
+          setCvText(data.text)
+          sessionStorage.setItem('jl_cv_text', data.text)
+        } else {
+          alert(data.error || 'Could not read file. Try a different format.')
+          setCvFileName('')
+        }
+      } catch { alert('Failed to read file. Please try again.'); setCvFileName('') }
+      setFileLoading(false)
+    }
+  }
 
   function toggleSection(id: string) {
     setOpenSections(prev => ({ ...prev, [id]: !prev[id] }))
@@ -706,6 +744,7 @@ export default function CVBuilderPage() {
 
   async function generate() {
     if (!cvText.trim()) return
+    if (credits !== null && credits < CV_COST) { alert(`You need ${CV_COST} credit to build a CV. Please top up on the Account page.`); return }
     setLoading(true); setCvData(null); setRawCv('')
 
     const systemPrompt = `You are an elite CV designer and career consultant. Your job is to extract, enhance and structure CV information into a rich JSON object for visual rendering.
@@ -741,11 +780,13 @@ The JSON must follow this exact schema:
 
 Rules:
 - stats: 3-5 impressive metrics (years exp, projects, certifications, industries etc)
-- skills: max 8, each with a percentage level 60-99
+- skills: up to 12, each with a percentage level 60-99 — include all major skills from the CV
 - languages: level is percentage (native=98, fluent=85, good=65, basic=45)
+- experience: include EVERY role listed in the CV — do not skip or merge any positions
 - experience bullets: 2-4 strong achievement-focused bullets per role, start with action verbs
-- tools: flat list of 8-15 specific technologies/tools/platforms
+- tools: flat list of 10-20 specific technologies/tools/platforms — extract all mentioned
 - highlights: 4-6 short punchy career highlights
+- IMPORTANT: extract all information from the full CV — do not omit roles, certifications, or education
 - tone: ${tone}, language: ${lang}, pages target: ${pages}
 ${job ? `- Tailor specifically for this role: ${job.job_title} at ${job.employer_name}` : ''}
 ${job?.job_description ? `- Job context: ${job.job_description.slice(0, 800)}` : ''}`
@@ -765,7 +806,9 @@ ${job?.job_description ? `- Job context: ${job.job_description.slice(0, 800)}` :
           returnJson: true,
         }),
       })
+      if (res.status === 402) { const d = await res.json(); if (typeof d.credits === 'number') setCredits(d.credits); setLoading(false); alert('Not enough credits. Please top up on the Account page.'); return }
       const data = await res.json()
+      if (typeof data.creditsRemaining === 'number') setCredits(data.creditsRemaining)
       const raw = data.cv || data.enhanced || data.result || ''
       setRawCv(raw)
       sessionStorage.setItem('jl_cvb_tailored', raw)
@@ -823,20 +866,39 @@ ${job?.job_description ? `- Job context: ${job.job_description.slice(0, 800)}` :
       const { default: jsPDF } = await import('jspdf')
       const doc = new jsPDF({ unit: 'mm', format: 'a4' })
       const W = 210
+      const H = 297
       const margin = 18
-      const colLeft = 58 // sidebar width
-      let y = 0
+      const colLeft = 58
+      let pageCount = 1
 
-      const hex2rgb = (hex: string) => {
-        const r = parseInt(hex.slice(1, 3), 16)
-        const g = parseInt(hex.slice(3, 5), 16)
-        const b = parseInt(hex.slice(5, 7), 16)
-        return { r, g, b }
+      const drawSidebarBg = () => {
+        doc.setFillColor(13, 33, 55)
+        doc.rect(0, 0, colLeft, H, 'F')
       }
 
+      const addPageWithSidebar = () => {
+        doc.addPage()
+        pageCount++
+        drawSidebarBg()
+      }
+
+      // Estimate sidebar height to pick compact mode
+      const skillCount = cvData.skills?.length || 0
+      const langCount = cvData.languages?.length || 0
+      const certCount = cvData.certifications?.length || 0
+      const hlCount = cvData.highlights?.length || 0
+      const sideItemCount = skillCount + langCount + certCount + hlCount
+      const compact = sideItemCount > 22
+
+      const skillRowH = compact ? 5.8 : 7.5
+      const langRowH = compact ? 3.8 : 5
+      const certLineH = compact ? 3.2 : 3.5
+      const hlLineH = compact ? 3.2 : 3.5
+      const sideFontSm = compact ? 6 : 6.5
+      const sideFontBase = compact ? 6.5 : 7
+
       // -- Sidebar background --------------------------------------------------
-      doc.setFillColor(13, 33, 55)
-      doc.rect(0, 0, colLeft, 297, 'F')
+      drawSidebarBg()
 
       // -- Sidebar: avatar circle ----------------------------------------------
       doc.setFillColor(0, 165, 138)
@@ -848,7 +910,7 @@ ${job?.job_description ? `- Job context: ${job.job_description.slice(0, 800)}` :
       doc.text(initials, colLeft / 2, 25, { align: 'center' })
 
       // -- Sidebar: name + title -----------------------------------------------
-      y = 37
+      let y = 37
       doc.setFontSize(9)
       doc.setFont('helvetica', 'bold')
       doc.setTextColor(255, 255, 255)
@@ -864,13 +926,14 @@ ${job?.job_description ? `- Job context: ${job.job_description.slice(0, 800)}` :
       y += titleLines.length * 3.5 + 6
 
       // divider
-      doc.setDrawColor(255, 255, 255, 0.15)
+      doc.setDrawColor(255, 255, 255)
       doc.setLineWidth(0.2)
       doc.line(4, y, colLeft - 4, y)
       y += 5
 
       const sideLabel = (text: string) => {
-        doc.setFontSize(6.5)
+        if (y > H - 10) return
+        doc.setFontSize(sideFontSm)
         doc.setFont('helvetica', 'bold')
         doc.setTextColor(130, 160, 190)
         doc.text(text.toUpperCase(), 5, y)
@@ -878,12 +941,13 @@ ${job?.job_description ? `- Job context: ${job.job_description.slice(0, 800)}` :
       }
 
       const sideText = (text: string, color = [200, 215, 230]) => {
-        doc.setFontSize(7)
+        if (y > H - 6) return
+        doc.setFontSize(sideFontBase)
         doc.setFont('helvetica', 'normal')
         doc.setTextColor(color[0], color[1], color[2])
         const lines = doc.splitTextToSize(text, colLeft - 10)
         doc.text(lines, 5, y)
-        y += lines.length * 3.5 + 1
+        y += lines.length * certLineH + 1
       }
 
       // Contact
@@ -896,30 +960,29 @@ ${job?.job_description ? `- Job context: ${job.job_description.slice(0, 800)}` :
       if (cvData.skills?.length) {
         sideLabel('Skills')
         cvData.skills.forEach((s: { name: string; level: number }) => {
-          doc.setFontSize(7)
+          if (y > H - 10) return
+          doc.setFontSize(sideFontBase)
           doc.setFont('helvetica', 'normal')
           doc.setTextColor(200, 215, 230)
           doc.text(s.name, 5, y)
           doc.setTextColor(0, 201, 167)
           doc.text(`${s.level}%`, colLeft - 5, y, { align: 'right' })
           y += 3
-          // bar bg
-          doc.setFillColor(255, 255, 255, 0.1)
           doc.setFillColor(40, 60, 80)
-          doc.rect(5, y, colLeft - 10, 2, 'F')
-          // bar fill
+          doc.rect(5, y, colLeft - 10, compact ? 1.5 : 2, 'F')
           doc.setFillColor(0, 165, 138)
-          doc.rect(5, y, (colLeft - 10) * s.level / 100, 2, 'F')
-          y += 4.5
+          doc.rect(5, y, (colLeft - 10) * s.level / 100, compact ? 1.5 : 2, 'F')
+          y += compact ? 2.8 : 4.5
         })
-        y += 2
+        y += compact ? 1 : 2
       }
 
       // Languages
       if (cvData.languages?.length) {
         sideLabel('Languages')
         cvData.languages.forEach((l: { name: string; level: number }) => {
-          doc.setFontSize(7)
+          if (y > H - 8) return
+          doc.setFontSize(sideFontBase)
           doc.setFont('helvetica', 'normal')
           doc.setTextColor(200, 215, 230)
           doc.text(l.name, 5, y)
@@ -928,41 +991,43 @@ ${job?.job_description ? `- Job context: ${job.job_description.slice(0, 800)}` :
             doc.setFillColor(d < dots ? 0 : 40, d < dots ? 165 : 60, d < dots ? 138 : 80)
             doc.circle(colLeft - 18 + d * 4, y - 1, 1.2, 'F')
           }
-          y += 4
+          y += langRowH
         })
-        y += 2
+        y += compact ? 1 : 2
       }
 
       // Certifications
       if (cvData.certifications?.length) {
         sideLabel('Certifications')
         cvData.certifications.forEach((c: string) => {
-          doc.setFontSize(6.5)
+          if (y > H - 8) return
+          doc.setFontSize(sideFontSm)
           doc.setFont('helvetica', 'normal')
           doc.setTextColor(180, 200, 220)
           const lines = doc.splitTextToSize(`* ${c}`, colLeft - 10)
           doc.text(lines, 5, y)
-          y += lines.length * 3.5 + 1
+          y += lines.length * certLineH + 1
         })
-        y += 2
+        y += compact ? 1 : 2
       }
 
       // Highlights
       if (cvData.highlights?.length) {
         sideLabel('Highlights')
         cvData.highlights.forEach((h: string) => {
-          doc.setFontSize(6.5)
+          if (y > H - 8) return
+          doc.setFontSize(sideFontSm)
           doc.setFont('helvetica', 'normal')
           doc.setTextColor(160, 185, 210)
           const lines = doc.splitTextToSize(`> ${h}`, colLeft - 10)
           doc.text(lines, 5, y)
-          y += lines.length * 3.5 + 1
+          y += lines.length * hlLineH + 1
         })
       }
 
       // -- Main content area --------------------------------------------------
-      const mx = colLeft + 8  // main x start
-      const mw = W - mx - margin  // main content width
+      const mx = colLeft + 8
+      const mw = W - mx - margin
       let my = 14
 
       // Name + title header
@@ -999,7 +1064,6 @@ ${job?.job_description ? `- Job context: ${job.job_description.slice(0, 800)}` :
           doc.text(s.label, sx, my + 9, { align: 'center' })
         })
         my += 16
-
         doc.setDrawColor(220, 230, 240)
         doc.setLineWidth(0.3)
         doc.line(mx, my, W - margin, my)
@@ -1007,6 +1071,7 @@ ${job?.job_description ? `- Job context: ${job.job_description.slice(0, 800)}` :
       }
 
       const mainSection = (title: string) => {
+        if (my > 270) { addPageWithSidebar(); my = 14 }
         doc.setFontSize(7.5)
         doc.setFont('helvetica', 'bold')
         doc.setTextColor(13, 33, 55)
@@ -1031,7 +1096,7 @@ ${job?.job_description ? `- Job context: ${job.job_description.slice(0, 800)}` :
       // Tools
       if (cvData.tools?.length) {
         mainSection('Core Stack')
-        const toolText = cvData.tools.join('  .  ')
+        const toolText = cvData.tools.join('  ·  ')
         doc.setFontSize(7.5)
         doc.setFont('helvetica', 'normal')
         doc.setTextColor(24, 95, 165)
@@ -1044,11 +1109,9 @@ ${job?.job_description ? `- Job context: ${job.job_description.slice(0, 800)}` :
       if (cvData.experience?.length) {
         mainSection('Professional Experience')
         cvData.experience.forEach((exp: { role: string; company: string; period: string; location: string; type: string; bullets: string[] }) => {
-          if (my > 260) { doc.addPage(); my = 14 }
-          // dot
+          if (my > 262) { addPageWithSidebar(); my = 14 }
           doc.setFillColor(0, 165, 138)
           doc.circle(mx - 3, my - 1, 1.5, 'F')
-          // role + period
           doc.setFontSize(9)
           doc.setFont('helvetica', 'bold')
           doc.setTextColor(13, 33, 55)
@@ -1058,18 +1121,16 @@ ${job?.job_description ? `- Job context: ${job.job_description.slice(0, 800)}` :
           doc.setTextColor(0, 165, 138)
           doc.text(exp.period || '', W - margin, my, { align: 'right' })
           my += 4
-          // company
           doc.setFontSize(7.5)
           doc.setFont('helvetica', 'italic')
           doc.setTextColor(107, 124, 147)
-          const meta = [exp.company, exp.location, exp.type].filter(Boolean).join('  .  ')
+          const meta = [exp.company, exp.location, exp.type].filter(Boolean).join('  ·  ')
           doc.text(meta, mx, my)
           my += 4
-          // bullets
           exp.bullets?.forEach((b: string) => {
+            if (my > 262) { addPageWithSidebar(); my = 14 }
             doc.setFontSize(7.5)
             doc.setFont('helvetica', 'normal')
-            doc.setTextColor(55, 65, 81)
             doc.setTextColor(29, 158, 117)
             doc.text('+', mx, my)
             doc.setTextColor(55, 65, 81)
@@ -1078,7 +1139,6 @@ ${job?.job_description ? `- Job context: ${job.job_description.slice(0, 800)}` :
             my += lines.length * 3.8
           })
           my += 4
-          // connector line
           doc.setDrawColor(230, 235, 242)
           doc.setLineWidth(0.2)
           doc.line(mx - 3, my - 3, mx - 3, my + 2)
@@ -1087,9 +1147,10 @@ ${job?.job_description ? `- Job context: ${job.job_description.slice(0, 800)}` :
 
       // Education
       if (cvData.education?.length) {
-        if (my > 250) { doc.addPage(); my = 14 }
+        if (my > 255) { addPageWithSidebar(); my = 14 }
         mainSection('Education')
         cvData.education.forEach((e: { degree: string; school: string; year: string }) => {
+          if (my > 270) { addPageWithSidebar(); my = 14 }
           doc.setFontSize(8.5)
           doc.setFont('helvetica', 'bold')
           doc.setTextColor(13, 33, 55)
@@ -1097,7 +1158,7 @@ ${job?.job_description ? `- Job context: ${job.job_description.slice(0, 800)}` :
           doc.setFontSize(7.5)
           doc.setFont('helvetica', 'normal')
           doc.setTextColor(107, 124, 147)
-          doc.text(`${e.school}  .  ${e.year}`, mx, my + 3.5)
+          doc.text(`${e.school}  ·  ${e.year}`, mx, my + 3.5)
           my += 8
         })
       }
@@ -1329,6 +1390,14 @@ ${job?.job_description ? `- Job context: ${job.job_description.slice(0, 800)}` :
         .cvb-action:hover { background: rgba(255,255,255,0.1) !important; }
         .shimmer { background: linear-gradient(90deg, rgba(255,255,255,0.04) 25%, rgba(255,255,255,0.09) 50%, rgba(255,255,255,0.04) 75%); background-size:200% 100%; animation: shimmer 1.5s infinite; border-radius:4px; }
         .cv-preview { animation: fadeUp 0.35s ease; }
+        .jl-dsb { display: flex !important; }
+        .jl-mob { display: none !important; }
+        .jl-mbtn { display: none !important; }
+        @media (max-width: 768px) {
+          .jl-dsb { display: none !important; }
+          .jl-mob { display: flex !important; }
+          .jl-mbtn { display: block !important; }
+        }
       `}</style>
 
       <Navbar />
@@ -1336,7 +1405,7 @@ ${job?.job_description ? `- Job context: ${job.job_description.slice(0, 800)}` :
       <div style={{ display: 'flex', height: 'calc(100vh - 52px)' }}>
 
         {/* -- LEFT STUDIO PANEL -- */}
-        <div style={{ width: 288, flexShrink: 0, background: 'linear-gradient(180deg, #042C53 0%, #073d6e 100%)', borderRight: '1px solid rgba(255,255,255,0.08)', display: 'flex', flexDirection: 'column' }}>
+        <div className="jl-dsb" style={{ width: 288, flexShrink: 0, background: 'linear-gradient(180deg, #152233 0%, #0e1a28 100%)', borderRight: '1px solid rgba(255,255,255,0.08)', flexDirection: 'column' }}>
 
           {/* Header */}
           <div style={{ padding: '20px 20px 16px', borderBottom: '1px solid rgba(255,255,255,0.08)', flexShrink: 0 }}>
@@ -1352,9 +1421,33 @@ ${job?.job_description ? `- Job context: ${job.job_description.slice(0, 800)}` :
                 <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.8)', lineHeight: 1.4 }}>{jobLabel}</div>
               </div>
             )}
-            {!cvText && (
-              <div style={{ marginTop: 10, padding: '7px 10px', background: 'rgba(245,166,35,0.1)', border: '1px solid rgba(245,166,35,0.25)', borderRadius: 8, fontSize: 10, color: '#F5A623' }}>
-                ! No CV found - upload in Smart Job Search first
+            <input ref={fileInputRef} type="file" accept=".pdf,.doc,.docx,.txt" style={{ display: 'none' }}
+              onChange={e => e.target.files?.[0] && handleCvFile(e.target.files[0])} />
+            {!cvText ? (
+              <div onClick={() => fileInputRef.current?.click()}
+                onDragOver={e => e.preventDefault()}
+                onDrop={e => { e.preventDefault(); e.dataTransfer.files?.[0] && handleCvFile(e.dataTransfer.files[0]) }}
+                style={{ marginTop: 12, padding: '16px 12px', border: '1.5px dashed rgba(255,255,255,0.18)', borderRadius: 9, cursor: 'pointer', textAlign: 'center' }}>
+                {fileLoading ? (
+                  <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+                    <div style={{ width: 10, height: 10, borderRadius: '50%', border: '2px solid rgba(255,255,255,0.15)', borderTopColor: currentAccent, animation: 'spin 0.7s linear infinite' }} />
+                    Reading...
+                  </div>
+                ) : (
+                  <>
+                    <div style={{ fontSize: 20, marginBottom: 6 }}>📄</div>
+                    <div style={{ fontSize: 12, fontWeight: 600, color: 'rgba(255,255,255,0.7)' }}>Upload your CV</div>
+                    <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)', marginTop: 3 }}>PDF · DOCX · TXT</div>
+                  </>
+                )}
+              </div>
+            ) : (
+              <div style={{ marginTop: 12, padding: '7px 10px', background: 'rgba(29,158,117,0.12)', border: '1px solid rgba(29,158,117,0.3)', borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6 }}>
+                <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.7)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' as const }}>
+                  ✓ {cvFileName || 'CV loaded'}
+                </span>
+                <button onClick={() => { setCvText(''); setCvFileName(''); if (fileInputRef.current) fileInputRef.current.value = '' }}
+                  style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.35)', cursor: 'pointer', fontSize: 16, padding: 0, flexShrink: 0, lineHeight: 1 }}>×</button>
               </div>
             )}
           </div>
@@ -1488,50 +1581,22 @@ ${job?.job_description ? `- Job context: ${job.job_description.slice(0, 800)}` :
               )}
             </div>
 
-            {/* SECTION: Output / Summary */}
-            <div style={{ borderBottom: '1px solid rgba(255,255,255,0.07)' }}>
-              <button onClick={() => toggleSection('output')}
-                style={{ width: '100%', padding: '13px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                  <div style={{ width: 22, height: 22, borderRadius: 6, background: openSections.output ? currentAccent + '25' : 'rgba(255,255,255,0.07)', display: 'flex', alignItems: 'center', justifyContent: 'center', border: `1px solid ${openSections.output ? currentAccent + '40' : 'rgba(255,255,255,0.1)'}` }}>
-                    <span style={{ fontSize: 9, fontWeight: 700, color: openSections.output ? currentAccent : 'rgba(255,255,255,0.4)', fontFamily: 'monospace' }}>03</span>
-                  </div>
-                  <span style={{ fontSize: 13, fontWeight: 600, color: openSections.output ? '#fff' : 'rgba(255,255,255,0.55)' }}>Summary</span>
-                  {cvData && <span style={{ fontSize: 10, color: '#1D9E75', fontWeight: 600 }}>Ready</span>}
-                </div>
-                <span style={{ fontSize: 14, color: 'rgba(255,255,255,0.3)', transform: openSections.output ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s', display: 'inline-block' }}>v</span>
-              </button>
-              {openSections.output && (
-                <div style={{ padding: '4px 16px 16px', display: 'flex', flexDirection: 'column', gap: 6 }}>
-                  {[
-                    { label: 'Template', value: templates.find(t => t.id === template)?.label || '-' },
-                    { label: 'Language', value: lang === 'EN' ? 'English' : 'Deutsch' },
-                    { label: 'Tone', value: tones.find(t => t.id === tone)?.label || '-' },
-                    { label: 'Length', value: `${pages} page${pages === '2' ? 's' : ''}` },
-                    ...(cvData ? [
-                      { label: 'Skills', value: `${cvData.skills.length} items` },
-                      { label: 'Roles', value: `${cvData.experience.length} roles` },
-                      { label: 'Tools', value: `${cvData.tools.length} items` },
-                    ] : []),
-                  ].map(row => (
-                    <div key={row.label} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '5px 10px', background: 'rgba(255,255,255,0.04)', borderRadius: 6 }}>
-                      <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.35)' }}>{row.label}</span>
-                      <span style={{ fontSize: 11, fontWeight: 600, color: currentAccent }}>{row.value}</span>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-
           </div>
 
           {/* Generate button - pinned bottom */}
           <div style={{ padding: '14px 16px', borderTop: '1px solid rgba(255,255,255,0.08)', flexShrink: 0 }}>
-            <button className="cvb-gen" onClick={generate} disabled={loading || !cvText.trim()}
-              style={{ width: '100%', padding: '12px 0', borderRadius: 10, border: 'none', background: loading || !cvText.trim() ? 'rgba(255,255,255,0.08)' : `linear-gradient(135deg, ${currentAccent}, ${currentAccent}BB)`, color: loading || !cvText.trim() ? 'rgba(255,255,255,0.25)' : '#042C53', fontFamily: "'Outfit', sans-serif", fontSize: 13, fontWeight: 700, cursor: loading || !cvText.trim() ? 'not-allowed' : 'pointer', transition: 'all 0.2s', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+            {credits !== null && credits <= 2 && (
+              <div style={{ background: 'rgba(245,158,11,0.15)', border: '1px solid rgba(245,158,11,0.4)', borderRadius: 8, padding: '7px 10px', fontSize: 11, color: '#fcd34d', marginBottom: 8, lineHeight: 1.5 }}>
+                {credits === 0 ? 'No credits left. Top up on Account page.' : `${credits} credit${credits === 1 ? '' : 's'} remaining.`}
+              </div>
+            )}
+            <button className="cvb-gen" onClick={generate} disabled={loading || !cvText.trim() || (credits !== null && credits < CV_COST)}
+              style={{ width: '100%', padding: '12px 0', borderRadius: 10, border: 'none', background: loading || !cvText.trim() || (credits !== null && credits < CV_COST) ? 'rgba(255,255,255,0.08)' : `linear-gradient(135deg, ${currentAccent}, ${currentAccent}BB)`, color: loading || !cvText.trim() || (credits !== null && credits < CV_COST) ? 'rgba(255,255,255,0.25)' : '#042C53', fontFamily: "'Outfit', sans-serif", fontSize: 13, fontWeight: 700, cursor: loading || !cvText.trim() || (credits !== null && credits < CV_COST) ? 'not-allowed' : 'pointer', transition: 'all 0.2s', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
               {loading
                 ? <><div style={{ width: 14, height: 14, borderRadius: '50%', border: '2px solid rgba(255,255,255,0.15)', borderTopColor: 'rgba(255,255,255,0.6)', animation: 'spin 0.7s linear infinite' }} /> Generating...</>
-                : cvData ? 'Regenerate CV' : 'Generate CV'}
+                : credits !== null && credits < CV_COST
+                ? `Need ${CV_COST} credit — you have ${credits}`
+                : cvData ? `Regenerate CV (${CV_COST} credit)` : `Generate CV (${CV_COST} credit)`}
             </button>
           </div>
         </div>
@@ -1539,8 +1604,80 @@ ${job?.job_description ? `- Job context: ${job.job_description.slice(0, 800)}` :
         {/* -- RIGHT PREVIEW -- */}
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', background: '#141E2B', overflow: 'hidden' }}>
 
+          {/* Mobile sidebar toggle */}
+          <div className="jl-mbtn" style={{ padding: '10px 16px', background: '#152233', borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
+            <button onClick={() => setMobOpen(o => !o)} style={{ background: '#1a2d45', color: 'rgba(255,255,255,0.8)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 8, padding: '8px 16px', fontSize: 13, cursor: 'pointer', fontFamily: 'inherit' }}>
+              {mobOpen ? 'Close Settings' : 'CV Settings'}
+            </button>
+          </div>
+          {mobOpen && (
+            <div className="jl-mob" style={{ background: 'linear-gradient(180deg, #152233 0%, #0e1a28 100%)', borderBottom: '1px solid rgba(255,255,255,0.1)', flexDirection: 'column', overflowY: 'auto', maxHeight: '70vh', padding: '16px', gap: 14 }}>
+              {/* CV upload (mobile) */}
+              {!cvText && (
+                <div onClick={() => { fileInputRef.current?.click(); }}
+                  style={{ padding: '14px 12px', border: '1.5px dashed rgba(255,255,255,0.18)', borderRadius: 9, cursor: 'pointer', textAlign: 'center' }}>
+                  <div style={{ fontSize: 18, marginBottom: 4 }}>📄</div>
+                  <div style={{ fontSize: 12, fontWeight: 600, color: 'rgba(255,255,255,0.7)' }}>{fileLoading ? 'Reading...' : 'Upload your CV'}</div>
+                  <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)', marginTop: 2 }}>PDF · DOCX · TXT</div>
+                </div>
+              )}
+              {cvText && cvFileName && (
+                <div style={{ padding: '7px 10px', background: 'rgba(29,158,117,0.12)', border: '1px solid rgba(29,158,117,0.3)', borderRadius: 8, fontSize: 10, color: 'rgba(255,255,255,0.7)' }}>
+                  ✓ {cvFileName}
+                </div>
+              )}
+              {/* Template */}
+              <div>
+                <div style={{ fontSize: 10, fontWeight: 600, color: 'rgba(255,255,255,0.4)', letterSpacing: 0.5, textTransform: 'uppercase', marginBottom: 8 }}>Template</div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+                  {templates.map(t => (
+                    <button key={t.id} onClick={() => setTemplate(t.id)}
+                      style={{ padding: '9px 12px', borderRadius: 8, border: `1px solid ${template === t.id ? t.accent : 'rgba(255,255,255,0.1)'}`, background: template === t.id ? t.accent + '20' : 'rgba(255,255,255,0.04)', color: template === t.id ? '#fff' : 'rgba(255,255,255,0.55)', fontSize: 12, fontWeight: template === t.id ? 700 : 400, cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left' }}>
+                      {t.label} <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)', fontWeight: 400 }}>{t.desc}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+              {/* Language + Pages */}
+              <div style={{ display: 'flex', gap: 12 }}>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: 10, fontWeight: 600, color: 'rgba(255,255,255,0.4)', letterSpacing: 0.5, textTransform: 'uppercase', marginBottom: 8 }}>Language</div>
+                  <div style={{ display: 'flex', gap: 6 }}>
+                    {(['EN', 'DE'] as Lang[]).map(l => (
+                      <button key={l} onClick={() => setLang(l)}
+                        style={{ flex: 1, padding: '8px 0', borderRadius: 8, border: `1px solid ${lang === l ? currentAccent : 'rgba(255,255,255,0.1)'}`, background: lang === l ? currentAccent + '20' : 'rgba(255,255,255,0.04)', color: lang === l ? '#fff' : 'rgba(255,255,255,0.45)', fontSize: 11, fontWeight: lang === l ? 700 : 400, cursor: 'pointer', fontFamily: 'inherit' }}>
+                        {l}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: 10, fontWeight: 600, color: 'rgba(255,255,255,0.4)', letterSpacing: 0.5, textTransform: 'uppercase', marginBottom: 8 }}>Pages</div>
+                  <div style={{ display: 'flex', gap: 6 }}>
+                    {(['1', '2'] as Pages[]).map(p => (
+                      <button key={p} onClick={() => setPages(p)}
+                        style={{ flex: 1, padding: '8px 0', borderRadius: 8, border: `1px solid ${pages === p ? currentAccent : 'rgba(255,255,255,0.1)'}`, background: pages === p ? currentAccent + '20' : 'rgba(255,255,255,0.04)', color: pages === p ? '#fff' : 'rgba(255,255,255,0.45)', fontSize: 11, fontWeight: pages === p ? 700 : 400, cursor: 'pointer', fontFamily: 'inherit' }}>
+                        {p}p
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+              {/* Generate */}
+              {credits !== null && credits <= 2 && (
+                <div style={{ background: 'rgba(245,158,11,0.15)', border: '1px solid rgba(245,158,11,0.4)', borderRadius: 8, padding: '7px 10px', fontSize: 11, color: '#fcd34d', lineHeight: 1.5 }}>
+                  {credits === 0 ? 'No credits left. Top up on Account page.' : `${credits} credit${credits === 1 ? '' : 's'} remaining.`}
+                </div>
+              )}
+              <button className="cvb-gen" onClick={() => { generate(); setMobOpen(false) }} disabled={loading || !cvText.trim() || (credits !== null && credits < CV_COST)}
+                style={{ width: '100%', padding: '12px 0', borderRadius: 10, border: 'none', background: loading || !cvText.trim() || (credits !== null && credits < CV_COST) ? 'rgba(255,255,255,0.08)' : `linear-gradient(135deg, ${currentAccent}, ${currentAccent}BB)`, color: loading || !cvText.trim() || (credits !== null && credits < CV_COST) ? 'rgba(255,255,255,0.25)' : '#042C53', fontFamily: "'Outfit', sans-serif", fontSize: 13, fontWeight: 700, cursor: loading || !cvText.trim() || (credits !== null && credits < CV_COST) ? 'not-allowed' : 'pointer' }}>
+                {loading ? 'Generating...' : credits !== null && credits < CV_COST ? `Need ${CV_COST} credit — you have ${credits}` : cvData ? `Regenerate CV (${CV_COST} credit)` : `Generate CV (${CV_COST} credit)`}
+              </button>
+            </div>
+          )}
+
           {/* Action bar */}
-          <div style={{ padding: '12px 24px', borderBottom: '1px solid rgba(255,255,255,0.08)', background: '#042C53', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 }}>
+          <div style={{ padding: '12px 24px', borderBottom: '1px solid rgba(255,255,255,0.08)', background: '#152233', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
               <span style={{ fontSize: 12, fontWeight: 600, color: cvData ? currentAccent : 'rgba(255,255,255,0.25)' }}>
                 {cvData ? 'CV Ready' : 'Preview'}
@@ -1621,12 +1758,13 @@ ${job?.job_description ? `- Job context: ${job.job_description.slice(0, 800)}` :
                     {cvText ? 'Ready to design' : 'No CV uploaded'}
                   </div>
                   <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.2)', lineHeight: 1.7 }}>
-                    {cvText ? 'Choose your template and click Generate CV' : 'Go back to Smart Job Search and upload your CV first'}
+                    {cvText ? 'Choose your template and click Generate CV' : 'Upload your CV using the panel on the left'}
                   </div>
                   {cvText && (
                     <button onClick={generate} className="cvb-gen"
-                      style={{ marginTop: 20, padding: '11px 28px', borderRadius: 10, border: 'none', background: currentAccent, color: '#0a1520', fontFamily: "'Outfit', sans-serif", fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>
-                      Generate CV
+                      disabled={credits !== null && credits < CV_COST}
+                      style={{ marginTop: 20, padding: '11px 28px', borderRadius: 10, border: 'none', background: credits !== null && credits < CV_COST ? 'rgba(255,255,255,0.1)' : currentAccent, color: credits !== null && credits < CV_COST ? 'rgba(255,255,255,0.3)' : '#0a1520', fontFamily: "'Outfit', sans-serif", fontSize: 13, fontWeight: 700, cursor: credits !== null && credits < CV_COST ? 'not-allowed' : 'pointer' }}>
+                      {credits !== null && credits < CV_COST ? `Need ${CV_COST} credit` : 'Generate CV'}
                     </button>
                   )}
                 </div>

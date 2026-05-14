@@ -1,8 +1,9 @@
 ﻿'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import Navbar from '../components/Navbar'
+import { useCredits } from '@/lib/useCredits'
 
 type Tone = 'confident' | 'formal' | 'warm'
 type Length = 'short' | 'medium' | 'long'
@@ -22,7 +23,10 @@ const LENGTHS: { id: Length; label: string; desc: string }[] = [
 
 export default function CoverLetterPage() {
   const router = useRouter()
+  const fileInputRef = useRef<HTMLInputElement>(null)
   const [cvText, setCvText] = useState('')
+  const [cvFileName, setCvFileName] = useState('')
+  const [fileLoading, setFileLoading] = useState(false)
   const [job, setJob] = useState<{ job_title: string; employer_name: string; job_city?: string; job_description?: string } | null>(null)
   const [tone, setTone] = useState<Tone>('confident')
   const [length, setLength] = useState<Length>('medium')
@@ -34,7 +38,10 @@ export default function CoverLetterPage() {
   const [downloading, setDownloading] = useState<'pdf' | 'docx' | null>(null)
   const [feedback, setFeedback] = useState('')
   const [applyingFeedback, setApplyingFeedback] = useState(false)
-  const [openSections, setOpenSections] = useState<Record<string, boolean>>({ style: true, format: true, summary: false })
+  const { credits, setCredits } = useCredits()
+  const CL_COST = 1
+  const [openSections, setOpenSections] = useState<Record<string, boolean>>({ style: false, format: false, summary: false })
+  const [mobOpen, setMobOpen] = useState(false)
 
   const jobLabel = job ? `${job.employer_name} - ${job.job_title}` : ''
 
@@ -51,8 +58,40 @@ export default function CoverLetterPage() {
     setOpenSections(prev => ({ ...prev, [id]: !prev[id] }))
   }
 
+  async function handleCvFile(file: File) {
+    setCvFileName(file.name)
+    setCvText('')
+    setFileLoading(true)
+    if (file.name.endsWith('.txt') || file.type === 'text/plain') {
+      const r = new FileReader()
+      r.onload = e => {
+        const text = (e.target?.result as string) ?? ''
+        setCvText(text)
+        sessionStorage.setItem('jl_cv_text', text)
+        setFileLoading(false)
+      }
+      r.readAsText(file)
+    } else {
+      const form = new FormData()
+      form.append('file', file)
+      try {
+        const res = await fetch('/api/extract-pdf', { method: 'POST', body: form })
+        const data = await res.json()
+        if (data.text) {
+          setCvText(data.text)
+          sessionStorage.setItem('jl_cv_text', data.text)
+        } else {
+          alert(data.error || 'Could not read file. Try a different format.')
+          setCvFileName('')
+        }
+      } catch { alert('Failed to read file. Please try again.'); setCvFileName('') }
+      setFileLoading(false)
+    }
+  }
+
   async function generate() {
     if (!cvText.trim()) return
+    if (credits !== null && credits < CL_COST) { alert(`You need ${CL_COST} credit to generate a cover letter. Please top up on the Account page.`); return }
     setLoading(true); setLetter('')
     try {
       const res = await fetch('/api/cover-letter', {
@@ -60,7 +99,9 @@ export default function CoverLetterPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ cvText, job, tone, length, lang }),
       })
+      if (res.status === 402) { const d = await res.json(); if (typeof d.credits === 'number') setCredits(d.credits); setLoading(false); alert('Not enough credits. Please top up on the Account page.'); return }
       const data = await res.json()
+      if (typeof data.creditsRemaining === 'number') setCredits(data.creditsRemaining)
       const cl = data.coverLetter || data.letter || data.result || ''
       setLetter(cl)
       sessionStorage.setItem('jl_cl_letter', cl)
@@ -129,24 +170,7 @@ export default function CoverLetterPage() {
       doc.line(margin, y, W - margin, y)
       y += 10
 
-      // Tone / Lang / Length chips
-      const chips = [
-        `Tone: ${tone.charAt(0).toUpperCase() + tone.slice(1)}`,
-        `Language: ${lang === 'EN' ? 'English' : 'Deutsch'}`,
-        `Length: ${length.charAt(0).toUpperCase() + length.slice(1)}`,
-      ]
-      let cx = margin
-      chips.forEach(chip => {
-        const tw = doc.getTextWidth(chip)
-        doc.setFillColor(230, 241, 251)
-        doc.roundedRect(cx, y - 3.5, tw + 10, 6, 1.5, 1.5, 'F')
-        doc.setFontSize(7.5)
-        doc.setFont('helvetica', 'normal')
-        doc.setTextColor(24, 95, 165)
-        doc.text(chip, cx + 5, y + 0.5)
-        cx += tw + 16
-      })
-      y += 10
+      y += 6
 
       // Letter body
       const paragraphs = letter.split('\n').filter(p => p.trim() !== '')
@@ -296,6 +320,14 @@ export default function CoverLetterPage() {
         .cl-card:hover { border-color: rgba(255,255,255,0.2) !important; }
         .shimmer { background: linear-gradient(90deg, rgba(255,255,255,0.04) 25%, rgba(255,255,255,0.09) 50%, rgba(255,255,255,0.04) 75%); background-size:200% 100%; animation: shimmer 1.5s infinite; border-radius:4px; }
         .cl-preview { animation: fadeUp 0.35s ease; }
+        .jl-dsb { display: flex !important; }
+        .jl-mob { display: none !important; }
+        .jl-mbtn { display: none !important; }
+        @media (max-width: 768px) {
+          .jl-dsb { display: none !important; }
+          .jl-mob { display: flex !important; }
+          .jl-mbtn { display: block !important; }
+        }
       `}</style>
 
       <Navbar />
@@ -303,7 +335,7 @@ export default function CoverLetterPage() {
       <div style={{ display: 'flex', height: 'calc(100vh - 52px)' }}>
 
         {/* LEFT SIDEBAR */}
-        <div style={{ width: 288, flexShrink: 0, background: 'linear-gradient(180deg, #042C53 0%, #073d6e 100%)', borderRight: '1px solid rgba(255,255,255,0.08)', display: 'flex', flexDirection: 'column' }}>
+        <div className="jl-dsb" style={{ width: 288, flexShrink: 0, background: 'linear-gradient(180deg, #152233 0%, #0e1a28 100%)', borderRight: '1px solid rgba(255,255,255,0.08)', flexDirection: 'column' }}>
 
           {/* Header */}
           <div style={{ padding: '20px 20px 16px', borderBottom: '1px solid rgba(255,255,255,0.08)', flexShrink: 0 }}>
@@ -319,9 +351,33 @@ export default function CoverLetterPage() {
                 <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.8)', lineHeight: 1.4 }}>{jobLabel}</div>
               </div>
             )}
-            {!cvText && (
-              <div style={{ marginTop: 10, padding: '7px 10px', background: 'rgba(245,166,35,0.1)', border: '1px solid rgba(245,166,35,0.25)', borderRadius: 8, fontSize: 10, color: '#F5A623' }}>
-                ! No CV found - go back and upload your CV first
+            <input ref={fileInputRef} type="file" accept=".pdf,.doc,.docx,.txt" style={{ display: 'none' }}
+              onChange={e => e.target.files?.[0] && handleCvFile(e.target.files[0])} />
+            {!cvText ? (
+              <div onClick={() => fileInputRef.current?.click()}
+                onDragOver={e => e.preventDefault()}
+                onDrop={e => { e.preventDefault(); e.dataTransfer.files?.[0] && handleCvFile(e.dataTransfer.files[0]) }}
+                style={{ marginTop: 12, padding: '16px 12px', border: '1.5px dashed rgba(255,255,255,0.18)', borderRadius: 9, cursor: 'pointer', textAlign: 'center' }}>
+                {fileLoading ? (
+                  <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+                    <div style={{ width: 10, height: 10, borderRadius: '50%', border: '2px solid rgba(255,255,255,0.15)', borderTopColor: accentColor, animation: 'spin 0.7s linear infinite' }} />
+                    Reading...
+                  </div>
+                ) : (
+                  <>
+                    <div style={{ fontSize: 20, marginBottom: 6 }}>📄</div>
+                    <div style={{ fontSize: 12, fontWeight: 600, color: 'rgba(255,255,255,0.7)' }}>Upload your CV</div>
+                    <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)', marginTop: 3 }}>PDF · DOCX · TXT</div>
+                  </>
+                )}
+              </div>
+            ) : (
+              <div style={{ marginTop: 12, padding: '7px 10px', background: 'rgba(29,158,117,0.12)', border: '1px solid rgba(29,158,117,0.3)', borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6 }}>
+                <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.7)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' as const }}>
+                  ✓ {cvFileName || 'CV loaded'}
+                </span>
+                <button onClick={() => { setCvText(''); setCvFileName(''); if (fileInputRef.current) fileInputRef.current.value = '' }}
+                  style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.35)', cursor: 'pointer', fontSize: 16, padding: 0, flexShrink: 0, lineHeight: 1 }}>×</button>
               </div>
             )}
           </div>
@@ -404,57 +460,22 @@ export default function CoverLetterPage() {
               )}
             </div>
 
-            {/* SECTION: Summary */}
-            <div style={{ borderBottom: '1px solid rgba(255,255,255,0.07)' }}>
-              <button onClick={() => toggleSection('summary')}
-                style={{ width: '100%', padding: '13px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                  <div style={{ width: 22, height: 22, borderRadius: 6, background: openSections.summary ? accentColor + '25' : 'rgba(255,255,255,0.07)', display: 'flex', alignItems: 'center', justifyContent: 'center', border: `1px solid ${openSections.summary ? accentColor + '40' : 'rgba(255,255,255,0.1)'}` }}>
-                    <span style={{ fontSize: 9, fontWeight: 700, color: openSections.summary ? accentColor : 'rgba(255,255,255,0.4)', fontFamily: 'monospace' }}>03</span>
-                  </div>
-                  <span style={{ fontSize: 13, fontWeight: 600, color: openSections.summary ? '#fff' : 'rgba(255,255,255,0.55)' }}>Summary</span>
-                  {letter && <span style={{ fontSize: 10, color: '#1D9E75', fontWeight: 600 }}>Ready</span>}
-                </div>
-                <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.3)', transform: openSections.summary ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s', display: 'inline-block' }}>v</span>
-              </button>
-              {openSections.summary && (
-                <div style={{ padding: '4px 16px 16px', display: 'flex', flexDirection: 'column', gap: 6 }}>
-                  {[
-                    { label: 'Tone', value: TONES.find(t => t.id === tone)?.label || '-' },
-                    { label: 'Language', value: lang === 'EN' ? 'English' : 'Deutsch' },
-                    { label: 'Length', value: length.charAt(0).toUpperCase() + length.slice(1) },
-                    { label: 'Status', value: letter ? 'Generated' : 'Not generated' },
-                  ].map(row => (
-                    <div key={row.label} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '5px 10px', background: 'rgba(255,255,255,0.04)', borderRadius: 6 }}>
-                      <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.35)' }}>{row.label}</span>
-                      <span style={{ fontSize: 11, fontWeight: 600, color: row.label === 'Status' && letter ? '#1D9E75' : accentColor }}>{row.value}</span>
-                    </div>
-                  ))}
-                  {personalization && (
-                    <div style={{ marginTop: 8, padding: '10px 12px', background: 'rgba(29,158,117,0.08)', border: '1px solid rgba(29,158,117,0.2)', borderRadius: 8 }}>
-                      <div style={{ fontSize: 9, fontWeight: 700, color: '#1D9E75', letterSpacing: 0.8, textTransform: 'uppercase', marginBottom: 5 }}>Personalization</div>
-                      <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.5)', lineHeight: 1.6 }}>{personalization}</div>
-                    </div>
-                  )}
-                  {optional && (
-                    <div style={{ padding: '10px 12px', background: 'rgba(245,166,35,0.07)', border: '1px solid rgba(245,166,35,0.2)', borderRadius: 8 }}>
-                      <div style={{ fontSize: 9, fontWeight: 700, color: '#F5A623', letterSpacing: 0.8, textTransform: 'uppercase', marginBottom: 5 }}>Suggestions</div>
-                      <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.5)', lineHeight: 1.6 }}>{optional}</div>
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
-
           </div>
 
           {/* Generate button */}
           <div style={{ padding: '14px 16px', borderTop: '1px solid rgba(255,255,255,0.08)', flexShrink: 0 }}>
-            <button className="cl-gen" onClick={generate} disabled={loading || !cvText.trim()}
-              style={{ width: '100%', padding: '12px 0', borderRadius: 10, border: 'none', background: loading || !cvText.trim() ? 'rgba(255,255,255,0.08)' : `linear-gradient(135deg, ${accentColor}, #1D9E75)`, color: loading || !cvText.trim() ? 'rgba(255,255,255,0.25)' : '#fff', fontFamily: "'Outfit', sans-serif", fontSize: 13, fontWeight: 700, cursor: loading || !cvText.trim() ? 'not-allowed' : 'pointer', transition: 'all 0.2s', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+            {credits !== null && credits <= 2 && (
+              <div style={{ background: 'rgba(245,158,11,0.15)', border: '1px solid rgba(245,158,11,0.4)', borderRadius: 8, padding: '7px 10px', fontSize: 11, color: '#fcd34d', marginBottom: 8, lineHeight: 1.5 }}>
+                {credits === 0 ? 'No credits left. Top up on Account page.' : `${credits} credit${credits === 1 ? '' : 's'} remaining.`}
+              </div>
+            )}
+            <button className="cl-gen" onClick={generate} disabled={loading || !cvText.trim() || (credits !== null && credits < CL_COST)}
+              style={{ width: '100%', padding: '12px 0', borderRadius: 10, border: 'none', background: loading || !cvText.trim() || (credits !== null && credits < CL_COST) ? 'rgba(255,255,255,0.08)' : `linear-gradient(135deg, ${accentColor}, #1D9E75)`, color: loading || !cvText.trim() || (credits !== null && credits < CL_COST) ? 'rgba(255,255,255,0.25)' : '#fff', fontFamily: "'Outfit', sans-serif", fontSize: 13, fontWeight: 700, cursor: loading || !cvText.trim() || (credits !== null && credits < CL_COST) ? 'not-allowed' : 'pointer', transition: 'all 0.2s', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
               {loading
                 ? <><div style={{ width: 14, height: 14, borderRadius: '50%', border: '2px solid rgba(255,255,255,0.15)', borderTopColor: 'rgba(255,255,255,0.7)', animation: 'spin 0.7s linear infinite' }} /> Writing...</>
-                : letter ? 'Regenerate Letter' : 'Generate Letter'}
+                : credits !== null && credits < CL_COST
+                ? `Need ${CL_COST} credit — you have ${credits}`
+                : letter ? `Regenerate Letter (${CL_COST} credit)` : `Generate Letter (${CL_COST} credit)`}
             </button>
           </div>
         </div>
@@ -462,8 +483,79 @@ export default function CoverLetterPage() {
         {/* RIGHT PREVIEW */}
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', background: '#141E2B', overflow: 'hidden' }}>
 
+          {/* Mobile sidebar toggle */}
+          <div className="jl-mbtn" style={{ padding: '10px 16px', background: '#152233', borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
+            <button onClick={() => setMobOpen(o => !o)} style={{ background: '#1a2d45', color: 'rgba(255,255,255,0.8)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 8, padding: '8px 16px', fontSize: 13, cursor: 'pointer', fontFamily: 'inherit' }}>
+              {mobOpen ? 'Close Settings' : 'Cover Letter Settings'}
+            </button>
+          </div>
+          {mobOpen && (
+            <div className="jl-mob" style={{ background: 'linear-gradient(180deg, #152233 0%, #0e1a28 100%)', borderBottom: '1px solid rgba(255,255,255,0.1)', flexDirection: 'column', overflowY: 'auto', maxHeight: '70vh', padding: '16px', gap: 14 }}>
+              {/* CV upload (mobile) */}
+              {!cvText && (
+                <div onClick={() => fileInputRef.current?.click()}
+                  style={{ padding: '14px 12px', border: '1.5px dashed rgba(255,255,255,0.18)', borderRadius: 9, cursor: 'pointer', textAlign: 'center' }}>
+                  <div style={{ fontSize: 18, marginBottom: 4 }}>📄</div>
+                  <div style={{ fontSize: 12, fontWeight: 600, color: 'rgba(255,255,255,0.7)' }}>{fileLoading ? 'Reading...' : 'Upload your CV'}</div>
+                  <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)', marginTop: 2 }}>PDF · DOCX · TXT</div>
+                </div>
+              )}
+              {cvText && cvFileName && (
+                <div style={{ padding: '7px 10px', background: 'rgba(29,158,117,0.12)', border: '1px solid rgba(29,158,117,0.3)', borderRadius: 8, fontSize: 10, color: 'rgba(255,255,255,0.7)' }}>
+                  ✓ {cvFileName}
+                </div>
+              )}
+              {/* Tone */}
+              <div>
+                <div style={{ fontSize: 10, fontWeight: 600, color: 'rgba(255,255,255,0.4)', letterSpacing: 0.5, textTransform: 'uppercase', marginBottom: 8 }}>Tone</div>
+                <div style={{ display: 'flex', gap: 6 }}>
+                  {TONES.map(t => (
+                    <button key={t.id} onClick={() => setTone(t.id)}
+                      style={{ flex: 1, padding: '8px 4px', borderRadius: 8, border: `1px solid ${tone === t.id ? accentColor : 'rgba(255,255,255,0.1)'}`, background: tone === t.id ? accentColor + '20' : 'rgba(255,255,255,0.04)', color: tone === t.id ? '#fff' : 'rgba(255,255,255,0.45)', fontSize: 11, cursor: 'pointer', fontFamily: 'inherit' }}>
+                      {t.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              {/* Language */}
+              <div>
+                <div style={{ fontSize: 10, fontWeight: 600, color: 'rgba(255,255,255,0.4)', letterSpacing: 0.5, textTransform: 'uppercase', marginBottom: 8 }}>Language</div>
+                <div style={{ display: 'flex', gap: 6 }}>
+                  {(['EN', 'DE'] as Lang[]).map(l => (
+                    <button key={l} onClick={() => setLang(l)}
+                      style={{ flex: 1, padding: '8px 0', borderRadius: 8, border: `1px solid ${lang === l ? accentColor : 'rgba(255,255,255,0.1)'}`, background: lang === l ? accentColor + '20' : 'rgba(255,255,255,0.04)', color: lang === l ? '#fff' : 'rgba(255,255,255,0.45)', fontSize: 12, fontWeight: lang === l ? 700 : 400, cursor: 'pointer', fontFamily: 'inherit' }}>
+                      {l === 'EN' ? 'English' : 'Deutsch'}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              {/* Length */}
+              <div>
+                <div style={{ fontSize: 10, fontWeight: 600, color: 'rgba(255,255,255,0.4)', letterSpacing: 0.5, textTransform: 'uppercase', marginBottom: 8 }}>Length</div>
+                <div style={{ display: 'flex', gap: 6 }}>
+                  {LENGTHS.map(l => (
+                    <button key={l.id} onClick={() => setLength(l.id)}
+                      style={{ flex: 1, padding: '8px 4px', borderRadius: 8, border: `1px solid ${length === l.id ? accentColor : 'rgba(255,255,255,0.1)'}`, background: length === l.id ? accentColor + '20' : 'rgba(255,255,255,0.04)', color: length === l.id ? '#fff' : 'rgba(255,255,255,0.45)', fontSize: 11, cursor: 'pointer', fontFamily: 'inherit' }}>
+                      {l.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              {/* Generate */}
+              {credits !== null && credits <= 2 && (
+                <div style={{ background: 'rgba(245,158,11,0.15)', border: '1px solid rgba(245,158,11,0.4)', borderRadius: 8, padding: '7px 10px', fontSize: 11, color: '#fcd34d', lineHeight: 1.5 }}>
+                  {credits === 0 ? 'No credits left. Top up on Account page.' : `${credits} credit${credits === 1 ? '' : 's'} remaining.`}
+                </div>
+              )}
+              <button className="cl-gen" onClick={() => { generate(); setMobOpen(false) }} disabled={loading || !cvText.trim() || (credits !== null && credits < CL_COST)}
+                style={{ width: '100%', padding: '12px 0', borderRadius: 10, border: 'none', background: loading || !cvText.trim() || (credits !== null && credits < CL_COST) ? 'rgba(255,255,255,0.08)' : `linear-gradient(135deg, ${accentColor}, #1D9E75)`, color: loading || !cvText.trim() || (credits !== null && credits < CL_COST) ? 'rgba(255,255,255,0.25)' : '#fff', fontFamily: "'Outfit', sans-serif", fontSize: 13, fontWeight: 700, cursor: loading || !cvText.trim() || (credits !== null && credits < CL_COST) ? 'not-allowed' : 'pointer' }}>
+                {loading ? 'Writing...' : credits !== null && credits < CL_COST ? `Need ${CL_COST} credit — you have ${credits}` : letter ? `Regenerate (${CL_COST} credit)` : `Generate Letter (${CL_COST} credit)`}
+              </button>
+            </div>
+          )}
+
           {/* Action bar */}
-          <div style={{ padding: '12px 24px', borderBottom: '1px solid rgba(255,255,255,0.08)', background: '#042C53', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 }}>
+          <div style={{ padding: '12px 24px', borderBottom: '1px solid rgba(255,255,255,0.08)', background: '#152233', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
               <span style={{ fontSize: 12, fontWeight: 600, color: letter ? '#1D9E75' : 'rgba(255,255,255,0.25)' }}>
                 {letter ? 'Letter Ready' : 'Preview'}
@@ -530,12 +622,13 @@ export default function CoverLetterPage() {
                     {cvText ? 'Ready to write' : 'No CV uploaded'}
                   </div>
                   <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.2)', lineHeight: 1.7 }}>
-                    {cvText ? 'Choose your tone and length, then click Generate Letter' : 'Go back and upload your CV in Smart Job Search first'}
+                    {cvText ? 'Choose your tone and length, then click Generate Letter' : 'Upload your CV using the panel on the left'}
                   </div>
                   {cvText && (
                     <button onClick={generate} className="cl-gen"
-                      style={{ marginTop: 20, padding: '11px 28px', borderRadius: 10, border: 'none', background: `linear-gradient(135deg, ${accentColor}, #1D9E75)`, color: '#fff', fontFamily: "'Outfit', sans-serif", fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>
-                      Generate Letter
+                      disabled={credits !== null && credits < CL_COST}
+                      style={{ marginTop: 20, padding: '11px 28px', borderRadius: 10, border: 'none', background: credits !== null && credits < CL_COST ? 'rgba(255,255,255,0.1)' : `linear-gradient(135deg, ${accentColor}, #1D9E75)`, color: credits !== null && credits < CL_COST ? 'rgba(255,255,255,0.3)' : '#fff', fontFamily: "'Outfit', sans-serif", fontSize: 13, fontWeight: 700, cursor: credits !== null && credits < CL_COST ? 'not-allowed' : 'pointer' }}>
+                      {credits !== null && credits < CL_COST ? `Need ${CL_COST} credit` : 'Generate Letter'}
                     </button>
                   )}
                 </div>

@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import Navbar from '../components/Navbar'
 import { theme } from '@/lib/theme'
+import { useCredits } from '@/lib/useCredits'
 
 const { colors: c, gradients: g, fonts: f } = theme
 
@@ -22,6 +23,8 @@ interface ScanResult {
   salary_currency: string
   top_keyword: string
   market_insight: string
+  roast_lines: string[]
+  creditsRemaining?: number
 }
 
 const STEPS = [
@@ -74,6 +77,8 @@ export default function CareerScanPage() {
   const [mode, setMode] = useState<Mode>('insights')
   const [toastMsg, setToastMsg] = useState('')
   const [showJobSearchBanner, setShowJobSearchBanner] = useState(false)
+  const { credits, setCredits } = useCredits()
+  const SCAN_COST = 2
 
   useEffect(() => {
     if (phase === 'results' && result) {
@@ -156,12 +161,56 @@ export default function CareerScanPage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          prompt: `You are a senior career coach for ${market}. Analyse this CV for "${role}" in ${market}.\nCV:\n---\n${cvText.slice(0, 6000)}\n---\nReturn ONLY valid JSON no markdown:\n{"score":<0-100>,"readiness":"<Ready|Strong|Developing|Entry>","headline":"<10-15 words>","summary":"<2 sentences>","strengths":["s1","s2","s3","s4"],"gaps":["g1","g2","g3"],"quick_wins":["w1","w2","w3"],"role_suggestions":["r1","r2","r3","r4"],"salary_min":<int>,"salary_max":<int>,"salary_currency":"<EUR|CHF>","top_keyword":"<word>","market_insight":"<1-2 sentences>"}`,
+          prompt: `You are a senior career coach for ${market}. Analyse this CV for "${role}" in ${market}.
+
+CV TEXT (read every word carefully — do not infer anything that is not explicitly written):
+---
+${cvText.slice(0, 6000)}
+---
+
+Return ONLY valid JSON, no markdown, no backticks. Use this exact schema:
+{
+  "score": <0-100>,
+  "readiness": "<Ready|Strong|Developing|Entry>",
+  "headline": "<10-15 words that summarise the profile>",
+  "summary": "<2 sentences based only on what is in the CV>",
+  "strengths": ["<specific strength from CV>", "<specific strength from CV>", "<specific strength from CV>", "<specific strength from CV>"],
+  "gaps": ["<gap relative to ${role}>", "<gap relative to ${role}>", "<gap relative to ${role}>"],
+  "quick_wins": ["<actionable fix #1>", "<actionable fix #2>", "<actionable fix #3>"],
+  "role_suggestions": ["<role 1>", "<role 2>", "<role 3>", "<role 4>"],
+  "salary_min": <integer annual gross in ${market === 'Switzerland' ? 'CHF' : 'EUR'}>,
+  "salary_max": <integer annual gross>,
+  "salary_currency": "<EUR|CHF>",
+  "top_keyword": "<single most impactful missing keyword>",
+  "market_insight": "<1-2 sentences about ${role} market in ${market}>",
+  "roast_lines": [
+    "<Roast line 1: quote something specific from the CV and explain why it's weak for ${role}>",
+    "<Roast line 2: call out a real gap that IS visible in the CV — no guessing>",
+    "<Roast line 3: contrast a genuine strength from the CV with the presentation or positioning>",
+    "<Roast line 4: one brutally honest observation about AI automation risk for this exact profile>"
+  ]
+}
+
+Rules for roast_lines:
+- Every line MUST reference something explicitly in the CV text above
+- Never say something is missing if you cannot confirm it from the CV
+- Be honest and specific, not generic`,
         }),
       })
       const data = await res.json()
       clearInterval(t)
-      if (data.error || !data.score) { setPhase('error') } else { setResult(data); setPhase('results'); setShowJobSearchBanner(true) }
+      if (res.status === 402) {
+        setPhase('error')
+        setToastMsg('Not enough credits. Please top up to continue.')
+        if (typeof data.credits === 'number') setCredits(data.credits)
+      } else if (data.error || !data.score) {
+        setPhase('error')
+      } else {
+        if (typeof data.creditsRemaining === 'number') setCredits(data.creditsRemaining)
+        setResult(data)
+        setPhase('results')
+        setShowJobSearchBanner(true)
+      }
     } catch { clearInterval(t); setPhase('error') }
   }
 
@@ -232,7 +281,8 @@ export default function CareerScanPage() {
   }
 
   const extracting = fileLoading || linkedinLoading
-  const canScan = cvText.trim().length > 0 && role.trim() && phase !== 'loading' && !extracting
+  const hasEnoughCredits = credits === null || credits >= SCAN_COST
+  const canScan = cvText.trim().length > 0 && role.trim() && phase !== 'loading' && !extracting && hasEnoughCredits
 
   const SB = (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
@@ -309,6 +359,14 @@ export default function CareerScanPage() {
         </button>
       )}
 
+      {credits !== null && credits <= 2 && (
+        <div style={{ background: 'rgba(245,158,11,0.15)', border: '1px solid rgba(245,158,11,0.4)', borderRadius: 8, padding: '8px 12px', fontSize: 11, color: '#fcd34d', lineHeight: 1.5 }}>
+          {credits === 0
+            ? 'No credits left. Top up on the Account page to continue.'
+            : `Only ${credits} credit${credits === 1 ? '' : 's'} remaining. Top up soon.`}
+        </div>
+      )}
+
       <button
         disabled={!canScan}
         onClick={runScan}
@@ -330,7 +388,9 @@ export default function CareerScanPage() {
           ? 'Upload or paste your CV'
           : !role.trim()
           ? 'Enter a target role ↑'
-          : 'Analyse My Profile'}
+          : !hasEnoughCredits
+          ? `Need ${SCAN_COST} credits — you have ${credits}`
+          : `Analyse My Profile (${SCAN_COST} credits)`}
       </button>
     </div>
   )
@@ -489,22 +549,16 @@ export default function CareerScanPage() {
               <div style={{ fontSize: 12, color: '#F09595', marginTop: 4, lineHeight: 1.5, maxWidth: 280 }}>{result.summary}</div>
             </div>
           </div>
-          {[
-            result.gaps[0] && `Your CV says "${result.readiness}" but recruiters see zero quantified results. That is not a profile — that is a blank canvas.`,
-            result.gaps[1] && `${result.gaps[1]} Fix it before you send a single application.`,
-            result.gaps[2] && `${result.gaps[2]} You are invisible to ATS filters right now.`,
-            `The good news: ${result.strengths[0]}. That is genuinely rare. You just buried it under terrible presentation.`,
-            result.market_insight,
-          ].filter(Boolean).map((text, i) => (
+          {(result.roast_lines && result.roast_lines.length > 0
+            ? result.roast_lines
+            : result.gaps.filter(Boolean)
+          ).map((text, i) => (
             <div key={i} style={{ fontSize: 12, color: '#fca5a5', padding: '8px 12px', background: 'rgba(226,75,74,0.12)', borderRadius: 8, marginBottom: 6, borderLeft: `3px solid ${c.danger}`, lineHeight: 1.6 }}>
               {text}
             </div>
           ))}
-          <button onClick={() => showToast('Roast card copied!')} style={{ width: '100%', marginTop: 12, padding: 10, borderRadius: 10, background: `linear-gradient(135deg, ${c.danger}, #dc2626)`, color: '#fff', fontFamily: f.heading, fontSize: 13, fontWeight: 700, border: 'none', cursor: 'pointer' }}>
-            Share my roast score on LinkedIn
-          </button>
           {toastMsg && (
-            <div style={{ position: 'absolute', bottom: -36, left: '50%', transform: 'translateX(-50%)', background: c.primary, color: c.primaryLight, fontSize: 11, padding: '6px 14px', borderRadius: 8, whiteSpace: 'nowrap' }}>
+            <div style={{ position: 'absolute', bottom: 8, left: '50%', transform: 'translateX(-50%)', background: c.primary, color: c.primaryLight, fontSize: 11, padding: '6px 14px', borderRadius: 8, whiteSpace: 'nowrap' }}>
               {toastMsg}
             </div>
           )}
@@ -582,7 +636,7 @@ export default function CareerScanPage() {
       <Navbar />
       <div style={{ display: 'flex', minHeight: 'calc(100vh - 52px)' }}>
         {/* Sidebar */}
-        <div className="jl-dsb" style={{ width: 290, flexShrink: 0, background: `linear-gradient(180deg, ${c.primary} 0%, #073d6e 100%)`, padding: '20px 16px', flexDirection: 'column', overflowY: 'auto' }}>
+        <div className="jl-dsb" style={{ width: 290, flexShrink: 0, background: 'linear-gradient(180deg, #152233 0%, #0e1a28 100%)', padding: '20px 16px', flexDirection: 'column', overflowY: 'auto' }}>
           {SB}
         </div>
         <div style={{ flex: 1, minWidth: 0, overflowY: 'auto' }}>
@@ -592,7 +646,7 @@ export default function CareerScanPage() {
             </button>
           </div>
           {mobOpen && (
-            <div className="jl-mob" style={{ background: `linear-gradient(180deg, ${c.primary} 0%, #073d6e 100%)`, borderBottom: `1px solid ${c.border}`, padding: 16, flexDirection: 'column', gap: 14 }}>
+            <div className="jl-mob" style={{ background: 'linear-gradient(180deg, #152233 0%, #0e1a28 100%)', borderBottom: `1px solid ${c.border}`, padding: 16, flexDirection: 'column', gap: 14 }}>
               {SB}
             </div>
           )}
