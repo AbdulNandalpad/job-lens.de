@@ -16,7 +16,7 @@ export async function GET(_req: NextRequest) {
     .single()
 
   if (!profile) {
-    await admin.from('profiles').insert({ id: user.id, email: user.email, full_name: user.user_metadata?.full_name, avatar_url: user.user_metadata?.avatar_url })
+    await admin.from('profiles').insert({ id: user.id, email: user.email, full_name: user.user_metadata?.full_name, avatar_url: user.user_metadata?.avatar_url, credits: 5 })
   }
 
   const { data: events } = await admin

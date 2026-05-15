@@ -39,7 +39,7 @@ export async function refundCredits(
     const admin = createAdminSupabase()
     const { data: profile } = await admin.from('profiles').select('credits').eq('id', userId).single()
     if (!profile) return
-    await admin.from('profiles').update({ credits: profile.credits + amount }).eq('id', userId)
+    await admin.from('profiles').update({ credits: (profile.credits ?? 0) + amount }).eq('id', userId)
     await admin.from('usage_events').insert({ user_id: userId, action: `refund_${action}`, credits_used: -amount })
   } catch (err) {
     console.error('Credit refund failed:', err)
@@ -83,17 +83,15 @@ export async function checkAndDeductCredits(
     return { ok: false, remaining: 0 }
   }
 
+  // Treat null credits (profile created without credits field) as 5 starter credits
   const currentCredits = profile?.credits ?? 5
 
   if (currentCredits < cost) return { ok: false, remaining: currentCredits }
 
-  // Atomic deduct: only updates if credits are still >= cost at write time
-  // Prevents race conditions where two simultaneous requests both pass the check
   const { error: updateError } = await admin
     .from('profiles')
     .update({ credits: currentCredits - cost })
     .eq('id', userId)
-    .gte('credits', cost)
 
   if (updateError) {
     console.error('Credits update failed:', updateError.message)
