@@ -528,7 +528,7 @@ export default function IndiaCVBuilderPage() {
   const [downloading, setDownloading] = useState<'pdf' | 'docx' | null>(null)
   const [mobOpen, setMobOpen] = useState(false)
   const [atsFromScan, setAtsFromScan] = useState(false)
-  const [atsSuggestions, setAtsSuggestions] = useState<{ missing_keywords: string[]; quick_fixes: string[] } | null>(null)
+  const [atsSuggestions, setAtsSuggestions] = useState<{ missing_keywords: string[]; quick_fixes: string[]; format_issues?: string[]; section_gaps?: string[] } | null>(null)
   const [editingContact, setEditingContact] = useState(false)
   const [contactDraft, setContactDraft] = useState({ name: '', email: '', phone: '', location: '', linkedin: '' })
   const { credits, setCredits } = useCredits()
@@ -597,7 +597,9 @@ Rules:
 ${job ? `- Tailor for: ${job.job_title} at ${job.employer_name}` : ''}
 ${job?.job_description ? `- Job context: ${job.job_description.slice(0, 800)}` : ''}
 ${atsSuggestions?.missing_keywords?.length ? `- ATS PRIORITY: Naturally incorporate these missing keywords into skills, bullets, and summary: ${atsSuggestions.missing_keywords.join(', ')}` : ''}
-${atsSuggestions?.quick_fixes?.length ? `- ATS FIXES to apply:\n${atsSuggestions.quick_fixes.map((f: string) => `  * ${f}`).join('\n')}` : ''}`
+${atsSuggestions?.quick_fixes?.length ? `- ATS QUICK FIXES to apply:\n${atsSuggestions.quick_fixes.map((f: string) => `  * ${f}`).join('\n')}` : ''}
+${atsSuggestions?.format_issues?.length ? `- ATS FORMAT ISSUES to fix: ${atsSuggestions.format_issues.join('; ')}` : ''}
+${atsSuggestions?.section_gaps?.length ? `- ATS SECTION GAPS to address: ${atsSuggestions.section_gaps.join('; ')}` : ''}`
     try {
       const res = await fetch('/api/tailor-cv', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ cvText, job, template, tone, pages, lang, systemPrompt, returnJson: true }) })
       if (res.status === 402) { const d = await res.json(); if (typeof d.credits === 'number') setCredits(d.credits); setLoading(false); alert('Not enough credits.'); return }
@@ -762,7 +764,27 @@ ${atsSuggestions?.quick_fixes?.length ? `- ATS FIXES to apply:\n${atsSuggestions
 
   function goToCoverLetter() { sessionStorage.setItem('jl_cvb_tailored', rawCv); router.push('/in/cover-letter') }
   function goToAtsCheck() {
-    sessionStorage.setItem('jl_cvb_generated', rawCv)
+    if (cvData) {
+      const lines: string[] = []
+      lines.push(cvData.name, cvData.title)
+      const contact = [cvData.email, cvData.phone, cvData.location, cvData.linkedin].filter(Boolean)
+      if (contact.length) lines.push(contact.join(' | '))
+      if (cvData.summary) lines.push('\nSUMMARY', cvData.summary)
+      if (cvData.skills?.length) lines.push('\nSKILLS', cvData.skills.map((s: { name: string }) => s.name).join(', '))
+      if (cvData.tools?.length) lines.push('\nTECH STACK', cvData.tools.join(', '))
+      if (cvData.experience?.length) {
+        lines.push('\nEXPERIENCE')
+        cvData.experience.forEach((exp: { role: string; company: string; period: string; bullets: string[] }) => {
+          lines.push(`${exp.role} at ${exp.company} (${exp.period})`)
+          exp.bullets?.forEach((b: string) => lines.push(`• ${b}`))
+        })
+      }
+      if (cvData.education?.length) { lines.push('\nEDUCATION'); cvData.education.forEach((e: { degree: string; school: string; year: string }) => lines.push(`${e.degree} - ${e.school} (${e.year})`)) }
+      if (cvData.certifications?.length) { lines.push('\nCERTIFICATIONS'); cvData.certifications.forEach((c: string) => lines.push(`• ${c}`)) }
+      if (cvData.languages?.length) { lines.push('\nLANGUAGES'); lines.push(cvData.languages.map((l: { name: string }) => l.name).join(', ')) }
+      sessionStorage.setItem('jl_cv_text', lines.join('\n'))
+    }
+    sessionStorage.removeItem('jl_ats_suggestions')
     if (job?.job_description) sessionStorage.setItem('jl_ats_jd', job.job_description)
     router.push('/in/career-scan')
   }

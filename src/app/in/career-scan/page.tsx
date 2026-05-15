@@ -74,6 +74,7 @@ export default function IndiaCareerScanPage() {
   const [tab, setTab] = useState<Tab>('overview')
   const [fileLoading, setFileLoading] = useState(false)
   const [showInputs, setShowInputs] = useState(true)
+  const [prevScore, setPrevScore] = useState<number | null>(null)
   const fileRef = useRef<HTMLInputElement>(null)
   const { credits, setCredits } = useCredits()
   const COST = 2
@@ -130,13 +131,17 @@ export default function IndiaCareerScanPage() {
       const data = await res.json()
       if (data.error) { alert(data.error); setLoading(false); return }
       if (typeof data.creditsRemaining === 'number') setCredits(data.creditsRemaining)
+      setPrevScore(result?.ats_score ?? null)
       setResult(data)
       setTab('overview')
       setShowInputs(false)
       try {
+        sessionStorage.removeItem('jl_ats_suggestions')
         sessionStorage.setItem('jl_ats_suggestions', JSON.stringify({
           missing_keywords: data.missing_keywords || [],
           quick_fixes: data.quick_fixes || [],
+          format_issues: data.format_issues || [],
+          section_gaps: data.section_gaps || [],
         }))
       } catch {}
     } catch { alert('Analysis failed. Please try again.') }
@@ -268,6 +273,11 @@ export default function IndiaCareerScanPage() {
                         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                           <span style={{ fontFamily: "'Outfit',sans-serif", fontSize: 40, fontWeight: 800, color: scoreColor(result.ats_score) }}>{result.ats_score}</span>
                           <span style={{ fontFamily: "'Outfit',sans-serif", fontSize: 18, color: '#9aafbc' }}>/100</span>
+                          {prevScore !== null && (
+                            <span style={{ fontSize: 13, fontWeight: 700, color: result.ats_score > prevScore ? green : result.ats_score < prevScore ? red : '#9aafbc', padding: '3px 10px', borderRadius: 12, background: result.ats_score > prevScore ? 'rgba(29,158,117,0.1)' : 'rgba(226,75,74,0.1)' }}>
+                              {result.ats_score > prevScore ? `+${result.ats_score - prevScore}` : result.ats_score < prevScore ? `-${prevScore - result.ats_score}` : '='} from last scan
+                            </span>
+                          )}
                         </div>
                         {badge && (
                           <div style={{ display: 'inline-block', padding: '4px 12px', borderRadius: 20, background: badge.bg, color: badge.color, fontSize: 12, fontWeight: 700, marginTop: 6 }}>

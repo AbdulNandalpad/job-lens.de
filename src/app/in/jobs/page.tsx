@@ -207,7 +207,7 @@ export default function IndiaJobsPage() {
                           </button>
                           <a href={job.job_apply_link} target="_blank" rel="noopener noreferrer" className="jl-action-btn"
                             style={{ padding: '10px 18px', borderRadius: 9, border: '1px solid #dce4ef', background: '#f8fafc', color: '#6b7c93', fontSize: 12, fontWeight: 600, textDecoration: 'none', cursor: 'pointer', fontFamily: "'Outfit',sans-serif" }}>
-                            Apply directly →
+                            Open job listing →
                           </a>
                         </div>
                       </div>
