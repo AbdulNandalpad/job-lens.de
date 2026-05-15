@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import Navbar from '../components/Navbar'
 import { useCredits } from '@/lib/useCredits'
 import { useLanguage } from '@/lib/i18n'
+import CrossMarketModal from '@/components/CrossMarketModal'
 
 type Tone = 'confident' | 'formal' | 'warm'
 type Length = 'short' | 'medium' | 'long'
@@ -44,8 +45,9 @@ export default function CoverLetterPage() {
   const [downloading, setDownloading] = useState<'pdf' | 'docx' | null>(null)
   const [feedback, setFeedback] = useState('')
   const [applyingFeedback, setApplyingFeedback] = useState(false)
-  const { credits, setCredits } = useCredits()
+  const { credits, setCredits, needsCrossMarket, crossMarketAmount } = useCredits()
   const CL_COST = 1
+  const [crossWarnPending, setCrossWarnPending] = useState<(() => void) | null>(null)
   const [openSections, setOpenSections] = useState<Record<string, boolean>>({ style: false, format: false, summary: false })
   const [mobOpen, setMobOpen] = useState(false)
 
@@ -116,6 +118,14 @@ export default function CoverLetterPage() {
       setOpenSections(prev => ({ ...prev, summary: true }))
     } catch { setLetter('Failed to generate. Please try again.') }
     finally { setLoading(false) }
+  }
+
+  function handleGenerate() {
+    if (needsCrossMarket(CL_COST, 'eu')) {
+      setCrossWarnPending(() => generate)
+    } else {
+      generate()
+    }
   }
 
   async function applyFeedback() {
@@ -338,6 +348,17 @@ export default function CoverLetterPage() {
 
       <Navbar />
 
+      {crossWarnPending && (
+        <CrossMarketModal
+          cost={CL_COST}
+          market="eu"
+          crossAmount={crossMarketAmount(CL_COST, 'eu')}
+          onConfirm={() => { const fn = crossWarnPending; setCrossWarnPending(null); fn() }}
+          onCancel={() => setCrossWarnPending(null)}
+        />
+      )}
+
+
       <div style={{ display: 'flex', height: 'calc(100vh - 52px)' }}>
 
         {/* LEFT SIDEBAR */}
@@ -475,7 +496,7 @@ export default function CoverLetterPage() {
                 {credits === 0 ? t.coverLetter.sidebar.noCredits : t.coverLetter.sidebar.lowCredits(credits!)}
               </div>
             )}
-            <button className="cl-gen" onClick={generate} disabled={loading || !cvText.trim() || (credits !== null && credits < CL_COST)}
+            <button className="cl-gen" onClick={handleGenerate} disabled={loading || !cvText.trim() || (credits !== null && credits < CL_COST)}
               style={{ width: '100%', padding: '12px 0', borderRadius: 10, border: 'none', background: loading || !cvText.trim() || (credits !== null && credits < CL_COST) ? 'rgba(255,255,255,0.08)' : `linear-gradient(135deg, ${accentColor}, #1D9E75)`, color: loading || !cvText.trim() || (credits !== null && credits < CL_COST) ? 'rgba(255,255,255,0.25)' : '#fff', fontFamily: "'Outfit', sans-serif", fontSize: 13, fontWeight: 700, cursor: loading || !cvText.trim() || (credits !== null && credits < CL_COST) ? 'not-allowed' : 'pointer', transition: 'all 0.2s', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
               {loading
                 ? <><div style={{ width: 14, height: 14, borderRadius: '50%', border: '2px solid rgba(255,255,255,0.15)', borderTopColor: 'rgba(255,255,255,0.7)', animation: 'spin 0.7s linear infinite' }} /> {t.coverLetter.sidebar.writing}</>
@@ -553,7 +574,7 @@ export default function CoverLetterPage() {
                   {credits === 0 ? t.coverLetter.sidebar.noCredits : t.coverLetter.sidebar.lowCredits(credits!)}
                 </div>
               )}
-              <button className="cl-gen" onClick={() => { generate(); setMobOpen(false) }} disabled={loading || !cvText.trim() || (credits !== null && credits < CL_COST)}
+              <button className="cl-gen" onClick={() => { handleGenerate(); setMobOpen(false) }} disabled={loading || !cvText.trim() || (credits !== null && credits < CL_COST)}
                 style={{ width: '100%', padding: '12px 0', borderRadius: 10, border: 'none', background: loading || !cvText.trim() || (credits !== null && credits < CL_COST) ? 'rgba(255,255,255,0.08)' : `linear-gradient(135deg, ${accentColor}, #1D9E75)`, color: loading || !cvText.trim() || (credits !== null && credits < CL_COST) ? 'rgba(255,255,255,0.25)' : '#fff', fontFamily: "'Outfit', sans-serif", fontSize: 13, fontWeight: 700, cursor: loading || !cvText.trim() || (credits !== null && credits < CL_COST) ? 'not-allowed' : 'pointer' }}>
                 {loading ? t.coverLetter.sidebar.writing : credits !== null && credits < CL_COST ? t.coverLetter.sidebar.needCredits(CL_COST, credits) : letter ? t.coverLetter.sidebar.regenerateBtn(CL_COST) : t.coverLetter.sidebar.generateBtn(CL_COST)}
               </button>
@@ -631,7 +652,7 @@ export default function CoverLetterPage() {
                     {cvText ? t.coverLetter.preview.chooseAndGenerate : t.coverLetter.preview.uploadFirst}
                   </div>
                   {cvText && (
-                    <button onClick={generate} className="cl-gen"
+                    <button onClick={handleGenerate} className="cl-gen"
                       disabled={credits !== null && credits < CL_COST}
                       style={{ marginTop: 20, padding: '11px 28px', borderRadius: 10, border: 'none', background: credits !== null && credits < CL_COST ? 'rgba(255,255,255,0.1)' : `linear-gradient(135deg, ${accentColor}, #1D9E75)`, color: credits !== null && credits < CL_COST ? 'rgba(255,255,255,0.3)' : '#fff', fontFamily: "'Outfit', sans-serif", fontSize: 13, fontWeight: 700, cursor: credits !== null && credits < CL_COST ? 'not-allowed' : 'pointer' }}>
                       {credits !== null && credits < CL_COST ? `Need ${CL_COST} credit` : 'Generate Letter'}

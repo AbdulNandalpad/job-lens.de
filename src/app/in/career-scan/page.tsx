@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useCredits } from '@/lib/useCredits'
+import CrossMarketModal from '@/components/CrossMarketModal'
 
 const orange = '#ff9933'
 const navy = '#042C53'
@@ -76,8 +77,9 @@ export default function IndiaCareerScanPage() {
   const [showInputs, setShowInputs] = useState(true)
   const [prevScore, setPrevScore] = useState<number | null>(null)
   const fileRef = useRef<HTMLInputElement>(null)
-  const { credits, setCredits } = useCredits()
+  const { credits, setCredits, needsCrossMarket, crossMarketAmount } = useCredits()
   const COST = 2
+  const [crossWarnPending, setCrossWarnPending] = useState<(() => void) | null>(null)
 
   useEffect(() => {
     const savedCv = sessionStorage.getItem('jl_cv_text') || sessionStorage.getItem('jl_cvb_generated') || ''
@@ -146,6 +148,14 @@ export default function IndiaCareerScanPage() {
     setLoading(false)
   }
 
+  function handleAnalyze() {
+    if (needsCrossMarket(COST, 'in')) {
+      setCrossWarnPending(() => analyze)
+    } else {
+      analyze()
+    }
+  }
+
   const badge = result ? readinessBadge(result.readiness) : null
 
   return (
@@ -155,6 +165,16 @@ export default function IndiaCareerScanPage() {
         .ats-grid { display: grid; grid-template-columns: 420px 1fr; gap: 24px; }
         @media (max-width: 900px) { .ats-grid { grid-template-columns: 1fr; } }
       `}</style>
+
+      {crossWarnPending && (
+        <CrossMarketModal
+          cost={COST}
+          market="in"
+          crossAmount={crossMarketAmount(COST, 'in')}
+          onConfirm={() => { const fn = crossWarnPending; setCrossWarnPending(null); fn() }}
+          onCancel={() => setCrossWarnPending(null)}
+        />
+      )}
 
       <div style={{ background: '#f0f4f8', minHeight: 'calc(100vh - 52px)', padding: '28px 24px' }}>
         <div style={{ maxWidth: 1100, margin: '0 auto' }}>
@@ -232,7 +252,7 @@ export default function IndiaCareerScanPage() {
                     <span style={{ fontSize: 12, color: '#9aafbc' }}>
                       {credits !== null ? `${credits} credits remaining` : ''} &mdash; costs {COST} credits
                     </span>
-                    <button onClick={analyze} disabled={loading}
+                    <button onClick={handleAnalyze} disabled={loading}
                       style={{ padding: '12px 28px', borderRadius: 10, background: loading ? '#ccc' : `linear-gradient(135deg, ${orange}, #e67300)`, color: '#fff', fontWeight: 700, fontSize: 14, border: 'none', cursor: loading ? 'not-allowed' : 'pointer', boxShadow: loading ? 'none' : '0 4px 16px rgba(255,153,51,0.4)', transition: 'all 0.2s' }}>
                       {loading ? 'Analyzing...' : result ? 'Re-scan' : 'Scan ATS Score'}
                     </button>

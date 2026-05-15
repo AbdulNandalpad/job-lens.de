@@ -56,14 +56,14 @@ export async function POST(req: NextRequest) {
 
     const admin = createAdminSupabase()
 
-    // Get current credits
-    const { data: profile } = await admin.from('profiles').select('credits').eq('id', userId).single()
-    const current = profile?.credits ?? 5
+    // Get current eu_credits
+    const { data: profile } = await admin.from('profiles').select('eu_credits').eq('id', userId).single()
+    const current = profile?.eu_credits ?? 0
 
-    // Add credits (no updated_at — column does not exist)
+    // Add credits to eu_credits pool (PayPal is EU-only)
     await admin.from('profiles').upsert({
       id: userId,
-      credits: current + creditsToAdd,
+      eu_credits: current + creditsToAdd,
       paypal_payer_email: payerEmail || undefined,
     })
 

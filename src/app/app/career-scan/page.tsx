@@ -7,6 +7,7 @@ import Navbar from '../components/Navbar'
 import { theme } from '@/lib/theme'
 import { useCredits } from '@/lib/useCredits'
 import { useLanguage } from '@/lib/i18n'
+import CrossMarketModal from '@/components/CrossMarketModal'
 
 const { colors: c, gradients: g, fonts: f } = theme
 
@@ -77,8 +78,9 @@ export default function CareerScanPage() {
   const [mode, setMode] = useState<Mode>('insights')
   const [toastMsg, setToastMsg] = useState('')
   const [showJobSearchBanner, setShowJobSearchBanner] = useState(false)
-  const { credits, setCredits } = useCredits()
+  const { credits, setCredits, needsCrossMarket, crossMarketAmount } = useCredits()
   const SCAN_COST = 2
+  const [crossWarnPending, setCrossWarnPending] = useState<(() => void) | null>(null)
 
   useEffect(() => {
     if (phase === 'results' && result) {
@@ -178,6 +180,14 @@ export default function CareerScanPage() {
         setShowJobSearchBanner(true)
       }
     } catch { clearInterval(timer); setPhase('error') }
+  }
+
+  function handleRunScan() {
+    if (needsCrossMarket(SCAN_COST, 'eu')) {
+      setCrossWarnPending(() => runScan)
+    } else {
+      runScan()
+    }
   }
 
   function goToJobSearch() {
@@ -335,7 +345,7 @@ export default function CareerScanPage() {
 
       <button
         disabled={!canScan}
-        onClick={runScan}
+        onClick={handleRunScan}
         style={{
           width: '100%', padding: 12, borderRadius: 10, border: 'none',
           background: canScan ? g.button : 'rgba(255,255,255,0.1)',
@@ -645,6 +655,17 @@ export default function CareerScanPage() {
         @media (max-width: 480px) { .jl-score-rings { gap: 10px; } }
       `}</style>
       <Navbar />
+
+      {crossWarnPending && (
+        <CrossMarketModal
+          cost={SCAN_COST}
+          market="eu"
+          crossAmount={crossMarketAmount(SCAN_COST, 'eu')}
+          onConfirm={() => { const fn = crossWarnPending; setCrossWarnPending(null); fn() }}
+          onCancel={() => setCrossWarnPending(null)}
+        />
+      )}
+
       <div style={{ display: 'flex', minHeight: 'calc(100vh - 52px)' }}>
         {/* Sidebar */}
         <div className="jl-dsb" style={{ width: 290, flexShrink: 0, background: 'linear-gradient(180deg, #152233 0%, #0e1a28 100%)', padding: '20px 16px', flexDirection: 'column', overflowY: 'auto' }}>

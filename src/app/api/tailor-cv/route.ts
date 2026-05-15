@@ -10,14 +10,16 @@ export async function POST(req: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const credits = await checkAndDeductCredits(user.id, COST, 'tailor_cv', user.email ?? '')
+  const body = await req.json()
+  const { cvText, job, template, tone, pages, lang, systemPrompt, returnJson, feedback, currentCv, market } = body
+  const resolvedMarket: 'eu' | 'in' = market === 'in' ? 'in' : 'eu'
+
+  const credits = await checkAndDeductCredits(user.id, COST, 'tailor_cv', user.email ?? '', resolvedMarket)
   if (!credits.ok) {
     return NextResponse.json({ error: 'Insufficient credits', credits: credits.remaining, required: COST }, { status: 402 })
   }
 
   try {
-    const { cvText, job, template, tone, pages, lang, systemPrompt, returnJson, feedback, currentCv } = await req.json()
-
     // -- MODE 1: Structured JSON for visual CV rendering ----------------------
     if (returnJson && systemPrompt) {
       const userContent = feedback && currentCv

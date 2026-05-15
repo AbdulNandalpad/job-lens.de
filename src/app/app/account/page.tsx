@@ -23,6 +23,9 @@ interface ProfileData {
   avatar_url: string
   provider: string
   credits: number
+  commonCredits: number
+  euCredits: number
+  inCredits: number
   member_since: string
   usage: { action: string; credits_used: number; created_at: string }[]
 }
@@ -114,6 +117,20 @@ export default function AccountPage() {
               {/* Progress bar */}
               <div style={{ height: 6, background: c.borderLight, borderRadius: 3, marginBottom: 10 }}>
                 <div style={{ height: '100%', width: `${creditsPercent}%`, background: creditsColor, borderRadius: 3, transition: 'width 0.4s' }} />
+              </div>
+
+              {/* Credit pool breakdown */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 4, marginBottom: 16 }}>
+                {[
+                  { label: 'Free credits', value: profile.commonCredits ?? 0 },
+                  { label: 'EU credits (PayPal)', value: profile.euCredits ?? 0 },
+                  { label: 'India credits', value: profile.inCredits ?? 0 },
+                ].map(row => (
+                  <div key={row.label} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '5px 10px', background: c.bgSubtle, borderRadius: 6, border: `1px solid ${c.border}` }}>
+                    <span style={{ fontSize: 12, color: c.textMuted }}>{row.label}</span>
+                    <span style={{ fontSize: 12, fontWeight: 600, color: c.primary }}>{row.value}</span>
+                  </div>
+                ))}
               </div>
 
               {/* Cost table */}

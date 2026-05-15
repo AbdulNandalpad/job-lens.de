@@ -10,13 +10,16 @@ export async function POST(req: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const credits = await checkAndDeductCredits(user.id, COST, 'cover_letter', user.email ?? '')
+  const body = await req.json()
+  const { cvText, job, tone, length, lang, feedback, currentLetter, market } = body
+  const resolvedMarket: 'eu' | 'in' = market === 'in' ? 'in' : 'eu'
+
+  const credits = await checkAndDeductCredits(user.id, COST, 'cover_letter', user.email ?? '', resolvedMarket)
   if (!credits.ok) {
     return NextResponse.json({ error: 'Insufficient credits', credits: credits.remaining, required: COST }, { status: 402 })
   }
 
   try {
-    const { cvText, job, tone, length, lang, feedback, currentLetter } = await req.json()
 
     const lengthGuide = length === 'short' ? '~150 words' : length === 'long' ? '~450 words' : '~300 words'
     const toneGuide = tone === 'formal' ? 'formal German business style' : tone === 'warm' ? 'personal and genuine' : 'confident and direct'

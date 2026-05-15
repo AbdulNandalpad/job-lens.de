@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { useCredits } from '@/lib/useCredits'
+import CrossMarketModal from '@/components/CrossMarketModal'
 
 const accent = '#FF9933'
 
@@ -149,8 +150,9 @@ export default function IndiaCVBuilderPage() {
   const [atsSuggestions, setAtsSuggestions] = useState<{ missing_keywords: string[]; quick_fixes: string[]; format_issues?: string[]; section_gaps?: string[] } | null>(null)
   const [editingContact, setEditingContact] = useState(false)
   const [contactDraft, setContactDraft] = useState({ name: '', email: '', phone: '', location: '', linkedin: '' })
-  const { credits, setCredits } = useCredits()
+  const { credits, setCredits, needsCrossMarket, crossMarketAmount } = useCredits()
   const CV_COST = 1
+  const [crossWarnPending, setCrossWarnPending] = useState<(() => void) | null>(null)
 
   async function handleCvFile(file: File) {
     setCvFileName(file.name); setCvText(''); setFileLoading(true)
@@ -219,7 +221,7 @@ ${atsSuggestions?.quick_fixes?.length ? `- ATS QUICK FIXES to apply:\n${atsSugge
 ${atsSuggestions?.format_issues?.length ? `- ATS FORMAT ISSUES to fix: ${atsSuggestions.format_issues.join('; ')}` : ''}
 ${atsSuggestions?.section_gaps?.length ? `- ATS SECTION GAPS to address: ${atsSuggestions.section_gaps.join('; ')}` : ''}`
     try {
-      const res = await fetch('/api/tailor-cv', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ cvText, job, template, tone, pages, lang, systemPrompt, returnJson: true }) })
+      const res = await fetch('/api/tailor-cv', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ cvText, job, template, tone, pages, lang, systemPrompt, returnJson: true, market: 'in' }) })
       if (res.status === 402) { const d = await res.json(); if (typeof d.credits === 'number') setCredits(d.credits); setLoading(false); alert('Not enough credits.'); return }
       const data = await res.json()
       if (typeof data.creditsRemaining === 'number') setCredits(data.creditsRemaining)
@@ -230,6 +232,14 @@ ${atsSuggestions?.section_gaps?.length ? `- ATS SECTION GAPS to address: ${atsSu
     setLoading(false)
   }
 
+  function handleGenerate() {
+    if (needsCrossMarket(CV_COST, 'in')) {
+      setCrossWarnPending(() => generate)
+    } else {
+      generate()
+    }
+  }
+
   async function applyFeedback() {
     if (!feedback.trim() || !rawCv) return
     setApplyingFeedback(true)
@@ -237,7 +247,7 @@ ${atsSuggestions?.section_gaps?.length ? `- ATS SECTION GAPS to address: ${atsSu
       const atsContext = atsSuggestions?.missing_keywords?.length
         ? ` Also ensure these ATS keywords are present: ${atsSuggestions.missing_keywords.join(', ')}.`
         : ''
-      const res = await fetch('/api/tailor-cv', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ cvText, job, template, tone, pages, lang, systemPrompt: `Apply the feedback and return updated JSON matching the same schema. Return ONLY valid JSON.${atsContext}`, returnJson: true, feedback, currentCv: rawCv }) })
+      const res = await fetch('/api/tailor-cv', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ cvText, job, template, tone, pages, lang, systemPrompt: `Apply the feedback and return updated JSON matching the same schema. Return ONLY valid JSON.${atsContext}`, returnJson: true, feedback, currentCv: rawCv, market: 'in' }) })
       if (res.status === 402) { alert('Not enough credits.'); setApplyingFeedback(false); return }
       const data = await res.json()
       const raw = data.cv || ''
@@ -419,6 +429,16 @@ ${atsSuggestions?.section_gaps?.length ? `- ATS SECTION GAPS to address: ${atsSu
         }
       `}</style>
 
+      {crossWarnPending && (
+        <CrossMarketModal
+          cost={CV_COST}
+          market="in"
+          crossAmount={crossMarketAmount(CV_COST, 'in')}
+          onConfirm={() => { const fn = crossWarnPending; setCrossWarnPending(null); fn() }}
+          onCancel={() => setCrossWarnPending(null)}
+        />
+      )}
+
       <div style={{ display: 'flex', height: 'calc(100vh - 52px)' }}>
 
         {/* LEFT PANEL */}
@@ -553,7 +573,7 @@ ${atsSuggestions?.section_gaps?.length ? `- ATS SECTION GAPS to address: ${atsSu
 
           <div style={{ padding: '14px 16px', borderTop: '1px solid rgba(255,255,255,0.08)', flexShrink: 0 }}>
             {credits !== null && credits <= 2 && <div style={{ background: 'rgba(245,158,11,0.15)', border: '1px solid rgba(245,158,11,0.4)', borderRadius: 8, padding: '7px 10px', fontSize: 11, color: '#fcd34d', marginBottom: 8, lineHeight: 1.5 }}>{credits === 0 ? 'No credits left. Top up on Account page.' : `${credits} credit${credits === 1 ? '' : 's'} remaining.`}</div>}
-            <button className="cvb-gen" onClick={generate} disabled={loading || !cvText.trim() || (credits !== null && credits < CV_COST)}
+            <button className="cvb-gen" onClick={handleGenerate} disabled={loading || !cvText.trim() || (credits !== null && credits < CV_COST)}
               style={{ width: '100%', padding: '12px 0', borderRadius: 10, border: 'none', background: loading || !cvText.trim() || (credits !== null && credits < CV_COST) ? 'rgba(255,255,255,0.08)' : `linear-gradient(135deg, ${accent}, #e67300)`, color: loading || !cvText.trim() || (credits !== null && credits < CV_COST) ? 'rgba(255,255,255,0.25)' : '#042C53', fontFamily: "'Outfit', sans-serif", fontSize: 13, fontWeight: 700, cursor: loading || !cvText.trim() || (credits !== null && credits < CV_COST) ? 'not-allowed' : 'pointer', transition: 'all 0.2s', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
               {loading ? <><div style={{ width: 14, height: 14, borderRadius: '50%', border: '2px solid rgba(255,255,255,0.15)', borderTopColor: 'rgba(255,255,255,0.6)', animation: 'spin 0.7s linear infinite' }} />Generating...</> : credits !== null && credits < CV_COST ? `Need ${CV_COST} credit — you have ${credits}` : cvData ? `Regenerate CV (${CV_COST} credit)` : `Generate CV (${CV_COST} credit)`}
             </button>
@@ -574,7 +594,7 @@ ${atsSuggestions?.section_gaps?.length ? `- ATS SECTION GAPS to address: ${atsSu
                 <div style={{ flex: 1 }}><div style={{ fontSize: 10, fontWeight: 600, color: 'rgba(255,255,255,0.4)', letterSpacing: 0.5, textTransform: 'uppercase', marginBottom: 8 }}>Language</div><div style={{ display: 'flex', gap: 6 }}>{(['EN', 'DE'] as Lang[]).map(l => <button key={l} onClick={() => setLang(l)} style={{ flex: 1, padding: '8px 0', borderRadius: 8, border: `1px solid ${lang === l ? accent : 'rgba(255,255,255,0.1)'}`, background: lang === l ? accent + '20' : 'rgba(255,255,255,0.04)', color: lang === l ? '#fff' : 'rgba(255,255,255,0.45)', fontSize: 11, fontWeight: lang === l ? 700 : 400, cursor: 'pointer', fontFamily: 'inherit' }}>{l}</button>)}</div></div>
                 <div style={{ flex: 1 }}><div style={{ fontSize: 10, fontWeight: 600, color: 'rgba(255,255,255,0.4)', letterSpacing: 0.5, textTransform: 'uppercase', marginBottom: 8 }}>Pages</div><div style={{ display: 'flex', gap: 6 }}>{(['1', '2'] as Pages[]).map(p => <button key={p} onClick={() => setPages(p)} style={{ flex: 1, padding: '8px 0', borderRadius: 8, border: `1px solid ${pages === p ? accent : 'rgba(255,255,255,0.1)'}`, background: pages === p ? accent + '20' : 'rgba(255,255,255,0.04)', color: pages === p ? '#fff' : 'rgba(255,255,255,0.45)', fontSize: 11, fontWeight: pages === p ? 700 : 400, cursor: 'pointer', fontFamily: 'inherit' }}>{p}p</button>)}</div></div>
               </div>
-              <button className="cvb-gen" onClick={() => { generate(); setMobOpen(false) }} disabled={loading || !cvText.trim() || (credits !== null && credits < CV_COST)}
+              <button className="cvb-gen" onClick={() => { handleGenerate(); setMobOpen(false) }} disabled={loading || !cvText.trim() || (credits !== null && credits < CV_COST)}
                 style={{ width: '100%', padding: '12px 0', borderRadius: 10, border: 'none', background: loading || !cvText.trim() || (credits !== null && credits < CV_COST) ? 'rgba(255,255,255,0.08)' : `linear-gradient(135deg, ${accent}, #e67300)`, color: loading || !cvText.trim() || (credits !== null && credits < CV_COST) ? 'rgba(255,255,255,0.25)' : '#042C53', fontFamily: "'Outfit', sans-serif", fontSize: 13, fontWeight: 700, cursor: loading || !cvText.trim() || (credits !== null && credits < CV_COST) ? 'not-allowed' : 'pointer' }}>
                 {loading ? 'Generating...' : credits !== null && credits < CV_COST ? `Need ${CV_COST} credit` : cvData ? `Regenerate CV (${CV_COST} credit)` : `Generate CV (${CV_COST} credit)`}
               </button>
@@ -640,7 +660,7 @@ ${atsSuggestions?.section_gaps?.length ? `- ATS SECTION GAPS to address: ${atsSu
                 <div style={{ textAlign: 'center' }}>
                   <div style={{ fontSize: 17, fontWeight: 600, color: 'rgba(255,255,255,0.5)', fontFamily: "'Outfit', sans-serif", marginBottom: 8 }}>{cvText ? 'Ready to design' : 'No CV uploaded'}</div>
                   <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.2)', lineHeight: 1.7 }}>{cvText ? 'Choose your template and click Generate CV' : 'Upload your CV using the panel on the left'}</div>
-                  {cvText && <button onClick={generate} className="cvb-gen" disabled={credits !== null && credits < CV_COST} style={{ marginTop: 20, padding: '11px 28px', borderRadius: 10, border: 'none', background: credits !== null && credits < CV_COST ? 'rgba(255,255,255,0.1)' : accent, color: credits !== null && credits < CV_COST ? 'rgba(255,255,255,0.3)' : '#0a1520', fontFamily: "'Outfit', sans-serif", fontSize: 13, fontWeight: 700, cursor: credits !== null && credits < CV_COST ? 'not-allowed' : 'pointer' }}>{credits !== null && credits < CV_COST ? `Need ${CV_COST} credit` : 'Generate CV'}</button>}
+                  {cvText && <button onClick={handleGenerate} className="cvb-gen" disabled={credits !== null && credits < CV_COST} style={{ marginTop: 20, padding: '11px 28px', borderRadius: 10, border: 'none', background: credits !== null && credits < CV_COST ? 'rgba(255,255,255,0.1)' : accent, color: credits !== null && credits < CV_COST ? 'rgba(255,255,255,0.3)' : '#0a1520', fontFamily: "'Outfit', sans-serif", fontSize: 13, fontWeight: 700, cursor: credits !== null && credits < CV_COST ? 'not-allowed' : 'pointer' }}>{credits !== null && credits < CV_COST ? `Need ${CV_COST} credit` : 'Generate CV'}</button>}
                 </div>
               </div>
             )}

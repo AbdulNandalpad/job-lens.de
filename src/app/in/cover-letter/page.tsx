@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react'
 import { useCredits } from '@/lib/useCredits'
+import CrossMarketModal from '@/components/CrossMarketModal'
 
 type Tone = 'confident' | 'formal' | 'warm'
 type Length = 'short' | 'medium' | 'long'
@@ -36,8 +37,9 @@ export default function IndiaCoverLetterPage() {
   const [downloading, setDownloading] = useState<'pdf' | 'docx' | null>(null)
   const [openSections, setOpenSections] = useState<Record<string, boolean>>({ style: false, format: false })
   const [mobOpen, setMobOpen] = useState(false)
-  const { credits, setCredits } = useCredits()
+  const { credits, setCredits, needsCrossMarket, crossMarketAmount } = useCredits()
   const CL_COST = 1
+  const [crossWarnPending, setCrossWarnPending] = useState<(() => void) | null>(null)
 
   const jobLabel = job ? `${job.employer_name} - ${job.job_title}` : ''
 
@@ -77,7 +79,7 @@ export default function IndiaCoverLetterPage() {
     try {
       const res = await fetch('/api/cover-letter', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ cvText, job, tone, length, lang }),
+        body: JSON.stringify({ cvText, job, tone, length, lang, market: 'in' }),
       })
       if (res.status === 402) { const d = await res.json(); if (typeof d.credits === 'number') setCredits(d.credits); setLoading(false); alert('Not enough credits.'); return }
       const data = await res.json()
@@ -88,13 +90,21 @@ export default function IndiaCoverLetterPage() {
     finally { setLoading(false) }
   }
 
+  function handleGenerate() {
+    if (needsCrossMarket(CL_COST, 'in')) {
+      setCrossWarnPending(() => generate)
+    } else {
+      generate()
+    }
+  }
+
   async function applyFeedback() {
     if (!feedback.trim() || !letter) return
     setApplyingFeedback(true)
     try {
       const res = await fetch('/api/cover-letter', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ cvText, job, tone, length, lang, feedback, currentLetter: letter }),
+        body: JSON.stringify({ cvText, job, tone, length, lang, feedback, currentLetter: letter, market: 'in' }),
       })
       if (res.status === 402) { alert('Not enough credits.'); setApplyingFeedback(false); return }
       const data = await res.json()
@@ -171,6 +181,16 @@ export default function IndiaCoverLetterPage() {
           .jl-mbtn { display: block !important; }
         }
       `}</style>
+
+      {crossWarnPending && (
+        <CrossMarketModal
+          cost={CL_COST}
+          market="in"
+          crossAmount={crossMarketAmount(CL_COST, 'in')}
+          onConfirm={() => { const fn = crossWarnPending; setCrossWarnPending(null); fn() }}
+          onCancel={() => setCrossWarnPending(null)}
+        />
+      )}
 
       <div style={{ display: 'flex', height: 'calc(100vh - 52px)' }}>
 
@@ -289,7 +309,7 @@ export default function IndiaCoverLetterPage() {
                 {credits === 0 ? 'No credits left. Top up on Account page.' : `${credits} credit${credits === 1 ? '' : 's'} remaining.`}
               </div>
             )}
-            <button className="cl-gen" onClick={generate} disabled={loading || !cvText.trim() || (credits !== null && credits < CL_COST)}
+            <button className="cl-gen" onClick={handleGenerate} disabled={loading || !cvText.trim() || (credits !== null && credits < CL_COST)}
               style={{ width: '100%', padding: '12px 0', borderRadius: 10, border: 'none', background: loading || !cvText.trim() || (credits !== null && credits < CL_COST) ? 'rgba(255,255,255,0.08)' : `linear-gradient(135deg, ${accent}, #e67300)`, color: loading || !cvText.trim() || (credits !== null && credits < CL_COST) ? 'rgba(255,255,255,0.25)' : '#fff', fontFamily: "'Outfit', sans-serif", fontSize: 13, fontWeight: 700, cursor: loading || !cvText.trim() || (credits !== null && credits < CL_COST) ? 'not-allowed' : 'pointer', transition: 'all 0.2s', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
               {loading
                 ? <><div style={{ width: 14, height: 14, borderRadius: '50%', border: '2px solid rgba(255,255,255,0.15)', borderTopColor: 'rgba(255,255,255,0.7)', animation: 'spin 0.7s linear infinite' }} /> Writing...</>
@@ -320,7 +340,7 @@ export default function IndiaCoverLetterPage() {
                   {TONES.map(t => <button key={t.id} onClick={() => setTone(t.id)} style={{ flex: 1, padding: '8px 4px', borderRadius: 8, border: `1px solid ${tone === t.id ? accent : 'rgba(255,255,255,0.1)'}`, background: tone === t.id ? accent + '20' : 'rgba(255,255,255,0.04)', color: tone === t.id ? '#fff' : 'rgba(255,255,255,0.45)', fontSize: 11, cursor: 'pointer', fontFamily: 'inherit' }}>{t.label}</button>)}
                 </div>
               </div>
-              <button className="cl-gen" onClick={() => { generate(); setMobOpen(false) }} disabled={loading || !cvText.trim() || (credits !== null && credits < CL_COST)}
+              <button className="cl-gen" onClick={() => { handleGenerate(); setMobOpen(false) }} disabled={loading || !cvText.trim() || (credits !== null && credits < CL_COST)}
                 style={{ width: '100%', padding: '12px 0', borderRadius: 10, border: 'none', background: loading || !cvText.trim() || (credits !== null && credits < CL_COST) ? 'rgba(255,255,255,0.08)' : `linear-gradient(135deg, ${accent}, #e67300)`, color: loading || !cvText.trim() || (credits !== null && credits < CL_COST) ? 'rgba(255,255,255,0.25)' : '#fff', fontFamily: "'Outfit', sans-serif", fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>
                 {loading ? 'Writing...' : letter ? `Regenerate (${CL_COST} credit)` : `Generate Letter (${CL_COST} credit)`}
               </button>
@@ -357,7 +377,7 @@ export default function IndiaCoverLetterPage() {
             {!loading && !letter && (
               <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', flex: 1, gap: 24 }}>
                 <div style={{ fontSize: 15, fontWeight: 600, color: 'rgba(255,255,255,0.4)', fontFamily: "'Outfit', sans-serif" }}>{cvText ? 'Ready to write' : 'Upload your CV to start'}</div>
-                {cvText && <button onClick={generate} className="cl-gen" style={{ padding: '11px 28px', borderRadius: 10, border: 'none', background: `linear-gradient(135deg, ${accent}, #e67300)`, color: '#fff', fontFamily: "'Outfit', sans-serif", fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>Generate Letter</button>}
+                {cvText && <button onClick={handleGenerate} className="cl-gen" style={{ padding: '11px 28px', borderRadius: 10, border: 'none', background: `linear-gradient(135deg, ${accent}, #e67300)`, color: '#fff', fontFamily: "'Outfit', sans-serif", fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>Generate Letter</button>}
               </div>
             )}
             {!loading && letter && (

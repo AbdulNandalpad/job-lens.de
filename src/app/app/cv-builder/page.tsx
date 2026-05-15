@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import Navbar from '../components/Navbar'
 import { useCredits } from '@/lib/useCredits'
 import { useLanguage } from '@/lib/i18n'
+import CrossMarketModal from '@/components/CrossMarketModal'
 
 type Template = 'executive' | 'modern' | 'minimal' | 'technical'
 type Tone = 'professional' | 'concise' | 'detailed'
@@ -684,8 +685,9 @@ export default function CVBuilderPage() {
   const [openSections, setOpenSections] = useState<Record<string, boolean>>({ template: false, style: false, output: false })
   const [feedback, setFeedback] = useState('')
   const [applyingFeedback, setApplyingFeedback] = useState(false)
-  const { credits, setCredits } = useCredits()
+  const { credits, setCredits, needsCrossMarket, crossMarketAmount } = useCredits()
   const CV_COST = 1
+  const [crossWarnPending, setCrossWarnPending] = useState<(() => void) | null>(null)
   const [mobOpen, setMobOpen] = useState(false)
 
   async function handleCvFile(file: File) {
@@ -830,6 +832,14 @@ ${job?.job_description ? `- Job context: ${job.job_description.slice(0, 800)}` :
       setRawCv('Failed to generate. Please try again.')
     }
     setLoading(false)
+  }
+
+  function handleGenerate() {
+    if (needsCrossMarket(CV_COST, 'eu')) {
+      setCrossWarnPending(() => generate)
+    } else {
+      generate()
+    }
   }
 
   async function applyFeedback() {
@@ -1405,6 +1415,16 @@ ${job?.job_description ? `- Job context: ${job.job_description.slice(0, 800)}` :
 
       <Navbar />
 
+      {crossWarnPending && (
+        <CrossMarketModal
+          cost={CV_COST}
+          market="eu"
+          crossAmount={crossMarketAmount(CV_COST, 'eu')}
+          onConfirm={() => { const fn = crossWarnPending; setCrossWarnPending(null); fn() }}
+          onCancel={() => setCrossWarnPending(null)}
+        />
+      )}
+
       <div style={{ display: 'flex', height: 'calc(100vh - 52px)' }}>
 
         {/* -- LEFT STUDIO PANEL -- */}
@@ -1593,7 +1613,7 @@ ${job?.job_description ? `- Job context: ${job.job_description.slice(0, 800)}` :
                 {credits === 0 ? t.cvBuilder.sidebar.noCredits : t.cvBuilder.sidebar.lowCredits(credits!)}
               </div>
             )}
-            <button className="cvb-gen" onClick={generate} disabled={loading || !cvText.trim() || (credits !== null && credits < CV_COST)}
+            <button className="cvb-gen" onClick={handleGenerate} disabled={loading || !cvText.trim() || (credits !== null && credits < CV_COST)}
               style={{ width: '100%', padding: '12px 0', borderRadius: 10, border: 'none', background: loading || !cvText.trim() || (credits !== null && credits < CV_COST) ? 'rgba(255,255,255,0.08)' : `linear-gradient(135deg, ${currentAccent}, ${currentAccent}BB)`, color: loading || !cvText.trim() || (credits !== null && credits < CV_COST) ? 'rgba(255,255,255,0.25)' : '#042C53', fontFamily: "'Outfit', sans-serif", fontSize: 13, fontWeight: 700, cursor: loading || !cvText.trim() || (credits !== null && credits < CV_COST) ? 'not-allowed' : 'pointer', transition: 'all 0.2s', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
               {loading
                 ? <><div style={{ width: 14, height: 14, borderRadius: '50%', border: '2px solid rgba(255,255,255,0.15)', borderTopColor: 'rgba(255,255,255,0.6)', animation: 'spin 0.7s linear infinite' }} /> {t.coverLetter.sidebar.writing}</>
@@ -1672,7 +1692,7 @@ ${job?.job_description ? `- Job context: ${job.job_description.slice(0, 800)}` :
                   {credits === 0 ? t.cvBuilder.sidebar.noCredits : t.cvBuilder.sidebar.lowCredits(credits!)}
                 </div>
               )}
-              <button className="cvb-gen" onClick={() => { generate(); setMobOpen(false) }} disabled={loading || !cvText.trim() || (credits !== null && credits < CV_COST)}
+              <button className="cvb-gen" onClick={() => { handleGenerate(); setMobOpen(false) }} disabled={loading || !cvText.trim() || (credits !== null && credits < CV_COST)}
                 style={{ width: '100%', padding: '12px 0', borderRadius: 10, border: 'none', background: loading || !cvText.trim() || (credits !== null && credits < CV_COST) ? 'rgba(255,255,255,0.08)' : `linear-gradient(135deg, ${currentAccent}, ${currentAccent}BB)`, color: loading || !cvText.trim() || (credits !== null && credits < CV_COST) ? 'rgba(255,255,255,0.25)' : '#042C53', fontFamily: "'Outfit', sans-serif", fontSize: 13, fontWeight: 700, cursor: loading || !cvText.trim() || (credits !== null && credits < CV_COST) ? 'not-allowed' : 'pointer' }}>
                 {loading ? t.coverLetter.sidebar.writing : credits !== null && credits < CV_COST ? t.coverLetter.sidebar.needCredits(CV_COST, credits) : cvData ? t.cvBuilder.sidebar.regenerateBtn(CV_COST) : t.cvBuilder.sidebar.generateBtn(CV_COST)}
               </button>
@@ -1764,7 +1784,7 @@ ${job?.job_description ? `- Job context: ${job.job_description.slice(0, 800)}` :
                     {cvText ? (lang === 'DE' ? 'Einstellungen wählen und Lebenslauf erstellen klicken' : 'Choose settings and click Generate CV') : (lang === 'DE' ? 'Lade zuerst deinen Lebenslauf hoch' : 'Upload your CV first to get started')}
                   </div>
                   {cvText && (
-                    <button onClick={generate} className="cvb-gen"
+                    <button onClick={handleGenerate} className="cvb-gen"
                       disabled={credits !== null && credits < CV_COST}
                       style={{ marginTop: 20, padding: '11px 28px', borderRadius: 10, border: 'none', background: credits !== null && credits < CV_COST ? 'rgba(255,255,255,0.1)' : currentAccent, color: credits !== null && credits < CV_COST ? 'rgba(255,255,255,0.3)' : '#0a1520', fontFamily: "'Outfit', sans-serif", fontSize: 13, fontWeight: 700, cursor: credits !== null && credits < CV_COST ? 'not-allowed' : 'pointer' }}>
                       {credits !== null && credits < CV_COST ? t.coverLetter.sidebar.needCredits(CV_COST, credits) : t.cvBuilder.sidebar.generateBtn(CV_COST)}

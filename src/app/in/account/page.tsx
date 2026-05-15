@@ -22,6 +22,9 @@ interface ProfileData {
   avatar_url: string
   provider: string
   credits: number
+  commonCredits: number
+  euCredits: number
+  inCredits: number
   member_since: string
   usage: { action: string; credits_used: number; created_at: string }[]
 }
@@ -117,8 +120,22 @@ export default function IndiaAccountPage() {
                     <span style={{ fontSize: 13, color: '#6b7c93' }}>remaining</span>
                   </div>
                 </div>
-                <div style={{ height: 6, background: '#edf1f6', borderRadius: 3, marginBottom: 16 }}>
+                <div style={{ height: 6, background: '#edf1f6', borderRadius: 3, marginBottom: 10 }}>
                   <div style={{ height: '100%', width: `${creditsPercent}%`, background: creditsColor, borderRadius: 3, transition: 'width 0.4s' }} />
+                </div>
+
+                {/* Credit pool breakdown */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 4, marginBottom: 16 }}>
+                  {[
+                    { label: 'Free credits', value: profile.commonCredits ?? 0 },
+                    { label: 'India credits (Razorpay)', value: profile.inCredits ?? 0 },
+                    { label: 'EU credits (PayPal)', value: profile.euCredits ?? 0 },
+                  ].map(row => (
+                    <div key={row.label} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '5px 10px', background: '#f8fafc', borderRadius: 6, border: '1px solid #edf1f6' }}>
+                      <span style={{ fontSize: 12, color: '#6b7c93' }}>{row.label}</span>
+                      <span style={{ fontSize: 12, fontWeight: 600, color: navy }}>{row.value}</span>
+                    </div>
+                  ))}
                 </div>
 
                 {/* Cost table */}
