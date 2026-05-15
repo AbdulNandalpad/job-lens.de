@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation'
 import Navbar from '../components/Navbar'
 import { theme } from '@/lib/theme'
 import { useCredits } from '@/lib/useCredits'
+import { useLanguage } from '@/lib/i18n'
 
 const { colors: c, gradients: g, fonts: f } = theme
 
@@ -33,14 +34,6 @@ interface ScanResult {
   creditsRemaining?: number
 }
 
-const STEPS = [
-  'Extracting skills and experience...',
-  'Benchmarking against market data...',
-  'Scoring role fit and readiness...',
-  'Generating salary estimate...',
-  'Composing recommendations...',
-]
-
 type Mode = 'insights' | 'roast' | 'upgrade'
 
 function ScoreRing({ value, color, label, size = 80 }: { value: number; color: string; label: string; size?: number }) {
@@ -65,6 +58,7 @@ function ScoreRing({ value, color, label, size = 80 }: { value: number; color: s
 
 export default function CareerScanPage() {
   const router = useRouter()
+  const { lang, t } = useLanguage()
   const fileInputRef = useRef<HTMLInputElement>(null)
   const linkedinInputRef = useRef<HTMLInputElement>(null)
 
@@ -161,15 +155,16 @@ export default function CareerScanPage() {
   async function runScan() {
     if (!cvText.trim()) { alert('Please upload your CV or paste your CV text first.'); return }
     setPhase('loading'); setMobOpen(false); setStep(0); setMode('insights'); setShowJobSearchBanner(false)
-    const t = setInterval(() => setStep(p => Math.min(p + 1, STEPS.length - 1)), 1800)
+    const loadingSteps = t.careerScan.loadingSteps
+    const timer = setInterval(() => setStep(p => Math.min(p + 1, loadingSteps.length - 1)), 1800)
     try {
       const res = await fetch('/api/career-scan', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ cvText, role, market }),
+        body: JSON.stringify({ cvText, role, market, lang }),
       })
       const data = await res.json()
-      clearInterval(t)
+      clearInterval(timer)
       if (res.status === 402) {
         setPhase('error')
         setToastMsg('Not enough credits. Please top up to continue.')
@@ -182,7 +177,7 @@ export default function CareerScanPage() {
         setPhase('results')
         setShowJobSearchBanner(true)
       }
-    } catch { clearInterval(t); setPhase('error') }
+    } catch { clearInterval(timer); setPhase('error') }
   }
 
   function goToJobSearch() {
@@ -237,7 +232,7 @@ export default function CareerScanPage() {
                 {fileName || sublabel}
               </div>
               <div style={{ fontSize: 11, color: fileName ? c.success : 'rgba(255,255,255,0.5)' }}>
-                {fileName ? 'Uploaded successfully' : 'Click to upload'}
+                {fileName ? t.careerScan.sidebar.uploaded : t.careerScan.sidebar.clickToUpload}
               </div>
             </div>
           </div>
@@ -255,26 +250,28 @@ export default function CareerScanPage() {
   const hasEnoughCredits = credits === null || credits >= SCAN_COST
   const canScan = cvText.trim().length > 0 && role.trim() && phase !== 'loading' && !extracting && hasEnoughCredits
 
+  const cs = t.careerScan
+
   const SB = (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
       <div style={{ textAlign: 'center', paddingBottom: 16, borderBottom: '1px solid rgba(255,255,255,0.15)' }}>
-        <div style={{ fontSize: 18, fontWeight: 700, color: '#fff', fontFamily: f.heading }}>Career Scan</div>
-        <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.6)', marginTop: 3 }}>AI-powered profile analysis</div>
+        <div style={{ fontSize: 18, fontWeight: 700, color: '#fff', fontFamily: f.heading }}>{cs.sidebar.title}</div>
+        <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.6)', marginTop: 3 }}>{cs.sidebar.subtitle}</div>
       </div>
 
-      <UploadBox label="LinkedIn PDF" sublabel="Export from LinkedIn, Save to PDF" fileName={linkedinFileName} inputRef={linkedinInputRef} onFile={handleLinkedinFile} onClear={clearLinkedinFile} accept=".pdf" />
-      <UploadBox label="CV / Resume" sublabel="PDF, DOCX or TXT" fileName={fileName} inputRef={fileInputRef} onFile={handleFile} onClear={clearCvFile} accept=".pdf,.txt,.doc,.docx" />
+      <UploadBox label={cs.sidebar.linkedinLabel} sublabel={cs.sidebar.linkedinSub} fileName={linkedinFileName} inputRef={linkedinInputRef} onFile={handleLinkedinFile} onClear={clearLinkedinFile} accept=".pdf" />
+      <UploadBox label={cs.sidebar.cvLabel} sublabel={cs.sidebar.cvSub} fileName={fileName} inputRef={fileInputRef} onFile={handleFile} onClear={clearCvFile} accept=".pdf,.txt,.doc,.docx" />
 
       <div style={{ height: 1, background: 'rgba(255,255,255,0.1)' }} />
 
-      <div style={{ fontSize: 11, fontWeight: 600, color: 'rgba(255,255,255,0.6)', letterSpacing: 0.6, textTransform: 'uppercase' as const, marginBottom: 6 }}>CV text</div>
+      <div style={{ fontSize: 11, fontWeight: 600, color: 'rgba(255,255,255,0.6)', letterSpacing: 0.6, textTransform: 'uppercase' as const, marginBottom: 6 }}>{cs.sidebar.cvTextLabel}</div>
 
       {extracting ? (
         <div style={{ borderRadius: 8, border: '1px solid rgba(255,255,255,0.15)', background: 'rgba(255,255,255,0.05)', padding: '16px 14px', display: 'flex', flexDirection: 'column', gap: 10 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <div style={{ width: 16, height: 16, borderRadius: '50%', border: `2px solid ${c.accentLight}`, borderTopColor: 'transparent', animation: 'spin 0.8s linear infinite', flexShrink: 0 }} />
             <span style={{ fontSize: 12, color: c.accentLight, fontWeight: 600 }}>
-              {linkedinLoading ? 'Reading LinkedIn PDF…' : 'Reading CV PDF…'}
+              {linkedinLoading ? cs.sidebar.readingLinkedin : cs.sidebar.readingCv}
             </span>
           </div>
           <div style={{ display: 'flex', gap: 4 }}>
@@ -284,7 +281,7 @@ export default function CareerScanPage() {
               </div>
             ))}
           </div>
-          <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)' }}>Extracting text — takes a few seconds</div>
+          <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)' }}>{cs.sidebar.extracting}</div>
         </div>
       ) : cvText ? (
         <div style={{ position: 'relative' }}>
@@ -294,13 +291,13 @@ export default function CareerScanPage() {
             rows={4}
             style={{ width: '100%', padding: '9px 12px', borderRadius: 8, border: `1px solid ${c.success}`, fontSize: 11, fontFamily: f.body, color: '#fff', background: 'rgba(29,158,117,0.07)', outline: 'none', resize: 'vertical', boxSizing: 'border-box' as const, lineHeight: 1.5 }}
           />
-          <div style={{ fontSize: 10, color: c.success, marginTop: 3 }}>&#10003; Text extracted — you can edit if needed</div>
+          <div style={{ fontSize: 10, color: c.success, marginTop: 3 }}>{cs.sidebar.extracted}</div>
         </div>
       ) : (
         <textarea
           value={cvText}
           onChange={e => setCvText(e.target.value)}
-          placeholder="Or paste your CV content here..."
+          placeholder={cs.sidebar.pastePlaceholder}
           rows={4}
           style={{ width: '100%', padding: '9px 12px', borderRadius: 8, border: '1px solid rgba(255,255,255,0.2)', fontSize: 11, fontFamily: f.body, color: '#fff', background: 'rgba(255,255,255,0.05)', outline: 'none', resize: 'vertical', boxSizing: 'border-box' as const, lineHeight: 1.5 }}
         />
@@ -309,32 +306,30 @@ export default function CareerScanPage() {
       <div style={{ height: 1, background: 'rgba(255,255,255,0.1)' }} />
 
       <div>
-        {secLabel('Target Role')}
-        <input value={role} onChange={e => setRole(e.target.value)} placeholder="e.g. SAP CX Lead, Product Owner" style={inp} />
+        {secLabel(cs.sidebar.targetRoleLabel)}
+        <input value={role} onChange={e => setRole(e.target.value)} placeholder={cs.sidebar.targetRolePlaceholder} style={inp} />
       </div>
 
       <div>
-        {secLabel('Target Market')}
+        {secLabel(cs.sidebar.targetMarketLabel)}
         <select value={market} onChange={e => setMarket(e.target.value)} style={inp}>
-          <option>Germany</option>
-          <option>Switzerland</option>
-          <option>Austria</option>
-          <option>DACH</option>
-          <option>EU</option>
+          {cs.sidebar.marketOptions.map((label, i) => (
+            <option key={cs.sidebar.marketValues[i]} value={cs.sidebar.marketValues[i]}>{label}</option>
+          ))}
         </select>
       </div>
 
       {(cvText || fileName || linkedinFileName || phase === 'results') && (
         <button onClick={resetAll} style={{ width: '100%', padding: 9, borderRadius: 10, border: '1px solid rgba(255,255,255,0.2)', background: 'rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.7)', fontFamily: f.heading, fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
-          Reset Everything
+          {cs.sidebar.resetBtn}
         </button>
       )}
 
       {credits !== null && credits <= 2 && (
         <div style={{ background: 'rgba(245,158,11,0.15)', border: '1px solid rgba(245,158,11,0.4)', borderRadius: 8, padding: '8px 12px', fontSize: 11, color: '#fcd34d', lineHeight: 1.5 }}>
           {credits === 0
-            ? 'No credits left. Top up on the Account page to continue.'
-            : `Only ${credits} credit${credits === 1 ? '' : 's'} remaining. Top up soon.`}
+            ? cs.sidebar.noCredits
+            : cs.sidebar.lowCredits(credits)}
         </div>
       )}
 
@@ -352,16 +347,16 @@ export default function CareerScanPage() {
         }}
       >
         {extracting
-          ? 'Reading PDF…'
+          ? cs.sidebar.btnReading
           : phase === 'loading'
-          ? 'Analysing…'
+          ? cs.sidebar.btnAnalysing
           : !cvText.trim()
-          ? 'Upload or paste your CV'
+          ? cs.sidebar.btnNeedCv
           : !role.trim()
-          ? 'Enter a target role ↑'
+          ? cs.sidebar.btnNeedRole
           : !hasEnoughCredits
-          ? `Need ${SCAN_COST} credits — you have ${credits}`
-          : `Analyse My Profile (${SCAN_COST} credits)`}
+          ? cs.sidebar.btnNeedCredits(SCAN_COST, credits ?? 0)
+          : cs.sidebar.btnAnalyse(SCAN_COST)}
       </button>
     </div>
   )
@@ -374,18 +369,18 @@ export default function CareerScanPage() {
         <div style={{ background: g.successBtn, borderRadius: 14, padding: '16px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', boxShadow: '0 4px 20px rgba(29,158,117,0.3)' }}>
           <div>
             <div style={{ fontSize: 14, fontWeight: 700, color: '#fff', fontFamily: f.heading, marginBottom: 3 }}>
-              Ready to find matching jobs?
+              {cs.results.jobBannerTitle}
             </div>
             <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.85)' }}>
-              Your profile is ready &mdash; take it to Smart Job Search
+              {cs.results.jobBannerSub}
             </div>
           </div>
           <div style={{ display: 'flex', gap: 8 }}>
             <button onClick={goToJobSearch} style={{ fontSize: 12, padding: '8px 18px', borderRadius: 8, background: '#fff', color: c.success, border: 'none', cursor: 'pointer', fontFamily: f.heading, fontWeight: 700 }}>
-              Find Matching Jobs &rarr;
+              {cs.results.jobBannerBtn}
             </button>
             <button onClick={() => setShowJobSearchBanner(false)} style={{ fontSize: 12, padding: '8px 12px', borderRadius: 8, background: 'rgba(255,255,255,0.2)', color: '#fff', border: 'none', cursor: 'pointer' }}>
-              Later
+              {cs.results.jobBannerLater}
             </button>
           </div>
         </div>
@@ -394,13 +389,13 @@ export default function CareerScanPage() {
       {/* Header + mode toggle */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div>
-          <div style={{ fontFamily: f.heading, fontSize: 18, fontWeight: 700, color: c.primary }}>Career Scan Results</div>
+          <div style={{ fontFamily: f.heading, fontSize: 18, fontWeight: 700, color: c.primary }}>{cs.results.title}</div>
           <div style={{ fontSize: 12, color: c.textMuted, marginTop: 2 }}>{result.headline}</div>
         </div>
         <div style={{ display: 'flex', background: c.bg, borderRadius: 10, padding: 3, gap: 2 }}>
           {(['insights', 'roast', 'upgrade'] as Mode[]).map(m => (
             <button key={m} onClick={() => setMode(m)} style={{ padding: '6px 14px', fontSize: 11, fontWeight: 600, border: 'none', borderRadius: 8, background: mode === m ? c.primary : 'transparent', color: mode === m ? c.primaryLight : c.textMuted, cursor: 'pointer', fontFamily: f.body, transition: 'all 0.15s' }}>
-              {m === 'insights' ? 'Insights' : m === 'roast' ? 'Roast' : 'Upgrade'}
+              {m === 'insights' ? cs.results.modeInsights : m === 'roast' ? cs.results.modeRoast : cs.results.modeUpgrade}
             </button>
           ))}
         </div>
@@ -411,22 +406,22 @@ export default function CareerScanPage() {
         <>
           {/* Score rings */}
           <div className="jl-score-rings" style={{ background: `linear-gradient(135deg, ${c.primary} 0%, #073d6e 60%, #0a4d8a 100%)`, borderRadius: 16, padding: '24px 20px' }}>
-            <ScoreRing value={result.score} color={scoreColor(result.score)} label="Profile Strength" size={90} />
+            <ScoreRing value={result.score} color={scoreColor(result.score)} label={cs.results.profileStrength} size={90} />
             {result.market_fit_score !== null && result.market_fit_score !== undefined
-              ? <ScoreRing value={result.market_fit_score} color="#F59E0B" label="Market Fit" size={90} />
+              ? <ScoreRing value={result.market_fit_score} color="#F59E0B" label={cs.results.marketFit} size={90} />
               : null}
             {result.keyword_score !== null && result.keyword_score !== undefined
-              ? <ScoreRing value={result.keyword_score} color={c.success} label="Keyword Match" size={90} />
+              ? <ScoreRing value={result.keyword_score} color={c.success} label={cs.results.keywordMatch} size={90} />
               : null}
             <div style={{ textAlign: 'center' }}>
               <div style={{ fontFamily: f.heading, fontSize: 22, fontWeight: 700, color: '#fff' }}>{result.readiness}</div>
-              <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.6)', marginTop: 2 }}>Readiness</div>
+              <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.6)', marginTop: 2 }}>{cs.results.readiness}</div>
               {result.salary_min && (
                 <div style={{ marginTop: 8 }}>
                   <div style={{ fontFamily: f.heading, fontSize: 13, fontWeight: 700, color: '#4ade80' }}>
                     {result.salary_currency} {fmt(result.salary_min)}&ndash;{fmt(result.salary_max)}
                   </div>
-                  <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.5)' }}>Salary range</div>
+                  <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.5)' }}>{cs.results.salaryRange}</div>
                 </div>
               )}
             </div>
@@ -437,7 +432,7 @@ export default function CareerScanPage() {
             <div style={{ background: c.successLight, border: `1px solid ${c.successBorder}`, borderRadius: 14, padding: 16 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
                 <div style={{ width: 28, height: 28, borderRadius: 8, background: c.success, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, color: '#fff' }}>&#10003;</div>
-                <div style={{ fontSize: 12, fontWeight: 700, color: '#0F6E56' }}>Strengths</div>
+                <div style={{ fontSize: 12, fontWeight: 700, color: '#0F6E56' }}>{cs.results.strengths}</div>
               </div>
               {result.strengths.map((s, i) => (
                 <div key={i} style={{ fontSize: 11, color: c.text, padding: '6px 10px', background: 'rgba(29,158,117,0.08)', borderRadius: 8, marginBottom: 5, lineHeight: 1.5, borderLeft: `3px solid ${c.success}` }}>
@@ -448,7 +443,7 @@ export default function CareerScanPage() {
             <div style={{ background: c.warningLight, border: `1px solid ${c.warningBorder}`, borderRadius: 14, padding: 16 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
                 <div style={{ width: 28, height: 28, borderRadius: 8, background: '#F59E0B', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, color: '#fff', fontWeight: 700 }}>!</div>
-                <div style={{ fontSize: 12, fontWeight: 700, color: '#92400e' }}>Gaps to address</div>
+                <div style={{ fontSize: 12, fontWeight: 700, color: '#92400e' }}>{cs.results.gaps}</div>
               </div>
               {result.gaps.map((gap, i) => (
                 <div key={i} style={{ fontSize: 11, color: c.text, padding: '6px 10px', background: 'rgba(245,158,11,0.08)', borderRadius: 8, marginBottom: 5, lineHeight: 1.5, borderLeft: '3px solid #F59E0B' }}>
@@ -462,7 +457,7 @@ export default function CareerScanPage() {
           <div style={{ background: c.bgCard, border: `1px solid ${c.border}`, borderRadius: 14, padding: 16 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
               <div style={{ width: 28, height: 28, borderRadius: 8, background: c.primaryLight, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14 }}>&#127919;</div>
-              <div style={{ fontSize: 12, fontWeight: 700, color: c.primary }}>Best-fit roles &mdash; click to search</div>
+              <div style={{ fontSize: 12, fontWeight: 700, color: c.primary }}>{cs.results.bestFitRoles}</div>
             </div>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
               {result.role_suggestions.map(r => (
@@ -477,7 +472,7 @@ export default function CareerScanPage() {
           <div style={{ background: c.bgCard, border: `1px solid ${c.border}`, borderRadius: 14, padding: 16 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
               <div style={{ width: 28, height: 28, borderRadius: 8, background: c.warningLight, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14 }}>&#9889;</div>
-              <div style={{ fontSize: 12, fontWeight: 700, color: c.primary }}>Quick wins &mdash; do these before applying</div>
+              <div style={{ fontSize: 12, fontWeight: 700, color: c.primary }}>{cs.results.quickWins}</div>
             </div>
             {result.quick_wins.map((w, i) => (
               <div key={i} style={{ fontSize: 11, color: c.text, padding: '7px 10px', background: c.bgSubtle, borderRadius: 8, marginBottom: 6, lineHeight: 1.55, display: 'flex', gap: 8, alignItems: 'flex-start' }}>
@@ -487,7 +482,7 @@ export default function CareerScanPage() {
             ))}
             {result.top_keyword && (
               <div style={{ fontSize: 11, color: c.textMuted, borderTop: `1px solid ${c.border}`, paddingTop: 10, marginTop: 6 }}>
-                Add <strong style={{ color: c.navy }}>&ldquo;{result.top_keyword}&rdquo;</strong> to your headline for better ATS matching.
+                {cs.results.keywordHint(result.top_keyword)}
               </div>
             )}
           </div>
@@ -499,8 +494,8 @@ export default function CareerScanPage() {
               <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
                 <div style={{ width: 28, height: 28, borderRadius: 8, background: 'rgba(109,40,217,0.25)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14 }}>⚡</div>
                 <div>
-                  <div style={{ fontSize: 12, fontWeight: 700, color: '#c4b5fd' }}>AI Era Risk</div>
-                  <div style={{ fontSize: 10, color: 'rgba(196,181,253,0.6)' }}>How much of your work can AI automate today</div>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: '#c4b5fd' }}>{cs.results.aiEraRisk}</div>
+                  <div style={{ fontSize: 10, color: 'rgba(196,181,253,0.6)' }}>{cs.results.aiEraRiskSub}</div>
                 </div>
                 <div style={{ marginLeft: 'auto', textAlign: 'right' }}>
                   <div style={{ fontFamily: f.heading, fontSize: 20, fontWeight: 700, color: result.ai_vulnerability >= 70 ? '#f87171' : result.ai_vulnerability >= 40 ? '#fbbf24' : '#4ade80' }}>
@@ -522,17 +517,17 @@ export default function CareerScanPage() {
           {/* Market insight */}
           {result.market_insight && (
             <div style={{ background: `linear-gradient(135deg, ${c.primary}, #073d6e)`, borderRadius: 14, padding: 16 }}>
-              <div style={{ fontSize: 11, fontWeight: 700, color: c.accentLight, letterSpacing: 0.5, textTransform: 'uppercase' as const, marginBottom: 8 }}>Market Insight</div>
+              <div style={{ fontSize: 11, fontWeight: 700, color: c.accentLight, letterSpacing: 0.5, textTransform: 'uppercase' as const, marginBottom: 8 }}>{cs.results.marketInsight}</div>
               <div style={{ fontSize: 13, color: c.primaryLight, lineHeight: 1.65 }}>{result.market_insight}</div>
             </div>
           )}
 
           <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
             <button onClick={resetAll} style={{ padding: '9px 18px', borderRadius: 8, background: c.bg, color: c.textMuted, border: `1px solid ${c.border}`, cursor: 'pointer', fontSize: 13, fontWeight: 500 }}>
-              Scan again
+              {cs.results.scanAgain}
             </button>
             <button onClick={goToJobSearch} style={{ padding: '9px 20px', borderRadius: 8, background: g.primaryBtn, color: c.primaryLight, border: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 700, fontFamily: f.heading }}>
-              Find matching jobs &rarr;
+              {cs.results.findJobs}
             </button>
           </div>
         </>
@@ -547,7 +542,7 @@ export default function CareerScanPage() {
               {Math.round(result.score / 10 * 3.2 / 8.2 * 10) / 10}
             </div>
             <div>
-              <div style={{ fontSize: 15, fontWeight: 700, color: '#F09595', fontFamily: f.heading }}>Roast Score / 10</div>
+              <div style={{ fontSize: 15, fontWeight: 700, color: '#F09595', fontFamily: f.heading }}>{cs.results.roastScore}</div>
               <div style={{ fontSize: 12, color: '#F09595', marginTop: 4, lineHeight: 1.5, maxWidth: 280 }}>{result.summary}</div>
             </div>
           </div>
@@ -572,10 +567,10 @@ export default function CareerScanPage() {
         <div style={{ background: c.bgCard, border: `1px solid ${c.border}`, borderRadius: 16, overflow: 'hidden' }}>
           <div style={{ background: `linear-gradient(135deg, ${c.primary}, #073d6e)`, padding: '16px 20px' }}>
             <div style={{ fontFamily: f.heading, fontSize: 15, fontWeight: 700, color: '#fff' }}>
-              Your path to {role}
+              {cs.results.upgradePath(role)}
             </div>
             <div style={{ fontSize: 12, color: c.accentLight, marginTop: 4 }}>
-              Personalised roadmap based on your actual CV — no generic advice
+              {cs.results.upgradeSubtitle}
             </div>
           </div>
           <div style={{ padding: 20 }}>
@@ -658,7 +653,7 @@ export default function CareerScanPage() {
         <div style={{ flex: 1, minWidth: 0, overflowY: 'auto' }}>
           <div className="jl-mbtn" style={{ padding: '10px 16px', background: c.bgCard, borderBottom: `1px solid ${c.border}` }}>
             <button onClick={() => setMobOpen(o => !o)} style={{ background: c.primary, color: c.primaryLight, border: 'none', borderRadius: 8, padding: '8px 16px', fontSize: 13, cursor: 'pointer' }}>
-              {mobOpen ? 'Close' : 'Upload CV & Settings'}
+              {mobOpen ? cs.mobCloseBtn : cs.mobOpenBtn}
             </button>
           </div>
           {mobOpen && (
@@ -670,10 +665,10 @@ export default function CareerScanPage() {
             {phase === 'upload' && (
               <div style={{ maxWidth: 480, margin: '48px auto 0', padding: '0 20px' }}>
                 <div style={{ fontFamily: f.heading, fontSize: 20, fontWeight: 700, color: c.primary, marginBottom: 6 }}>
-                  3 steps to your Career Scan
+                  {cs.upload.title}
                 </div>
                 <div style={{ fontSize: 13, color: c.textMuted, marginBottom: 28 }}>
-                  Complete the checklist on the left, then hit Analyse.
+                  {cs.upload.subtitle}
                 </div>
 
                 {(() => {
@@ -684,28 +679,26 @@ export default function CareerScanPage() {
                       done: hasCV || extracting,
                       loading: extracting,
                       num: 1,
-                      title: extracting ? 'Reading your PDF…' : hasCV ? 'CV loaded' : 'Add your CV',
+                      title: extracting ? cs.upload.step1Loading : hasCV ? cs.upload.step1Done : cs.upload.step1Empty,
                       desc: extracting
-                        ? 'Extracting text from your PDF, hang tight.'
+                        ? cs.upload.step1DescLoading
                         : hasCV
-                        ? `${Math.round(cvText.length / 5)} words ready to analyse.`
-                        : 'Upload a PDF/DOCX in the sidebar, or paste your CV text.',
+                        ? cs.upload.step1DescDone(Math.round(cvText.length / 5))
+                        : cs.upload.step1DescEmpty,
                     },
                     {
                       done: hasRole,
                       loading: false,
                       num: 2,
-                      title: hasRole ? `Target role: ${role}` : 'Enter your target role',
-                      desc: hasRole
-                        ? 'Claude will benchmark your profile against this role.'
-                        : 'Type the job title you\'re aiming for in the sidebar.',
+                      title: hasRole ? cs.upload.step2Done(role) : cs.upload.step2Empty,
+                      desc: hasRole ? cs.upload.step2DescDone : cs.upload.step2DescEmpty,
                     },
                     {
                       done: false,
                       loading: false,
                       num: 3,
-                      title: 'Click Analyse My Profile',
-                      desc: 'Get your score, strengths, gaps, salary range and a personalised upgrade plan.',
+                      title: cs.upload.step3Title,
+                      desc: cs.upload.step3Desc,
                     },
                   ]
                   return (
@@ -728,7 +721,7 @@ export default function CareerScanPage() {
                         <div style={{ marginTop: 4, padding: '12px 18px', borderRadius: 12, background: `linear-gradient(135deg, ${c.primaryLight}, #dbeafe)`, border: `1px solid ${c.accentLight}`, display: 'flex', alignItems: 'center', gap: 12 }}>
                           <div style={{ fontSize: 20 }}>&#127919;</div>
                           <div style={{ fontSize: 13, color: c.navy, fontWeight: 600 }}>
-                            All set! Hit <strong style={{ color: c.primary }}>&ldquo;Analyse My Profile&rdquo;</strong> in the sidebar.
+                            {cs.upload.allSet}
                           </div>
                         </div>
                       )}
@@ -742,10 +735,10 @@ export default function CareerScanPage() {
                 <div style={{ position: 'relative', width: 60, height: 60, margin: '0 auto 20px' }}>
                   <div style={{ width: 60, height: 60, borderRadius: '50%', border: `4px solid ${c.border}`, borderTopColor: c.accent, animation: 'spin 0.8s linear infinite' }} />
                 </div>
-                <div style={{ fontSize: 16, fontWeight: 600, color: c.primary, fontFamily: f.heading, marginBottom: 8 }}>Analysing your CV...</div>
-                <div style={{ fontSize: 13, color: c.textMuted }}>{STEPS[step]}</div>
+                <div style={{ fontSize: 16, fontWeight: 600, color: c.primary, fontFamily: f.heading, marginBottom: 8 }}>{cs.loading}</div>
+                <div style={{ fontSize: 13, color: c.textMuted }}>{cs.loadingSteps[step]}</div>
                 <div style={{ display: 'flex', gap: 6, justifyContent: 'center', marginTop: 16 }}>
-                  {STEPS.map((_, i) => (
+                  {cs.loadingSteps.map((_, i) => (
                     <div key={i} style={{ width: 6, height: 6, borderRadius: '50%', background: i <= step ? c.accent : c.border, transition: 'background 0.3s' }} />
                   ))}
                 </div>
@@ -754,10 +747,10 @@ export default function CareerScanPage() {
             {phase === 'error' && (
               <div style={{ textAlign: 'center', padding: '80px 20px' }}>
                 <div style={{ width: 60, height: 60, borderRadius: '50%', background: c.errorLight, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 28, margin: '0 auto 16px', color: c.error, fontWeight: 700 }}>!</div>
-                <div style={{ fontSize: 15, fontWeight: 600, color: c.error, marginBottom: 8 }}>Analysis failed</div>
-                <div style={{ fontSize: 13, color: c.textMuted, marginBottom: 20 }}>Please try again or paste your CV text manually.</div>
+                <div style={{ fontSize: 15, fontWeight: 600, color: c.error, marginBottom: 8 }}>{cs.errorTitle}</div>
+                <div style={{ fontSize: 13, color: c.textMuted, marginBottom: 20 }}>{cs.errorSub}</div>
                 <button onClick={() => { setPhase('upload'); setFileName(''); setCvText('') }} style={{ padding: '10px 24px', borderRadius: 10, background: g.primaryBtn, color: c.primaryLight, border: 'none', cursor: 'pointer', fontSize: 14, fontWeight: 600, fontFamily: f.heading }}>
-                  Try again
+                  {cs.tryAgain}
                 </button>
               </div>
             )}

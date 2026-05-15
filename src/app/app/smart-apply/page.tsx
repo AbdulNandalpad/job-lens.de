@@ -4,6 +4,7 @@ import { useState, useRef, useEffect, Suspense } from 'react'
 import { useRouter } from 'next/navigation'
 import { useSearchParams } from 'next/navigation'
 import Navbar from '../components/Navbar'
+import { useLanguage } from '@/lib/i18n'
 
 interface Job {
   job_id: string
@@ -37,10 +38,11 @@ type JobTypeOption = 'Full-time' | 'Contract' | 'Hybrid' | 'Remote'
 type RightTab = 'description' | 'cv' | 'cl'
 
 const JOB_TYPE_OPTIONS: JobTypeOption[] = ['Full-time', 'Contract', 'Hybrid', 'Remote']
-const EXPERIENCE_OPTIONS = ['Any level', 'Junior (0-3 yrs)', 'Mid (3-8 yrs)', 'Senior (8-15 yrs)', 'Director / VP (15+ yrs)']
 
 function SmartJobSearchPage() {
   const router = useRouter()
+  const { t } = useLanguage()
+  const EXPERIENCE_OPTIONS = t.smartApply.sidebar.experienceOptions
   const searchParams = useSearchParams()
   const linkedinRef = useRef<HTMLInputElement>(null)
   const cvRef = useRef<HTMLInputElement>(null)
@@ -53,7 +55,7 @@ function SmartJobSearchPage() {
 
   const [targetRole, setTargetRole] = useState('')
   const [jobTypes, setJobTypes] = useState<JobTypeOption[]>(['Full-time'])
-  const [experience, setExperience] = useState('Senior (8-15 yrs)')
+  const [experience, setExperience] = useState('')
   const [location, setLocation] = useState('Stuttgart, Germany')
   const [country, setCountry] = useState('de')
   const [daysOld, setDaysOld] = useState('')
@@ -120,6 +122,10 @@ function SmartJobSearchPage() {
     if (targetRole) sessionStorage.setItem('jl_sjs_target_role', targetRole)
   }, [targetRole])
 
+  useEffect(() => {
+    if (!experience && EXPERIENCE_OPTIONS.length > 3) setExperience(EXPERIENCE_OPTIONS[3])
+  }, [EXPERIENCE_OPTIONS])
+
   function clearLinkedinFile() { setLinkedinFileName(''); setLinkedinText(''); if (linkedinRef.current) linkedinRef.current.value = '' }
   function clearCvFile() { setCvFileName(''); setCvText(''); setCarriedOver(false); if (cvRef.current) cvRef.current.value = '' }
 
@@ -161,7 +167,7 @@ function SmartJobSearchPage() {
 
   function resetAll() {
     setLinkedinFileName(''); setLinkedinText(''); setCvFileName(''); setCvText(''); setCarriedOver(false)
-    setTargetRole(''); setJobTypes(['Full-time']); setExperience('Senior (8-15 yrs)')
+    setTargetRole(''); setJobTypes(['Full-time']); setExperience(EXPERIENCE_OPTIONS[3] || '')
     setLocation('Stuttgart, Germany'); setCountry('de'); setDaysOld('')
     setJobs([]); setSelectedJob(null); setProfile(null); setError(''); setUsedQuery('')
     setLoggedJobs(new Set())
@@ -247,10 +253,10 @@ function SmartJobSearchPage() {
       }
 
       setUsedQuery(usedQ)
-      if (jobs.length === 0) { setError('No jobs found. Try a different role or location.'); setLoading(false); return }
+      if (jobs.length === 0) { setError(t.smartApply.results.noJobsFound); setLoading(false); return }
 
       setJobs(jobs.map((job: Job) => ({ ...job, matchChips: generateMatchChips(job, extractedProfile), matchScore: computeMatchScore(job, extractedProfile) })))
-    } catch { setError('Failed to fetch jobs. Please try again.') }
+    } catch { setError(t.smartApply.results.failedFetch) }
     setLoading(false)
   }
 
@@ -345,7 +351,7 @@ function SmartJobSearchPage() {
             <div style={{ fontSize: 14, fontWeight: 700, color: '#042C53', flex: 1, marginRight: 8 }}>{job.job_title}</div>
             {job.matchScore !== undefined && (
               <div style={{ fontSize: 11, padding: '3px 9px', borderRadius: 10, fontWeight: 700, flexShrink: 0, background: job.matchScore >= 60 ? '#f0fbf6' : job.matchScore >= 30 ? '#fffbeb' : '#f5f7fa', color: job.matchScore >= 60 ? '#1D9E75' : job.matchScore >= 30 ? '#92400e' : '#6b7c93', border: `1px solid ${job.matchScore >= 60 ? '#b6ecd8' : job.matchScore >= 30 ? '#fcd98a' : '#edf1f6'}` }}>
-                {job.matchScore}% match
+                {t.smartApply.results.matchPercent(job.matchScore!)}
               </div>
             )}
           </div>
@@ -361,7 +367,7 @@ function SmartJobSearchPage() {
             disabled={!cvText}
             style={{ fontSize: 11, padding: '5px 12px', borderRadius: 7, border: 'none', background: cvText ? 'linear-gradient(135deg, #042C53, #185FA5)' : '#e8ecf1', color: cvText ? '#fff' : '#8fa3b8', cursor: cvText ? 'pointer' : 'not-allowed', fontFamily: 'inherit', fontWeight: 600 }}
           >
-            Build CV
+            {t.smartApply.results.buildCv}
           </button>
           {/* Cover Letter -- saves job + navigates to Cover Letter Builder */}
           <button
@@ -369,10 +375,10 @@ function SmartJobSearchPage() {
             disabled={!cvText}
             style={{ fontSize: 11, padding: '5px 12px', borderRadius: 7, border: '1px solid #dce4ef', background: '#fff', color: cvText ? '#185FA5' : '#8fa3b8', cursor: cvText ? 'pointer' : 'not-allowed', fontFamily: 'inherit', fontWeight: 500 }}
           >
-            Cover Letter
+            {t.smartApply.results.coverLetter}
           </button>
           <button onClick={() => toggleLogged(job.job_id)} style={{ fontSize: 11, padding: '5px 12px', borderRadius: 7, border: `1px solid ${isLogged ? '#b6ecd8' : '#dce4ef'}`, background: isLogged ? '#f0fbf6' : '#fff', color: isLogged ? '#1D9E75' : '#6b7c93', cursor: 'pointer', fontFamily: 'inherit', fontWeight: 500 }}>
-            {isLogged ? '\u2713 Applied' : 'Log applied'}
+            {isLogged ? t.smartApply.results.applied : t.smartApply.results.logApplied}
           </button>
           <a href={job.job_apply_link} target="_blank" rel="noopener noreferrer" style={{ fontSize: 11, padding: '5px 12px', borderRadius: 7, border: '1px solid #dce4ef', background: '#fff', color: '#6b7c93', textDecoration: 'none', fontFamily: 'inherit', fontWeight: 500, marginLeft: 'auto' }}>
             View job
@@ -385,14 +391,14 @@ function SmartJobSearchPage() {
   function RightPanel() {
     if (!selectedJob) {
       const tips = [
-        { color: '#1D9E75', borderLabel: 'Green border', chipLabel: 'Strong match', desc: 'High skill overlap with your profile. Apply first.' },
-        { color: '#F59E0B', borderLabel: 'Amber border', chipLabel: 'Partial match', desc: 'Some overlap — worth reviewing.' },
-        { color: '#edf1f6', borderLabel: 'No border', chipLabel: 'Keyword match', desc: 'Matched your role query — may still be a fit.' },
+        { color: '#1D9E75', borderLabel: 'Green border', chipLabel: t.smartApply.results.strongMatch, desc: t.smartApply.results.strongMatchDesc },
+        { color: '#F59E0B', borderLabel: 'Amber border', chipLabel: t.smartApply.results.partialMatch, desc: t.smartApply.results.partialMatchDesc },
+        { color: '#edf1f6', borderLabel: 'No border', chipLabel: t.smartApply.results.keywordMatch, desc: t.smartApply.results.keywordMatchDesc },
       ]
       const actions = [
-        { icon: '📄', label: 'Build CV', desc: 'AI-tailors your CV for the exact job posting', cost: '1 credit', enabled: !!cvText },
-        { icon: '✉️', label: 'Cover Letter', desc: 'Writes a personalised letter in your tone', cost: '1 credit', enabled: !!cvText },
-        { icon: '⚡', label: 'Auto Apply', desc: 'AI fills the whole application form for you', cost: '3 credits', enabled: false },
+        { icon: '📄', label: t.smartApply.results.buildCv, desc: t.smartApply.results.buildCvDesc, cost: '1 credit', enabled: !!cvText },
+        { icon: '✉️', label: t.smartApply.results.coverLetter, desc: t.smartApply.results.coverLetterDesc, cost: '1 credit', enabled: !!cvText },
+        { icon: '⚡', label: t.smartApply.results.autoApply, desc: t.smartApply.results.autoApplyDesc, cost: '3 credits', enabled: false },
       ]
       return (
         <div className="jl-right-panel-empty" style={{ background: '#fff', border: '1.5px solid #edf1f6', borderRadius: 16, overflow: 'hidden', boxShadow: '0 4px 24px rgba(4,44,83,0.06)' }}>
@@ -404,10 +410,10 @@ function SmartJobSearchPage() {
               </div>
               <div>
                 <div style={{ fontSize: 15, fontWeight: 700, color: '#fff', fontFamily: "'Outfit', sans-serif" }}>
-                  {jobs.length > 0 ? 'Select a job to get started' : 'Your workspace'}
+                  {jobs.length > 0 ? t.smartApply.results.selectJob : t.smartApply.results.yourWorkspace}
                 </div>
                 <div style={{ fontSize: 12, color: '#85B7EB', marginTop: 2 }}>
-                  {jobs.length > 0 ? `${jobs.length} matched positions ready` : 'Run a search to see matching jobs'}
+                  {jobs.length > 0 ? t.smartApply.results.jobsReady(jobs.length) : t.smartApply.results.runSearch}
                 </div>
               </div>
             </div>
@@ -417,7 +423,7 @@ function SmartJobSearchPage() {
             {/* Border guide */}
             {jobs.length > 0 && (
               <div>
-                <div style={{ fontSize: 10, fontWeight: 700, color: '#8fa3b8', letterSpacing: 0.8, textTransform: 'uppercase' as const, marginBottom: 10 }}>Reading match quality</div>
+                <div style={{ fontSize: 10, fontWeight: 700, color: '#8fa3b8', letterSpacing: 0.8, textTransform: 'uppercase' as const, marginBottom: 10 }}>{t.smartApply.results.readingMatch}</div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
                   {tips.map(t => (
                     <div key={t.borderLabel} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
@@ -434,7 +440,7 @@ function SmartJobSearchPage() {
 
             {/* What you can do per job */}
             <div>
-              <div style={{ fontSize: 10, fontWeight: 700, color: '#8fa3b8', letterSpacing: 0.8, textTransform: 'uppercase' as const, marginBottom: 10 }}>What you can do per job</div>
+              <div style={{ fontSize: 10, fontWeight: 700, color: '#8fa3b8', letterSpacing: 0.8, textTransform: 'uppercase' as const, marginBottom: 10 }}>{t.smartApply.results.whatYouCanDo}</div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                 {actions.map(a => (
                   <div key={a.label} style={{ display: 'flex', alignItems: 'flex-start', gap: 10, padding: '10px 12px', borderRadius: 10, background: a.enabled ? '#fafbfd' : '#fafbfd', border: `1px solid ${a.enabled ? '#edf1f6' : '#edf1f6'}`, opacity: a.enabled || a.label === 'Auto Apply' ? 1 : 0.6 }}>
@@ -454,7 +460,7 @@ function SmartJobSearchPage() {
             {/* CV hint if not uploaded */}
             {!cvText && (
               <div style={{ padding: '10px 14px', borderRadius: 10, background: '#fffbeb', border: '1px solid #fcd98a', fontSize: 12, color: '#92400e', lineHeight: 1.55 }}>
-                <strong>Tip:</strong> Upload your CV in the sidebar to enable AI-tailored CV & cover letter generation, and to see skill-match scores on job cards.
+                {t.smartApply.results.cvTip}
               </div>
             )}
           </div>
@@ -464,9 +470,9 @@ function SmartJobSearchPage() {
 
     const salary = formatSalary(selectedJob)
     const tabs = [
-      { key: 'description' as RightTab, label: 'Job Details' },
-      { key: 'cv' as RightTab, label: 'Build CV' },
-      { key: 'cl' as RightTab, label: 'Cover Letter' },
+      { key: 'description' as RightTab, label: t.smartApply.results.jobDetails },
+      { key: 'cv' as RightTab, label: t.smartApply.results.buildCv },
+      { key: 'cl' as RightTab, label: t.smartApply.results.coverLetter },
     ]
 
     return (
@@ -478,7 +484,7 @@ function SmartJobSearchPage() {
               <div style={{ fontSize: 16, fontWeight: 700, color: '#fff', fontFamily: "'Outfit', sans-serif" }}>{selectedJob.job_title}</div>
               {selectedJob.matchScore !== undefined && (
                 <div style={{ fontSize: 12, padding: '4px 10px', borderRadius: 10, fontWeight: 700, flexShrink: 0, background: selectedJob.matchScore >= 60 ? 'rgba(29,158,117,0.25)' : selectedJob.matchScore >= 30 ? 'rgba(245,158,11,0.25)' : 'rgba(255,255,255,0.12)', color: selectedJob.matchScore >= 60 ? '#4ade80' : selectedJob.matchScore >= 30 ? '#fcd34d' : 'rgba(255,255,255,0.6)', border: `1px solid ${selectedJob.matchScore >= 60 ? 'rgba(74,222,128,0.4)' : selectedJob.matchScore >= 30 ? 'rgba(245,158,11,0.4)' : 'rgba(255,255,255,0.2)'}` }}>
-                  {selectedJob.matchScore}% skill match
+                  {t.smartApply.results.skillMatch(selectedJob.matchScore!)}
                 </div>
               )}
             </div>
@@ -497,7 +503,7 @@ function SmartJobSearchPage() {
           )}
           {!cvText && (
             <div style={{ fontSize: 11, color: '#fbbf24', marginTop: 10, padding: '5px 10px', background: 'rgba(251,191,36,0.15)', borderRadius: 6, display: 'inline-block', border: '1px solid rgba(251,191,36,0.3)' }}>
-              &#9888; Upload CV to enable AI tailoring
+              {t.smartApply.results.uploadCvToEnable}
             </div>
           )}
         </div>
@@ -522,17 +528,17 @@ function SmartJobSearchPage() {
                 {salary && <span style={{ fontSize: 12, background: '#f0fbf6', color: '#1D9E75', padding: '4px 10px', borderRadius: 8, fontWeight: 600 }}>{salary}</span>}
                 {selectedJob.job_posted_at_datetime_utc && <span style={{ fontSize: 12, background: '#f0f4f8', color: '#6b7c93', padding: '4px 10px', borderRadius: 8 }}>{formatPostedDate(selectedJob.job_posted_at_datetime_utc)}</span>}
               </div>
-              <div style={{ fontSize: 12, fontWeight: 700, color: '#042C53', marginBottom: 10, textTransform: 'uppercase' as const, letterSpacing: 0.5 }}>Description</div>
+              <div style={{ fontSize: 12, fontWeight: 700, color: '#042C53', marginBottom: 10, textTransform: 'uppercase' as const, letterSpacing: 0.5 }}>{t.smartApply.results.description}</div>
               <div style={{ fontSize: 13, color: '#374151', lineHeight: 1.8, whiteSpace: 'pre-line' }}>
                 {selectedJob.job_description?.slice(0, 1400)}
                 {(selectedJob.job_description?.length ?? 0) > 1400 && <span style={{ color: '#8fa3b8' }}>...</span>}
               </div>
               <div style={{ marginTop: 16, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                 <a href={selectedJob.job_apply_link} target="_blank" rel="noopener noreferrer" style={{ fontSize: 13, padding: '9px 20px', borderRadius: 8, background: 'linear-gradient(135deg, #042C53, #185FA5)', color: '#E6F1FB', textDecoration: 'none', fontWeight: 700, fontFamily: "'Outfit', sans-serif" }}>
-                  View Full Posting &amp; Apply &rarr;
+                  {t.smartApply.results.viewPosting}
                 </a>
                 <button onClick={() => toggleLogged(selectedJob.job_id)} style={{ fontSize: 13, padding: '9px 16px', borderRadius: 8, border: `1px solid ${loggedJobs.has(selectedJob.job_id) ? '#b6ecd8' : '#dce4ef'}`, background: loggedJobs.has(selectedJob.job_id) ? '#f0fbf6' : '#fff', color: loggedJobs.has(selectedJob.job_id) ? '#1D9E75' : '#6b7c93', cursor: 'pointer', fontFamily: 'inherit', fontWeight: 500 }}>
-                  {loggedJobs.has(selectedJob.job_id) ? '\u2713 Applied' : 'Log applied'}
+                  {loggedJobs.has(selectedJob.job_id) ? t.smartApply.results.applied : t.smartApply.results.logApplied}
                 </button>
               </div>
             </div>
@@ -543,19 +549,19 @@ function SmartJobSearchPage() {
             <div style={{ textAlign: 'center', padding: '48px 24px' }}>
               <div style={{ width: 60, height: 60, borderRadius: '50%', background: 'linear-gradient(135deg, #E6F1FB, #dbeafe)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 26, margin: '0 auto 16px' }}>&#128196;</div>
               <div style={{ fontSize: 15, fontWeight: 700, color: '#1a2332', fontFamily: "'Outfit', sans-serif", marginBottom: 8 }}>
-                {cvText ? `Tailor your CV for ${selectedJob.employer_name}` : 'No CV uploaded yet'}
+                {cvText ? t.smartApply.results.tailor(selectedJob.employer_name) : t.smartApply.results.noCvYet}
               </div>
               <div style={{ fontSize: 13, color: '#8fa3b8', lineHeight: 1.7, marginBottom: 24, maxWidth: 280, margin: '0 auto 24px' }}>
                 {cvText
-                  ? 'Open the CV Builder to choose a template, tone, language and generate a tailored CV with full download options.'
-                  : 'Upload your CV in the left sidebar first, then come back to build a tailored version.'}
+                  ? t.smartApply.results.cvBuilderDesc
+                  : t.smartApply.results.uploadCvFirst}
               </div>
               {cvText && (
                 <button
                   onClick={() => openCvBuilder(selectedJob)}
                   style={{ padding: '11px 28px', borderRadius: 10, background: 'linear-gradient(135deg, #042C53, #185FA5)', color: '#fff', border: 'none', cursor: 'pointer', fontFamily: "'Outfit', sans-serif", fontSize: 14, fontWeight: 700 }}
                 >
-                  Open CV Builder &rarr;
+                  {t.smartApply.results.openCvBuilder}
                 </button>
               )}
             </div>
@@ -566,19 +572,19 @@ function SmartJobSearchPage() {
             <div style={{ textAlign: 'center', padding: '48px 24px' }}>
               <div style={{ width: 60, height: 60, borderRadius: '50%', background: 'linear-gradient(135deg, #FFF8EC, #fef3c7)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 26, margin: '0 auto 16px' }}>&#9997;</div>
               <div style={{ fontSize: 15, fontWeight: 700, color: '#1a2332', fontFamily: "'Outfit', sans-serif", marginBottom: 8 }}>
-                {cvText ? `Write a cover letter for ${selectedJob.employer_name}` : 'No CV uploaded yet'}
+                {cvText ? t.smartApply.results.writeCoverLetter(selectedJob.employer_name) : t.smartApply.results.noCvYet}
               </div>
               <div style={{ fontSize: 13, color: '#8fa3b8', lineHeight: 1.7, marginBottom: 24, maxWidth: 280, margin: '0 auto 24px' }}>
                 {cvText
-                  ? 'Open the Cover Letter Builder to set your tone, language and length, then generate and download a personalised letter.'
-                  : 'Upload your CV in the left sidebar first, then come back to write your cover letter.'}
+                  ? t.smartApply.results.coverLetterDesc2
+                  : t.smartApply.results.uploadCvFirst}
               </div>
               {cvText && (
                 <button
                   onClick={() => openCoverLetter(selectedJob)}
                   style={{ padding: '11px 28px', borderRadius: 10, background: 'linear-gradient(135deg, #042C53, #185FA5)', color: '#fff', border: 'none', cursor: 'pointer', fontFamily: "'Outfit', sans-serif", fontSize: 14, fontWeight: 700 }}
                 >
-                  Open Cover Letter Builder &rarr;
+                  {t.smartApply.results.openCoverLetter}
                 </button>
               )}
             </div>
@@ -592,29 +598,29 @@ function SmartJobSearchPage() {
   const Sidebar = (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
       <div style={{ textAlign: 'center', paddingBottom: 16, borderBottom: '1px solid rgba(255,255,255,0.15)' }}>
-        <div style={{ fontSize: 18, fontWeight: 700, color: '#fff', fontFamily: "'Outfit', sans-serif" }}>Smart Job Search</div>
-        <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.6)', marginTop: 3 }}>AI-powered job matching</div>
+        <div style={{ fontSize: 18, fontWeight: 700, color: '#fff', fontFamily: "'Outfit', sans-serif" }}>{t.smartApply.sidebar.title}</div>
+        <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.6)', marginTop: 3 }}>{t.smartApply.sidebar.subtitle}</div>
       </div>
 
       {carriedOver && (
         <div style={{ background: 'rgba(74,222,128,0.15)', border: '1px solid rgba(74,222,128,0.3)', borderRadius: 8, padding: '8px 12px', fontSize: 12, color: '#4ade80', fontWeight: 500 }}>
-          &#10003; CV carried over from Career Scan
+          {t.smartApply.sidebar.carriedOver}
         </div>
       )}
 
-      <UploadBox label="LinkedIn PDF" sublabel="Export from LinkedIn, Save to PDF" fileName={linkedinFileName} inputRef={linkedinRef} onFile={handleLinkedinFile} onClear={clearLinkedinFile} accept=".pdf" />
-      <UploadBox label="CV / Resume" sublabel="PDF, DOCX or TXT" fileName={cvFileName} inputRef={cvRef} onFile={handleCvFile} onClear={clearCvFile} accept=".pdf,.txt,.doc,.docx" />
+      <UploadBox label={t.smartApply.sidebar.linkedinLabel} sublabel={t.smartApply.sidebar.linkedinSub} fileName={linkedinFileName} inputRef={linkedinRef} onFile={handleLinkedinFile} onClear={clearLinkedinFile} accept=".pdf" />
+      <UploadBox label={t.smartApply.sidebar.cvLabel} sublabel={t.smartApply.sidebar.cvSub} fileName={cvFileName} inputRef={cvRef} onFile={handleCvFile} onClear={clearCvFile} accept=".pdf,.txt,.doc,.docx" />
 
       <div style={{ height: 1, background: 'rgba(255,255,255,0.1)' }} />
 
       <div>
-        {secLabel('Target Role')}
-        <input value={targetRole} onChange={e => setTargetRole(e.target.value)} placeholder={hasProfile ? 'Optional - AI suggests from profile' : 'e.g. Product Owner, SAP CX'} onKeyDown={e => e.key === 'Enter' && handleFindJobs()} style={inp} />
-        {hasProfile && !targetRole && <div style={{ fontSize: 11, color: '#4ade80', marginTop: 4 }}>AI will extract best role from your profile</div>}
+        {secLabel(t.smartApply.sidebar.targetRoleLabel)}
+        <input value={targetRole} onChange={e => setTargetRole(e.target.value)} placeholder={hasProfile ? t.smartApply.sidebar.targetRolePlaceholderWithProfile : t.smartApply.sidebar.targetRolePlaceholder} onKeyDown={e => e.key === 'Enter' && handleFindJobs()} style={inp} />
+        {hasProfile && !targetRole && <div style={{ fontSize: 11, color: '#4ade80', marginTop: 4 }}>{t.smartApply.sidebar.aiWillExtract}</div>}
       </div>
 
       <div>
-        {secLabel('Job Type')}
+        {secLabel(t.smartApply.sidebar.jobTypeLabel)}
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
           {JOB_TYPE_OPTIONS.map(t => (
             <button key={t} onClick={() => toggleJobType(t)} style={{ fontSize: 12, padding: '5px 12px', borderRadius: 20, border: `1px solid ${jobTypes.includes(t) ? 'rgba(55,138,221,0.5)' : 'rgba(255,255,255,0.2)'}`, background: jobTypes.includes(t) ? 'rgba(55,138,221,0.3)' : 'rgba(255,255,255,0.05)', color: jobTypes.includes(t) ? '#fff' : 'rgba(255,255,255,0.6)', cursor: 'pointer', fontFamily: 'inherit', fontWeight: jobTypes.includes(t) ? 700 : 400, transition: 'all 0.15s' }}>
@@ -625,36 +631,36 @@ function SmartJobSearchPage() {
       </div>
 
       <div>
-        {secLabel('Experience')}
+        {secLabel(t.smartApply.sidebar.experienceLabel)}
         <select value={experience} onChange={e => setExperience(e.target.value)} style={inp}>
           {EXPERIENCE_OPTIONS.map(o => <option key={o}>{o}</option>)}
         </select>
       </div>
 
       <div>
-        {secLabel('Location')}
-        <input value={location} onChange={e => setLocation(e.target.value)} placeholder="City or leave blank for all" style={inp} />
+        {secLabel(t.smartApply.sidebar.locationLabel)}
+        <input value={location} onChange={e => setLocation(e.target.value)} placeholder={t.smartApply.sidebar.locationPlaceholder} style={inp} />
       </div>
 
       <div>
-        {secLabel('Country')}
+        {secLabel(t.smartApply.sidebar.countryLabel)}
         <select value={country} onChange={e => setCountry(e.target.value)} style={inp}>
-          <option value="de">Germany</option>
-          <option value="ch">Switzerland</option>
-          <option value="at">Austria</option>
-          <option value="gb">United Kingdom</option>
-          <option value="us">United States</option>
+          <option value="de">{t.smartApply.sidebar.countries.de}</option>
+          <option value="ch">{t.smartApply.sidebar.countries.ch}</option>
+          <option value="at">{t.smartApply.sidebar.countries.at}</option>
+          <option value="gb">{t.smartApply.sidebar.countries.gb}</option>
+          <option value="us">{t.smartApply.sidebar.countries.us}</option>
         </select>
       </div>
 
       <div>
-        {secLabel('Posted Within')}
+        {secLabel(t.smartApply.sidebar.postedWithinLabel)}
         <select value={daysOld} onChange={e => setDaysOld(e.target.value)} style={inp}>
-          <option value="">Any time</option>
-          <option value="1">Today</option>
-          <option value="7">This week</option>
-          <option value="14">Last 2 weeks</option>
-          <option value="30">Last month</option>
+          <option value="">{t.smartApply.sidebar.postedOptions.any}</option>
+          <option value="1">{t.smartApply.sidebar.postedOptions.today}</option>
+          <option value="7">{t.smartApply.sidebar.postedOptions.week}</option>
+          <option value="14">{t.smartApply.sidebar.postedOptions.twoWeeks}</option>
+          <option value="30">{t.smartApply.sidebar.postedOptions.month}</option>
         </select>
       </div>
 
@@ -662,7 +668,7 @@ function SmartJobSearchPage() {
 
       {(cvText || linkedinText || jobs.length > 0) && (
         <button onClick={resetAll} style={{ width: '100%', padding: 9, borderRadius: 10, border: '1px solid rgba(255,255,255,0.2)', background: 'rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.7)', fontFamily: "'Outfit', sans-serif", fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
-          Reset Everything
+          {t.smartApply.sidebar.resetBtn}
         </button>
       )}
 
@@ -671,12 +677,12 @@ function SmartJobSearchPage() {
         onClick={handleFindJobs}
         style={{ width: '100%', padding: 12, borderRadius: 10, border: 'none', background: (targetRole.trim() || hasProfile) && !analysing && !loading ? 'linear-gradient(135deg, #378ADD, #1D9E75)' : 'rgba(255,255,255,0.1)', color: (targetRole.trim() || hasProfile) && !analysing && !loading ? '#fff' : 'rgba(255,255,255,0.4)', fontFamily: "'Outfit', sans-serif", fontSize: 14, fontWeight: 700, cursor: (targetRole.trim() || hasProfile) && !analysing && !loading ? 'pointer' : 'not-allowed', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, boxShadow: (targetRole.trim() || hasProfile) ? '0 4px 16px rgba(55,138,221,0.3)' : 'none', transition: 'all 0.2s' }}
       >
-        {analysing ? 'Analysing Profile...' : loading ? 'Searching Jobs...' : hasProfile ? 'Analyze & Find Jobs' : 'Find Matching Jobs'}
+        {analysing ? t.smartApply.sidebar.analysingBtn : loading ? t.smartApply.sidebar.searchingBtn : hasProfile ? t.smartApply.sidebar.analyseBtn : t.smartApply.sidebar.searchBtn}
       </button>
 
       {jobs.length > 0 && !loading && (
         <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.6)', textAlign: 'center' }}>
-          <span style={{ fontWeight: 700, color: '#4ade80' }}>{jobs.length}</span> jobs found
+          {t.smartApply.sidebar.jobsFound(jobs.length)}
         </div>
       )}
     </div>
@@ -710,17 +716,17 @@ function SmartJobSearchPage() {
         <div style={{ flex: 1, minWidth: 0, overflowY: 'auto' }}>
           <div className="jl-mbtn" style={{ padding: '10px 16px', background: '#fff', borderBottom: '1px solid #edf1f6', display: 'flex', gap: 10, alignItems: 'center' }}>
             <button onClick={() => setMobOpen(o => !o)} style={{ background: '#152233', color: '#E6F1FB', border: 'none', borderRadius: 8, padding: '8px 16px', fontSize: 13, cursor: 'pointer', fontFamily: 'inherit' }}>
-              {mobOpen ? 'Close' : 'Search Settings'}
+              {mobOpen ? t.smartApply.sidebar.mobClose : t.smartApply.sidebar.mobOpen}
             </button>
-            {jobs.length > 0 && <span style={{ fontSize: 12, color: '#6b7c93' }}>{jobs.length} jobs found</span>}
+            {jobs.length > 0 && <span style={{ fontSize: 12, color: '#6b7c93' }}>{t.smartApply.sidebar.jobsFound(jobs.length)}</span>}
           </div>
           {mobOpen && <div style={{ background: 'linear-gradient(180deg, #152233 0%, #0e1a28 100%)', borderBottom: '1px solid #edf1f6', padding: 16 }}>{Sidebar}</div>}
 
           <div style={{ padding: 20 }}>
             {jobs.length > 0 && !loading && (
               <div style={{ marginBottom: 16 }}>
-                <div style={{ fontSize: 20, fontWeight: 700, color: '#042C53', fontFamily: "'Outfit', sans-serif" }}>Matching Jobs &mdash; {usedQuery}</div>
-                <div style={{ fontSize: 12, color: '#8fa3b8', marginTop: 2 }}>{jobs.length} live positions found</div>
+                <div style={{ fontSize: 20, fontWeight: 700, color: '#042C53', fontFamily: "'Outfit', sans-serif" }}>{t.smartApply.results.matchingJobs} {usedQuery}</div>
+                <div style={{ fontSize: 12, color: '#8fa3b8', marginTop: 2 }}>{t.smartApply.results.positionsFound(jobs.length)}</div>
               </div>
             )}
 
@@ -728,7 +734,7 @@ function SmartJobSearchPage() {
             {profile && (
               <div style={{ background: '#EEF6FF', border: '1px solid #C3DDF7', borderRadius: 10, padding: '12px 16px', marginBottom: 16 }}>
                 <div style={{ fontSize: 11, fontWeight: 700, color: '#185FA5', marginBottom: 6, textTransform: 'uppercase' as const, letterSpacing: 0.5 }}>
-                  Profile detected — searching for: <span style={{ fontFamily: "'Outfit', sans-serif", fontSize: 13 }}>{profile.suggestedQuery}</span>
+                  {t.smartApply.results.profileDetected} <span style={{ fontFamily: "'Outfit', sans-serif", fontSize: 13 }}>{profile.suggestedQuery}</span>
                 </div>
                 {profile.skills.length > 0 && (
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5, marginTop: 6 }}>
@@ -742,14 +748,14 @@ function SmartJobSearchPage() {
 
             {!loading && !analysing && jobs.length === 0 && !error && (
               <div style={{ maxWidth: 560, margin: '48px auto 0', padding: '0 20px' }}>
-                <div style={{ fontFamily: "'Outfit', sans-serif", fontSize: 18, fontWeight: 700, color: '#042C53', marginBottom: 6 }}>How Smart Job Search works</div>
-                <div style={{ fontSize: 13, color: '#8fa3b8', marginBottom: 28, lineHeight: 1.6 }}>Upload your CV and target role — AI does the rest.</div>
+                <div style={{ fontFamily: "'Outfit', sans-serif", fontSize: 18, fontWeight: 700, color: '#042C53', marginBottom: 6 }}>{t.smartApply.results.howItWorks}</div>
+                <div style={{ fontSize: 13, color: '#8fa3b8', marginBottom: 28, lineHeight: 1.6 }}>{t.smartApply.results.howItWorksSub}</div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                   {[
-                    { step: '01', icon: '📄', title: hasProfile ? 'CV loaded' : 'Upload your CV', desc: hasProfile ? 'Profile ready to analyse.' : 'Drop your PDF, DOCX or paste CV text in the sidebar.', done: hasProfile },
-                    { step: '02', icon: '🎯', title: targetRole ? `Searching for: ${targetRole}` : 'Enter a target role', desc: targetRole ? 'AI will use this as the primary search anchor.' : 'Type the job title you want in the sidebar. Optional with a CV.', done: !!targetRole },
-                    { step: '03', icon: '◎', title: 'AI analyses your profile', desc: 'Extracts skills, seniority, industries and builds the best search query.', done: false },
-                    { step: '04', icon: '✅', title: 'Live DACH jobs ranked by match', desc: 'Green border = strong match. Amber = partial. Click any job for details.', done: false },
+                    { step: '01', icon: '📄', title: hasProfile ? t.smartApply.steps.cvLoaded : t.smartApply.steps.uploadCv, desc: hasProfile ? t.smartApply.steps.cvLoadedDesc : t.smartApply.steps.uploadCvDesc, done: hasProfile },
+                    { step: '02', icon: '🎯', title: targetRole ? t.smartApply.steps.searchingFor(targetRole) : t.smartApply.steps.enterRole, desc: targetRole ? t.smartApply.steps.roleDesc : t.smartApply.steps.enterRoleDesc, done: !!targetRole },
+                    { step: '03', icon: '◎', title: t.smartApply.steps.aiAnalyses, desc: t.smartApply.steps.aiAnalysesDesc, done: false },
+                    { step: '04', icon: '✅', title: t.smartApply.steps.dachJobs, desc: t.smartApply.steps.dachJobsDesc, done: false },
                   ].map((s, i) => (
                     <div key={i} style={{ display: 'flex', gap: 14, padding: '14px 18px', borderRadius: 12, background: s.done ? '#f0fbf6' : '#fff', border: `1px solid ${s.done ? '#b6ecd8' : '#edf1f6'}`, alignItems: 'flex-start' }}>
                       <div style={{ width: 32, height: 32, borderRadius: '50%', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, background: s.done ? '#1D9E75' : '#f0f4f8', border: `2px solid ${s.done ? '#1D9E75' : '#edf1f6'}` }}>
@@ -774,15 +780,15 @@ function SmartJobSearchPage() {
             {analysing && (
               <div style={{ textAlign: 'center', padding: '80px 20px' }}>
                 <div style={{ width: 56, height: 56, borderRadius: '50%', border: '4px solid rgba(29,158,117,0.2)', borderTopColor: '#1D9E75', animation: 'spin 0.8s linear infinite', margin: '0 auto 16px' }} />
-                <div style={{ fontSize: 15, color: '#1D9E75', fontWeight: 600, fontFamily: "'Outfit', sans-serif" }}>Analysing your profile with AI...</div>
-                <div style={{ fontSize: 12, color: '#8fa3b8', marginTop: 6 }}>Extracting skills, titles and experience</div>
+                <div style={{ fontSize: 15, color: '#1D9E75', fontWeight: 600, fontFamily: "'Outfit', sans-serif" }}>{t.smartApply.results.analysingProfile}</div>
+                <div style={{ fontSize: 12, color: '#8fa3b8', marginTop: 6 }}>{t.smartApply.results.extractingSkills}</div>
               </div>
             )}
 
             {loading && !analysing && (
               <div style={{ textAlign: 'center', padding: '80px 20px' }}>
                 <div style={{ width: 56, height: 56, borderRadius: '50%', border: '4px solid rgba(55,138,221,0.2)', borderTopColor: '#378ADD', animation: 'spin 0.8s linear infinite', margin: '0 auto 16px' }} />
-                <div style={{ fontSize: 15, color: '#378ADD', fontWeight: 600, fontFamily: "'Outfit', sans-serif" }}>Searching live jobs...</div>
+                <div style={{ fontSize: 15, color: '#378ADD', fontWeight: 600, fontFamily: "'Outfit', sans-serif" }}>{t.smartApply.results.searchingLive}</div>
               </div>
             )}
 

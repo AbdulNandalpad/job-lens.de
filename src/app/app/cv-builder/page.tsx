@@ -4,6 +4,7 @@ import React, { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import Navbar from '../components/Navbar'
 import { useCredits } from '@/lib/useCredits'
+import { useLanguage } from '@/lib/i18n'
 
 type Template = 'executive' | 'modern' | 'minimal' | 'technical'
 type Tone = 'professional' | 'concise' | 'detailed'
@@ -664,6 +665,7 @@ function TechnicalTemplate({ cv }: { cv: CVData }) {
 
 export default function CVBuilderPage() {
   const router = useRouter()
+  const { t } = useLanguage()
   const previewRef = useRef<HTMLDivElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
@@ -1414,11 +1416,11 @@ ${job?.job_description ? `- Job context: ${job.job_description.slice(0, 800)}` :
               style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.4)', fontSize: 11, cursor: 'pointer', fontFamily: 'inherit', padding: 0, marginBottom: 14, display: 'flex', alignItems: 'center', gap: 4 }}>
               {'<'}- Back to Jobs
             </button>
-            <div style={{ fontSize: 18, fontWeight: 700, color: '#fff', fontFamily: "'Outfit', sans-serif" }}>CV Studio</div>
-            <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)', marginTop: 2 }}>Design your perfect CV</div>
+            <div style={{ fontSize: 18, fontWeight: 700, color: '#fff', fontFamily: "'Outfit', sans-serif" }}>{t.cvBuilder.sidebar.title}</div>
+            <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)', marginTop: 2 }}>{t.cvBuilder.sidebar.subtitle}</div>
             {jobLabel && (
               <div style={{ marginTop: 12, padding: '8px 10px', background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 8 }}>
-                <div style={{ fontSize: 9, color: currentAccent, fontWeight: 700, letterSpacing: 0.8, textTransform: 'uppercase', marginBottom: 3 }}>Tailoring for</div>
+                <div style={{ fontSize: 9, color: currentAccent, fontWeight: 700, letterSpacing: 0.8, textTransform: 'uppercase', marginBottom: 3 }}>{t.cvBuilder.sidebar.targetJobLabel}</div>
                 <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.8)', lineHeight: 1.4 }}>{jobLabel}</div>
               </div>
             )}
@@ -1432,12 +1434,12 @@ ${job?.job_description ? `- Job context: ${job.job_description.slice(0, 800)}` :
                 {fileLoading ? (
                   <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
                     <div style={{ width: 10, height: 10, borderRadius: '50%', border: '2px solid rgba(255,255,255,0.15)', borderTopColor: currentAccent, animation: 'spin 0.7s linear infinite' }} />
-                    Reading...
+                    {t.coverLetter.sidebar.reading}
                   </div>
                 ) : (
                   <>
                     <div style={{ fontSize: 20, marginBottom: 6 }}>📄</div>
-                    <div style={{ fontSize: 12, fontWeight: 600, color: 'rgba(255,255,255,0.7)' }}>Upload your CV</div>
+                    <div style={{ fontSize: 12, fontWeight: 600, color: 'rgba(255,255,255,0.7)' }}>{t.cvBuilder.sidebar.cvLabel}</div>
                     <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)', marginTop: 3 }}>PDF · DOCX · TXT</div>
                   </>
                 )}
@@ -1445,7 +1447,7 @@ ${job?.job_description ? `- Job context: ${job.job_description.slice(0, 800)}` :
             ) : (
               <div style={{ marginTop: 12, padding: '7px 10px', background: 'rgba(29,158,117,0.12)', border: '1px solid rgba(29,158,117,0.3)', borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6 }}>
                 <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.7)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' as const }}>
-                  ✓ {cvFileName || 'CV loaded'}
+                  {cvFileName ? `✓ ${cvFileName}` : t.coverLetter.sidebar.cvLoaded}
                 </span>
                 <button onClick={() => { setCvText(''); setCvFileName(''); if (fileInputRef.current) fileInputRef.current.value = '' }}
                   style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.35)', cursor: 'pointer', fontSize: 16, padding: 0, flexShrink: 0, lineHeight: 1 }}>×</button>
@@ -1464,7 +1466,7 @@ ${job?.job_description ? `- Job context: ${job.job_description.slice(0, 800)}` :
                   <div style={{ width: 22, height: 22, borderRadius: 6, background: openSections.template ? currentAccent + '25' : 'rgba(255,255,255,0.07)', display: 'flex', alignItems: 'center', justifyContent: 'center', border: `1px solid ${openSections.template ? currentAccent + '40' : 'rgba(255,255,255,0.1)'}` }}>
                     <span style={{ fontSize: 9, fontWeight: 700, color: openSections.template ? currentAccent : 'rgba(255,255,255,0.4)', fontFamily: 'monospace' }}>01</span>
                   </div>
-                  <span style={{ fontSize: 13, fontWeight: 600, color: openSections.template ? '#fff' : 'rgba(255,255,255,0.55)' }}>Template</span>
+                  <span style={{ fontSize: 13, fontWeight: 600, color: openSections.template ? '#fff' : 'rgba(255,255,255,0.55)' }}>{t.cvBuilder.sidebar.templateLabel}</span>
                   {template && <span style={{ fontSize: 10, color: currentAccent, fontWeight: 600 }}>{templates.find(t => t.id === template)?.label}</span>}
                 </div>
                 <span style={{ fontSize: 14, color: 'rgba(255,255,255,0.3)', transform: openSections.template ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s', display: 'inline-block' }}>v</span>
@@ -1529,7 +1531,7 @@ ${job?.job_description ? `- Job context: ${job.job_description.slice(0, 800)}` :
                   <div style={{ width: 22, height: 22, borderRadius: 6, background: openSections.style ? currentAccent + '25' : 'rgba(255,255,255,0.07)', display: 'flex', alignItems: 'center', justifyContent: 'center', border: `1px solid ${openSections.style ? currentAccent + '40' : 'rgba(255,255,255,0.1)'}` }}>
                     <span style={{ fontSize: 9, fontWeight: 700, color: openSections.style ? currentAccent : 'rgba(255,255,255,0.4)', fontFamily: 'monospace' }}>02</span>
                   </div>
-                  <span style={{ fontSize: 13, fontWeight: 600, color: openSections.style ? '#fff' : 'rgba(255,255,255,0.55)' }}>Style & Format</span>
+                  <span style={{ fontSize: 13, fontWeight: 600, color: openSections.style ? '#fff' : 'rgba(255,255,255,0.55)' }}>{t.cvBuilder.sidebar.toneLabel} & {t.cvBuilder.sidebar.languageLabel}</span>
                 </div>
                 <span style={{ fontSize: 14, color: 'rgba(255,255,255,0.3)', transform: openSections.style ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s', display: 'inline-block' }}>v</span>
               </button>
@@ -1538,12 +1540,12 @@ ${job?.job_description ? `- Job context: ${job.job_description.slice(0, 800)}` :
 
                   {/* Language */}
                   <div>
-                    <div style={{ fontSize: 10, fontWeight: 600, color: 'rgba(255,255,255,0.4)', letterSpacing: 0.5, textTransform: 'uppercase', marginBottom: 8 }}>Language</div>
+                    <div style={{ fontSize: 10, fontWeight: 600, color: 'rgba(255,255,255,0.4)', letterSpacing: 0.5, textTransform: 'uppercase', marginBottom: 8 }}>{t.cvBuilder.sidebar.languageLabel}</div>
                     <div style={{ display: 'flex', gap: 6 }}>
                       {(['EN', 'DE'] as Lang[]).map(l => (
                         <button key={l} onClick={() => setLang(l)}
                           style={{ flex: 1, padding: '8px 0', borderRadius: 8, border: `1px solid ${lang === l ? currentAccent : 'rgba(255,255,255,0.1)'}`, background: lang === l ? currentAccent + '20' : 'rgba(255,255,255,0.04)', color: lang === l ? '#fff' : 'rgba(255,255,255,0.45)', fontSize: 12, fontWeight: lang === l ? 700 : 400, cursor: 'pointer', fontFamily: 'inherit', transition: 'all 0.15s' }}>
-                          {l === 'EN' ? 'English' : 'Deutsch'}
+                          {l === 'EN' ? t.coverLetter.preview.english : t.coverLetter.preview.deutsch}
                         </button>
                       ))}
                     </div>
@@ -1551,7 +1553,7 @@ ${job?.job_description ? `- Job context: ${job.job_description.slice(0, 800)}` :
 
                   {/* Tone */}
                   <div>
-                    <div style={{ fontSize: 10, fontWeight: 600, color: 'rgba(255,255,255,0.4)', letterSpacing: 0.5, textTransform: 'uppercase', marginBottom: 8 }}>Tone</div>
+                    <div style={{ fontSize: 10, fontWeight: 600, color: 'rgba(255,255,255,0.4)', letterSpacing: 0.5, textTransform: 'uppercase', marginBottom: 8 }}>{t.cvBuilder.sidebar.toneLabel}</div>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
                       {tones.map(t => (
                         <div key={t.id} onClick={() => setTone(t.id)}
@@ -1568,7 +1570,7 @@ ${job?.job_description ? `- Job context: ${job.job_description.slice(0, 800)}` :
 
                   {/* Length */}
                   <div>
-                    <div style={{ fontSize: 10, fontWeight: 600, color: 'rgba(255,255,255,0.4)', letterSpacing: 0.5, textTransform: 'uppercase', marginBottom: 8 }}>Length</div>
+                    <div style={{ fontSize: 10, fontWeight: 600, color: 'rgba(255,255,255,0.4)', letterSpacing: 0.5, textTransform: 'uppercase', marginBottom: 8 }}>{t.cvBuilder.sidebar.pagesLabel}</div>
                     <div style={{ display: 'flex', gap: 6 }}>
                       {(['1', '2'] as Pages[]).map(p => (
                         <button key={p} onClick={() => setPages(p)}
@@ -1588,16 +1590,16 @@ ${job?.job_description ? `- Job context: ${job.job_description.slice(0, 800)}` :
           <div style={{ padding: '14px 16px', borderTop: '1px solid rgba(255,255,255,0.08)', flexShrink: 0 }}>
             {credits !== null && credits <= 2 && (
               <div style={{ background: 'rgba(245,158,11,0.15)', border: '1px solid rgba(245,158,11,0.4)', borderRadius: 8, padding: '7px 10px', fontSize: 11, color: '#fcd34d', marginBottom: 8, lineHeight: 1.5 }}>
-                {credits === 0 ? 'No credits left. Top up on Account page.' : `${credits} credit${credits === 1 ? '' : 's'} remaining.`}
+                {credits === 0 ? t.cvBuilder.sidebar.noCredits : t.cvBuilder.sidebar.lowCredits(credits!)}
               </div>
             )}
             <button className="cvb-gen" onClick={generate} disabled={loading || !cvText.trim() || (credits !== null && credits < CV_COST)}
               style={{ width: '100%', padding: '12px 0', borderRadius: 10, border: 'none', background: loading || !cvText.trim() || (credits !== null && credits < CV_COST) ? 'rgba(255,255,255,0.08)' : `linear-gradient(135deg, ${currentAccent}, ${currentAccent}BB)`, color: loading || !cvText.trim() || (credits !== null && credits < CV_COST) ? 'rgba(255,255,255,0.25)' : '#042C53', fontFamily: "'Outfit', sans-serif", fontSize: 13, fontWeight: 700, cursor: loading || !cvText.trim() || (credits !== null && credits < CV_COST) ? 'not-allowed' : 'pointer', transition: 'all 0.2s', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
               {loading
-                ? <><div style={{ width: 14, height: 14, borderRadius: '50%', border: '2px solid rgba(255,255,255,0.15)', borderTopColor: 'rgba(255,255,255,0.6)', animation: 'spin 0.7s linear infinite' }} /> Generating...</>
+                ? <><div style={{ width: 14, height: 14, borderRadius: '50%', border: '2px solid rgba(255,255,255,0.15)', borderTopColor: 'rgba(255,255,255,0.6)', animation: 'spin 0.7s linear infinite' }} /> {t.coverLetter.sidebar.writing}</>
                 : credits !== null && credits < CV_COST
-                ? `Need ${CV_COST} credit — you have ${credits}`
-                : cvData ? `Regenerate CV (${CV_COST} credit)` : `Generate CV (${CV_COST} credit)`}
+                ? t.coverLetter.sidebar.needCredits(CV_COST, credits)
+                : cvData ? t.cvBuilder.sidebar.regenerateBtn(CV_COST) : t.cvBuilder.sidebar.generateBtn(CV_COST)}
             </button>
           </div>
         </div>
@@ -1608,7 +1610,7 @@ ${job?.job_description ? `- Job context: ${job.job_description.slice(0, 800)}` :
           {/* Mobile sidebar toggle */}
           <div className="jl-mbtn" style={{ padding: '10px 16px', background: '#152233', borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
             <button onClick={() => setMobOpen(o => !o)} style={{ background: '#1a2d45', color: 'rgba(255,255,255,0.8)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 8, padding: '8px 16px', fontSize: 13, cursor: 'pointer', fontFamily: 'inherit' }}>
-              {mobOpen ? 'Close Settings' : 'CV Settings'}
+              {mobOpen ? t.coverLetter.sidebar.closeSettings : t.coverLetter.sidebar.settings}
             </button>
           </div>
           {mobOpen && (
@@ -1618,7 +1620,7 @@ ${job?.job_description ? `- Job context: ${job.job_description.slice(0, 800)}` :
                 <div onClick={() => { fileInputRef.current?.click(); }}
                   style={{ padding: '14px 12px', border: '1.5px dashed rgba(255,255,255,0.18)', borderRadius: 9, cursor: 'pointer', textAlign: 'center' }}>
                   <div style={{ fontSize: 18, marginBottom: 4 }}>📄</div>
-                  <div style={{ fontSize: 12, fontWeight: 600, color: 'rgba(255,255,255,0.7)' }}>{fileLoading ? 'Reading...' : 'Upload your CV'}</div>
+                  <div style={{ fontSize: 12, fontWeight: 600, color: 'rgba(255,255,255,0.7)' }}>{fileLoading ? t.coverLetter.sidebar.reading : t.cvBuilder.sidebar.cvLabel}</div>
                   <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)', marginTop: 2 }}>PDF · DOCX · TXT</div>
                 </div>
               )}
@@ -1629,7 +1631,7 @@ ${job?.job_description ? `- Job context: ${job.job_description.slice(0, 800)}` :
               )}
               {/* Template */}
               <div>
-                <div style={{ fontSize: 10, fontWeight: 600, color: 'rgba(255,255,255,0.4)', letterSpacing: 0.5, textTransform: 'uppercase', marginBottom: 8 }}>Template</div>
+                <div style={{ fontSize: 10, fontWeight: 600, color: 'rgba(255,255,255,0.4)', letterSpacing: 0.5, textTransform: 'uppercase', marginBottom: 8 }}>{t.cvBuilder.sidebar.templateLabel}</div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
                   {templates.map(t => (
                     <button key={t.id} onClick={() => setTemplate(t.id)}
@@ -1642,7 +1644,7 @@ ${job?.job_description ? `- Job context: ${job.job_description.slice(0, 800)}` :
               {/* Language + Pages */}
               <div style={{ display: 'flex', gap: 12 }}>
                 <div style={{ flex: 1 }}>
-                  <div style={{ fontSize: 10, fontWeight: 600, color: 'rgba(255,255,255,0.4)', letterSpacing: 0.5, textTransform: 'uppercase', marginBottom: 8 }}>Language</div>
+                  <div style={{ fontSize: 10, fontWeight: 600, color: 'rgba(255,255,255,0.4)', letterSpacing: 0.5, textTransform: 'uppercase', marginBottom: 8 }}>{t.cvBuilder.sidebar.languageLabel}</div>
                   <div style={{ display: 'flex', gap: 6 }}>
                     {(['EN', 'DE'] as Lang[]).map(l => (
                       <button key={l} onClick={() => setLang(l)}
@@ -1653,7 +1655,7 @@ ${job?.job_description ? `- Job context: ${job.job_description.slice(0, 800)}` :
                   </div>
                 </div>
                 <div style={{ flex: 1 }}>
-                  <div style={{ fontSize: 10, fontWeight: 600, color: 'rgba(255,255,255,0.4)', letterSpacing: 0.5, textTransform: 'uppercase', marginBottom: 8 }}>Pages</div>
+                  <div style={{ fontSize: 10, fontWeight: 600, color: 'rgba(255,255,255,0.4)', letterSpacing: 0.5, textTransform: 'uppercase', marginBottom: 8 }}>{t.cvBuilder.sidebar.pagesLabel}</div>
                   <div style={{ display: 'flex', gap: 6 }}>
                     {(['1', '2'] as Pages[]).map(p => (
                       <button key={p} onClick={() => setPages(p)}
@@ -1667,12 +1669,12 @@ ${job?.job_description ? `- Job context: ${job.job_description.slice(0, 800)}` :
               {/* Generate */}
               {credits !== null && credits <= 2 && (
                 <div style={{ background: 'rgba(245,158,11,0.15)', border: '1px solid rgba(245,158,11,0.4)', borderRadius: 8, padding: '7px 10px', fontSize: 11, color: '#fcd34d', lineHeight: 1.5 }}>
-                  {credits === 0 ? 'No credits left. Top up on Account page.' : `${credits} credit${credits === 1 ? '' : 's'} remaining.`}
+                  {credits === 0 ? t.cvBuilder.sidebar.noCredits : t.cvBuilder.sidebar.lowCredits(credits!)}
                 </div>
               )}
               <button className="cvb-gen" onClick={() => { generate(); setMobOpen(false) }} disabled={loading || !cvText.trim() || (credits !== null && credits < CV_COST)}
                 style={{ width: '100%', padding: '12px 0', borderRadius: 10, border: 'none', background: loading || !cvText.trim() || (credits !== null && credits < CV_COST) ? 'rgba(255,255,255,0.08)' : `linear-gradient(135deg, ${currentAccent}, ${currentAccent}BB)`, color: loading || !cvText.trim() || (credits !== null && credits < CV_COST) ? 'rgba(255,255,255,0.25)' : '#042C53', fontFamily: "'Outfit', sans-serif", fontSize: 13, fontWeight: 700, cursor: loading || !cvText.trim() || (credits !== null && credits < CV_COST) ? 'not-allowed' : 'pointer' }}>
-                {loading ? 'Generating...' : credits !== null && credits < CV_COST ? `Need ${CV_COST} credit — you have ${credits}` : cvData ? `Regenerate CV (${CV_COST} credit)` : `Generate CV (${CV_COST} credit)`}
+                {loading ? t.coverLetter.sidebar.writing : credits !== null && credits < CV_COST ? t.coverLetter.sidebar.needCredits(CV_COST, credits) : cvData ? t.cvBuilder.sidebar.regenerateBtn(CV_COST) : t.cvBuilder.sidebar.generateBtn(CV_COST)}
               </button>
             </div>
           )}
@@ -1681,7 +1683,7 @@ ${job?.job_description ? `- Job context: ${job.job_description.slice(0, 800)}` :
           <div style={{ padding: '12px 24px', borderBottom: '1px solid rgba(255,255,255,0.08)', background: '#152233', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
               <span style={{ fontSize: 12, fontWeight: 600, color: cvData ? currentAccent : 'rgba(255,255,255,0.25)' }}>
-                {cvData ? 'CV Ready' : 'Preview'}
+                {cvData ? t.coverLetter.preview.letterReady : t.coverLetter.preview.preview}
               </span>
               {cvData && (
                 <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.2)', padding: '2px 8px', background: 'rgba(255,255,255,0.04)', borderRadius: 20, border: '1px solid rgba(255,255,255,0.06)' }}>
@@ -1693,15 +1695,15 @@ ${job?.job_description ? `- Job context: ${job.job_description.slice(0, 800)}` :
               <div style={{ display: 'flex', gap: 6 }}>
                 <button className="cvb-action" onClick={downloadPDF} disabled={downloading === 'pdf'}
                   style={{ padding: '7px 14px', borderRadius: 7, border: '1px solid rgba(255,255,255,0.1)', background: 'rgba(255,255,255,0.04)', color: downloading === 'pdf' ? currentAccent : 'rgba(255,255,255,0.55)', fontSize: 11, cursor: downloading === 'pdf' ? 'wait' : 'pointer', fontFamily: 'inherit', transition: 'all 0.15s' }}>
-                  {downloading === 'pdf' ? 'Building...' : 'PDF'}
+                  {downloading === 'pdf' ? t.coverLetter.preview.buildingPdf : t.coverLetter.preview.pdf}
                 </button>
                 <button className="cvb-action" onClick={downloadDOCX} disabled={downloading === 'docx'}
                   style={{ padding: '7px 14px', borderRadius: 7, border: '1px solid rgba(255,255,255,0.1)', background: 'rgba(255,255,255,0.04)', color: downloading === 'docx' ? currentAccent : 'rgba(255,255,255,0.55)', fontSize: 11, cursor: downloading === 'docx' ? 'wait' : 'pointer', fontFamily: 'inherit', transition: 'all 0.15s' }}>
-                  {downloading === 'docx' ? 'Building...' : 'Word'}
+                  {downloading === 'docx' ? t.coverLetter.preview.buildingWord : t.coverLetter.preview.word}
                 </button>
                 <button onClick={goToCoverLetter}
                   style={{ padding: '7px 16px', borderRadius: 7, border: 'none', background: currentAccent, color: '#042C53', fontSize: 11, fontWeight: 700, cursor: 'pointer', fontFamily: "'Outfit', sans-serif", transition: 'all 0.15s' }}>
-                  Cover Letter {'->'}
+                  {t.navbar.coverLetter} {'->'}
                 </button>
               </div>
             )}
@@ -1730,7 +1732,7 @@ ${job?.job_description ? `- Job context: ${job.job_description.slice(0, 800)}` :
                 </div>
                 <div style={{ textAlign: 'center', marginTop: 16, fontSize: 12, color: 'rgba(255,255,255,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
                   <div style={{ width: 12, height: 12, borderRadius: '50%', border: `2px solid ${currentAccent}40`, borderTopColor: currentAccent, animation: 'spin 0.7s linear infinite' }} />
-                  Designing your CV...
+                  {t.coverLetter.preview.generating}
                 </div>
               </div>
             )}
@@ -1756,16 +1758,16 @@ ${job?.job_description ? `- Job context: ${job.job_description.slice(0, 800)}` :
                 </div>
                 <div style={{ textAlign: 'center' }}>
                   <div style={{ fontSize: 17, fontWeight: 600, color: 'rgba(255,255,255,0.5)', fontFamily: "'Outfit', sans-serif", marginBottom: 8 }}>
-                    {cvText ? 'Ready to design' : 'No CV uploaded'}
+                    {cvText ? t.coverLetter.preview.readyToWrite : t.coverLetter.preview.noCvUploaded}
                   </div>
                   <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.2)', lineHeight: 1.7 }}>
-                    {cvText ? 'Choose your template and click Generate CV' : 'Upload your CV using the panel on the left'}
+                    {cvText ? t.coverLetter.preview.chooseAndGenerate : t.coverLetter.preview.uploadFirst}
                   </div>
                   {cvText && (
                     <button onClick={generate} className="cvb-gen"
                       disabled={credits !== null && credits < CV_COST}
                       style={{ marginTop: 20, padding: '11px 28px', borderRadius: 10, border: 'none', background: credits !== null && credits < CV_COST ? 'rgba(255,255,255,0.1)' : currentAccent, color: credits !== null && credits < CV_COST ? 'rgba(255,255,255,0.3)' : '#0a1520', fontFamily: "'Outfit', sans-serif", fontSize: 13, fontWeight: 700, cursor: credits !== null && credits < CV_COST ? 'not-allowed' : 'pointer' }}>
-                      {credits !== null && credits < CV_COST ? `Need ${CV_COST} credit` : 'Generate CV'}
+                      {credits !== null && credits < CV_COST ? t.coverLetter.sidebar.needCredits(CV_COST, credits) : t.cvBuilder.sidebar.generateBtn(CV_COST)}
                     </button>
                   )}
                 </div>
@@ -1781,11 +1783,11 @@ ${job?.job_description ? `- Job context: ${job.job_description.slice(0, 800)}` :
 
                 {/* Feedback input */}
                 <div style={{ marginTop: 20, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 10, padding: '14px 16px' }}>
-                  <div style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.4)', letterSpacing: 0.5, textTransform: 'uppercase' as const, marginBottom: 8 }}>Request changes</div>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.4)', letterSpacing: 0.5, textTransform: 'uppercase' as const, marginBottom: 8 }}>{t.coverLetter.preview.requestChanges}</div>
                   <textarea
                     value={feedback}
                     onChange={e => setFeedback(e.target.value)}
-                    placeholder="e.g. Make the summary shorter, add more focus on leadership, switch to German…"
+                    placeholder={t.coverLetter.preview.feedbackPlaceholder}
                     rows={2}
                     style={{ width: '100%', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 7, color: '#E6F1FB', fontSize: 12, padding: '8px 10px', resize: 'vertical' as const, fontFamily: "'DM Sans', sans-serif", outline: 'none', boxSizing: 'border-box' as const }}
                   />
@@ -1793,7 +1795,7 @@ ${job?.job_description ? `- Job context: ${job.job_description.slice(0, 800)}` :
                     onClick={applyFeedback}
                     disabled={!feedback.trim() || applyingFeedback}
                     style={{ marginTop: 8, padding: '7px 18px', borderRadius: 7, border: 'none', background: feedback.trim() && !applyingFeedback ? currentAccent : 'rgba(255,255,255,0.08)', color: feedback.trim() && !applyingFeedback ? '#042C53' : 'rgba(255,255,255,0.25)', fontSize: 12, fontWeight: 700, cursor: feedback.trim() && !applyingFeedback ? 'pointer' : 'not-allowed', fontFamily: "'Outfit', sans-serif" }}>
-                    {applyingFeedback ? 'Applying…' : 'Apply changes — 1 credit'}
+                    {applyingFeedback ? t.coverLetter.preview.applying : t.coverLetter.preview.applyChanges}
                   </button>
                 </div>
 
@@ -1801,15 +1803,15 @@ ${job?.job_description ? `- Job context: ${job.job_description.slice(0, 800)}` :
                 <div style={{ display: 'flex', gap: 10, marginTop: 20, justifyContent: 'center', flexWrap: 'wrap', paddingBottom: 32 }}>
                   <button onClick={downloadPDF} disabled={downloading === 'pdf'}
                     style={{ padding: '10px 22px', borderRadius: 9, border: '1px solid rgba(255,255,255,0.1)', background: 'rgba(255,255,255,0.05)', color: downloading === 'pdf' ? currentAccent : 'rgba(255,255,255,0.7)', fontSize: 12, fontWeight: 600, cursor: downloading === 'pdf' ? 'wait' : 'pointer', fontFamily: "'Outfit', sans-serif" }}>
-                    {downloading === 'pdf' ? 'Building PDF...' : 'Download PDF'}
+                    {downloading === 'pdf' ? t.coverLetter.preview.buildingPdf : t.coverLetter.preview.downloadPdf}
                   </button>
                   <button onClick={downloadDOCX} disabled={downloading === 'docx'}
                     style={{ padding: '10px 22px', borderRadius: 9, border: '1px solid rgba(255,255,255,0.1)', background: 'rgba(255,255,255,0.05)', color: downloading === 'docx' ? currentAccent : 'rgba(255,255,255,0.7)', fontSize: 12, fontWeight: 600, cursor: downloading === 'docx' ? 'wait' : 'pointer', fontFamily: "'Outfit', sans-serif" }}>
-                    {downloading === 'docx' ? 'Building Word...' : 'Download Word'}
+                    {downloading === 'docx' ? t.coverLetter.preview.buildingWord : t.coverLetter.preview.downloadWord}
                   </button>
                   <button onClick={goToCoverLetter}
                     style={{ padding: '10px 26px', borderRadius: 9, border: 'none', background: currentAccent, color: '#042C53', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: "'Outfit', sans-serif", boxShadow: `0 6px 20px ${currentAccent}40` }}>
-                    Write Cover Letter {'->'}
+                    {t.navbar.coverLetter} {'->'}
                   </button>
                 </div>
               </div>

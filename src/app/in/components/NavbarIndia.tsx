@@ -33,7 +33,7 @@ export default function NavbarIndia() {
 
   function switchToDE() {
     localStorage.setItem('joblens_country', 'de')
-    router.push('/app/career-scan')
+    router.push('/')
   }
 
   const navItems = [

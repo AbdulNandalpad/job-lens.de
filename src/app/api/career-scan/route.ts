@@ -91,16 +91,20 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    const { cvText, role, market } = await req.json()
+    const { cvText, role, market, lang } = await req.json()
     if (!cvText?.trim()) {
       await refundCredits(user.id, COST, 'career_scan')
       return NextResponse.json({ error: 'CV text is required' }, { status: 400 })
     }
 
+    const languageInstruction = lang === 'DE'
+      ? '\n\nIMPORTANT: Respond with ALL text fields (headline, summary, strengths, gaps, quick_wins, role_suggestions, market_insight, ai_vulnerability_reason, career_path_steps, roast_lines) written in German. Keep role titles and technical terms in their original language if that is standard in the DACH market.'
+      : ''
+
     const message = await anthropic.messages.create({
       model: 'claude-sonnet-4-6',
       max_tokens: 4096,
-      system: SYSTEM_PROMPT,
+      system: SYSTEM_PROMPT + languageInstruction,
       messages: [{ role: 'user', content: buildPrompt(cvText, role || 'the target role', market || 'Germany') }],
     })
 

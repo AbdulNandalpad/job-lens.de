@@ -4,8 +4,9 @@ import Link from 'next/link'
 import { useState, useEffect, useRef, type ReactNode } from 'react'
 import { createClient } from '@/lib/supabase'
 import { theme } from '@/lib/theme'
+import { useLanguage, DEFlag, GBFlag } from '@/lib/i18n'
 
-const { colors: c, gradients: g, glass: gl, fonts: f, shadow: sh } = theme
+const { colors: c, gradients: g, fonts: f, shadow: sh } = theme
 
 type Lang = 'DE' | 'EN'
 
@@ -134,41 +135,14 @@ const translations = {
   },
 }
 
-function DEFlag({ size = 20 }: { size?: number }) {
-  const w = size * 1.5, h = size, bh = h / 3
-  return (
-    <svg width={w} height={h} viewBox={`0 0 ${w} ${h}`} style={{ borderRadius: 2, flexShrink: 0 }}>
-      <rect x={0} y={0} width={w} height={bh} fill="#000000" />
-      <rect x={0} y={bh} width={w} height={bh} fill="#DD0000" />
-      <rect x={0} y={bh * 2} width={w} height={bh} fill="#FFCE00" />
-    </svg>
-  )
-}
-
-function GBFlag({ size = 20 }: { size?: number }) {
-  const w = size * 1.5, h = size
-  return (
-    <svg width={w} height={h} viewBox={`0 0 ${w} ${h}`} style={{ borderRadius: 2, flexShrink: 0 }}>
-      <rect width={w} height={h} fill="#012169" />
-      <line x1={0} y1={0} x2={w} y2={h} stroke="#fff" strokeWidth={h * 0.2} />
-      <line x1={w} y1={0} x2={0} y2={h} stroke="#fff" strokeWidth={h * 0.2} />
-      <line x1={0} y1={0} x2={w} y2={h} stroke="#C8102E" strokeWidth={h * 0.12} />
-      <line x1={w} y1={0} x2={0} y2={h} stroke="#C8102E" strokeWidth={h * 0.12} />
-      <rect x={0} y={h * 0.38} width={w} height={h * 0.24} fill="#fff" />
-      <rect x={w * 0.38} y={0} width={w * 0.24} height={h} fill="#fff" />
-      <rect x={0} y={h * 0.41} width={w} height={h * 0.18} fill="#C8102E" />
-      <rect x={w * 0.41} y={0} width={w * 0.18} height={h} fill="#C8102E" />
-    </svg>
-  )
-}
-
 export default function HomePage() {
   const [user, setUser] = useState<{ name: string } | null>(null)
   const [loading, setLoading] = useState(true)
-  const [lang, setLang] = useState<Lang>('DE')
   const [visibleCards, setVisibleCards] = useState<number[]>([])
   const cardsRef = useRef<HTMLDivElement>(null)
+  const { lang, setLang, t: _ctxT } = useLanguage()
 
+  // Use local translations object for homepage-specific strings (matches existing structure)
   const t = translations[lang]
 
   useEffect(() => {

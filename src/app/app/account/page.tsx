@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import Navbar from '../components/Navbar'
 import { createClient } from '@/lib/supabase'
 import { theme } from '@/lib/theme'
+import { useLanguage } from '@/lib/i18n'
 
 const { colors: c, gradients: g, fonts: f } = theme
 
@@ -14,12 +15,6 @@ const PACKS = [
   { label: 'Full Sprint', credits: 150, price: '€24.99', desc: 'Heavy Auto Apply user', itemName: 'Job-Lens AI — Full Sprint Pack (150 Credits)', amount: '24.99' },
 ]
 
-const ACTION_LABELS: Record<string, string> = {
-  career_scan:  'Career Scan',
-  tailor_cv:    'CV Tailoring',
-  cover_letter: 'Cover Letter',
-  auto_apply:   'Auto Apply',
-}
 
 interface ProfileData {
   id: string
@@ -34,6 +29,7 @@ interface ProfileData {
 
 export default function AccountPage() {
   const router = useRouter()
+  const { t } = useLanguage()
   const [profile, setProfile] = useState<ProfileData | null>(null)
   const [loading, setLoading] = useState(true)
   const [deleting, setDeleting] = useState(false)
@@ -76,9 +72,9 @@ export default function AccountPage() {
       <div style={{ maxWidth: 720, margin: '0 auto', padding: '32px 20px 60px' }}>
 
         {loading ? (
-          <div style={{ textAlign: 'center', color: c.textMuted, paddingTop: 80, fontSize: 14 }}>Loading…</div>
+          <div style={{ textAlign: 'center', color: c.textMuted, paddingTop: 80, fontSize: 14 }}>{t.account.loading}</div>
         ) : !profile ? (
-          <div style={{ textAlign: 'center', color: c.danger, paddingTop: 80 }}>Failed to load profile.</div>
+          <div style={{ textAlign: 'center', color: c.danger, paddingTop: 80 }}>{t.account.failedLoad}</div>
         ) : (
           <>
             {/* ── Profile Card ── */}
@@ -95,12 +91,12 @@ export default function AccountPage() {
                 <div style={{ fontSize: 13, color: c.textMuted, marginTop: 2 }}>{profile.email}</div>
                 <div style={{ marginTop: 8, display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
                   <span style={{ fontSize: 11, fontWeight: 700, color: '#fff', background: providerColor, padding: '3px 10px', borderRadius: 20 }}>
-                    Connected via {providerLabel}
+                    {t.account.connectedVia} {providerLabel}
                   </span>
-                  {memberYear && <span style={{ fontSize: 11, color: c.textFaint }}>Member since {memberYear}</span>}
+                  {memberYear && <span style={{ fontSize: 11, color: c.textFaint }}>{t.account.memberSince} {memberYear}</span>}
                 </div>
                 <div style={{ fontSize: 11, color: c.textFaint, marginTop: 4 }}>
-                  To update your name or photo, change it in your {providerLabel} account.
+                  {t.account.updateNote(providerLabel)}
                 </div>
               </div>
             </div>
@@ -108,10 +104,10 @@ export default function AccountPage() {
             {/* ── Credits Card ── */}
             <div style={{ background: c.bgCard, border: `1px solid ${c.border}`, borderRadius: 16, padding: '24px', marginBottom: 16 }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16, flexWrap: 'wrap', gap: 8 }}>
-                <div style={{ fontFamily: f.heading, fontSize: 15, fontWeight: 700, color: c.primary }}>AI Credits</div>
+                <div style={{ fontFamily: f.heading, fontSize: 15, fontWeight: 700, color: c.primary }}>{t.account.aiCredits}</div>
                 <div style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
                   <span style={{ fontFamily: f.heading, fontSize: 36, fontWeight: 700, color: creditsColor }}>{profile.credits}</span>
-                  <span style={{ fontSize: 13, color: c.textMuted }}>credits remaining</span>
+                  <span style={{ fontSize: 13, color: c.textMuted }}>{t.account.creditsRemaining}</span>
                 </div>
               </div>
 
@@ -123,10 +119,10 @@ export default function AccountPage() {
               {/* Cost table */}
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 6, marginBottom: 20 }}>
                 {[
-                  { label: 'Career Scan', cost: '2 credits' },
-                  { label: 'CV Tailoring', cost: '1 credit' },
-                  { label: 'Cover Letter', cost: '1 credit' },
-                  { label: 'Auto Apply', cost: '3 credits' },
+                  { label: t.account.costTable.careerScan, cost: '2 credits' },
+                  { label: t.account.costTable.cvTailoring, cost: '1 credit' },
+                  { label: t.account.costTable.coverLetter, cost: '1 credit' },
+                  { label: t.account.costTable.autoApply, cost: '3 credits' },
                 ].map(item => (
                   <div key={item.label} style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 10px', background: c.bgSubtle, borderRadius: 7, border: `1px solid ${c.border}` }}>
                     <span style={{ fontSize: 12, color: c.textMuted }}>{item.label}</span>
@@ -136,13 +132,13 @@ export default function AccountPage() {
               </div>
 
               {/* Buy packs */}
-              <div style={{ fontSize: 13, fontWeight: 700, color: c.primary, fontFamily: f.heading, marginBottom: 12 }}>Buy more credits</div>
+              <div style={{ fontSize: 13, fontWeight: 700, color: c.primary, fontFamily: f.heading, marginBottom: 12 }}>{t.account.buyCredits}</div>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10 }}>
                 {PACKS.map(pack => (
                   <div key={pack.label} style={{ position: 'relative', border: `1.5px solid ${pack.popular ? c.accent : c.border}`, borderRadius: 12, padding: '14px 12px', background: pack.popular ? `${c.accent}08` : c.bgSubtle }}>
                     {pack.popular && (
                       <div style={{ position: 'absolute', top: -10, left: '50%', transform: 'translateX(-50%)', background: c.accent, color: '#fff', fontSize: 9, fontWeight: 700, padding: '2px 8px', borderRadius: 10, whiteSpace: 'nowrap' }}>
-                        MOST POPULAR
+                        {t.account.mostPopular}
                       </div>
                     )}
                     <div style={{ fontFamily: f.heading, fontSize: 13, fontWeight: 700, color: c.primary, marginBottom: 2 }}>{pack.label}</div>
@@ -159,7 +155,7 @@ export default function AccountPage() {
                       <input type="hidden" name="custom" value={profile.id} />
                       <input type="hidden" name="no_shipping" value="1" />
                       <button type="submit" style={{ width: '100%', padding: '8px 0', borderRadius: 7, border: 'none', background: pack.popular ? g.primaryBtn : c.primaryLight, color: pack.popular ? '#fff' : c.navy, fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: f.heading }}>
-                        Buy Now
+                        {t.account.buyNow}
                       </button>
                     </form>
                   </div>
@@ -170,12 +166,12 @@ export default function AccountPage() {
             {/* ── Usage Log ── */}
             {profile.usage.length > 0 && (
               <div style={{ background: c.bgCard, border: `1px solid ${c.border}`, borderRadius: 16, padding: '20px', marginBottom: 16 }}>
-                <div style={{ fontFamily: f.heading, fontSize: 15, fontWeight: 700, color: c.primary, marginBottom: 12 }}>Recent activity</div>
+                <div style={{ fontFamily: f.heading, fontSize: 15, fontWeight: 700, color: c.primary, marginBottom: 12 }}>{t.account.recentActivity}</div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                   {profile.usage.map((event, i) => (
                     <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 12px', background: c.bgSubtle, borderRadius: 7, border: `1px solid ${c.border}` }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                        <span style={{ fontSize: 12, color: c.primary, fontWeight: 500 }}>{ACTION_LABELS[event.action] || event.action}</span>
+                        <span style={{ fontSize: 12, color: c.primary, fontWeight: 500 }}>{(t.account.actionLabels as Record<string, string>)[event.action] || event.action}</span>
                         <span style={{ fontSize: 11, color: c.textFaint }}>{new Date(event.created_at).toLocaleDateString('de-DE', { day: '2-digit', month: 'short' })}</span>
                       </div>
                       <span style={{ fontSize: 12, fontWeight: 600, color: c.danger }}>−{event.credits_used}</span>
@@ -187,27 +183,27 @@ export default function AccountPage() {
 
             {/* ── Danger Zone ── */}
             <div style={{ background: c.bgCard, border: `1px solid ${c.border}`, borderRadius: 16, padding: '20px' }}>
-              <div style={{ fontFamily: f.heading, fontSize: 15, fontWeight: 700, color: c.primary, marginBottom: 12 }}>Account</div>
+              <div style={{ fontFamily: f.heading, fontSize: 15, fontWeight: 700, color: c.primary, marginBottom: 12 }}>{t.account.accountSection}</div>
               <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
                 <button onClick={signOut}
                   style={{ padding: '9px 20px', borderRadius: 8, border: `1px solid ${c.border}`, background: 'transparent', color: c.textMuted, fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: f.heading }}>
-                  Sign out
+                  {t.account.signOut}
                 </button>
                 {!showDeleteConfirm ? (
                   <button onClick={() => setShowDeleteConfirm(true)}
                     style={{ padding: '9px 20px', borderRadius: 8, border: `1px solid ${c.danger}`, background: 'transparent', color: c.danger, fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: f.heading }}>
-                    Delete account
+                    {t.account.deleteAccount}
                   </button>
                 ) : (
                   <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
-                    <span style={{ fontSize: 12, color: c.danger }}>Are you sure? This cannot be undone.</span>
+                    <span style={{ fontSize: 12, color: c.danger }}>{t.account.deleteConfirm}</span>
                     <button onClick={deleteAccount} disabled={deleting}
                       style={{ padding: '9px 20px', borderRadius: 8, border: 'none', background: c.danger, color: '#fff', fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: f.heading }}>
-                      {deleting ? 'Deleting…' : 'Yes, delete'}
+                      {deleting ? t.account.deleting : t.account.yesDelete}
                     </button>
                     <button onClick={() => setShowDeleteConfirm(false)}
                       style={{ padding: '9px 16px', borderRadius: 8, border: `1px solid ${c.border}`, background: 'transparent', color: c.textMuted, fontSize: 13, cursor: 'pointer', fontFamily: f.heading }}>
-                      Cancel
+                      {t.common.cancel}
                     </button>
                   </div>
                 )}
