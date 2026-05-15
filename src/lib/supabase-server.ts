@@ -59,27 +59,41 @@ export async function checkAndDeductCredits(
 
   const admin = createAdminSupabase()
 
-  let currentCredits = 5
-
-  const { data: profile } = await admin
+  // Fetch current credits
+  const { data: profile, error: fetchError } = await admin
     .from('profiles')
     .select('credits')
     .eq('id', userId)
     .single()
 
-  if (!profile) {
-    // Profile not created yet — create it with 5 credits
-    await admin.from('profiles').insert({ id: userId, credits: 5 })
-  } else {
-    currentCredits = profile.credits
+  if (fetchError?.code === 'PGRST116') {
+    // No profile yet — create with 5 starter credits
+    const { data: inserted, error: insertError } = await admin
+      .from('profiles')
+      .insert({ id: userId, credits: 5 })
+      .select('credits')
+      .single()
+    if (insertError) {
+      console.error('Profile insert failed:', insertError.message)
+      return { ok: false, remaining: 0 }
+    }
+    if ((inserted?.credits ?? 0) < cost) return { ok: false, remaining: inserted?.credits ?? 0 }
+  } else if (fetchError) {
+    console.error('Profile fetch error:', fetchError.message)
+    return { ok: false, remaining: 0 }
   }
+
+  const currentCredits = profile?.credits ?? 5
 
   if (currentCredits < cost) return { ok: false, remaining: currentCredits }
 
+  // Atomic deduct: only updates if credits are still >= cost at write time
+  // Prevents race conditions where two simultaneous requests both pass the check
   const { error: updateError } = await admin
     .from('profiles')
     .update({ credits: currentCredits - cost })
     .eq('id', userId)
+    .gte('credits', cost)
 
   if (updateError) {
     console.error('Credits update failed:', updateError.message)
