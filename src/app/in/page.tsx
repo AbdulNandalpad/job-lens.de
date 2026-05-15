@@ -78,13 +78,6 @@ export default function IndiaHomePage() {
         }
       `}</style>
 
-      {/* Tricolor top stripe */}
-      <div style={{ display: 'flex', height: 5 }}>
-        <div style={{ flex: 1, background: saffron }} />
-        <div style={{ flex: 1, background: white }} />
-        <div style={{ flex: 1, background: indiaGreen }} />
-      </div>
-
       {/* Hero */}
       <section style={{
         background: `radial-gradient(ellipse at 15% 60%, rgba(255,153,51,0.18) 0%, transparent 50%), radial-gradient(ellipse at 80% 20%, rgba(19,136,8,0.1) 0%, transparent 50%), linear-gradient(160deg, #0a1520 0%, #0f2035 60%, #0a1c2e 100%)`,
