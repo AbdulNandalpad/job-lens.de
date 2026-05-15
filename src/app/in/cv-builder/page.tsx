@@ -527,6 +527,7 @@ export default function IndiaCVBuilderPage() {
   const [applyingFeedback, setApplyingFeedback] = useState(false)
   const [downloading, setDownloading] = useState<'pdf' | 'docx' | null>(null)
   const [mobOpen, setMobOpen] = useState(false)
+  const [atsFromScan, setAtsFromScan] = useState(false)
   const { credits, setCredits } = useCredits()
   const CV_COST = 1
 
@@ -561,6 +562,10 @@ export default function IndiaCVBuilderPage() {
     const savedData = sessionStorage.getItem('jl_cvb_data')
     if (saved) setRawCv(saved)
     if (savedData) { try { setCvData(JSON.parse(savedData)) } catch { } }
+    if (sessionStorage.getItem('jl_ats_suggestions')) {
+      setTemplate('minimal')
+      setAtsFromScan(true)
+    }
   }, [])
 
   async function generate() {
@@ -708,11 +713,11 @@ ${job?.job_description ? `- Job context: ${job.job_description.slice(0, 800)}` :
 
   function goToCoverLetter() { sessionStorage.setItem('jl_cvb_tailored', rawCv); router.push('/in/cover-letter') }
 
-  const templates: { id: Template; label: string; accent: string; desc: string }[] = [
-    { id: 'executive', label: 'Executive', accent: '#00C9A7', desc: 'Dark sidebar . teal accents' },
-    { id: 'modern', label: 'Modern', accent: '#378ADD', desc: 'Navy header . blue palette' },
-    { id: 'minimal', label: 'Minimal', accent: '#1a2332', desc: 'Pure typography . whitespace' },
-    { id: 'technical', label: 'Technical', accent: '#E05C97', desc: 'Dark sidebar . colour accents' },
+  const templates: { id: Template; label: string; accent: string; desc: string; ats: string; atsHigh: boolean }[] = [
+    { id: 'executive', label: 'Executive', accent: '#00C9A7', desc: 'Dark sidebar . teal accents', ats: 'ATS: Low', atsHigh: false },
+    { id: 'modern', label: 'Modern', accent: '#378ADD', desc: 'Navy header . blue palette', ats: 'ATS: Low', atsHigh: false },
+    { id: 'minimal', label: 'Minimal', accent: '#1a2332', desc: 'Pure typography . whitespace', ats: 'ATS: High ✓', atsHigh: true },
+    { id: 'technical', label: 'Technical', accent: '#E05C97', desc: 'Dark sidebar . colour accents', ats: 'ATS: Low', atsHigh: false },
   ]
   const tones: { id: Tone; label: string; desc: string }[] = [
     { id: 'professional', label: 'Professional', desc: 'Polished & credible' },
@@ -787,6 +792,11 @@ ${job?.job_description ? `- Job context: ${job.job_description.slice(0, 800)}` :
               </button>
               {openSections.template && (
                 <div style={{ padding: '4px 16px 16px', display: 'flex', flexDirection: 'column', gap: 7 }}>
+                  {atsFromScan && (
+                    <div style={{ padding: '7px 10px', background: 'rgba(29,158,117,0.12)', border: '1px solid rgba(29,158,117,0.3)', borderRadius: 8, fontSize: 11, color: '#1D9E75', lineHeight: 1.4, marginBottom: 4 }}>
+                      Minimal selected for best ATS compatibility
+                    </div>
+                  )}
                   {templates.map(t => (
                     <div key={t.id} onClick={() => setTemplate(t.id)} style={{ padding: '10px 12px', borderRadius: 9, border: `1px solid ${template === t.id ? t.accent : 'rgba(255,255,255,0.09)'}`, background: template === t.id ? t.accent + '14' : 'rgba(255,255,255,0.04)', cursor: 'pointer', transition: 'all 0.15s', display: 'flex', alignItems: 'center', gap: 10 }}>
                       <div style={{ width: 38, height: 48, borderRadius: 4, background: '#1a2535', flexShrink: 0, overflow: 'hidden', border: `1px solid ${template === t.id ? t.accent + '60' : 'rgba(255,255,255,0.07)'}` }}>
@@ -797,6 +807,7 @@ ${job?.job_description ? `- Job context: ${job.job_description.slice(0, 800)}` :
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <div style={{ fontSize: 12, fontWeight: 600, color: template === t.id ? '#fff' : 'rgba(255,255,255,0.65)', marginBottom: 2 }}>{t.label}</div>
                         <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)', lineHeight: 1.3 }}>{t.desc}</div>
+                        <div style={{ fontSize: 9, fontWeight: 700, color: t.atsHigh ? '#1D9E75' : '#E05C97', marginTop: 3, letterSpacing: 0.3 }}>{t.ats}</div>
                       </div>
                       <div style={{ width: 14, height: 14, borderRadius: '50%', border: `2px solid ${template === t.id ? t.accent : 'rgba(255,255,255,0.15)'}`, background: template === t.id ? t.accent : 'transparent', flexShrink: 0 }} />
                     </div>

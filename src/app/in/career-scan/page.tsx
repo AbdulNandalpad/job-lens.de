@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useRef } from 'react'
+import { useRouter } from 'next/navigation'
 import { useCredits } from '@/lib/useCredits'
 
 const orange = '#ff9933'
@@ -65,12 +66,14 @@ function readinessBadge(r: string) {
 }
 
 export default function IndiaCareerScanPage() {
+  const router = useRouter()
   const [cvText, setCvText] = useState('')
   const [jdText, setJdText] = useState('')
   const [result, setResult] = useState<ATSResult | null>(null)
   const [loading, setLoading] = useState(false)
   const [tab, setTab] = useState<Tab>('overview')
   const [fileLoading, setFileLoading] = useState(false)
+  const [showInputs, setShowInputs] = useState(true)
   const fileRef = useRef<HTMLInputElement>(null)
   const { credits, setCredits } = useCredits()
   const COST = 2
@@ -122,6 +125,13 @@ export default function IndiaCareerScanPage() {
       if (typeof data.creditsRemaining === 'number') setCredits(data.creditsRemaining)
       setResult(data)
       setTab('overview')
+      setShowInputs(false)
+      try {
+        sessionStorage.setItem('jl_ats_suggestions', JSON.stringify({
+          missing_keywords: data.missing_keywords || [],
+          quick_fixes: data.quick_fixes || [],
+        }))
+      } catch {}
     } catch { alert('Analysis failed. Please try again.') }
     setLoading(false)
   }
@@ -152,52 +162,73 @@ export default function IndiaCareerScanPage() {
             {/* Left panel — inputs */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
 
-              {/* CV input */}
-              <div style={{ background: '#fff', borderRadius: 14, padding: 20, boxShadow: '0 2px 12px rgba(4,44,83,0.06)', border: '1px solid #edf1f6' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
-                  <label style={{ fontSize: 13, fontWeight: 700, color: navy, fontFamily: "'Outfit',sans-serif" }}>Your CV</label>
-                  <button onClick={() => fileRef.current?.click()}
-                    style={{ fontSize: 11, padding: '4px 12px', borderRadius: 8, border: `1px solid ${blue}`, background: 'transparent', color: blue, cursor: 'pointer', fontWeight: 600 }}>
-                    {fileLoading ? 'Reading...' : 'Upload PDF / DOCX'}
-                  </button>
-                  <input ref={fileRef} type="file" accept=".pdf,.docx,.txt" style={{ display: 'none' }}
-                    onChange={e => e.target.files?.[0] && handleFile(e.target.files[0])} />
+              {/* Collapsed inputs summary (shown after scan) */}
+              {result && (
+                <div style={{ background: '#fff', borderRadius: 14, padding: '14px 20px', boxShadow: '0 2px 12px rgba(4,44,83,0.06)', border: '1px solid #edf1f6' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
+                    <div style={{ fontSize: 12, color: '#6b7c93', overflow: 'hidden' }}>
+                      <span style={{ color: navy, fontWeight: 600 }}>JD: </span>
+                      {jdText.slice(0, 100)}{jdText.length > 100 ? '…' : ''}
+                    </div>
+                    <button onClick={() => setShowInputs(s => !s)}
+                      style={{ fontSize: 11, padding: '5px 12px', borderRadius: 8, border: `1px solid ${blue}`, background: 'transparent', color: blue, cursor: 'pointer', fontWeight: 600, whiteSpace: 'nowrap' as const, flexShrink: 0 }}>
+                      {showInputs ? 'Hide' : 'Edit Inputs'}
+                    </button>
+                  </div>
                 </div>
-                <textarea
-                  value={cvText}
-                  onChange={e => setCvText(e.target.value)}
-                  placeholder="Paste your CV text here, or upload a file above..."
-                  rows={10}
-                  style={{ width: '100%', resize: 'vertical', padding: '10px 12px', borderRadius: 8, border: '1px solid #dce4ef', fontSize: 12, color: '#374151', fontFamily: "'DM Sans',sans-serif", lineHeight: 1.6, outline: 'none', boxSizing: 'border-box' }}
-                />
-                {cvText && <div style={{ fontSize: 11, color: '#9aafbc', marginTop: 6 }}>{cvText.length.toLocaleString()} characters</div>}
-              </div>
+              )}
 
-              {/* JD input */}
-              <div style={{ background: '#fff', borderRadius: 14, padding: 20, boxShadow: '0 2px 12px rgba(4,44,83,0.06)', border: '1px solid #edf1f6' }}>
-                <label style={{ fontSize: 13, fontWeight: 700, color: navy, fontFamily: "'Outfit',sans-serif", display: 'block', marginBottom: 10 }}>
-                  Job Description
-                  <span style={{ fontSize: 11, color: '#9aafbc', fontWeight: 400, marginLeft: 8 }}>From Naukri, LinkedIn, or any portal</span>
-                </label>
-                <textarea
-                  value={jdText}
-                  onChange={e => setJdText(e.target.value)}
-                  placeholder="Paste the job description here..."
-                  rows={8}
-                  style={{ width: '100%', resize: 'vertical', padding: '10px 12px', borderRadius: 8, border: '1px solid #dce4ef', fontSize: 12, color: '#374151', fontFamily: "'DM Sans',sans-serif", lineHeight: 1.6, outline: 'none', boxSizing: 'border-box' }}
-                />
-              </div>
+              {/* Full inputs — always shown when no result yet, toggle when result exists */}
+              {(!result || showInputs) && (
+                <>
+                  {/* CV input */}
+                  <div style={{ background: '#fff', borderRadius: 14, padding: 20, boxShadow: '0 2px 12px rgba(4,44,83,0.06)', border: '1px solid #edf1f6' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+                      <label style={{ fontSize: 13, fontWeight: 700, color: navy, fontFamily: "'Outfit',sans-serif" }}>Your CV</label>
+                      <button onClick={() => fileRef.current?.click()}
+                        style={{ fontSize: 11, padding: '4px 12px', borderRadius: 8, border: `1px solid ${blue}`, background: 'transparent', color: blue, cursor: 'pointer', fontWeight: 600 }}>
+                        {fileLoading ? 'Reading...' : 'Upload PDF / DOCX'}
+                      </button>
+                      <input ref={fileRef} type="file" accept=".pdf,.docx,.txt" style={{ display: 'none' }}
+                        onChange={e => e.target.files?.[0] && handleFile(e.target.files[0])} />
+                    </div>
+                    <textarea
+                      value={cvText}
+                      onChange={e => setCvText(e.target.value)}
+                      placeholder="Paste your CV text here, or upload a file above..."
+                      rows={10}
+                      style={{ width: '100%', resize: 'vertical', padding: '10px 12px', borderRadius: 8, border: '1px solid #dce4ef', fontSize: 12, color: '#374151', fontFamily: "'DM Sans',sans-serif", lineHeight: 1.6, outline: 'none', boxSizing: 'border-box' }}
+                    />
+                    {cvText && <div style={{ fontSize: 11, color: '#9aafbc', marginTop: 6 }}>{cvText.length.toLocaleString()} characters</div>}
+                  </div>
 
-              {/* Credits + Analyze */}
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <span style={{ fontSize: 12, color: '#9aafbc' }}>
-                  {credits !== null ? `${credits} credits remaining` : ''} &mdash; costs {COST} credits
-                </span>
-                <button onClick={analyze} disabled={loading}
-                  style={{ padding: '12px 28px', borderRadius: 10, background: loading ? '#ccc' : `linear-gradient(135deg, ${orange}, #e67300)`, color: '#fff', fontWeight: 700, fontSize: 14, border: 'none', cursor: loading ? 'not-allowed' : 'pointer', boxShadow: loading ? 'none' : '0 4px 16px rgba(255,153,51,0.4)', transition: 'all 0.2s' }}>
-                  {loading ? 'Analyzing...' : 'Scan ATS Score'}
-                </button>
-              </div>
+                  {/* JD input */}
+                  <div style={{ background: '#fff', borderRadius: 14, padding: 20, boxShadow: '0 2px 12px rgba(4,44,83,0.06)', border: '1px solid #edf1f6' }}>
+                    <label style={{ fontSize: 13, fontWeight: 700, color: navy, fontFamily: "'Outfit',sans-serif", display: 'block', marginBottom: 10 }}>
+                      Job Description
+                      <span style={{ fontSize: 11, color: '#9aafbc', fontWeight: 400, marginLeft: 8 }}>From Naukri, LinkedIn, or any portal</span>
+                    </label>
+                    <textarea
+                      value={jdText}
+                      onChange={e => setJdText(e.target.value)}
+                      placeholder="Paste the job description here..."
+                      rows={8}
+                      style={{ width: '100%', resize: 'vertical', padding: '10px 12px', borderRadius: 8, border: '1px solid #dce4ef', fontSize: 12, color: '#374151', fontFamily: "'DM Sans',sans-serif", lineHeight: 1.6, outline: 'none', boxSizing: 'border-box' }}
+                    />
+                  </div>
+
+                  {/* Credits + Analyze */}
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span style={{ fontSize: 12, color: '#9aafbc' }}>
+                      {credits !== null ? `${credits} credits remaining` : ''} &mdash; costs {COST} credits
+                    </span>
+                    <button onClick={analyze} disabled={loading}
+                      style={{ padding: '12px 28px', borderRadius: 10, background: loading ? '#ccc' : `linear-gradient(135deg, ${orange}, #e67300)`, color: '#fff', fontWeight: 700, fontSize: 14, border: 'none', cursor: loading ? 'not-allowed' : 'pointer', boxShadow: loading ? 'none' : '0 4px 16px rgba(255,153,51,0.4)', transition: 'all 0.2s' }}>
+                      {loading ? 'Analyzing...' : result ? 'Re-scan' : 'Scan ATS Score'}
+                    </button>
+                  </div>
+                </>
+              )}
             </div>
 
             {/* Right panel — results */}
@@ -252,6 +283,23 @@ export default function IndiaCareerScanPage() {
                         <strong>Top priority:</strong> Add "{result.top_missing_keyword}" to your CV — this is the most impactful missing keyword.
                       </div>
                     )}
+
+                    {/* Fix my CV CTA */}
+                    <div style={{ marginTop: 16, display: 'flex', justifyContent: 'flex-end' }}>
+                      <button
+                        onClick={() => {
+                          try {
+                            sessionStorage.setItem('jl_ats_suggestions', JSON.stringify({
+                              missing_keywords: result.missing_keywords,
+                              quick_fixes: result.quick_fixes,
+                            }))
+                          } catch {}
+                          router.push('/in/cv-builder')
+                        }}
+                        style={{ padding: '10px 20px', borderRadius: 9, background: `linear-gradient(135deg, ${orange}, #e67300)`, color: '#fff', fontWeight: 700, fontSize: 13, border: 'none', cursor: 'pointer', boxShadow: '0 3px 12px rgba(255,153,51,0.35)', fontFamily: "'Outfit',sans-serif" }}>
+                        Fix my CV based on these suggestions →
+                      </button>
+                    </div>
                   </div>
 
                   {/* Tabs */}

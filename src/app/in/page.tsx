@@ -58,6 +58,25 @@ function ScoreRing({ score, size = 120, label, color }: { score: number; size?: 
 export default function IndiaHomePage() {
   return (
     <div style={{ fontFamily: "'DM Sans', sans-serif" }}>
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=Outfit:wght@400;600;700&display=swap');
+        .in-hero-grid { display: grid; grid-template-columns: 1fr auto; gap: 48px; align-items: center; }
+        .in-steps-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 32px; position: relative; }
+        .in-pricing-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; align-items: start; }
+        @media (max-width: 768px) {
+          .in-hero-grid { grid-template-columns: 1fr !important; gap: 0 !important; }
+          .in-hero-score { display: none !important; }
+          .in-steps-grid { grid-template-columns: 1fr !important; gap: 20px !important; }
+          .in-steps-track { display: none !important; }
+          .in-pricing-grid { grid-template-columns: 1fr !important; }
+          .in-pricing-grid > * { margin-top: 0 !important; }
+          .in-flow-wrap { flex-direction: column !important; align-items: center !important; gap: 8px !important; }
+          .in-flow-arrow { display: none !important; }
+          .in-flow-decision { flex-direction: row !important; gap: 10px !important; }
+          h1 { font-size: 28px !important; }
+          h2 { font-size: 24px !important; }
+        }
+      `}</style>
 
       {/* Tricolor top stripe */}
       <div style={{ display: 'flex', height: 5 }}>
@@ -81,7 +100,7 @@ export default function IndiaHomePage() {
             </div>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: 48, alignItems: 'center' }}>
+          <div className="in-hero-grid">
             <div>
               <h1 style={{ fontFamily: "'Outfit', sans-serif", fontSize: 46, fontWeight: 800, color: white, lineHeight: 1.12, marginBottom: 22 }}>
                 Your CV is being
@@ -112,7 +131,7 @@ export default function IndiaHomePage() {
             </div>
 
             {/* Score card */}
-            <div style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.09)', borderRadius: 20, padding: '28px 32px', textAlign: 'center', minWidth: 260 }}>
+            <div className="in-hero-score" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.09)', borderRadius: 20, padding: '28px 32px', textAlign: 'center', minWidth: 260 }}>
               <div style={{ fontSize: 10, color: saffron, fontWeight: 700, letterSpacing: 1.5, textTransform: 'uppercase', marginBottom: 14 }}>Sample ATS Score</div>
               <ScoreRing score={48} size={130} label="Overall" color={saffron} />
               <div style={{ display: 'flex', gap: 16, marginTop: 18, justifyContent: 'center' }}>
@@ -167,7 +186,7 @@ export default function IndiaHomePage() {
 
           {/* Visual flow diagram */}
           <div style={{ background: white, borderRadius: 20, padding: '36px 32px', border: '1px solid #edf1f6', boxShadow: '0 4px 24px rgba(4,44,83,0.07)', marginBottom: 48 }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 0, flexWrap: 'wrap' }}>
+            <div className="in-flow-wrap" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 0, flexWrap: 'wrap' }}>
 
               {/* You apply */}
               <div style={{ textAlign: 'center', padding: '20px 24px' }}>
@@ -184,7 +203,7 @@ export default function IndiaHomePage() {
               </div>
 
               {/* Arrow */}
-              <div style={{ fontSize: 24, color: '#dce4ef', padding: '0 8px' }}>-&gt;</div>
+              <div className="in-flow-arrow" style={{ fontSize: 24, color: '#dce4ef', padding: '0 8px' }}>-&gt;</div>
 
               {/* ATS Bot */}
               <div style={{ textAlign: 'center', padding: '20px 24px', background: 'rgba(4,44,83,0.04)', borderRadius: 16, border: '2px solid rgba(4,44,83,0.1)' }}>
@@ -203,7 +222,7 @@ export default function IndiaHomePage() {
               </div>
 
               {/* Arrow */}
-              <div style={{ fontSize: 24, color: '#dce4ef', padding: '0 8px' }}>-&gt;</div>
+              <div className="in-flow-arrow" style={{ fontSize: 24, color: '#dce4ef', padding: '0 8px' }}>-&gt;</div>
 
               {/* Decision */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
@@ -316,8 +335,8 @@ export default function IndiaHomePage() {
         <div style={{ maxWidth: 860, margin: '0 auto', textAlign: 'center' }}>
           <div style={{ fontSize: 12, fontWeight: 700, color: saffron, letterSpacing: 2, textTransform: 'uppercase', marginBottom: 12 }}>Simple Process</div>
           <h2 style={{ fontFamily: "'Outfit',sans-serif", fontSize: 30, fontWeight: 800, color: navy, marginBottom: 48 }}>Three steps. One minute.</h2>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 32, position: 'relative' }}>
-            <div style={{ position: 'absolute', top: 28, left: '20%', right: '20%', height: 2, background: 'linear-gradient(90deg, rgba(255,153,51,0.3), rgba(19,136,8,0.3))', zIndex: 0 }} />
+          <div className="in-steps-grid">
+            <div className="in-steps-track" style={{ position: 'absolute', top: 28, left: '20%', right: '20%', height: 2, background: 'linear-gradient(90deg, rgba(255,153,51,0.3), rgba(19,136,8,0.3))', zIndex: 0 }} />
             {[
               { n: '1', color: saffron, title: 'Upload Your CV', desc: 'Paste the text or upload a PDF. We extract everything.' },
               { n: '2', color: '#378ADD', title: 'Paste the Job Description', desc: 'Copy any JD from Naukri, LinkedIn, or a company portal.' },
@@ -341,7 +360,7 @@ export default function IndiaHomePage() {
           <div style={{ fontSize: 12, fontWeight: 700, color: indiaGreen, letterSpacing: 2, textTransform: 'uppercase', marginBottom: 12 }}>Pricing</div>
           <h2 style={{ fontFamily: "'Outfit',sans-serif", fontSize: 30, fontWeight: 800, color: navy, marginBottom: 8 }}>Simple pricing in INR</h2>
           <p style={{ color: '#9aafbc', fontSize: 13, marginBottom: 48 }}>No dollar conversions. No credit card required to start.</p>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 20, alignItems: 'start' }}>
+          <div className="in-pricing-grid">
             {[
               {
                 name: 'Free', price: '0', period: '', color: '#378ADD',
