@@ -42,7 +42,7 @@ export default function NavbarIndia() {
     { label: 'CV Builder', href: '/in/cv-builder' },
     { label: 'Cover Letter', href: '/in/cover-letter' },
     { label: 'Tracker', href: '/in/tracker' },
-    { label: 'Account', href: '/app/account' },
+    { label: 'Account', href: '/in/account' },
   ]
 
   const isActive = (href: string) => pathname === href
