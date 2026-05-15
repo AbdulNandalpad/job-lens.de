@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import React, { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
@@ -6,7 +6,7 @@ import { useCredits } from '@/lib/useCredits'
 
 const accent = '#FF9933'
 
-type Template = 'executive' | 'modern' | 'minimal' | 'technical'
+type Template = 'clean' | 'saffron' | 'classic'
 type Tone = 'professional' | 'concise' | 'detailed'
 type Pages = '1' | '2'
 type Lang = 'EN' | 'DE'
@@ -30,481 +30,99 @@ interface CVData {
   highlights: string[]
 }
 
-function ExecutiveTemplate({ cv }: { cv: CVData }) {
-  return (
-    <div style={{ display: 'flex', minHeight: 900, fontFamily: "'DM Sans', sans-serif", background: '#fff' }}>
-      <div style={{ width: 240, background: 'linear-gradient(170deg, #0d2137 0%, #0a3d2e 100%)', flexShrink: 0, padding: '36px 22px', display: 'flex', flexDirection: 'column', gap: 28 }}>
-        <div style={{ textAlign: 'center', paddingBottom: 24, borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
-          <div style={{ width: 72, height: 72, borderRadius: '50%', background: 'linear-gradient(135deg, #00C9A7, #0a8f72)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 26, fontWeight: 700, color: '#fff', margin: '0 auto 14px', letterSpacing: 1 }}>
-            {cv.name.split(' ').map(n => n[0]).join('').slice(0, 2)}
-          </div>
-          <div style={{ fontSize: 14, fontWeight: 700, color: '#fff', letterSpacing: 0.3, marginBottom: 4 }}>{cv.name}</div>
-          <div style={{ fontSize: 10, color: '#00C9A7', fontWeight: 700, letterSpacing: 1.5, textTransform: 'uppercase', lineHeight: 1.5 }}>{cv.title}</div>
-        </div>
-        <div>
-          <div style={{ fontSize: 9, fontWeight: 700, color: 'rgba(255,255,255,0.4)', letterSpacing: 1.2, textTransform: 'uppercase', marginBottom: 10 }}>Contact</div>
-          {[{ icon: '@', val: cv.email }, { icon: 'T', val: cv.phone }, { icon: 'L', val: cv.location }, { icon: 'in', val: cv.linkedin }].filter(r => r.val).map((r, i) => (
-            <div key={i} style={{ display: 'flex', gap: 8, marginBottom: 7, alignItems: 'flex-start' }}>
-              <span style={{ fontSize: 9, fontWeight: 700, color: '#00C9A7', width: 14, flexShrink: 0, marginTop: 1 }}>{r.icon}</span>
-              <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.65)', lineHeight: 1.5, wordBreak: 'break-all' }}>{r.val}</span>
-            </div>
-          ))}
-        </div>
-        {cv.skills.length > 0 && (
-          <div>
-            <div style={{ fontSize: 9, fontWeight: 700, color: 'rgba(255,255,255,0.4)', letterSpacing: 1.2, textTransform: 'uppercase', marginBottom: 10 }}>Skills</div>
-            {cv.skills.map((s, i) => (
-              <div key={i} style={{ marginBottom: 8 }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 3 }}>
-                  <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.75)' }}>{s.name}</span>
-                  <span style={{ fontSize: 9, color: '#00C9A7', fontWeight: 700 }}>{s.level}%</span>
-                </div>
-                <div style={{ height: 3, background: 'rgba(255,255,255,0.1)', borderRadius: 2 }}>
-                  <div style={{ height: '100%', width: `${s.level}%`, background: 'linear-gradient(90deg, #00C9A7, #0a8f72)', borderRadius: 2 }} />
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-        {cv.languages.length > 0 && (
-          <div>
-            <div style={{ fontSize: 9, fontWeight: 700, color: 'rgba(255,255,255,0.4)', letterSpacing: 1.2, textTransform: 'uppercase', marginBottom: 10 }}>Languages</div>
-            {cv.languages.map((l, i) => (
-              <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
-                <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.75)' }}>{l.name}</span>
-                <div style={{ display: 'flex', gap: 3 }}>
-                  {[1,2,3,4,5].map(d => <div key={d} style={{ width: 6, height: 6, borderRadius: '50%', background: d <= Math.round(l.level / 20) ? '#00C9A7' : 'rgba(255,255,255,0.15)' }} />)}
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-        {cv.certifications.length > 0 && (
-          <div>
-            <div style={{ fontSize: 9, fontWeight: 700, color: 'rgba(255,255,255,0.4)', letterSpacing: 1.2, textTransform: 'uppercase', marginBottom: 10 }}>Certifications</div>
-            {cv.certifications.map((c, i) => (
-              <div key={i} style={{ display: 'flex', gap: 6, marginBottom: 6, alignItems: 'flex-start' }}>
-                <span style={{ color: '#00C9A7', fontSize: 10, marginTop: 1 }}>*</span>
-                <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.65)', lineHeight: 1.5 }}>{c}</span>
-              </div>
-            ))}
-          </div>
-        )}
-        {cv.highlights.length > 0 && (
-          <div>
-            <div style={{ fontSize: 9, fontWeight: 700, color: 'rgba(255,255,255,0.4)', letterSpacing: 1.2, textTransform: 'uppercase', marginBottom: 10 }}>Highlights</div>
-            {cv.highlights.map((h, i) => (
-              <div key={i} style={{ display: 'flex', gap: 6, marginBottom: 5, alignItems: 'flex-start' }}>
-                <span style={{ color: '#00C9A7', fontSize: 9, marginTop: 2 }}>&gt;</span>
-                <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.6)', lineHeight: 1.5 }}>{h}</span>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-      <div style={{ flex: 1, padding: '36px 32px' }}>
-        <div style={{ marginBottom: 24, paddingBottom: 20, borderBottom: '2px solid #f0f4f8' }}>
-          <div style={{ fontSize: 32, fontWeight: 700, color: '#0d2137', fontFamily: "'Outfit', sans-serif", letterSpacing: -0.5, marginBottom: 4 }}>{cv.name}</div>
-          <div style={{ fontSize: 13, fontWeight: 700, color: '#00C9A7', letterSpacing: 2, textTransform: 'uppercase', marginBottom: 8 }}>{cv.title}</div>
-          {cv.tagline && <div style={{ fontSize: 11, color: '#6b7c93', letterSpacing: 0.5 }}>{cv.tagline}</div>}
-        </div>
-        {cv.stats.length > 0 && (
-          <div style={{ display: 'flex', marginBottom: 24, background: '#f8fafc', borderRadius: 12, overflow: 'hidden', border: '1px solid #edf1f6' }}>
-            {cv.stats.map((s, i) => (
-              <div key={i} style={{ flex: 1, padding: '14px 16px', textAlign: 'center', borderRight: i < cv.stats.length - 1 ? '1px solid #edf1f6' : 'none' }}>
-                <div style={{ fontSize: 22, fontWeight: 700, color: '#0d2137', fontFamily: "'Outfit', sans-serif" }}>{s.value}</div>
-                <div style={{ fontSize: 10, color: '#8fa3b8', marginTop: 2 }}>{s.label}</div>
-              </div>
-            ))}
-          </div>
-        )}
-        {cv.summary && (
-          <div style={{ marginBottom: 24 }}>
-            <div style={{ fontSize: 10, fontWeight: 700, color: '#0d2137', letterSpacing: 1.5, textTransform: 'uppercase', marginBottom: 8, display: 'flex', alignItems: 'center', gap: 8 }}>
-              <span>Executive Summary</span><div style={{ flex: 1, height: 1, background: '#edf1f6' }} />
-            </div>
-            <div style={{ fontSize: 12, color: '#374151', lineHeight: 1.8 }}>{cv.summary}</div>
-          </div>
-        )}
-        {cv.tools.length > 0 && (
-          <div style={{ marginBottom: 24 }}>
-            <div style={{ fontSize: 10, fontWeight: 700, color: '#0d2137', letterSpacing: 1.5, textTransform: 'uppercase', marginBottom: 10, display: 'flex', alignItems: 'center', gap: 8 }}>
-              <span>Core Stack</span><div style={{ flex: 1, height: 1, background: '#edf1f6' }} />
-            </div>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-              {cv.tools.map((t, i) => <span key={i} style={{ fontSize: 10, padding: '4px 10px', borderRadius: 6, background: '#f0f4f8', color: '#374151', border: '1px solid #e2e8f0', fontWeight: 500 }}>{t}</span>)}
-            </div>
-          </div>
-        )}
-        {cv.experience.length > 0 && (
-          <div style={{ marginBottom: 24 }}>
-            <div style={{ fontSize: 10, fontWeight: 700, color: '#0d2137', letterSpacing: 1.5, textTransform: 'uppercase', marginBottom: 14, display: 'flex', alignItems: 'center', gap: 8 }}>
-              <span>Professional Experience</span><div style={{ flex: 1, height: 1, background: '#edf1f6' }} />
-            </div>
-            {cv.experience.map((exp, i) => (
-              <div key={i} style={{ marginBottom: 20, display: 'flex', gap: 14 }}>
-                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', paddingTop: 3 }}>
-                  <div style={{ width: 10, height: 10, borderRadius: '50%', background: '#00C9A7', flexShrink: 0 }} />
-                  {i < cv.experience.length - 1 && <div style={{ width: 1, flex: 1, background: '#e2e8f0', marginTop: 4 }} />}
-                </div>
-                <div style={{ flex: 1, paddingBottom: i < cv.experience.length - 1 ? 16 : 0 }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 2 }}>
-                    <div style={{ fontSize: 13, fontWeight: 700, color: '#0d2137' }}>{exp.role}</div>
-                    <div style={{ fontSize: 10, color: '#00C9A7', fontWeight: 600, flexShrink: 0, marginLeft: 8 }}>{exp.period}</div>
-                  </div>
-                  <div style={{ fontSize: 11, color: '#6b7c93', marginBottom: 8, fontStyle: 'italic' }}>{[exp.company, exp.location, exp.type].filter(Boolean).join(' . ')}</div>
-                  {exp.bullets.map((b, j) => (
-                    <div key={j} style={{ display: 'flex', gap: 6, marginBottom: 4, alignItems: 'flex-start' }}>
-                      <span style={{ color: '#00C9A7', fontSize: 10, marginTop: 3, flexShrink: 0 }}>+</span>
-                      <span style={{ fontSize: 11, color: '#374151', lineHeight: 1.6 }}>{b}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-        {cv.education.length > 0 && (
-          <div>
-            <div style={{ fontSize: 10, fontWeight: 700, color: '#0d2137', letterSpacing: 1.5, textTransform: 'uppercase', marginBottom: 10, display: 'flex', alignItems: 'center', gap: 8 }}>
-              <span>Education</span><div style={{ flex: 1, height: 1, background: '#edf1f6' }} />
-            </div>
-            {cv.education.map((e, i) => (
-              <div key={i} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
-                <div>
-                  <div style={{ fontSize: 12, fontWeight: 600, color: '#0d2137' }}>{e.degree}</div>
-                  <div style={{ fontSize: 11, color: '#6b7c93' }}>{e.school}</div>
-                </div>
-                <div style={{ fontSize: 11, color: '#8fa3b8' }}>{e.year}</div>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
+function IndiaCV({ cv, accent: ac }: { cv: CVData; accent: string }) {
+  const navy = '#0d2137'
+  const secHeader = (title: string) => (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8, marginTop: 18 }}>
+      <span style={{ fontSize: 10, fontWeight: 700, color: navy, letterSpacing: 1.5, textTransform: 'uppercase' as const, whiteSpace: 'nowrap' as const }}>{title}</span>
+      <div style={{ flex: 1, height: 1, background: '#d1dae6' }} />
     </div>
   )
-}
-
-function ModernTemplate({ cv }: { cv: CVData }) {
   return (
-    <div style={{ fontFamily: "'DM Sans', sans-serif", background: '#fff', minHeight: 900 }}>
-      <div style={{ background: 'linear-gradient(135deg, #042C53 0%, #185FA5 100%)', padding: '36px 40px 28px', position: 'relative', overflow: 'hidden' }}>
-        <div style={{ position: 'absolute', top: -40, right: -40, width: 200, height: 200, borderRadius: '50%', background: 'rgba(55,138,221,0.15)' }} />
-        <div style={{ position: 'relative' }}>
-          <div style={{ fontSize: 36, fontWeight: 700, color: '#fff', fontFamily: "'Outfit', sans-serif", letterSpacing: -0.5, marginBottom: 4 }}>{cv.name}</div>
-          <div style={{ fontSize: 12, fontWeight: 700, color: '#378ADD', letterSpacing: 2.5, textTransform: 'uppercase', marginBottom: 16 }}>{cv.title}</div>
-          <div style={{ display: 'flex', gap: 20, flexWrap: 'wrap' }}>
-            {[cv.email, cv.phone, cv.location, cv.linkedin].filter(Boolean).map((v, i) => <span key={i} style={{ fontSize: 11, color: 'rgba(255,255,255,0.65)' }}>{v}</span>)}
-          </div>
-        </div>
+    <div style={{ fontFamily: "'DM Sans', sans-serif", background: '#fff', padding: '40px 48px', minHeight: 900 }}>
+      <div style={{ marginBottom: 6 }}>
+        <div style={{ fontSize: 28, fontWeight: 700, color: navy, letterSpacing: -0.3, lineHeight: 1.2 }}>{cv.name}</div>
+        <div style={{ fontSize: 13, fontWeight: 700, color: ac, letterSpacing: 0.5, marginTop: 3, marginBottom: 5 }}>{cv.title}</div>
+        <div style={{ fontSize: 11, color: '#6b7c93' }}>{[cv.email, cv.phone, cv.location, cv.linkedin].filter(Boolean).join('  |  ')}</div>
       </div>
-      {cv.stats.length > 0 && (
-        <div style={{ background: '#042C53', display: 'flex' }}>
-          {cv.stats.map((s, i) => (
-            <div key={i} style={{ flex: 1, padding: '12px 16px', textAlign: 'center', borderRight: i < cv.stats.length - 1 ? '1px solid rgba(255,255,255,0.1)' : 'none' }}>
-              <div style={{ fontSize: 20, fontWeight: 700, color: '#00C9A7', fontFamily: "'Outfit', sans-serif" }}>{s.value}</div>
-              <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.5)', marginTop: 1 }}>{s.label}</div>
+      <div style={{ height: 1, background: '#ccd5e0', marginBottom: 4 }} />
+      {cv.summary && (
+        <div>
+          {secHeader('Summary')}
+          <div style={{ fontSize: 11.5, color: '#374151', lineHeight: 1.8 }}>{cv.summary}</div>
+        </div>
+      )}
+      {cv.skills.length > 0 && (
+        <div>
+          {secHeader('Skills')}
+          <div style={{ fontSize: 11.5, color: '#374151', lineHeight: 1.7 }}>{cv.skills.map(s => s.name).join('  ·  ')}</div>
+        </div>
+      )}
+      {cv.tools.length > 0 && (
+        <div>
+          {secHeader('Tech Stack')}
+          <div style={{ fontSize: 11.5, color: ac, lineHeight: 1.7 }}>{cv.tools.join('  ·  ')}</div>
+        </div>
+      )}
+      {cv.experience.length > 0 && (
+        <div>
+          {secHeader('Experience')}
+          {cv.experience.map((exp, i) => (
+            <div key={i} style={{ marginBottom: 14 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                <div style={{ fontSize: 13, fontWeight: 700, color: navy }}>{exp.role}</div>
+                <div style={{ fontSize: 10, color: ac, fontWeight: 600, flexShrink: 0, marginLeft: 8 }}>{exp.period}</div>
+              </div>
+              <div style={{ fontSize: 11, color: '#6b7c93', fontStyle: 'italic', marginBottom: 5 }}>{[exp.company, exp.location, exp.type].filter(Boolean).join('  ·  ')}</div>
+              {exp.bullets.map((b, j) => (
+                <div key={j} style={{ display: 'flex', gap: 7, marginBottom: 3, alignItems: 'flex-start' }}>
+                  <span style={{ color: ac, fontSize: 11, flexShrink: 0, marginTop: 1 }}>•</span>
+                  <span style={{ fontSize: 11, color: '#374151', lineHeight: 1.65 }}>{b}</span>
+                </div>
+              ))}
             </div>
           ))}
         </div>
       )}
-      <div style={{ display: 'flex' }}>
-        <div style={{ width: 220, flexShrink: 0, background: '#f8fafc', borderRight: '1px solid #edf1f6', padding: '28px 20px', display: 'flex', flexDirection: 'column', gap: 24 }}>
-          {cv.skills.length > 0 && (
-            <div>
-              <div style={{ fontSize: 9, fontWeight: 700, color: '#042C53', letterSpacing: 1.5, textTransform: 'uppercase', marginBottom: 12 }}>Skills</div>
-              {cv.skills.map((s, i) => (
-                <div key={i} style={{ marginBottom: 9 }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 3 }}>
-                    <span style={{ fontSize: 10, color: '#374151', fontWeight: 500 }}>{s.name}</span>
-                    <span style={{ fontSize: 9, color: '#378ADD', fontWeight: 700 }}>{s.level}%</span>
-                  </div>
-                  <div style={{ height: 4, background: '#e2e8f0', borderRadius: 4 }}>
-                    <div style={{ height: '100%', width: `${s.level}%`, background: 'linear-gradient(90deg, #042C53, #378ADD)', borderRadius: 4 }} />
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-          {cv.languages.length > 0 && (
-            <div>
-              <div style={{ fontSize: 9, fontWeight: 700, color: '#042C53', letterSpacing: 1.5, textTransform: 'uppercase', marginBottom: 12 }}>Languages</div>
-              {cv.languages.map((l, i) => (
-                <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 7 }}>
-                  <span style={{ fontSize: 10, color: '#374151' }}>{l.name}</span>
-                  <div style={{ display: 'flex', gap: 3 }}>
-                    {[1,2,3,4,5].map(d => <div key={d} style={{ width: 7, height: 7, borderRadius: '50%', background: d <= Math.round(l.level / 20) ? '#042C53' : '#e2e8f0' }} />)}
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-          {cv.certifications.length > 0 && (
-            <div>
-              <div style={{ fontSize: 9, fontWeight: 700, color: '#042C53', letterSpacing: 1.5, textTransform: 'uppercase', marginBottom: 10 }}>Certifications</div>
-              {cv.certifications.map((c, i) => <div key={i} style={{ padding: '6px 10px', background: '#fff', border: '1px solid #e2e8f0', borderLeft: '3px solid #378ADD', borderRadius: 4, marginBottom: 6, fontSize: 10, color: '#374151', lineHeight: 1.4 }}>{c}</div>)}
-            </div>
-          )}
-          {cv.education.length > 0 && (
-            <div>
-              <div style={{ fontSize: 9, fontWeight: 700, color: '#042C53', letterSpacing: 1.5, textTransform: 'uppercase', marginBottom: 10 }}>Education</div>
-              {cv.education.map((e, i) => (
-                <div key={i} style={{ marginBottom: 8 }}>
-                  <div style={{ fontSize: 11, fontWeight: 600, color: '#0d2137' }}>{e.degree}</div>
-                  <div style={{ fontSize: 10, color: '#6b7c93' }}>{e.school}</div>
-                  <div style={{ fontSize: 9, color: '#8fa3b8' }}>{e.year}</div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-        <div style={{ flex: 1, padding: '28px 28px' }}>
-          {cv.summary && (
-            <div style={{ marginBottom: 22 }}>
-              <div style={{ fontSize: 9, fontWeight: 700, color: '#042C53', letterSpacing: 1.5, textTransform: 'uppercase', marginBottom: 8, display: 'flex', alignItems: 'center', gap: 8 }}>
-                <span>Profile</span><div style={{ flex: 1, height: 1, background: '#edf1f6' }} />
+      {cv.education.length > 0 && (
+        <div>
+          {secHeader('Education')}
+          {cv.education.map((e, i) => (
+            <div key={i} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 7 }}>
+              <div>
+                <div style={{ fontSize: 12, fontWeight: 600, color: navy }}>{e.degree}</div>
+                <div style={{ fontSize: 11, color: '#6b7c93' }}>{e.school}</div>
               </div>
-              <div style={{ fontSize: 12, color: '#374151', lineHeight: 1.8 }}>{cv.summary}</div>
-            </div>
-          )}
-          {cv.tools.length > 0 && (
-            <div style={{ marginBottom: 22 }}>
-              <div style={{ fontSize: 9, fontWeight: 700, color: '#042C53', letterSpacing: 1.5, textTransform: 'uppercase', marginBottom: 10, display: 'flex', alignItems: 'center', gap: 8 }}>
-                <span>Core Stack</span><div style={{ flex: 1, height: 1, background: '#edf1f6' }} />
-              </div>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-                {cv.tools.map((t, i) => <span key={i} style={{ fontSize: 10, padding: '4px 10px', borderRadius: 20, background: '#E6F1FB', color: '#185FA5', border: '1px solid #c3ddf7', fontWeight: 600 }}>{t}</span>)}
-              </div>
-            </div>
-          )}
-          {cv.experience.length > 0 && (
-            <div>
-              <div style={{ fontSize: 9, fontWeight: 700, color: '#042C53', letterSpacing: 1.5, textTransform: 'uppercase', marginBottom: 14, display: 'flex', alignItems: 'center', gap: 8 }}>
-                <span>Experience</span><div style={{ flex: 1, height: 1, background: '#edf1f6' }} />
-              </div>
-              {cv.experience.map((exp, i) => (
-                <div key={i} style={{ marginBottom: 18, paddingLeft: 14, borderLeft: '2px solid #edf1f6', position: 'relative' }}>
-                  <div style={{ position: 'absolute', left: -5, top: 4, width: 8, height: 8, borderRadius: '50%', background: '#378ADD' }} />
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 2 }}>
-                    <div style={{ fontSize: 13, fontWeight: 700, color: '#042C53' }}>{exp.role}</div>
-                    <div style={{ fontSize: 10, color: '#378ADD', fontWeight: 600 }}>{exp.period}</div>
-                  </div>
-                  <div style={{ fontSize: 11, color: '#6b7c93', marginBottom: 6, fontStyle: 'italic' }}>{[exp.company, exp.location, exp.type].filter(Boolean).join(' . ')}</div>
-                  {exp.bullets.map((b, j) => (
-                    <div key={j} style={{ display: 'flex', gap: 6, marginBottom: 3 }}>
-                      <span style={{ color: '#1D9E75', fontSize: 10, marginTop: 3, flexShrink: 0 }}>+</span>
-                      <span style={{ fontSize: 11, color: '#374151', lineHeight: 1.6 }}>{b}</span>
-                    </div>
-                  ))}
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      </div>
-    </div>
-  )
-}
-
-function MinimalTemplate({ cv }: { cv: CVData }) {
-  return (
-    <div style={{ fontFamily: "'DM Sans', sans-serif", background: '#fff', padding: '48px 52px', minHeight: 900 }}>
-      <div style={{ marginBottom: 32, paddingBottom: 24, borderBottom: '1px solid #1a2332' }}>
-        <div style={{ fontSize: 38, fontWeight: 300, color: '#1a2332', fontFamily: "'Outfit', sans-serif", letterSpacing: -1, marginBottom: 6 }}>{cv.name}</div>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
-          <div style={{ fontSize: 13, fontWeight: 700, color: '#374151', letterSpacing: 3, textTransform: 'uppercase' }}>{cv.title}</div>
-          <div style={{ fontSize: 10, color: '#8fa3b8', textAlign: 'right' }}>{[cv.email, cv.phone, cv.location].filter(Boolean).join('  .  ')}</div>
-        </div>
-      </div>
-      {cv.stats.length > 0 && (
-        <div style={{ display: 'flex', gap: 32, marginBottom: 32 }}>
-          {cv.stats.map((s, i) => (
-            <div key={i}>
-              <div style={{ fontSize: 28, fontWeight: 200, color: '#1a2332', fontFamily: "'Outfit', sans-serif" }}>{s.value}</div>
-              <div style={{ fontSize: 10, color: '#8fa3b8', letterSpacing: 1, textTransform: 'uppercase' }}>{s.label}</div>
+              <div style={{ fontSize: 11, color: '#8fa3b8', flexShrink: 0, marginLeft: 8 }}>{e.year}</div>
             </div>
           ))}
         </div>
       )}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 200px', gap: 40 }}>
+      {cv.certifications.length > 0 && (
         <div>
-          {cv.summary && <div style={{ marginBottom: 28 }}><div style={{ fontSize: 9, fontWeight: 700, letterSpacing: 2, textTransform: 'uppercase', color: '#8fa3b8', marginBottom: 10 }}>Summary</div><div style={{ fontSize: 12, color: '#374151', lineHeight: 1.9, fontWeight: 300 }}>{cv.summary}</div></div>}
-          {cv.experience.length > 0 && (
-            <div style={{ marginBottom: 28 }}>
-              <div style={{ fontSize: 9, fontWeight: 700, letterSpacing: 2, textTransform: 'uppercase', color: '#8fa3b8', marginBottom: 14 }}>Experience</div>
-              {cv.experience.map((exp, i) => (
-                <div key={i} style={{ marginBottom: 20 }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 2 }}>
-                    <div style={{ fontSize: 13, fontWeight: 600, color: '#1a2332' }}>{exp.role}</div>
-                    <div style={{ fontSize: 10, color: '#8fa3b8' }}>{exp.period}</div>
-                  </div>
-                  <div style={{ fontSize: 11, color: '#6b7c93', marginBottom: 8 }}>{[exp.company, exp.location].filter(Boolean).join(', ')}</div>
-                  {exp.bullets.map((b, j) => (
-                    <div key={j} style={{ display: 'flex', gap: 8, marginBottom: 3 }}>
-                      <span style={{ color: '#1a2332', fontSize: 10 }}>-</span>
-                      <span style={{ fontSize: 11, color: '#374151', lineHeight: 1.7, fontWeight: 300 }}>{b}</span>
-                    </div>
-                  ))}
-                </div>
-              ))}
+          {secHeader('Certifications')}
+          {cv.certifications.map((c, i) => (
+            <div key={i} style={{ display: 'flex', gap: 7, marginBottom: 4, alignItems: 'flex-start' }}>
+              <span style={{ color: ac, fontSize: 11, flexShrink: 0 }}>•</span>
+              <span style={{ fontSize: 11, color: '#374151', lineHeight: 1.6 }}>{c}</span>
             </div>
-          )}
-          {cv.tools.length > 0 && <div><div style={{ fontSize: 9, fontWeight: 700, letterSpacing: 2, textTransform: 'uppercase', color: '#8fa3b8', marginBottom: 10 }}>Tools & Stack</div><div style={{ fontSize: 11, color: '#374151', lineHeight: 2, fontWeight: 300 }}>{cv.tools.join('  .  ')}</div></div>}
+          ))}
         </div>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
-          {cv.skills.length > 0 && (
-            <div>
-              <div style={{ fontSize: 9, fontWeight: 700, letterSpacing: 2, textTransform: 'uppercase', color: '#8fa3b8', marginBottom: 10 }}>Skills</div>
-              {cv.skills.map((s, i) => (
-                <div key={i} style={{ marginBottom: 6 }}>
-                  <div style={{ fontSize: 10, color: '#374151', marginBottom: 2, fontWeight: 300 }}>{s.name}</div>
-                  <div style={{ height: 2, background: '#edf1f6' }}><div style={{ height: '100%', width: `${s.level}%`, background: '#1a2332' }} /></div>
-                </div>
-              ))}
-            </div>
-          )}
-          {cv.languages.length > 0 && (
-            <div>
-              <div style={{ fontSize: 9, fontWeight: 700, letterSpacing: 2, textTransform: 'uppercase', color: '#8fa3b8', marginBottom: 10 }}>Languages</div>
-              {cv.languages.map((l, i) => (
-                <div key={i} style={{ fontSize: 10, color: '#374151', marginBottom: 4, display: 'flex', justifyContent: 'space-between' }}>
-                  <span>{l.name}</span>
-                  <span style={{ color: '#8fa3b8' }}>{l.level >= 90 ? 'Native' : l.level >= 70 ? 'Fluent' : l.level >= 50 ? 'Good' : 'Basic'}</span>
-                </div>
-              ))}
-            </div>
-          )}
-          {cv.education.length > 0 && (
-            <div>
-              <div style={{ fontSize: 9, fontWeight: 700, letterSpacing: 2, textTransform: 'uppercase', color: '#8fa3b8', marginBottom: 10 }}>Education</div>
-              {cv.education.map((e, i) => <div key={i} style={{ marginBottom: 8 }}><div style={{ fontSize: 11, fontWeight: 600, color: '#1a2332' }}>{e.degree}</div><div style={{ fontSize: 10, color: '#6b7c93' }}>{e.school}</div><div style={{ fontSize: 9, color: '#8fa3b8' }}>{e.year}</div></div>)}
-            </div>
-          )}
-          {cv.certifications.length > 0 && (
-            <div>
-              <div style={{ fontSize: 9, fontWeight: 700, letterSpacing: 2, textTransform: 'uppercase', color: '#8fa3b8', marginBottom: 10 }}>Certifications</div>
-              {cv.certifications.map((c, i) => <div key={i} style={{ fontSize: 10, color: '#374151', marginBottom: 5, lineHeight: 1.5, fontWeight: 300 }}>{c}</div>)}
-            </div>
-          )}
-        </div>
-      </div>
-    </div>
-  )
-}
-
-function TechnicalTemplate({ cv }: { cv: CVData }) {
-  return (
-    <div style={{ fontFamily: "'DM Sans', sans-serif", background: '#fff', minHeight: 900 }}>
-      <div style={{ height: 5, background: 'linear-gradient(90deg, #E05C97, #6C8EF5, #00C9A7)' }} />
-      <div style={{ display: 'flex' }}>
-        <div style={{ width: 230, background: '#1a2332', padding: '32px 20px', flexShrink: 0, display: 'flex', flexDirection: 'column', gap: 24 }}>
-          <div>
-            <div style={{ fontSize: 18, fontWeight: 700, color: '#fff', fontFamily: "'Outfit', sans-serif", marginBottom: 4, lineHeight: 1.3 }}>{cv.name}</div>
-            <div style={{ fontSize: 10, fontWeight: 700, color: '#E05C97', letterSpacing: 1.5, textTransform: 'uppercase', marginBottom: 12 }}>{cv.title}</div>
-            <div style={{ height: 1, background: 'rgba(255,255,255,0.1)' }} />
+      )}
+      {cv.languages.length > 0 && (
+        <div>
+          {secHeader('Languages')}
+          <div style={{ fontSize: 11.5, color: '#374151' }}>
+            {cv.languages.map((l, i) => {
+              const lv = l.level >= 90 ? 'Native' : l.level >= 75 ? 'Fluent' : l.level >= 55 ? 'Proficient' : 'Basic'
+              return <span key={i}>{l.name} <span style={{ color: '#8fa3b8' }}>({lv})</span>{i < cv.languages.length - 1 ? '  ·  ' : ''}</span>
+            })}
           </div>
-          {[cv.email, cv.phone, cv.location, cv.linkedin].filter(Boolean).map((v, i) => <div key={i} style={{ fontSize: 10, color: 'rgba(255,255,255,0.55)', lineHeight: 1.5, wordBreak: 'break-all' }}>{v}</div>)}
-          {cv.skills.length > 0 && (
-            <div>
-              <div style={{ fontSize: 9, fontWeight: 700, color: '#E05C97', letterSpacing: 1.2, textTransform: 'uppercase', marginBottom: 10 }}>Proficiency</div>
-              {cv.skills.map((s, i) => (
-                <div key={i} style={{ marginBottom: 7 }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 2 }}>
-                    <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.7)' }}>{s.name}</span>
-                    <span style={{ fontSize: 9, color: '#E05C97' }}>{s.level}%</span>
-                  </div>
-                  <div style={{ height: 3, background: 'rgba(255,255,255,0.08)', borderRadius: 2 }}>
-                    <div style={{ height: '100%', width: `${s.level}%`, background: 'linear-gradient(90deg, #E05C97, #6C8EF5)', borderRadius: 2 }} />
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-          {cv.languages.length > 0 && (
-            <div>
-              <div style={{ fontSize: 9, fontWeight: 700, color: '#E05C97', letterSpacing: 1.2, textTransform: 'uppercase', marginBottom: 10 }}>Languages</div>
-              {cv.languages.map((l, i) => (
-                <div key={i} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
-                  <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.7)' }}>{l.name}</span>
-                  <div style={{ display: 'flex', gap: 3 }}>
-                    {[1,2,3,4,5].map(d => <div key={d} style={{ width: 6, height: 6, borderRadius: '50%', background: d <= Math.round(l.level / 20) ? '#E05C97' : 'rgba(255,255,255,0.12)' }} />)}
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-          {cv.certifications.length > 0 && (
-            <div>
-              <div style={{ fontSize: 9, fontWeight: 700, color: '#E05C97', letterSpacing: 1.2, textTransform: 'uppercase', marginBottom: 10 }}>Certifications</div>
-              {cv.certifications.map((c, i) => <div key={i} style={{ display: 'flex', gap: 6, marginBottom: 6, alignItems: 'flex-start' }}><span style={{ color: '#6C8EF5', fontSize: 10 }}>*</span><span style={{ fontSize: 10, color: 'rgba(255,255,255,0.6)', lineHeight: 1.4 }}>{c}</span></div>)}
-            </div>
-          )}
-          {cv.education.length > 0 && (
-            <div>
-              <div style={{ fontSize: 9, fontWeight: 700, color: '#E05C97', letterSpacing: 1.2, textTransform: 'uppercase', marginBottom: 10 }}>Education</div>
-              {cv.education.map((e, i) => <div key={i} style={{ marginBottom: 8 }}><div style={{ fontSize: 10, fontWeight: 600, color: 'rgba(255,255,255,0.8)' }}>{e.degree}</div><div style={{ fontSize: 9, color: 'rgba(255,255,255,0.45)' }}>{e.school} . {e.year}</div></div>)}
-            </div>
-          )}
         </div>
-        <div style={{ flex: 1, padding: '32px 28px' }}>
-          {cv.stats.length > 0 && (
-            <div style={{ display: 'flex', gap: 12, marginBottom: 24, flexWrap: 'wrap' }}>
-              {cv.stats.map((s, i) => (
-                <div key={i} style={{ padding: '10px 16px', background: '#f8fafc', border: '1px solid #edf1f6', borderTop: '3px solid #E05C97', borderRadius: 8, textAlign: 'center', minWidth: 80 }}>
-                  <div style={{ fontSize: 20, fontWeight: 700, color: '#1a2332', fontFamily: "'Outfit', sans-serif" }}>{s.value}</div>
-                  <div style={{ fontSize: 9, color: '#8fa3b8', marginTop: 2 }}>{s.label}</div>
-                </div>
-              ))}
-            </div>
-          )}
-          {cv.summary && (
-            <div style={{ marginBottom: 22, padding: '14px 16px', background: '#fafbfd', border: '1px solid #edf1f6', borderLeft: '3px solid #6C8EF5', borderRadius: 6 }}>
-              <div style={{ fontSize: 9, fontWeight: 700, color: '#6C8EF5', letterSpacing: 1.5, textTransform: 'uppercase', marginBottom: 6 }}>Profile</div>
-              <div style={{ fontSize: 11, color: '#374151', lineHeight: 1.8 }}>{cv.summary}</div>
-            </div>
-          )}
-          {cv.tools.length > 0 && (
-            <div style={{ marginBottom: 22 }}>
-              <div style={{ fontSize: 9, fontWeight: 700, color: '#1a2332', letterSpacing: 1.5, textTransform: 'uppercase', marginBottom: 10, display: 'flex', alignItems: 'center', gap: 8 }}>
-                <span>Tech Stack</span><div style={{ flex: 1, height: 1, background: '#edf1f6' }} />
-              </div>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-                {cv.tools.map((t, i) => <span key={i} style={{ fontSize: 10, padding: '3px 9px', borderRadius: 4, background: '#f0f4f8', color: '#374151', border: '1px solid #dde4ee', fontFamily: 'monospace' }}>{t}</span>)}
-              </div>
-            </div>
-          )}
-          {cv.experience.length > 0 && (
-            <div>
-              <div style={{ fontSize: 9, fontWeight: 700, color: '#1a2332', letterSpacing: 1.5, textTransform: 'uppercase', marginBottom: 14, display: 'flex', alignItems: 'center', gap: 8 }}>
-                <span>Experience</span><div style={{ flex: 1, height: 1, background: '#edf1f6' }} />
-              </div>
-              {cv.experience.map((exp, i) => (
-                <div key={i} style={{ marginBottom: 18 }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 2 }}>
-                    <div style={{ fontSize: 13, fontWeight: 700, color: '#1a2332' }}>{exp.role}</div>
-                    <div style={{ fontSize: 10, color: '#E05C97', fontWeight: 600 }}>{exp.period}</div>
-                  </div>
-                  <div style={{ fontSize: 11, color: '#6b7c93', marginBottom: 6, display: 'flex', gap: 6, alignItems: 'center' }}>
-                    <span style={{ fontWeight: 600, color: '#374151' }}>{exp.company}</span>
-                    {exp.location && <><span>.</span><span>{exp.location}</span></>}
-                    {exp.type && <span style={{ padding: '1px 6px', background: '#f0f4f8', borderRadius: 3, fontSize: 9 }}>{exp.type}</span>}
-                  </div>
-                  {exp.bullets.map((b, j) => (
-                    <div key={j} style={{ display: 'flex', gap: 6, marginBottom: 3 }}>
-                      <span style={{ color: '#6C8EF5', fontSize: 11, marginTop: 2, flexShrink: 0 }}>+</span>
-                      <span style={{ fontSize: 11, color: '#374151', lineHeight: 1.6 }}>{b}</span>
-                    </div>
-                  ))}
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      </div>
+      )}
     </div>
   )
 }
-
 export default function IndiaCVBuilderPage() {
   const router = useRouter()
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -515,7 +133,7 @@ export default function IndiaCVBuilderPage() {
   const [fileLoading, setFileLoading] = useState(false)
   const [job, setJob] = useState<{ job_title: string; employer_name: string; job_description?: string } | null>(null)
   const [jobLabel, setJobLabel] = useState('')
-  const [template, setTemplate] = useState<Template>('executive')
+  const [template, setTemplate] = useState<Template>('clean')
   const [tone, setTone] = useState<Tone>('professional')
   const [pages, setPages] = useState<Pages>('1')
   const [lang, setLang] = useState<Lang>('EN')
@@ -574,7 +192,7 @@ export default function IndiaCVBuilderPage() {
       try {
         const s = JSON.parse(atsRaw)
         setAtsSuggestions(s)
-        setTemplate('minimal')
+        setTemplate('clean')
         setAtsFromScan(true)
       } catch {}
     }
@@ -636,91 +254,67 @@ ${atsSuggestions?.section_gaps?.length ? `- ATS SECTION GAPS to address: ${atsSu
     try {
       const { default: jsPDF } = await import('jspdf')
       const doc = new jsPDF({ unit: 'mm', format: 'a4' })
-      const W = 210, H = 297, margin = 18
-
-      if (template === 'minimal') {
-        const mw = W - margin * 2
-        let y = 22
-        const addPage = () => { doc.addPage(); y = 22 }
-        doc.setFont('helvetica', 'bold'); doc.setFontSize(22); doc.setTextColor(13, 33, 55); doc.text(cvData.name, margin, y); y += 7
-        doc.setFontSize(11); doc.setFont('helvetica', 'bold'); doc.setTextColor(26, 82, 160); doc.text(cvData.title || '', margin, y); y += 5
-        const contact = [cvData.email, cvData.phone, cvData.location, cvData.linkedin].filter(Boolean).join('  |  ')
-        if (contact) { doc.setFontSize(8); doc.setFont('helvetica', 'normal'); doc.setTextColor(100, 116, 139); const cl = doc.splitTextToSize(contact, mw); doc.text(cl, margin, y); y += cl.length * 3.8 + 1 }
-        doc.setDrawColor(180, 195, 210); doc.setLineWidth(0.5); doc.line(margin, y, W - margin, y); y += 6
-        const msec = (title: string) => { if (y > 270) { addPage() }; doc.setFontSize(9); doc.setFont('helvetica', 'bold'); doc.setTextColor(13, 33, 55); doc.text(title.toUpperCase(), margin, y); doc.setDrawColor(210, 218, 226); doc.setLineWidth(0.3); doc.line(margin + doc.getTextWidth(title.toUpperCase()) + 3, y - 1, W - margin, y - 1); y += 5 }
-        if (cvData.summary) { msec('Summary'); doc.setFontSize(9); doc.setFont('helvetica', 'normal'); doc.setTextColor(55, 65, 81); const sl = doc.splitTextToSize(cvData.summary, mw); doc.text(sl, margin, y); y += sl.length * 4 + 5 }
-        if (cvData.skills?.length) { msec('Skills'); doc.setFontSize(9); doc.setFont('helvetica', 'normal'); doc.setTextColor(55, 65, 81); const sl = doc.splitTextToSize(cvData.skills.map((s: { name: string }) => s.name).join('  ·  '), mw); doc.text(sl, margin, y); y += sl.length * 4 + 5 }
-        if (cvData.tools?.length) { msec('Tech Stack'); doc.setFontSize(9); doc.setFont('helvetica', 'normal'); doc.setTextColor(26, 95, 165); const tl = doc.splitTextToSize(cvData.tools.join('  ·  '), mw); doc.text(tl, margin, y); y += tl.length * 4 + 5 }
-        if (cvData.experience?.length) {
-          msec('Experience')
-          cvData.experience.forEach((exp: { role: string; company: string; period: string; location: string; type: string; bullets: string[] }) => {
-            if (y > 262) { addPage() }
-            doc.setFontSize(10); doc.setFont('helvetica', 'bold'); doc.setTextColor(13, 33, 55); doc.text(exp.role, margin, y); doc.setFontSize(8.5); doc.setFont('helvetica', 'normal'); doc.setTextColor(26, 95, 165); doc.text(exp.period || '', W - margin, y, { align: 'right' }); y += 4
-            doc.setFontSize(8.5); doc.setFont('helvetica', 'italic'); doc.setTextColor(100, 116, 139); doc.text([exp.company, exp.location, exp.type].filter(Boolean).join('  ·  '), margin, y); y += 4
-            exp.bullets?.forEach((b: string) => { if (y > 265) { addPage() }; doc.setFontSize(8.5); doc.setFont('helvetica', 'normal'); doc.setTextColor(55, 65, 81); doc.text('-', margin, y); const bl = doc.splitTextToSize(b, mw - 5); doc.text(bl, margin + 5, y); y += bl.length * 3.8 })
-            y += 4
-          })
-        }
-        if (cvData.education?.length) { msec('Education'); cvData.education.forEach((e: { degree: string; school: string; year: string }) => { if (y > 270) { addPage() }; doc.setFontSize(10); doc.setFont('helvetica', 'bold'); doc.setTextColor(13, 33, 55); doc.text(e.degree, margin, y); doc.setFontSize(8.5); doc.setFont('helvetica', 'normal'); doc.setTextColor(100, 116, 139); doc.text(`${e.school}  ·  ${e.year}`, margin, y + 4); y += 9 }) }
-        if (cvData.certifications?.length) { msec('Certifications'); cvData.certifications.forEach((c: string) => { if (y > 272) { addPage() }; doc.setFontSize(9); doc.setFont('helvetica', 'normal'); doc.setTextColor(55, 65, 81); doc.text(`- ${c}`, margin, y); y += 5 }) }
-        if (cvData.languages?.length) { msec('Languages'); doc.setFontSize(9); doc.setFont('helvetica', 'normal'); doc.setTextColor(55, 65, 81); const ll = doc.splitTextToSize(cvData.languages.map((l: { name: string; level: number }) => { const lv = l.level >= 90 ? 'Native' : l.level >= 75 ? 'Fluent' : l.level >= 55 ? 'Proficient' : 'Basic'; return `${l.name} (${lv})` }).join('  ·  '), mw); doc.text(ll, margin, y) }
-        doc.save(`CV_${(cvData.name || 'JobLens').replace(/[^a-zA-Z0-9]/g, '_')}_Minimal.pdf`)
-        setDownloading(null); return
+      const W = 210, margin = 18, mw = W - 36
+      const acc = templates.find(t => t.id === template)?.accent || '#1a5fa0'
+      const accRgb = acc === '#FF9933' ? [255, 153, 51] : acc === '#1a1a1a' ? [26, 26, 26] : [26, 95, 160]
+      let y = 22
+      const addPage = () => { doc.addPage(); y = 22 }
+      const sec = (title: string) => {
+        if (y > 270) { addPage() }
+        doc.setFontSize(9); doc.setFont('helvetica', 'bold'); doc.setTextColor(13, 33, 55)
+        doc.text(title.toUpperCase(), margin, y)
+        doc.setDrawColor(209, 218, 230); doc.setLineWidth(0.3)
+        doc.line(margin + doc.getTextWidth(title.toUpperCase()) + 3, y - 1, W - margin, y - 1)
+        y += 5
       }
-
-      const colLeft = 58
-      let pageCount = 1
-      const drawSidebarBg = () => { doc.setFillColor(13, 33, 55); doc.rect(0, 0, colLeft, H, 'F') }
-      const addPageWithSidebar = () => { doc.addPage(); pageCount++; drawSidebarBg() }
-      const compact = ((cvData.skills?.length || 0) + (cvData.languages?.length || 0) + (cvData.certifications?.length || 0) + (cvData.highlights?.length || 0)) > 22
-      const certLineH = compact ? 3.2 : 3.5, hlLineH = compact ? 3.2 : 3.5, sideFontSm = compact ? 6 : 6.5, sideFontBase = compact ? 6.5 : 7
-      drawSidebarBg()
-      doc.setFillColor(0, 165, 138); doc.circle(colLeft / 2, 22, 10, 'F')
-      const initials = cvData.name.split(' ').map((n: string) => n[0]).join('').slice(0, 2)
-      doc.setFont('helvetica', 'bold'); doc.setFontSize(10); doc.setTextColor(255, 255, 255); doc.text(initials, colLeft / 2, 25, { align: 'center' })
-      let y = 37
-      doc.setFontSize(9); const nameLines = doc.splitTextToSize(cvData.name, colLeft - 8); doc.text(nameLines, colLeft / 2, y, { align: 'center' }); y += nameLines.length * 4 + 2
-      doc.setFontSize(7); doc.setFont('helvetica', 'normal'); doc.setTextColor(0, 201, 167); const titleLines = doc.splitTextToSize(cvData.title, colLeft - 8); doc.text(titleLines, colLeft / 2, y, { align: 'center' }); y += titleLines.length * 3.5 + 6
-      doc.setDrawColor(255, 255, 255); doc.setLineWidth(0.2); doc.line(4, y, colLeft - 4, y); y += 5
-      const sideLabel = (text: string) => { if (y > H - 10) return; doc.setFontSize(sideFontSm); doc.setFont('helvetica', 'bold'); doc.setTextColor(130, 160, 190); doc.text(text.toUpperCase(), 5, y); y += 4 }
-      const sideText = (text: string) => { if (y > H - 6) return; doc.setFontSize(sideFontBase); doc.setFont('helvetica', 'normal'); doc.setTextColor(200, 215, 230); const lines = doc.splitTextToSize(text, colLeft - 10); doc.text(lines, 5, y); y += lines.length * certLineH + 1 }
-      sideLabel('Contact'); [cvData.email, cvData.phone, cvData.location, cvData.linkedin].filter(Boolean).forEach((v: string) => sideText(v)); y += 3
-      if (cvData.skills?.length) {
-        sideLabel('Skills')
-        cvData.skills.forEach((s: { name: string; level: number }) => { if (y > H - 10) return; doc.setFontSize(sideFontBase); doc.setFont('helvetica', 'normal'); doc.setTextColor(200, 215, 230); doc.text(s.name, 5, y); doc.setTextColor(0, 201, 167); doc.text(`${s.level}%`, colLeft - 5, y, { align: 'right' }); y += 3; doc.setFillColor(40, 60, 80); doc.rect(5, y, colLeft - 10, compact ? 1.5 : 2, 'F'); doc.setFillColor(0, 165, 138); doc.rect(5, y, (colLeft - 10) * s.level / 100, compact ? 1.5 : 2, 'F'); y += compact ? 2.8 : 4.5 }); y += compact ? 1 : 2
-      }
-      if (cvData.languages?.length) {
-        sideLabel('Languages')
-        cvData.languages.forEach((l: { name: string; level: number }) => { if (y > H - 8) return; doc.setFontSize(sideFontBase); doc.setFont('helvetica', 'normal'); doc.setTextColor(200, 215, 230); doc.text(l.name, 5, y); const dots = Math.round(l.level / 20); for (let d = 0; d < 5; d++) { doc.setFillColor(d < dots ? 0 : 40, d < dots ? 165 : 60, d < dots ? 138 : 80); doc.circle(colLeft - 18 + d * 4, y - 1, 1.2, 'F') }; y += compact ? 3.8 : 5 }); y += compact ? 1 : 2
-      }
-      if (cvData.certifications?.length) { sideLabel('Certifications'); cvData.certifications.forEach((c: string) => { if (y > H - 8) return; doc.setFontSize(sideFontSm); doc.setFont('helvetica', 'normal'); doc.setTextColor(180, 200, 220); const lines = doc.splitTextToSize(`* ${c}`, colLeft - 10); doc.text(lines, 5, y); y += lines.length * certLineH + 1 }) }
-      if (cvData.highlights?.length) { sideLabel('Highlights'); cvData.highlights.forEach((h: string) => { if (y > H - 8) return; doc.setFontSize(sideFontSm); doc.setFont('helvetica', 'normal'); doc.setTextColor(160, 185, 210); const lines = doc.splitTextToSize(`> ${h}`, colLeft - 10); doc.text(lines, 5, y); y += lines.length * hlLineH + 1 }) }
-      const mx = colLeft + 8, mw = W - mx - margin; let my = 14
-      doc.setFont('helvetica', 'bold'); doc.setFontSize(18); doc.setTextColor(13, 33, 55); doc.text(cvData.name, mx, my); my += 7
-      doc.setFontSize(8); doc.setFont('helvetica', 'bold'); doc.setTextColor(0, 165, 138); doc.text((cvData.title || '').toUpperCase(), mx, my); my += 5
-      doc.setDrawColor(220, 230, 240); doc.setLineWidth(0.4); doc.line(mx, my, W - margin, my); my += 5
-      if (cvData.stats?.length) { const sw = mw / cvData.stats.length; cvData.stats.forEach((s: { value: string; label: string }, i: number) => { const sx = mx + i * sw + sw / 2; doc.setFontSize(13); doc.setFont('helvetica', 'bold'); doc.setTextColor(13, 33, 55); doc.text(s.value, sx, my + 5, { align: 'center' }); doc.setFontSize(6); doc.setFont('helvetica', 'normal'); doc.setTextColor(130, 150, 170); doc.text(s.label, sx, my + 9, { align: 'center' }) }); my += 16; doc.setDrawColor(220, 230, 240); doc.setLineWidth(0.3); doc.line(mx, my, W - margin, my); my += 5 }
-      const mainSection = (title: string) => { if (my > 270) { addPageWithSidebar(); my = 14 }; doc.setFontSize(7.5); doc.setFont('helvetica', 'bold'); doc.setTextColor(13, 33, 55); doc.text(title.toUpperCase(), mx, my); doc.setDrawColor(220, 230, 240); doc.setLineWidth(0.3); doc.line(mx + doc.getTextWidth(title.toUpperCase()) + 3, my - 1, W - margin, my - 1); my += 5 }
-      if (cvData.summary) { mainSection('Professional Summary'); doc.setFontSize(8); doc.setFont('helvetica', 'normal'); doc.setTextColor(55, 65, 81); const lines = doc.splitTextToSize(cvData.summary, mw); doc.text(lines, mx, my); my += lines.length * 4 + 5 }
-      if (cvData.tools?.length) { mainSection('Core Stack'); doc.setFontSize(7.5); doc.setFont('helvetica', 'normal'); doc.setTextColor(24, 95, 165); const lines = doc.splitTextToSize(cvData.tools.join('  ·  '), mw); doc.text(lines, mx, my); my += lines.length * 4 + 5 }
+      // Name
+      doc.setFont('helvetica', 'bold'); doc.setFontSize(22); doc.setTextColor(13, 33, 55)
+      doc.text(cvData.name, margin, y); y += 7
+      // Title
+      doc.setFontSize(11); doc.setFont('helvetica', 'bold'); doc.setTextColor(accRgb[0], accRgb[1], accRgb[2])
+      doc.text(cvData.title || '', margin, y); y += 5
+      // Contact line
+      const contact = [cvData.email, cvData.phone, cvData.location, cvData.linkedin].filter(Boolean).join('  |  ')
+      if (contact) { doc.setFontSize(8); doc.setFont('helvetica', 'normal'); doc.setTextColor(100, 116, 139); const cl = doc.splitTextToSize(contact, mw); doc.text(cl, margin, y); y += cl.length * 3.8 + 1 }
+      doc.setDrawColor(180, 195, 210); doc.setLineWidth(0.5); doc.line(margin, y, W - margin, y); y += 6
+      // Summary
+      if (cvData.summary) { sec('Summary'); doc.setFontSize(9); doc.setFont('helvetica', 'normal'); doc.setTextColor(55, 65, 81); const sl = doc.splitTextToSize(cvData.summary, mw); doc.text(sl, margin, y); y += sl.length * 4 + 5 }
+      // Skills
+      if (cvData.skills?.length) { sec('Skills'); doc.setFontSize(9); doc.setFont('helvetica', 'normal'); doc.setTextColor(55, 65, 81); const sl = doc.splitTextToSize(cvData.skills.map((s: { name: string }) => s.name).join('  ·  '), mw); doc.text(sl, margin, y); y += sl.length * 4 + 5 }
+      // Tech Stack
+      if (cvData.tools?.length) { sec('Tech Stack'); doc.setFontSize(9); doc.setFont('helvetica', 'normal'); doc.setTextColor(accRgb[0], accRgb[1], accRgb[2]); const tl = doc.splitTextToSize(cvData.tools.join('  ·  '), mw); doc.text(tl, margin, y); y += tl.length * 4 + 5 }
+      // Experience
       if (cvData.experience?.length) {
-        mainSection('Professional Experience')
+        sec('Experience')
         cvData.experience.forEach((exp: { role: string; company: string; period: string; location: string; type: string; bullets: string[] }) => {
-          if (my > 262) { addPageWithSidebar(); my = 14 }
-          doc.setFillColor(0, 165, 138); doc.circle(mx - 3, my - 1, 1.5, 'F')
-          doc.setFontSize(9); doc.setFont('helvetica', 'bold'); doc.setTextColor(13, 33, 55); doc.text(exp.role, mx, my)
-          doc.setFontSize(7.5); doc.setFont('helvetica', 'bold'); doc.setTextColor(0, 165, 138); doc.text(exp.period || '', W - margin, my, { align: 'right' }); my += 4
-          doc.setFontSize(7.5); doc.setFont('helvetica', 'italic'); doc.setTextColor(107, 124, 147); doc.text([exp.company, exp.location, exp.type].filter(Boolean).join('  ·  '), mx, my); my += 4
-          exp.bullets?.forEach((b: string) => { if (my > 262) { addPageWithSidebar(); my = 14 }; doc.setFontSize(7.5); doc.setFont('helvetica', 'normal'); doc.setTextColor(29, 158, 117); doc.text('+', mx, my); doc.setTextColor(55, 65, 81); const lines = doc.splitTextToSize(b, mw - 6); doc.text(lines, mx + 5, my); my += lines.length * 3.8 })
-          my += 4; doc.setDrawColor(230, 235, 242); doc.setLineWidth(0.2); doc.line(mx - 3, my - 3, mx - 3, my + 2)
+          if (y > 262) { addPage() }
+          doc.setFontSize(10); doc.setFont('helvetica', 'bold'); doc.setTextColor(13, 33, 55); doc.text(exp.role, margin, y)
+          doc.setFontSize(8.5); doc.setFont('helvetica', 'normal'); doc.setTextColor(accRgb[0], accRgb[1], accRgb[2]); doc.text(exp.period || '', W - margin, y, { align: 'right' }); y += 4
+          doc.setFontSize(8.5); doc.setFont('helvetica', 'italic'); doc.setTextColor(100, 116, 139); doc.text([exp.company, exp.location, exp.type].filter(Boolean).join('  ·  '), margin, y); y += 4
+          exp.bullets?.forEach((b: string) => { if (y > 265) { addPage() }; doc.setFontSize(8.5); doc.setFont('helvetica', 'normal'); doc.setTextColor(accRgb[0], accRgb[1], accRgb[2]); doc.text('•', margin, y); doc.setTextColor(55, 65, 81); const bl = doc.splitTextToSize(b, mw - 5); doc.text(bl, margin + 5, y); y += bl.length * 3.8 })
+          y += 4
         })
       }
+      // Education
       if (cvData.education?.length) {
-        if (my > 255) { addPageWithSidebar(); my = 14 }
-        mainSection('Education')
-        cvData.education.forEach((e: { degree: string; school: string; year: string }) => { if (my > 270) { addPageWithSidebar(); my = 14 }; doc.setFontSize(8.5); doc.setFont('helvetica', 'bold'); doc.setTextColor(13, 33, 55); doc.text(e.degree, mx, my); doc.setFontSize(7.5); doc.setFont('helvetica', 'normal'); doc.setTextColor(107, 124, 147); doc.text(`${e.school}  ·  ${e.year}`, mx, my + 3.5); my += 8 })
+        sec('Education')
+        cvData.education.forEach((e: { degree: string; school: string; year: string }) => { if (y > 270) { addPage() }; doc.setFontSize(10); doc.setFont('helvetica', 'bold'); doc.setTextColor(13, 33, 55); doc.text(e.degree, margin, y); doc.setFontSize(8.5); doc.setFont('helvetica', 'normal'); doc.setTextColor(100, 116, 139); doc.text(`${e.school}  ·  ${e.year}`, margin, y + 4); y += 9 })
+        y += 2
       }
-      doc.save(`CV_${(job?.employer_name || cvData.name || 'JobLens').replace(/[^a-zA-Z0-9]/g, '_')}.pdf`)
+      // Certifications
+      if (cvData.certifications?.length) {
+        sec('Certifications')
+        cvData.certifications.forEach((c: string) => { if (y > 272) { addPage() }; doc.setFontSize(9); doc.setFont('helvetica', 'normal'); doc.setTextColor(accRgb[0], accRgb[1], accRgb[2]); doc.text('•', margin, y); doc.setTextColor(55, 65, 81); const cl = doc.splitTextToSize(c, mw - 5); doc.text(cl, margin + 5, y); y += cl.length * 4 })
+        y += 2
+      }
+      // Languages
+      if (cvData.languages?.length) {
+        sec('Languages')
+        doc.setFontSize(9); doc.setFont('helvetica', 'normal'); doc.setTextColor(55, 65, 81)
+        const ll = doc.splitTextToSize(cvData.languages.map((l: { name: string; level: number }) => { const lv = l.level >= 90 ? 'Native' : l.level >= 75 ? 'Fluent' : l.level >= 55 ? 'Proficient' : 'Basic'; return `${l.name} (${lv})` }).join('  ·  '), mw)
+        doc.text(ll, margin, y)
+      }
+      doc.save(`CV_${(cvData.name || 'JobLens').replace(/[^a-zA-Z0-9]/g, '_')}_${templates.find(t => t.id === template)?.label || 'India'}.pdf`)
     } catch (err) { console.error('PDF error:', err); alert('PDF generation failed.') }
     setDownloading(null)
   }
@@ -789,10 +383,9 @@ ${atsSuggestions?.section_gaps?.length ? `- ATS SECTION GAPS to address: ${atsSu
   }
 
   const templates: { id: Template; label: string; accent: string; desc: string; ats: string; atsHigh: boolean }[] = [
-    { id: 'executive', label: 'Executive', accent: '#00C9A7', desc: 'Dark sidebar . teal accents', ats: 'ATS: Low', atsHigh: false },
-    { id: 'modern', label: 'Modern', accent: '#378ADD', desc: 'Navy header . blue palette', ats: 'ATS: Low', atsHigh: false },
-    { id: 'minimal', label: 'Minimal', accent: '#1a2332', desc: 'Pure typography . whitespace', ats: 'ATS: High ✓', atsHigh: true },
-    { id: 'technical', label: 'Technical', accent: '#E05C97', desc: 'Dark sidebar . colour accents', ats: 'ATS: Low', atsHigh: false },
+    { id: 'clean',   label: 'Clean',   accent: '#1a5fa0', desc: 'Single column · Blue accents',    ats: 'ATS: High ✓', atsHigh: true },
+    { id: 'saffron', label: 'Saffron', accent: '#FF9933', desc: 'Single column · Saffron accents', ats: 'ATS: High ✓', atsHigh: true },
+    { id: 'classic', label: 'Classic', accent: '#1a1a1a', desc: 'Single column · Black & white',   ats: 'ATS: High ✓', atsHigh: true },
   ]
   const tones: { id: Tone; label: string; desc: string }[] = [
     { id: 'professional', label: 'Professional', desc: 'Polished & credible' },
@@ -801,11 +394,8 @@ ${atsSuggestions?.section_gaps?.length ? `- ATS SECTION GAPS to address: ${atsSu
   ]
   function renderCV() {
     if (!cvData) return null
-    if (template === 'executive') return <ExecutiveTemplate cv={cvData} />
-    if (template === 'modern') return <ModernTemplate cv={cvData} />
-    if (template === 'minimal') return <MinimalTemplate cv={cvData} />
-    if (template === 'technical') return <TechnicalTemplate cv={cvData} />
-    return null
+    const acc = templates.find(t => t.id === template)?.accent || '#1a5fa0'
+    return <IndiaCV cv={cvData} accent={acc} />
   }
 
   return (
@@ -869,7 +459,7 @@ ${atsSuggestions?.section_gaps?.length ? `- ATS SECTION GAPS to address: ${atsSu
                 <div style={{ padding: '4px 16px 16px', display: 'flex', flexDirection: 'column', gap: 7 }}>
                   {atsFromScan && (
                     <div style={{ padding: '7px 10px', background: 'rgba(29,158,117,0.12)', border: '1px solid rgba(29,158,117,0.3)', borderRadius: 8, fontSize: 11, color: '#1D9E75', lineHeight: 1.4, marginBottom: 4 }}>
-                      Minimal selected for best ATS compatibility
+                      Template selected for best ATS compatibility
                     </div>
                   )}
                   {atsSuggestions && (
@@ -900,9 +490,14 @@ ${atsSuggestions?.section_gaps?.length ? `- ATS SECTION GAPS to address: ${atsSu
                   {templates.map(t => (
                     <div key={t.id} onClick={() => setTemplate(t.id)} style={{ padding: '10px 12px', borderRadius: 9, border: `1px solid ${template === t.id ? t.accent : 'rgba(255,255,255,0.09)'}`, background: template === t.id ? t.accent + '14' : 'rgba(255,255,255,0.04)', cursor: 'pointer', transition: 'all 0.15s', display: 'flex', alignItems: 'center', gap: 10 }}>
                       <div style={{ width: 38, height: 48, borderRadius: 4, background: '#1a2535', flexShrink: 0, overflow: 'hidden', border: `1px solid ${template === t.id ? t.accent + '60' : 'rgba(255,255,255,0.07)'}` }}>
-                        {(t.id === 'executive' || t.id === 'technical') && <div style={{ display: 'flex', height: '100%' }}><div style={{ width: 12, background: t.accent + '25', padding: '3px 2px', display: 'flex', flexDirection: 'column', gap: 2 }}><div style={{ width: 8, height: 8, borderRadius: '50%', background: t.accent + '70', margin: '0 auto' }} />{[1,2,3,4].map(i => <div key={i} style={{ height: 2, background: t.accent + '40', borderRadius: 1 }} />)}</div><div style={{ flex: 1, padding: '3px 2px', display: 'flex', flexDirection: 'column', gap: 1.5 }}><div style={{ height: 3, background: 'rgba(255,255,255,0.45)', borderRadius: 1 }} />{[80,60,90,70,85].map((w, i) => <div key={i} style={{ height: 1.5, background: 'rgba(255,255,255,0.12)', borderRadius: 1, width: `${w}%` }} />)}</div></div>}
-                        {t.id === 'modern' && <><div style={{ height: 12, background: 'linear-gradient(90deg, #042C53, #185FA5)' }} /><div style={{ display: 'flex', height: 'calc(100% - 12px)' }}><div style={{ width: 11, background: '#f0f4f8', padding: '2px', display: 'flex', flexDirection: 'column', gap: 1.5 }}>{[1,2,3,4].map(i => <div key={i} style={{ height: 1.5, background: '#c0cfe0', borderRadius: 1 }} />)}</div><div style={{ flex: 1, padding: '3px 2px', display: 'flex', flexDirection: 'column', gap: 1.5 }}>{[90,70,85,60,80].map((w, i) => <div key={i} style={{ height: 1.5, background: 'rgba(255,255,255,0.12)', borderRadius: 1, width: `${w}%` }} />)}</div></div></>}
-                        {t.id === 'minimal' && <div style={{ padding: '5px 4px', display: 'flex', flexDirection: 'column', gap: 2 }}><div style={{ height: 4, background: 'rgba(255,255,255,0.55)', borderRadius: 1, width: '65%' }} /><div style={{ height: 1, background: 'rgba(255,255,255,0.2)' }} />{[80,60,90,55,75,65].map((w, i) => <div key={i} style={{ height: 1.5, background: 'rgba(255,255,255,0.1)', borderRadius: 1, width: `${w}%` }} />)}</div>}
+                        <div style={{ padding: '5px 4px', display: 'flex', flexDirection: 'column', gap: 2 }}>
+                          <div style={{ height: 5, background: 'rgba(255,255,255,0.6)', borderRadius: 1, width: '70%' }} />
+                          <div style={{ height: 2, background: t.accent + '80', borderRadius: 1, width: '40%', marginBottom: 2 }} />
+                          <div style={{ height: 0.5, background: 'rgba(255,255,255,0.2)', marginBottom: 2 }} />
+                          {[90,70,85,60,95,75,80,65].map((w, i) => (
+                            <div key={i} style={{ height: 1.5, background: 'rgba(255,255,255,0.12)', borderRadius: 1, width: `${w}%` }} />
+                          ))}
+                        </div>
                       </div>
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <div style={{ fontSize: 12, fontWeight: 600, color: template === t.id ? '#fff' : 'rgba(255,255,255,0.65)', marginBottom: 2 }}>{t.label}</div>
