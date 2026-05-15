@@ -13,7 +13,7 @@ export default function NavbarIndia() {
   const router = useRouter()
   const [userName, setUserName] = useState('')
   const [menuOpen, setMenuOpen] = useState(false)
-  const [cleared, setCleared] = useState(false)
+  const [confirmClear, setConfirmClear] = useState(false)
 
   useEffect(() => {
     const supabase = createClient()
@@ -27,8 +27,7 @@ export default function NavbarIndia() {
     Object.keys(sessionStorage)
       .filter(k => k.startsWith('jl_'))
       .forEach(k => sessionStorage.removeItem(k))
-    setCleared(true)
-    setTimeout(() => setCleared(false), 2500)
+    setConfirmClear(false)
   }
 
   function switchToDE() {
@@ -111,13 +110,23 @@ export default function NavbarIndia() {
             </div>
           </div>
 
-          {/* Clear session */}
-          <button className="jl-clear-btn" onClick={clearSession} title="Clear session data"
-            style={{ alignItems: 'center', gap: 5, padding: '4px 10px', borderRadius: 16, background: cleared ? 'rgba(29,158,117,0.2)' : 'rgba(255,255,255,0.06)', border: `1px solid ${cleared ? 'rgba(29,158,117,0.4)' : 'rgba(255,255,255,0.12)'}`, cursor: 'pointer', transition: 'all 0.2s' }}>
-            <span style={{ fontSize: 11, color: cleared ? '#4ade80' : 'rgba(255,255,255,0.45)', fontFamily: f.body, fontWeight: 500 }}>
-              {cleared ? '+ Cleared' : '+ New session'}
-            </span>
-          </button>
+          {/* New session button + confirmation popup */}
+          <div className="jl-clear-btn" style={{ position: 'relative' }}>
+            <button onClick={() => setConfirmClear(true)}
+              style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '5px 12px', borderRadius: 8, background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.18)', cursor: 'pointer' }}>
+              <span style={{ fontSize: 12, color: '#fff', fontFamily: f.body, fontWeight: 600 }}>+ New session</span>
+            </button>
+            {confirmClear && (
+              <div style={{ position: 'absolute', top: '100%', right: 0, marginTop: 8, background: '#0d2137', border: '1px solid rgba(255,255,255,0.15)', borderRadius: 10, padding: '14px 16px', zIndex: 300, minWidth: 220, boxShadow: '0 8px 32px rgba(0,0,0,0.4)' }}>
+                <div style={{ fontSize: 12, color: '#E6F1FB', fontWeight: 600, marginBottom: 4 }}>Clear all session data?</div>
+                <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)', marginBottom: 12, lineHeight: 1.5 }}>Removes your CV, job selections, ATS results and cover letter.</div>
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <button onClick={clearSession} style={{ flex: 1, padding: '7px 0', borderRadius: 7, border: 'none', background: '#FF9933', color: '#042C53', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>Clear</button>
+                  <button onClick={() => setConfirmClear(false)} style={{ flex: 1, padding: '7px 0', borderRadius: 7, border: '1px solid rgba(255,255,255,0.15)', background: 'transparent', color: 'rgba(255,255,255,0.6)', fontSize: 12, cursor: 'pointer', fontFamily: 'inherit' }}>Cancel</button>
+                </div>
+              </div>
+            )}
+          </div>
 
           {/* User avatar */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'rgba(255,255,255,0.08)', border: '0.5px solid rgba(255,255,255,0.15)', borderRadius: 20, padding: '4px 10px 4px 5px' }}>

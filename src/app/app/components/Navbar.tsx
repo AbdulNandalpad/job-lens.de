@@ -14,7 +14,7 @@ export default function Navbar() {
   const router = useRouter()
   const [userName, setUserName] = useState('')
   const [menuOpen, setMenuOpen] = useState(false)
-  const [cleared, setCleared] = useState(false)
+  const [confirmClear, setConfirmClear] = useState(false)
   const [langOpen, setLangOpen] = useState(false)
   const { lang, setLang, t } = useLanguage()
 
@@ -35,8 +35,7 @@ export default function Navbar() {
     Object.keys(sessionStorage)
       .filter(k => k.startsWith('jl_'))
       .forEach(k => sessionStorage.removeItem(k))
-    setCleared(true)
-    setTimeout(() => setCleared(false), 2500)
+    setConfirmClear(false)
   }
 
   const navItems = [
@@ -140,17 +139,25 @@ export default function Navbar() {
             </button>
           </div>
 
-          {/* Clear session button */}
-          <button
-            className="jl-clear-btn"
-            onClick={clearSession}
-            title="Clear all session data (CV, jobs, letters)"
-            style={{ alignItems: 'center', gap: 5, padding: '4px 10px', borderRadius: 16, background: cleared ? 'rgba(29,158,117,0.2)' : 'rgba(255,255,255,0.06)', border: `1px solid ${cleared ? 'rgba(29,158,117,0.4)' : 'rgba(255,255,255,0.12)'}`, cursor: 'pointer', transition: 'all 0.2s' }}
-          >
-            <span style={{ fontSize: 11, color: cleared ? '#4ade80' : 'rgba(255,255,255,0.45)', fontFamily: f.body, fontWeight: 500 }}>
-              {cleared ? `✓ ${t.navbar.cleared}` : `⟳ ${t.navbar.newSession}`}
-            </span>
-          </button>
+          {/* New session button + confirmation popup */}
+          <div className="jl-clear-btn" style={{ position: 'relative' }}>
+            <button
+              onClick={() => setConfirmClear(true)}
+              style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '5px 12px', borderRadius: 8, background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.18)', cursor: 'pointer', transition: 'all 0.15s' }}
+            >
+              <span style={{ fontSize: 12, color: '#fff', fontFamily: f.body, fontWeight: 600 }}>+ {t.navbar.newSession}</span>
+            </button>
+            {confirmClear && (
+              <div style={{ position: 'absolute', top: '100%', right: 0, marginTop: 8, background: '#0d2137', border: '1px solid rgba(255,255,255,0.15)', borderRadius: 10, padding: '14px 16px', zIndex: 300, minWidth: 220, boxShadow: '0 8px 32px rgba(0,0,0,0.4)' }}>
+                <div style={{ fontSize: 12, color: '#E6F1FB', fontWeight: 600, marginBottom: 4 }}>Clear all session data?</div>
+                <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)', marginBottom: 12, lineHeight: 1.5 }}>Removes your CV, job selections, scan results and cover letter.</div>
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <button onClick={clearSession} style={{ flex: 1, padding: '7px 0', borderRadius: 7, border: 'none', background: '#e53e3e', color: '#fff', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>Clear</button>
+                  <button onClick={() => setConfirmClear(false)} style={{ flex: 1, padding: '7px 0', borderRadius: 7, border: '1px solid rgba(255,255,255,0.15)', background: 'transparent', color: 'rgba(255,255,255,0.6)', fontSize: 12, cursor: 'pointer', fontFamily: 'inherit' }}>Cancel</button>
+                </div>
+              </div>
+            )}
+          </div>
 
           {/* User avatar */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'rgba(255,255,255,0.08)', border: '0.5px solid rgba(255,255,255,0.15)', borderRadius: 20, padding: '4px 10px 4px 5px' }}>
@@ -186,7 +193,7 @@ export default function Navbar() {
               <GBFlag size={15} /> EN — English
             </button>
           </div>
-          <button onClick={() => { clearSession(); setMenuOpen(false) }}
+          <button onClick={() => { setMenuOpen(false); setConfirmClear(true) }}
             style={{ width: '100%', marginTop: 8, padding: '10px 12px', borderRadius: 8, background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', color: 'rgba(255,255,255,0.5)', fontSize: 13, cursor: 'pointer', textAlign: 'left' as const }}>
             {t.navbar.clearAll}
           </button>
