@@ -81,9 +81,7 @@ export default function IndiaCareerScanPage() {
 
   useEffect(() => {
     const savedCv = sessionStorage.getItem('jl_cv_text') || sessionStorage.getItem('jl_cvb_generated') || ''
-    const savedJd = sessionStorage.getItem('jl_ats_jd') || ''
     if (savedCv) setCvText(savedCv)
-    if (savedJd) setJdText(savedJd)
   }, [])
 
   async function handleFile(file: File) {

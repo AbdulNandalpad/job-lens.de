@@ -88,7 +88,6 @@ export default function IndiaJobsPage() {
       job_city: job.job_city,
       job_apply_link: job.job_apply_link,
     }))
-    if (job.job_description) sessionStorage.setItem('jl_ats_jd', job.job_description)
   }
 
   function goTo(path: string) {

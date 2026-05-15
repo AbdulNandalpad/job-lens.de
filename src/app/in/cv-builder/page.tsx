@@ -785,7 +785,6 @@ ${atsSuggestions?.section_gaps?.length ? `- ATS SECTION GAPS to address: ${atsSu
       sessionStorage.setItem('jl_cv_text', lines.join('\n'))
     }
     sessionStorage.removeItem('jl_ats_suggestions')
-    if (job?.job_description) sessionStorage.setItem('jl_ats_jd', job.job_description)
     router.push('/in/career-scan')
   }
 
