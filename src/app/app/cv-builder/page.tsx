@@ -1683,7 +1683,7 @@ ${job?.job_description ? `- Job context: ${job.job_description.slice(0, 800)}` :
           <div style={{ padding: '12px 24px', borderBottom: '1px solid rgba(255,255,255,0.08)', background: '#152233', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
               <span style={{ fontSize: 12, fontWeight: 600, color: cvData ? currentAccent : 'rgba(255,255,255,0.25)' }}>
-                {cvData ? t.coverLetter.preview.letterReady : t.coverLetter.preview.preview}
+                {cvData ? (lang === 'DE' ? 'Lebenslauf bereit' : 'CV Ready') : (lang === 'DE' ? 'Vorschau' : 'Preview')}
               </span>
               {cvData && (
                 <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.2)', padding: '2px 8px', background: 'rgba(255,255,255,0.04)', borderRadius: 20, border: '1px solid rgba(255,255,255,0.06)' }}>
@@ -1732,7 +1732,7 @@ ${job?.job_description ? `- Job context: ${job.job_description.slice(0, 800)}` :
                 </div>
                 <div style={{ textAlign: 'center', marginTop: 16, fontSize: 12, color: 'rgba(255,255,255,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
                   <div style={{ width: 12, height: 12, borderRadius: '50%', border: `2px solid ${currentAccent}40`, borderTopColor: currentAccent, animation: 'spin 0.7s linear infinite' }} />
-                  {t.coverLetter.preview.generating}
+                  {lang === 'DE' ? 'Lebenslauf wird erstellt...' : 'Generating your CV...'}
                 </div>
               </div>
             )}
@@ -1758,10 +1758,10 @@ ${job?.job_description ? `- Job context: ${job.job_description.slice(0, 800)}` :
                 </div>
                 <div style={{ textAlign: 'center' }}>
                   <div style={{ fontSize: 17, fontWeight: 600, color: 'rgba(255,255,255,0.5)', fontFamily: "'Outfit', sans-serif", marginBottom: 8 }}>
-                    {cvText ? t.coverLetter.preview.readyToWrite : t.coverLetter.preview.noCvUploaded}
+                    {cvText ? (lang === 'DE' ? 'Bereit zum Erstellen' : 'Ready to generate') : (lang === 'DE' ? 'Kein Lebenslauf hochgeladen' : 'No CV uploaded')}
                   </div>
                   <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.2)', lineHeight: 1.7 }}>
-                    {cvText ? t.coverLetter.preview.chooseAndGenerate : t.coverLetter.preview.uploadFirst}
+                    {cvText ? (lang === 'DE' ? 'Einstellungen wählen und Lebenslauf erstellen klicken' : 'Choose settings and click Generate CV') : (lang === 'DE' ? 'Lade zuerst deinen Lebenslauf hoch' : 'Upload your CV first to get started')}
                   </div>
                   {cvText && (
                     <button onClick={generate} className="cvb-gen"
@@ -1783,11 +1783,11 @@ ${job?.job_description ? `- Job context: ${job.job_description.slice(0, 800)}` :
 
                 {/* Feedback input */}
                 <div style={{ marginTop: 20, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 10, padding: '14px 16px' }}>
-                  <div style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.4)', letterSpacing: 0.5, textTransform: 'uppercase' as const, marginBottom: 8 }}>{t.coverLetter.preview.requestChanges}</div>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.4)', letterSpacing: 0.5, textTransform: 'uppercase' as const, marginBottom: 8 }}>{lang === 'DE' ? 'Änderungen anfordern' : 'Request changes'}</div>
                   <textarea
                     value={feedback}
                     onChange={e => setFeedback(e.target.value)}
-                    placeholder={t.coverLetter.preview.feedbackPlaceholder}
+                    placeholder={lang === 'DE' ? 'z.B. Mehr Führungskompetenzen hervorheben...' : 'e.g. Add more leadership skills, focus on achievements...'}
                     rows={2}
                     style={{ width: '100%', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 7, color: '#E6F1FB', fontSize: 12, padding: '8px 10px', resize: 'vertical' as const, fontFamily: "'DM Sans', sans-serif", outline: 'none', boxSizing: 'border-box' as const }}
                   />
@@ -1795,7 +1795,7 @@ ${job?.job_description ? `- Job context: ${job.job_description.slice(0, 800)}` :
                     onClick={applyFeedback}
                     disabled={!feedback.trim() || applyingFeedback}
                     style={{ marginTop: 8, padding: '7px 18px', borderRadius: 7, border: 'none', background: feedback.trim() && !applyingFeedback ? currentAccent : 'rgba(255,255,255,0.08)', color: feedback.trim() && !applyingFeedback ? '#042C53' : 'rgba(255,255,255,0.25)', fontSize: 12, fontWeight: 700, cursor: feedback.trim() && !applyingFeedback ? 'pointer' : 'not-allowed', fontFamily: "'Outfit', sans-serif" }}>
-                    {applyingFeedback ? t.coverLetter.preview.applying : t.coverLetter.preview.applyChanges}
+                    {applyingFeedback ? (lang === 'DE' ? 'Wird angewendet...' : 'Applying...') : (lang === 'DE' ? `Änderungen übernehmen — 1 Credit` : 'Apply changes — 1 credit')}
                   </button>
                 </div>
 

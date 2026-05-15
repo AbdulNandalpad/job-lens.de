@@ -286,25 +286,24 @@ export default function HomePage() {
           <div style={{ position: 'relative' }}>
             <button onClick={() => setLangOpen(o => !o)}
               style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '5px 10px', borderRadius: 10, border: '1px solid rgba(255,255,255,0.08)', background: 'rgba(255,255,255,0.05)', cursor: 'pointer', fontSize: 11, fontWeight: 600, color: '#fff', fontFamily: 'inherit' }}>
-              {lang === 'DE' ? <><DEFlag size={13} /> DE</> : <><GBFlag size={13} /> EN</>}
-              <span style={{ fontSize: 9, opacity: 0.5, marginLeft: 2 }}>{langOpen ? '▲' : '▼'}</span>
+              {lang} <span style={{ fontSize: 9, opacity: 0.5, marginLeft: 2 }}>{langOpen ? '▲' : '▼'}</span>
             </button>
             {langOpen && (
-              <div style={{ position: 'absolute', top: '100%', right: 0, marginTop: 6, background: '#0d2137', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 10, overflow: 'hidden', zIndex: 200, minWidth: 120, boxShadow: '0 8px 24px rgba(0,0,0,0.3)' }}>
-                {([['DE', <DEFlag key="de" size={13} />, 'Deutsch'], ['EN', <GBFlag key="en" size={13} />, 'English']] as const).map(([code, flag, label]) => (
+              <div style={{ position: 'absolute', top: '100%', right: 0, marginTop: 6, background: '#0d2137', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 10, overflow: 'hidden', zIndex: 200, minWidth: 110, boxShadow: '0 8px 24px rgba(0,0,0,0.3)' }}>
+                {(['DE', 'EN'] as const).map(code => (
                   <button key={code} onClick={() => { setLang(code); setLangOpen(false) }}
                     style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', padding: '9px 14px', border: 'none', background: lang === code ? 'rgba(55,138,221,0.2)' : 'transparent', color: lang === code ? '#fff' : 'rgba(255,255,255,0.55)', fontSize: 12, fontWeight: lang === code ? 700 : 400, cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left' }}>
-                    {flag} {code} <span style={{ opacity: 0.6, fontWeight: 400 }}>— {label}</span>
+                    {code} <span style={{ opacity: 0.5, fontWeight: 400 }}>— {code === 'DE' ? 'Deutsch' : 'English'}</span>
                   </button>
                 ))}
-                <div style={{ borderTop: '1px solid rgba(255,255,255,0.08)', margin: '4px 0' }} />
-                <Link href="/in" onClick={() => setLangOpen(false)}
-                  style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', padding: '9px 14px', color: '#FF9933', fontSize: 12, fontWeight: 600, textDecoration: 'none', fontFamily: 'inherit' }}>
-                  🇮🇳 India site
-                </Link>
               </div>
             )}
           </div>
+
+          {/* India site link */}
+          <Link href="/in" style={{ fontSize: 11, color: '#FF9933', fontWeight: 600, textDecoration: 'none', padding: '5px 10px', borderRadius: 10, border: '1px solid rgba(255,153,51,0.2)', background: 'rgba(255,153,51,0.07)', fontFamily: 'inherit' }}>
+            India
+          </Link>
 
           {!loading && (user ? (
             <>

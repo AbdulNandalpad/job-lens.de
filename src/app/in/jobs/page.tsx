@@ -114,8 +114,9 @@ export default function IndiaJobsPage() {
           </div>
 
           {/* Search bar */}
-          <div style={{ background: '#fff', borderRadius: 14, padding: 20, boxShadow: '0 2px 12px rgba(4,44,83,0.06)', border: '1px solid #edf1f6', marginBottom: 24 }}>
-            <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+          <div style={{ background: '#fff', borderRadius: 14, boxShadow: '0 2px 12px rgba(4,44,83,0.06)', border: '1px solid #edf1f6', marginBottom: 24, overflow: 'hidden' }}>
+            {/* Always-visible row: query + search button */}
+            <div style={{ display: 'flex', gap: 12, padding: 16, flexWrap: 'wrap' }}>
               <input
                 value={query}
                 onChange={e => setQuery(e.target.value)}
@@ -123,18 +124,30 @@ export default function IndiaJobsPage() {
                 placeholder="Job title or skill (e.g. React Developer)"
                 style={{ flex: 1, minWidth: 200, padding: '10px 14px', borderRadius: 8, border: '1px solid #dce4ef', fontSize: 13, fontFamily: "'DM Sans',sans-serif", outline: 'none', color: '#1a2332' }}
               />
-              <select
-                value={city}
-                onChange={e => setCity(e.target.value)}
-                style={{ padding: '10px 14px', borderRadius: 8, border: '1px solid #dce4ef', fontSize: 13, color: '#374151', fontFamily: "'DM Sans',sans-serif", outline: 'none', cursor: 'pointer' }}
-              >
-                {CITIES.map(c => <option key={c} value={c}>{c || 'All Cities'}</option>)}
-              </select>
               <button onClick={search} disabled={loading}
                 style={{ padding: '10px 24px', borderRadius: 8, background: loading ? '#ccc' : `linear-gradient(135deg, ${orange}, #e67300)`, color: '#fff', fontWeight: 700, fontSize: 13, border: 'none', cursor: loading ? 'not-allowed' : 'pointer' }}>
                 {loading ? 'Searching...' : 'Search'}
               </button>
             </div>
+            {/* Filters — hidden once results are shown */}
+            {!searched && (
+              <div style={{ padding: '0 16px 16px' }}>
+                <select
+                  value={city}
+                  onChange={e => setCity(e.target.value)}
+                  style={{ padding: '10px 14px', borderRadius: 8, border: '1px solid #dce4ef', fontSize: 13, color: '#374151', fontFamily: "'DM Sans',sans-serif", outline: 'none', cursor: 'pointer', width: '100%' }}
+                >
+                  {CITIES.map(c => <option key={c} value={c}>{c || 'All Cities'}</option>)}
+                </select>
+              </div>
+            )}
+            {/* When results shown: compact city chip + change link */}
+            {searched && (
+              <div style={{ padding: '0 16px 12px', display: 'flex', alignItems: 'center', gap: 8 }}>
+                {city && <span style={{ fontSize: 11, padding: '3px 10px', borderRadius: 12, background: `${orange}15`, color: orange, fontWeight: 600 }}>{city}</span>}
+                <button onClick={() => setSearched(false)} style={{ fontSize: 11, color: '#9aafbc', background: 'none', border: 'none', cursor: 'pointer', padding: 0, textDecoration: 'underline' }}>change filters</button>
+              </div>
+            )}
           </div>
 
           {/* Results */}
