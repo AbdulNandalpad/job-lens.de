@@ -873,311 +873,46 @@ ${job?.job_description ? `- Job context: ${job.job_description.slice(0, 800)}` :
   const [downloading, setDownloading] = useState<'pdf' | 'docx' | null>(null)
 
   async function downloadPDF() {
-    if (!cvData) return
+    if (!cvData || !previewRef.current) return
     setDownloading('pdf')
     try {
-      const { default: jsPDF } = await import('jspdf')
-      const doc = new jsPDF({ unit: 'mm', format: 'a4' })
-      const W = 210
-      const H = 297
-      const margin = 18
-      const colLeft = 58
-      let pageCount = 1
+      const [{ default: html2canvas }, { default: jsPDF }] = await Promise.all([
+        import('html2canvas'),
+        import('jspdf'),
+      ])
 
-      const drawSidebarBg = () => {
-        doc.setFillColor(13, 33, 55)
-        doc.rect(0, 0, colLeft, H, 'F')
-      }
+      const canvas = await html2canvas(previewRef.current, {
+        scale: 2,
+        useCORS: true,
+        logging: false,
+        backgroundColor: '#ffffff',
+      })
 
-      const addPageWithSidebar = () => {
-        doc.addPage()
-        pageCount++
-        drawSidebarBg()
-      }
+      const pdf = new jsPDF({ unit: 'mm', format: 'a4', orientation: 'portrait' })
+      const pdfW = pdf.internal.pageSize.getWidth()
+      const pdfH = pdf.internal.pageSize.getHeight()
+      const imgW = canvas.width
+      const imgH = canvas.height
+      const pageHeightPx = Math.floor(imgW * (pdfH / pdfW))
 
-      // Estimate sidebar height to pick compact mode
-      const skillCount = cvData.skills?.length || 0
-      const langCount = cvData.languages?.length || 0
-      const certCount = cvData.certifications?.length || 0
-      const hlCount = cvData.highlights?.length || 0
-      const sideItemCount = skillCount + langCount + certCount + hlCount
-      const compact = sideItemCount > 22
-
-      const skillRowH = compact ? 5.8 : 7.5
-      const langRowH = compact ? 3.8 : 5
-      const certLineH = compact ? 3.2 : 3.5
-      const hlLineH = compact ? 3.2 : 3.5
-      const sideFontSm = compact ? 6 : 6.5
-      const sideFontBase = compact ? 6.5 : 7
-
-      // -- Sidebar background --------------------------------------------------
-      drawSidebarBg()
-
-      // -- Sidebar: avatar circle ----------------------------------------------
-      doc.setFillColor(0, 165, 138)
-      doc.circle(colLeft / 2, 22, 10, 'F')
-      const initials = cvData.name.split(' ').map((n: string) => n[0]).join('').slice(0, 2)
-      doc.setFont('helvetica', 'bold')
-      doc.setFontSize(10)
-      doc.setTextColor(255, 255, 255)
-      doc.text(initials, colLeft / 2, 25, { align: 'center' })
-
-      // -- Sidebar: name + title -----------------------------------------------
-      let y = 37
-      doc.setFontSize(9)
-      doc.setFont('helvetica', 'bold')
-      doc.setTextColor(255, 255, 255)
-      const nameLines = doc.splitTextToSize(cvData.name, colLeft - 8)
-      doc.text(nameLines, colLeft / 2, y, { align: 'center' })
-      y += nameLines.length * 4 + 2
-
-      doc.setFontSize(7)
-      doc.setFont('helvetica', 'normal')
-      doc.setTextColor(0, 201, 167)
-      const titleLines = doc.splitTextToSize(cvData.title, colLeft - 8)
-      doc.text(titleLines, colLeft / 2, y, { align: 'center' })
-      y += titleLines.length * 3.5 + 6
-
-      // divider
-      doc.setDrawColor(255, 255, 255)
-      doc.setLineWidth(0.2)
-      doc.line(4, y, colLeft - 4, y)
-      y += 5
-
-      const sideLabel = (text: string) => {
-        if (y > H - 10) return
-        doc.setFontSize(sideFontSm)
-        doc.setFont('helvetica', 'bold')
-        doc.setTextColor(130, 160, 190)
-        doc.text(text.toUpperCase(), 5, y)
-        y += 4
-      }
-
-      const sideText = (text: string, color = [200, 215, 230]) => {
-        if (y > H - 6) return
-        doc.setFontSize(sideFontBase)
-        doc.setFont('helvetica', 'normal')
-        doc.setTextColor(color[0], color[1], color[2])
-        const lines = doc.splitTextToSize(text, colLeft - 10)
-        doc.text(lines, 5, y)
-        y += lines.length * certLineH + 1
-      }
-
-      // Contact
-      sideLabel('Contact')
-      const contact = [cvData.email, cvData.phone, cvData.location, cvData.linkedin].filter(Boolean)
-      contact.forEach((v: string) => sideText(v))
-      y += 3
-
-      // Skills
-      if (cvData.skills?.length) {
-        sideLabel('Skills')
-        cvData.skills.forEach((s: { name: string; level: number }) => {
-          if (y > H - 10) return
-          doc.setFontSize(sideFontBase)
-          doc.setFont('helvetica', 'normal')
-          doc.setTextColor(200, 215, 230)
-          doc.text(s.name, 5, y)
-          doc.setTextColor(0, 201, 167)
-          doc.text(`${s.level}%`, colLeft - 5, y, { align: 'right' })
-          y += 3
-          doc.setFillColor(40, 60, 80)
-          doc.rect(5, y, colLeft - 10, compact ? 1.5 : 2, 'F')
-          doc.setFillColor(0, 165, 138)
-          doc.rect(5, y, (colLeft - 10) * s.level / 100, compact ? 1.5 : 2, 'F')
-          y += compact ? 2.8 : 4.5
-        })
-        y += compact ? 1 : 2
-      }
-
-      // Languages
-      if (cvData.languages?.length) {
-        sideLabel('Languages')
-        cvData.languages.forEach((l: { name: string; level: number }) => {
-          if (y > H - 8) return
-          doc.setFontSize(sideFontBase)
-          doc.setFont('helvetica', 'normal')
-          doc.setTextColor(200, 215, 230)
-          doc.text(l.name, 5, y)
-          const dots = Math.round(l.level / 20)
-          for (let d = 0; d < 5; d++) {
-            doc.setFillColor(d < dots ? 0 : 40, d < dots ? 165 : 60, d < dots ? 138 : 80)
-            doc.circle(colLeft - 18 + d * 4, y - 1, 1.2, 'F')
-          }
-          y += langRowH
-        })
-        y += compact ? 1 : 2
-      }
-
-      // Certifications
-      if (cvData.certifications?.length) {
-        sideLabel('Certifications')
-        cvData.certifications.forEach((c: string) => {
-          if (y > H - 8) return
-          doc.setFontSize(sideFontSm)
-          doc.setFont('helvetica', 'normal')
-          doc.setTextColor(180, 200, 220)
-          const lines = doc.splitTextToSize(`* ${c}`, colLeft - 10)
-          doc.text(lines, 5, y)
-          y += lines.length * certLineH + 1
-        })
-        y += compact ? 1 : 2
-      }
-
-      // Highlights
-      if (cvData.highlights?.length) {
-        sideLabel('Highlights')
-        cvData.highlights.forEach((h: string) => {
-          if (y > H - 8) return
-          doc.setFontSize(sideFontSm)
-          doc.setFont('helvetica', 'normal')
-          doc.setTextColor(160, 185, 210)
-          const lines = doc.splitTextToSize(`> ${h}`, colLeft - 10)
-          doc.text(lines, 5, y)
-          y += lines.length * hlLineH + 1
-        })
-      }
-
-      // -- Main content area --------------------------------------------------
-      const mx = colLeft + 8
-      const mw = W - mx - margin
-      let my = 14
-
-      // Name + title header
-      doc.setFont('helvetica', 'bold')
-      doc.setFontSize(18)
-      doc.setTextColor(13, 33, 55)
-      doc.text(cvData.name, mx, my)
-      my += 7
-
-      doc.setFontSize(8)
-      doc.setFont('helvetica', 'bold')
-      doc.setTextColor(0, 165, 138)
-      doc.text((cvData.title || '').toUpperCase(), mx, my)
-      my += 5
-
-      // divider
-      doc.setDrawColor(220, 230, 240)
-      doc.setLineWidth(0.4)
-      doc.line(mx, my, W - margin, my)
-      my += 5
-
-      // Stats row
-      if (cvData.stats?.length) {
-        const sw = mw / cvData.stats.length
-        cvData.stats.forEach((s: { value: string; label: string }, i: number) => {
-          const sx = mx + i * sw + sw / 2
-          doc.setFontSize(13)
-          doc.setFont('helvetica', 'bold')
-          doc.setTextColor(13, 33, 55)
-          doc.text(s.value, sx, my + 5, { align: 'center' })
-          doc.setFontSize(6)
-          doc.setFont('helvetica', 'normal')
-          doc.setTextColor(130, 150, 170)
-          doc.text(s.label, sx, my + 9, { align: 'center' })
-        })
-        my += 16
-        doc.setDrawColor(220, 230, 240)
-        doc.setLineWidth(0.3)
-        doc.line(mx, my, W - margin, my)
-        my += 5
-      }
-
-      const mainSection = (title: string) => {
-        if (my > 270) { addPageWithSidebar(); my = 14 }
-        doc.setFontSize(7.5)
-        doc.setFont('helvetica', 'bold')
-        doc.setTextColor(13, 33, 55)
-        doc.text(title.toUpperCase(), mx, my)
-        doc.setDrawColor(220, 230, 240)
-        doc.setLineWidth(0.3)
-        doc.line(mx + doc.getTextWidth(title.toUpperCase()) + 3, my - 1, W - margin, my - 1)
-        my += 5
-      }
-
-      // Summary
-      if (cvData.summary) {
-        mainSection('Professional Summary')
-        doc.setFontSize(8)
-        doc.setFont('helvetica', 'normal')
-        doc.setTextColor(55, 65, 81)
-        const lines = doc.splitTextToSize(cvData.summary, mw)
-        doc.text(lines, mx, my)
-        my += lines.length * 4 + 5
-      }
-
-      // Tools
-      if (cvData.tools?.length) {
-        mainSection('Core Stack')
-        const toolText = cvData.tools.join('  ·  ')
-        doc.setFontSize(7.5)
-        doc.setFont('helvetica', 'normal')
-        doc.setTextColor(24, 95, 165)
-        const lines = doc.splitTextToSize(toolText, mw)
-        doc.text(lines, mx, my)
-        my += lines.length * 4 + 5
-      }
-
-      // Experience
-      if (cvData.experience?.length) {
-        mainSection('Professional Experience')
-        cvData.experience.forEach((exp: { role: string; company: string; period: string; location: string; type: string; bullets: string[] }) => {
-          if (my > 262) { addPageWithSidebar(); my = 14 }
-          doc.setFillColor(0, 165, 138)
-          doc.circle(mx - 3, my - 1, 1.5, 'F')
-          doc.setFontSize(9)
-          doc.setFont('helvetica', 'bold')
-          doc.setTextColor(13, 33, 55)
-          doc.text(exp.role, mx, my)
-          doc.setFontSize(7.5)
-          doc.setFont('helvetica', 'bold')
-          doc.setTextColor(0, 165, 138)
-          doc.text(exp.period || '', W - margin, my, { align: 'right' })
-          my += 4
-          doc.setFontSize(7.5)
-          doc.setFont('helvetica', 'italic')
-          doc.setTextColor(107, 124, 147)
-          const meta = [exp.company, exp.location, exp.type].filter(Boolean).join('  ·  ')
-          doc.text(meta, mx, my)
-          my += 4
-          exp.bullets?.forEach((b: string) => {
-            if (my > 262) { addPageWithSidebar(); my = 14 }
-            doc.setFontSize(7.5)
-            doc.setFont('helvetica', 'normal')
-            doc.setTextColor(29, 158, 117)
-            doc.text('+', mx, my)
-            doc.setTextColor(55, 65, 81)
-            const lines = doc.splitTextToSize(b, mw - 6)
-            doc.text(lines, mx + 5, my)
-            my += lines.length * 3.8
-          })
-          my += 4
-          doc.setDrawColor(230, 235, 242)
-          doc.setLineWidth(0.2)
-          doc.line(mx - 3, my - 3, mx - 3, my + 2)
-        })
-      }
-
-      // Education
-      if (cvData.education?.length) {
-        if (my > 255) { addPageWithSidebar(); my = 14 }
-        mainSection('Education')
-        cvData.education.forEach((e: { degree: string; school: string; year: string }) => {
-          if (my > 270) { addPageWithSidebar(); my = 14 }
-          doc.setFontSize(8.5)
-          doc.setFont('helvetica', 'bold')
-          doc.setTextColor(13, 33, 55)
-          doc.text(e.degree, mx, my)
-          doc.setFontSize(7.5)
-          doc.setFont('helvetica', 'normal')
-          doc.setTextColor(107, 124, 147)
-          doc.text(`${e.school}  ·  ${e.year}`, mx, my + 3.5)
-          my += 8
-        })
+      let yOffset = 0
+      let firstPage = true
+      while (yOffset < imgH) {
+        const sliceH = Math.min(pageHeightPx, imgH - yOffset)
+        const pageCanvas = document.createElement('canvas')
+        pageCanvas.width = imgW
+        pageCanvas.height = sliceH
+        const ctx = pageCanvas.getContext('2d')!
+        ctx.drawImage(canvas, 0, -yOffset)
+        const imgData = pageCanvas.toDataURL('image/jpeg', 0.97)
+        if (!firstPage) pdf.addPage()
+        pdf.addImage(imgData, 'JPEG', 0, 0, pdfW, sliceH * (pdfW / imgW))
+        yOffset += sliceH
+        firstPage = false
       }
 
       const filename = `CV_${(job?.employer_name || cvData.name || 'JobLens').replace(/[^a-zA-Z0-9]/g, '_')}.pdf`
-      doc.save(filename)
+      pdf.save(filename)
     } catch (err) {
       console.error('PDF error:', err)
       alert('PDF generation failed. Please try again.')

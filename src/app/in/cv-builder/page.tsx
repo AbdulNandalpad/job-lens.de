@@ -259,72 +259,35 @@ ${atsSuggestions?.section_gaps?.length ? `- ATS SECTION GAPS to address: ${atsSu
   }
 
   async function downloadPDF() {
-    if (!cvData) return
+    if (!cvData || !previewRef.current) return
     setDownloading('pdf')
     try {
-      const { default: jsPDF } = await import('jspdf')
-      const doc = new jsPDF({ unit: 'mm', format: 'a4' })
-      const W = 210, margin = 18, mw = W - 36
-      const acc = templates.find(t => t.id === template)?.accent || '#1a5fa0'
-      const accRgb = acc === '#FF9933' ? [255, 153, 51] : acc === '#1a1a1a' ? [26, 26, 26] : [26, 95, 160]
-      let y = 22
-      const addPage = () => { doc.addPage(); y = 22 }
-      const sec = (title: string) => {
-        if (y > 270) { addPage() }
-        doc.setFontSize(9); doc.setFont('helvetica', 'bold'); doc.setTextColor(13, 33, 55)
-        doc.text(title.toUpperCase(), margin, y)
-        doc.setDrawColor(209, 218, 230); doc.setLineWidth(0.3)
-        doc.line(margin + doc.getTextWidth(title.toUpperCase()) + 3, y - 1, W - margin, y - 1)
-        y += 5
+      const [{ default: html2canvas }, { default: jsPDF }] = await Promise.all([
+        import('html2canvas'),
+        import('jspdf'),
+      ])
+      const canvas = await html2canvas(previewRef.current, {
+        scale: 2, useCORS: true, logging: false, backgroundColor: '#ffffff',
+      })
+      const pdf = new jsPDF({ unit: 'mm', format: 'a4', orientation: 'portrait' })
+      const pdfW = pdf.internal.pageSize.getWidth()
+      const pdfH = pdf.internal.pageSize.getHeight()
+      const imgW = canvas.width
+      const imgH = canvas.height
+      const pageHeightPx = Math.floor(imgW * (pdfH / pdfW))
+      let yOffset = 0; let firstPage = true
+      while (yOffset < imgH) {
+        const sliceH = Math.min(pageHeightPx, imgH - yOffset)
+        const pageCanvas = document.createElement('canvas')
+        pageCanvas.width = imgW; pageCanvas.height = sliceH
+        const ctx = pageCanvas.getContext('2d')!
+        ctx.drawImage(canvas, 0, -yOffset)
+        const imgData = pageCanvas.toDataURL('image/jpeg', 0.97)
+        if (!firstPage) pdf.addPage()
+        pdf.addImage(imgData, 'JPEG', 0, 0, pdfW, sliceH * (pdfW / imgW))
+        yOffset += sliceH; firstPage = false
       }
-      // Name
-      doc.setFont('helvetica', 'bold'); doc.setFontSize(22); doc.setTextColor(13, 33, 55)
-      doc.text(cvData.name, margin, y); y += 7
-      // Title
-      doc.setFontSize(11); doc.setFont('helvetica', 'bold'); doc.setTextColor(accRgb[0], accRgb[1], accRgb[2])
-      doc.text(cvData.title || '', margin, y); y += 5
-      // Contact line
-      const contact = [cvData.email, cvData.phone, cvData.location, cvData.linkedin].filter(Boolean).join('  |  ')
-      if (contact) { doc.setFontSize(8); doc.setFont('helvetica', 'normal'); doc.setTextColor(100, 116, 139); const cl = doc.splitTextToSize(contact, mw); doc.text(cl, margin, y); y += cl.length * 3.8 + 1 }
-      doc.setDrawColor(180, 195, 210); doc.setLineWidth(0.5); doc.line(margin, y, W - margin, y); y += 6
-      // Summary
-      if (cvData.summary) { sec('Summary'); doc.setFontSize(9); doc.setFont('helvetica', 'normal'); doc.setTextColor(55, 65, 81); const sl = doc.splitTextToSize(cvData.summary, mw); doc.text(sl, margin, y); y += sl.length * 4 + 5 }
-      // Skills
-      if (cvData.skills?.length) { sec('Skills'); doc.setFontSize(9); doc.setFont('helvetica', 'normal'); doc.setTextColor(55, 65, 81); const sl = doc.splitTextToSize(cvData.skills.map((s: { name: string }) => s.name).join('  ·  '), mw); doc.text(sl, margin, y); y += sl.length * 4 + 5 }
-      // Tech Stack
-      if (cvData.tools?.length) { sec('Tech Stack'); doc.setFontSize(9); doc.setFont('helvetica', 'normal'); doc.setTextColor(accRgb[0], accRgb[1], accRgb[2]); const tl = doc.splitTextToSize(cvData.tools.join('  ·  '), mw); doc.text(tl, margin, y); y += tl.length * 4 + 5 }
-      // Experience
-      if (cvData.experience?.length) {
-        sec('Experience')
-        cvData.experience.forEach((exp: { role: string; company: string; period: string; location: string; type: string; bullets: string[] }) => {
-          if (y > 262) { addPage() }
-          doc.setFontSize(10); doc.setFont('helvetica', 'bold'); doc.setTextColor(13, 33, 55); doc.text(exp.role, margin, y)
-          doc.setFontSize(8.5); doc.setFont('helvetica', 'normal'); doc.setTextColor(accRgb[0], accRgb[1], accRgb[2]); doc.text(exp.period || '', W - margin, y, { align: 'right' }); y += 4
-          doc.setFontSize(8.5); doc.setFont('helvetica', 'italic'); doc.setTextColor(100, 116, 139); doc.text([exp.company, exp.location, exp.type].filter(Boolean).join('  ·  '), margin, y); y += 4
-          exp.bullets?.forEach((b: string) => { if (y > 265) { addPage() }; doc.setFontSize(8.5); doc.setFont('helvetica', 'normal'); doc.setTextColor(accRgb[0], accRgb[1], accRgb[2]); doc.text('•', margin, y); doc.setTextColor(55, 65, 81); const bl = doc.splitTextToSize(b, mw - 5); doc.text(bl, margin + 5, y); y += bl.length * 3.8 })
-          y += 4
-        })
-      }
-      // Education
-      if (cvData.education?.length) {
-        sec('Education')
-        cvData.education.forEach((e: { degree: string; school: string; year: string }) => { if (y > 270) { addPage() }; doc.setFontSize(10); doc.setFont('helvetica', 'bold'); doc.setTextColor(13, 33, 55); doc.text(e.degree, margin, y); doc.setFontSize(8.5); doc.setFont('helvetica', 'normal'); doc.setTextColor(100, 116, 139); doc.text(`${e.school}  ·  ${e.year}`, margin, y + 4); y += 9 })
-        y += 2
-      }
-      // Certifications
-      if (cvData.certifications?.length) {
-        sec('Certifications')
-        cvData.certifications.forEach((c: string) => { if (y > 272) { addPage() }; doc.setFontSize(9); doc.setFont('helvetica', 'normal'); doc.setTextColor(accRgb[0], accRgb[1], accRgb[2]); doc.text('•', margin, y); doc.setTextColor(55, 65, 81); const cl = doc.splitTextToSize(c, mw - 5); doc.text(cl, margin + 5, y); y += cl.length * 4 })
-        y += 2
-      }
-      // Languages
-      if (cvData.languages?.length) {
-        sec('Languages')
-        doc.setFontSize(9); doc.setFont('helvetica', 'normal'); doc.setTextColor(55, 65, 81)
-        const ll = doc.splitTextToSize(cvData.languages.map((l: { name: string; level: number }) => { const lv = l.level >= 90 ? 'Native' : l.level >= 75 ? 'Fluent' : l.level >= 55 ? 'Proficient' : 'Basic'; return `${l.name} (${lv})` }).join('  ·  '), mw)
-        doc.text(ll, margin, y)
-      }
-      doc.save(`CV_${(cvData.name || 'JobLens').replace(/[^a-zA-Z0-9]/g, '_')}_${templates.find(t => t.id === template)?.label || 'India'}.pdf`)
+      pdf.save(`CV_${(cvData.name || 'JobLens').replace(/[^a-zA-Z0-9]/g, '_')}.pdf`)
     } catch (err) { console.error('PDF error:', err); alert('PDF generation failed.') }
     setDownloading(null)
   }
