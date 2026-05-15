@@ -7,11 +7,169 @@ import { theme } from '@/lib/theme'
 
 const { colors: c, gradients: g, glass: gl, fonts: f, shadow: sh } = theme
 
+type Lang = 'DE' | 'EN'
+
+const translations = {
+  DE: {
+    navCareerScan: 'Career Scan',
+    navJobSearch: 'Job-Suche',
+    navSignIn: 'Anmelden',
+    navGoToApp: 'Zur App',
+    heroTag: '🇩🇪 Deutschland · 🇨🇭 Schweiz · 🇦🇹 Österreich',
+    heroH1: 'Deinen nächsten Job auf dem DACH-Markt finden',
+    heroSub: 'Lade deinen Lebenslauf hoch. Erfahre, wo du stehst. Finde passende Stellen in Deutschland, der Schweiz und Österreich. Bewirb dich mit einem maßgeschneiderten Lebenslauf und Anschreiben.',
+    heroCta1: 'Kostenlos starten',
+    heroCta2: 'Jobs entdecken',
+    indiaPill: '🇮🇳 Jobs in Indien suchen?',
+    indiaPillCta: 'Job-Lens India →',
+    madeIn: '🇩🇪 Made in Germany',
+    dataNote: 'Deine Daten werden nie gespeichert',
+    freeCredits: '5 kostenlose Credits',
+    statsLabels: ['DACH', 'KI', '30 Sek', '1-Klick'],
+    statsDescs: ['Marktfokus', 'Gestützte Analyse', 'Career Scan', 'Lebenslauf'],
+    featuresTitle: 'Alles, was du für deinen nächsten Job brauchst',
+    featuresSub: 'Speziell für Deutschland, die Schweiz und Österreich entwickelt',
+    features: [
+      { title: 'Career Scan', desc: 'Lade deinen Lebenslauf hoch und erhalte eine ehrliche KI-Analyse — Stärken, Lücken, Gehaltsschätzung und Quick-Wins in 30 Sekunden.', cta: 'Profil scannen' },
+      { title: 'Intelligente Jobsuche', desc: 'Die KI liest deinen Lebenslauf und findet die besten passenden Stellen in Deutschland und der Schweiz. Aktuelle Angebote, echte Unternehmen.', cta: 'Passende Jobs finden' },
+      { title: 'Lebenslauf & Anschreiben', desc: 'Ein Klick, um einen maßgeschneiderten Lebenslauf und ein Anschreiben zu erstellen. Optimiert für ATS und DACH-Personalverantwortliche.', cta: 'Lebenslauf anpassen' },
+      { title: 'Auto-Bewerbung', desc: 'Zeige auf eine Stellenanzeige und die KI füllt das gesamte Bewerbungsformular — Felder, Anschreiben, Datei-Uploads. Du überprüfst nur und klickst auf Senden.', cta: 'Auto-Bewerbung testen' },
+    ],
+    howTitle: 'So funktioniert es',
+    howSub: 'Vom Lebenslauf-Upload bis zur eingereichten Bewerbung in Minuten',
+    steps: [
+      { title: 'Lebenslauf hochladen', desc: 'PDF, DOCX oder Text einfügen. Wir extrahieren deine Fähigkeiten und Erfahrungen automatisch.' },
+      { title: 'Career Scan erhalten', desc: 'Score, Gehaltsspanne, Stärken, Lücken und einen personalisierten Aktionsplan — in 30 Sekunden.' },
+      { title: 'Passende Jobs finden', desc: 'KI durchsucht aktuelle Jobbörsen im DACH-Raum und sortiert Ergebnisse nach Eignung.' },
+      { title: 'Mit einem Klick bewerben', desc: 'Maßgeschneiderter Lebenslauf und Anschreiben pro Stelle — oder lass Auto-Bewerbung das Formular ausfüllen.' },
+    ],
+    pricingTitle: 'Einfache, transparente Preise',
+    pricingSub: 'Einmal kaufen, jederzeit nutzen. Credits verfallen nie — ideal für eine fokussierte Jobsuche.',
+    freeTierSub: 'Dauerhaft kostenlos · keine Karte nötig',
+    freeFeatures: ['5 Credits bei Registrierung', 'Career Scan (Vorschau)', 'Unbegrenzte Jobsuche', 'Intelligentes Job-Matching'],
+    startFree: 'Kostenlos starten',
+    popularBadge: '★ BELIEBTESTE WAHL',
+    jobHuntSub: '60 Credits · verfallen nie',
+    jobHuntFeatures: ['60 Credits (~20 komplette Bewerbungen)', 'Lebenslauf-Anpassung — 1 Credit', 'Anschreiben — 1 Credit', 'Career Scan — 2 Credits', 'Auto-Bewerbung — 3 Credits'],
+    jobHuntNote: 'Bestes Preis-Leistungs-Verhältnis für aktive Bewerber',
+    getJobHunt: 'Job Hunt holen',
+    fullSprintSub: '150 Credits · verfallen nie',
+    fullSprintFeatures: ['150 Credits (~50 komplette Bewerbungen)', 'Alles aus Job Hunt', 'Mehrmonatige Jobsuche', 'Ideal für Karrierewechsler'],
+    starterNote: 'Auch erhältlich: Starter-Paket €4,99 / 20 Credits',
+    getFullSprint: 'Full Sprint holen',
+    freeNoteBottom: 'Neue Accounts erhalten',
+    freeCreditsNote: '5 kostenlose Credits',
+    noCard: '— keine Karte nötig. Credits verfallen nie.',
+    ctaTag: '5 kostenlose Credits bei Registrierung · Keine Karte erforderlich',
+    ctaTitle: 'Bereit, deine Jobsuche zu starten?',
+    ctaSub: 'Karriere-Analyse, Job-Matching und Bewerbungen — alles an einem Ort.',
+    ctaBtn1: 'Mit Career Scan starten',
+    ctaBtn2: 'Jobs durchsuchen',
+    footerBrand: '🇩🇪 Made in Germany · Job-Lens AI',
+    footerSignIn: 'Anmelden',
+    footerGoApp: 'Zur App',
+    footerCareerScan: 'Career Scan',
+    footerJobSearch: 'Job-Suche',
+  },
+  EN: {
+    navCareerScan: 'Career Scan',
+    navJobSearch: 'Job Search',
+    navSignIn: 'Sign In',
+    navGoToApp: 'Go to App',
+    heroTag: '🇩🇪 Germany · 🇨🇭 Switzerland · 🇦🇹 Austria',
+    heroH1: 'Find your next job in the DACH market',
+    heroSub: 'Upload your CV. See where you stand. Get matched with real jobs across Germany, Switzerland and Austria. Apply with a tailored CV and cover letter.',
+    heroCta1: 'Get Started Free',
+    heroCta2: 'Explore Jobs',
+    indiaPill: '🇮🇳 Looking for jobs in India?',
+    indiaPillCta: 'Job-Lens India →',
+    madeIn: '🇩🇪 Made in Germany',
+    dataNote: 'Your data is never stored',
+    freeCredits: '5 free credits',
+    statsLabels: ['DACH', 'AI', '30s', '1-click'],
+    statsDescs: ['Market focus', 'Powered analysis', 'Career scan', 'CV tailoring'],
+    featuresTitle: 'Everything you need to land your next role',
+    featuresSub: 'Built specifically for Germany, Switzerland and Austria',
+    features: [
+      { title: 'Career Scan', desc: 'Upload your CV and get an honest AI analysis — strengths, gaps, salary estimate, and quick wins in 30 seconds.', cta: 'Scan my profile' },
+      { title: 'Smart Job Search', desc: 'AI reads your CV and finds the best matching jobs across Germany and Switzerland. Live postings, real companies.', cta: 'Find matching jobs' },
+      { title: 'CV & Cover Letter', desc: 'One click to generate a tailored CV and cover letter for any job. Optimised for ATS and DACH hiring managers.', cta: 'Tailor my CV' },
+      { title: 'Auto Apply', desc: 'Point it at any job listing and AI fills the whole application form for you — fields, cover letter, file uploads. You just review and hit submit.', cta: 'Try Auto Apply' },
+    ],
+    howTitle: 'How it works',
+    howSub: 'From CV upload to submitted application in minutes',
+    steps: [
+      { title: 'Upload your CV', desc: 'PDF, DOCX or paste text. We extract your skills and experience automatically.' },
+      { title: 'Get your Career Scan', desc: 'Score, salary range, strengths, gaps and a personalised action plan — in 30 seconds.' },
+      { title: 'Find matching jobs', desc: 'AI searches live boards across DACH and ranks results by how well they fit your profile.' },
+      { title: 'Apply in one click', desc: 'Tailored CV and cover letter per job — or let Auto Apply fill the whole form for you.' },
+    ],
+    pricingTitle: 'Simple, honest pricing',
+    pricingSub: 'Buy once, use anytime. Credits never expire — perfect for a focused job search.',
+    freeTierSub: 'Forever free · no card needed',
+    freeFeatures: ['5 credits on signup', 'Career Scan (preview)', 'Unlimited job browsing', 'Smart job matching'],
+    startFree: 'Start free',
+    popularBadge: '★ MOST POPULAR',
+    jobHuntSub: '60 credits · never expire',
+    jobHuntFeatures: ['60 credits (~20 full applications)', 'CV tailoring — 1 credit each', 'Cover letter — 1 credit each', 'Career Scan — 2 credits', 'Auto Apply — 3 credits'],
+    jobHuntNote: 'Best value for active job seekers',
+    getJobHunt: 'Get Job Hunt',
+    fullSprintSub: '150 credits · never expire',
+    fullSprintFeatures: ['150 credits (~50 full applications)', 'Everything in Job Hunt', 'Multi-month job search', 'Ideal for career changers'],
+    starterNote: 'Also available: Starter pack €4.99 / 20 credits',
+    getFullSprint: 'Get Full Sprint',
+    freeNoteBottom: 'New accounts get',
+    freeCreditsNote: '5 free credits',
+    noCard: '— no card needed. Credits never expire.',
+    ctaTag: '5 free credits on signup · No card required',
+    ctaTitle: 'Ready to start your job search?',
+    ctaSub: 'Career analysis, job matching and applications — all in one place.',
+    ctaBtn1: 'Start with Career Scan',
+    ctaBtn2: 'Browse Jobs',
+    footerBrand: '🇩🇪 Made in Germany · Job-Lens AI',
+    footerSignIn: 'Sign in',
+    footerGoApp: 'Go to App',
+    footerCareerScan: 'Career Scan',
+    footerJobSearch: 'Job Search',
+  },
+}
+
+function DEFlag({ size = 20 }: { size?: number }) {
+  const w = size * 1.5, h = size, bh = h / 3
+  return (
+    <svg width={w} height={h} viewBox={`0 0 ${w} ${h}`} style={{ borderRadius: 2, flexShrink: 0 }}>
+      <rect x={0} y={0} width={w} height={bh} fill="#000000" />
+      <rect x={0} y={bh} width={w} height={bh} fill="#DD0000" />
+      <rect x={0} y={bh * 2} width={w} height={bh} fill="#FFCE00" />
+    </svg>
+  )
+}
+
+function GBFlag({ size = 20 }: { size?: number }) {
+  const w = size * 1.5, h = size
+  return (
+    <svg width={w} height={h} viewBox={`0 0 ${w} ${h}`} style={{ borderRadius: 2, flexShrink: 0 }}>
+      <rect width={w} height={h} fill="#012169" />
+      <line x1={0} y1={0} x2={w} y2={h} stroke="#fff" strokeWidth={h * 0.2} />
+      <line x1={w} y1={0} x2={0} y2={h} stroke="#fff" strokeWidth={h * 0.2} />
+      <line x1={0} y1={0} x2={w} y2={h} stroke="#C8102E" strokeWidth={h * 0.12} />
+      <line x1={w} y1={0} x2={0} y2={h} stroke="#C8102E" strokeWidth={h * 0.12} />
+      <rect x={0} y={h * 0.38} width={w} height={h * 0.24} fill="#fff" />
+      <rect x={w * 0.38} y={0} width={w * 0.24} height={h} fill="#fff" />
+      <rect x={0} y={h * 0.41} width={w} height={h * 0.18} fill="#C8102E" />
+      <rect x={w * 0.41} y={0} width={w * 0.18} height={h} fill="#C8102E" />
+    </svg>
+  )
+}
+
 export default function HomePage() {
   const [user, setUser] = useState<{ name: string } | null>(null)
   const [loading, setLoading] = useState(true)
+  const [lang, setLang] = useState<Lang>('DE')
   const [visibleCards, setVisibleCards] = useState<number[]>([])
   const cardsRef = useRef<HTMLDivElement>(null)
+
+  const t = translations[lang]
 
   useEffect(() => {
     const observer = new IntersectionObserver(
@@ -38,49 +196,15 @@ export default function HomePage() {
     })
   }, [])
 
-
   const go = (path: string) => user ? path : '/login'
 
-  const features = [
-    {
-      icon: '◎', title: 'Career Scan',
-      desc: 'Upload your CV and get an honest AI analysis — strengths, gaps, salary estimate, and quick wins in 30 seconds.',
-      href: go('/app/career-scan'), cta: 'Scan my profile',
-      iconBg: c.primaryLight, iconColor: c.navy, badge: null,
-    },
-    {
-      icon: '🔍', title: 'Smart Job Search',
-      desc: 'AI reads your CV and finds the best matching jobs across Germany and Switzerland. Live postings, real companies.',
-      href: go('/app/smart-apply'), cta: 'Find matching jobs',
-      iconBg: c.successLight, iconColor: c.success, badge: null,
-    },
-    {
-      icon: '📄', title: 'CV & Cover Letter',
-      desc: 'One click to generate a tailored CV and cover letter for any job. Optimised for ATS and DACH hiring managers.',
-      href: go('/app/cv-builder'), cta: 'Tailor my CV',
-      iconBg: c.warningLight, iconColor: c.warning, badge: null,
-    },
-    {
-      icon: '⚡', title: 'Auto Apply',
-      desc: 'Point it at any job listing and AI fills the whole application form for you — fields, cover letter, file uploads. You just review and hit submit.',
-      href: go('/app/auto-apply'), cta: 'Try Auto Apply',
-      iconBg: c.aiLight, iconColor: c.ai, badge: 'Beta',
-    },
-  ]
+  const featureIcons = ['◎', '🔍', '📄', '⚡']
+  const featureBgs = [c.primaryLight, c.successLight, c.warningLight, c.aiLight]
+  const featureColors = [c.navy, c.success, c.warning, c.ai]
+  const featureBadges = [null, null, null, lang === 'DE' ? 'Beta' : 'Beta']
+  const featureHrefs = [go('/app/career-scan'), go('/app/smart-apply'), go('/app/cv-builder'), go('/app/auto-apply')]
 
-  const steps = [
-    { color: c.accent, title: 'Upload your CV', desc: 'We read your skills, experience and career history automatically — no manual entry.' },
-    { color: c.success, title: 'Get your Career Scan', desc: 'See your profile score, strengths, gaps, salary range and personalised quick wins.' },
-    { color: c.warning, title: 'Find matching jobs', desc: 'AI searches live boards across DACH and ranks results by how well they fit you.' },
-    { color: c.ai, title: 'Apply in one click', desc: 'Generate a tailored CV and cover letter per job — or let Auto Apply fill the form for you.' },
-  ]
-
-  const stats = [
-    { value: 'DACH', label: 'Market focus' },
-    { value: 'AI', label: 'Powered analysis' },
-    { value: '30s', label: 'Career scan' },
-    { value: '1-click', label: 'CV tailoring' },
-  ]
+  const stats = t.statsLabels.map((v, i) => ({ value: v, label: t.statsDescs[i] }))
 
   return (
     <div style={{ minHeight: '100vh', background: c.bg, fontFamily: f.body, overflowX: 'hidden' }}>
@@ -160,7 +284,19 @@ export default function HomePage() {
           .jl-step-circle { margin-bottom: 0; margin-right: 20px; flex-shrink: 0; }
           .jl-steps-track { display: none !important; }
         }
+
+        .jl-lang-btn { display: flex; align-items: center; gap: 5px; padding: 5px 10px; border-radius: 8px; border: 1px solid transparent; cursor: pointer; font-size: 11px; font-weight: 600; font-family: inherit; transition: all 0.15s; background: transparent; }
+        .jl-lang-btn.active { background: rgba(255,255,255,0.12); border-color: rgba(255,255,255,0.2); }
+        .jl-lang-btn:not(.active) { color: rgba(255,255,255,0.4); }
+        .jl-lang-btn:not(.active):hover { color: rgba(255,255,255,0.7); background: rgba(255,255,255,0.06); }
       `}</style>
+
+      {/* ── German flag tricolor stripe ── */}
+      <div style={{ display: 'flex', height: 4 }}>
+        <div style={{ flex: 1, background: '#000000' }} />
+        <div style={{ flex: 1, background: '#DD0000' }} />
+        <div style={{ flex: 1, background: '#FFCE00' }} />
+      </div>
 
       {/* ── Navbar ── */}
       <div style={{ background: theme.navbar.bg, padding: '0 24px', height: theme.navbar.height, display: 'flex', alignItems: 'center', justifyContent: 'space-between', position: 'sticky', top: 0, zIndex: 100, borderBottom: `1px solid ${theme.navbar.border}`, boxShadow: '0 1px 0 rgba(255,255,255,0.05)' }}>
@@ -176,20 +312,33 @@ export default function HomePage() {
             Job-Lens <span style={{ color: c.accent }}>AI</span>
           </span>
         </Link>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          {/* Language toggle */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 2, background: 'rgba(255,255,255,0.05)', borderRadius: 10, padding: '3px 4px', border: '1px solid rgba(255,255,255,0.08)' }}>
+            <button className={`jl-lang-btn${lang === 'DE' ? ' active' : ''}`} onClick={() => setLang('DE')} style={{ color: lang === 'DE' ? '#fff' : undefined }}>
+              <DEFlag size={14} />
+              DE
+            </button>
+            <button className={`jl-lang-btn${lang === 'EN' ? ' active' : ''}`} onClick={() => setLang('EN')} style={{ color: lang === 'EN' ? '#fff' : undefined }}>
+              <GBFlag size={14} />
+              EN
+            </button>
+          </div>
+
           {!loading && (user ? (
             <>
               <span style={{ fontSize: 13, color: theme.navbar.textMuted }}>Hi, {user.name}</span>
               <Link href="/app/career-scan" className="jl-btn-primary" style={{ fontSize: 12, padding: '6px 18px', borderRadius: 20, color: '#fff', textDecoration: 'none', fontWeight: 600 }}>
-                Go to App
+                {t.navGoToApp}
               </Link>
             </>
           ) : (
             <>
-              <Link href="/app/career-scan" className="jl-nav-link" style={{ fontSize: 13, color: theme.navbar.textMuted, textDecoration: 'none', transition: 'color 0.15s' }}>Career Scan</Link>
-              <Link href="/app/smart-apply" className="jl-nav-link" style={{ fontSize: 13, color: theme.navbar.textMuted, textDecoration: 'none', transition: 'color 0.15s' }}>Job Search</Link>
+              <Link href="/app/career-scan" className="jl-nav-link" style={{ fontSize: 13, color: theme.navbar.textMuted, textDecoration: 'none', transition: 'color 0.15s' }}>{t.navCareerScan}</Link>
+              <Link href="/app/smart-apply" className="jl-nav-link" style={{ fontSize: 13, color: theme.navbar.textMuted, textDecoration: 'none', transition: 'color 0.15s' }}>{t.navJobSearch}</Link>
               <Link href="/login" className="jl-btn-primary" style={{ fontSize: 12, padding: '6px 18px', borderRadius: 20, color: '#fff', textDecoration: 'none', fontWeight: 600 }}>
-                Sign In
+                {t.navSignIn}
               </Link>
             </>
           ))}
@@ -199,43 +348,42 @@ export default function HomePage() {
       {/* ── Hero ── */}
       <div style={{ background: g.hero, padding: '80px 24px 108px', textAlign: 'center', position: 'relative', overflow: 'hidden' }}>
         <div style={{ position: 'relative', zIndex: 1, maxWidth: 680, margin: '0 auto' }}>
-          {/* Location tag */}
           <div className="jl-hero-tag" style={{ display: 'inline-flex', alignItems: 'center', gap: 8, marginBottom: 24 }}>
             <span style={{ fontSize: 12, fontWeight: 600, color: 'rgba(255,255,255,0.5)', background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.12)', padding: '5px 16px', borderRadius: 20, letterSpacing: 0.5 }}>
-              🇩🇪 Germany &nbsp;·&nbsp; 🇨🇭 Switzerland &nbsp;·&nbsp; 🇦🇹 Austria
+              {t.heroTag}
             </span>
           </div>
 
           <h1 className="jl-hero-h1" style={{ fontFamily: f.heading, fontSize: 'clamp(30px, 4.5vw, 50px)', fontWeight: 700, color: '#fff', margin: '0 0 20px', lineHeight: 1.15, letterSpacing: -0.5 }}>
-            Find your next job in the DACH market
+            {t.heroH1}
           </h1>
 
           <p className="jl-hero-sub" style={{ fontSize: 17, color: 'rgba(255,255,255,0.6)', maxWidth: 500, margin: '0 auto 40px', lineHeight: 1.75, fontWeight: 400 }}>
-            Upload your CV. See where you stand. Get matched with real jobs across Germany, Switzerland and Austria. Apply with a tailored CV and cover letter.
+            {t.heroSub}
           </p>
 
           <div className="jl-hero-btns" style={{ display: 'flex', gap: 14, justifyContent: 'center', flexWrap: 'wrap' }}>
             <Link href={go('/app/career-scan')} className="jl-btn-primary" style={{ padding: '14px 32px', borderRadius: 12, color: '#fff', textDecoration: 'none', fontWeight: 700, fontFamily: f.heading, fontSize: 15 }}>
-              Get Started Free
+              {t.heroCta1}
             </Link>
             <Link href={go('/app/smart-apply')} className="jl-btn-glass" style={{ padding: '14px 32px', borderRadius: 12, color: theme.navbar.text, textDecoration: 'none', fontWeight: 600, fontFamily: f.heading, fontSize: 15 }}>
-              Explore Jobs
+              {t.heroCta2}
             </Link>
           </div>
 
           {/* India market switch */}
           <div style={{ marginTop: 20, display: 'flex', justifyContent: 'center' }}>
             <Link href="/in" style={{ fontSize: 12, color: 'rgba(255,255,255,0.45)', display: 'inline-flex', alignItems: 'center', gap: 6, background: 'rgba(255,153,51,0.07)', border: '1px solid rgba(255,153,51,0.18)', borderRadius: 20, padding: '6px 16px', textDecoration: 'none' }}>
-              🇮🇳 Looking for jobs in India? <span style={{ color: '#FF9933', fontWeight: 600 }}>Job-Lens India →</span>
+              {t.indiaPill} <span style={{ color: '#FF9933', fontWeight: 600 }}>{t.indiaPillCta}</span>
             </Link>
           </div>
 
           <div style={{ marginTop: 20, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 18, fontSize: 12, color: 'rgba(255,255,255,0.3)' }}>
-            <span>🇩🇪 Made in Germany</span>
+            <span>{t.madeIn}</span>
             <span style={{ opacity: 0.4 }}>·</span>
-            <span>Your data is never stored</span>
+            <span>{t.dataNote}</span>
             <span style={{ opacity: 0.4 }}>·</span>
-            <span>5 free credits</span>
+            <span>{t.freeCredits}</span>
           </div>
         </div>
       </div>
@@ -256,15 +404,15 @@ export default function HomePage() {
       <div style={{ maxWidth: 1100, margin: '0 auto', padding: '80px 24px 56px' }}>
         <div style={{ textAlign: 'center', marginBottom: 44 }}>
           <div style={{ fontFamily: f.heading, fontSize: 26, fontWeight: 700, color: c.primary, marginBottom: 10 }}>
-            Everything you need to land your next role
+            {t.featuresTitle}
           </div>
           <div style={{ fontSize: 14, color: c.textMuted, maxWidth: 440, margin: '0 auto', lineHeight: 1.65 }}>
-            Built specifically for Germany, Switzerland and Austria
+            {t.featuresSub}
           </div>
         </div>
 
         <div className="jl-feature-grid" ref={cardsRef}>
-          {features.map((feat, idx) => (
+          {t.features.map((feat, idx) => (
             <div
               key={feat.title}
               data-idx={idx}
@@ -272,18 +420,18 @@ export default function HomePage() {
               style={{ animationDelay: `${idx * 0.12}s` }}
             >
               <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
-                <div style={{ width: 52, height: 52, borderRadius: 14, background: feat.iconBg, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 26 }}>
-                  {feat.icon}
+                <div style={{ width: 52, height: 52, borderRadius: 14, background: featureBgs[idx], display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 26 }}>
+                  {featureIcons[idx]}
                 </div>
-                {feat.badge && (
-                  <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: 0.6, textTransform: 'uppercase' as const, background: feat.iconBg, color: feat.iconColor, padding: '3px 10px', borderRadius: 20, border: `1px solid ${feat.iconColor}30` }}>
-                    {feat.badge}
+                {featureBadges[idx] && (
+                  <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: 0.6, textTransform: 'uppercase' as const, background: featureBgs[idx], color: featureColors[idx], padding: '3px 10px', borderRadius: 20, border: `1px solid ${featureColors[idx]}30` }}>
+                    {featureBadges[idx]}
                   </span>
                 )}
               </div>
               <div style={{ fontFamily: f.heading, fontSize: 17, fontWeight: 700, color: c.primary }}>{feat.title}</div>
               <div style={{ fontSize: 13, color: c.textMuted, lineHeight: 1.75, flex: 1 }}>{feat.desc}</div>
-              <Link href={feat.href} style={{ fontSize: 13, padding: '10px 18px', borderRadius: 9, background: g.primaryBtn, color: '#fff', textDecoration: 'none', fontWeight: 600, display: 'inline-block', textAlign: 'center' as const, fontFamily: f.heading }}>
+              <Link href={featureHrefs[idx]} style={{ fontSize: 13, padding: '10px 18px', borderRadius: 9, background: g.primaryBtn, color: '#fff', textDecoration: 'none', fontWeight: 600, display: 'inline-block', textAlign: 'center' as const, fontFamily: f.heading }}>
                 {feat.cta} &rarr;
               </Link>
             </div>
@@ -293,12 +441,11 @@ export default function HomePage() {
         {/* ── How it works ── */}
         <div style={{ marginTop: 80 }}>
           <div style={{ textAlign: 'center', marginBottom: 52 }}>
-            <div style={{ fontFamily: f.heading, fontSize: 26, fontWeight: 700, color: c.primary, marginBottom: 10 }}>How it works</div>
-            <div style={{ fontSize: 14, color: c.textMuted }}>From CV upload to submitted application in minutes</div>
+            <div style={{ fontFamily: f.heading, fontSize: 26, fontWeight: 700, color: c.primary, marginBottom: 10 }}>{t.howTitle}</div>
+            <div style={{ fontSize: 14, color: c.textMuted }}>{t.howSub}</div>
           </div>
 
           <div style={{ maxWidth: 920, margin: '0 auto', position: 'relative' }}>
-            {/* Connector track — sits behind the circles */}
             <div className="jl-steps-track" style={{ position: 'absolute', top: 28, left: 'calc(12.5% + 4px)', right: 'calc(12.5% + 4px)', height: 2, background: `linear-gradient(90deg, ${c.accent} 0%, ${c.success} 40%, ${c.warning} 70%, ${c.accent} 100%)`, opacity: 0.18, borderRadius: 1 }} />
             <div className="jl-steps-track" style={{ position: 'absolute', top: 28, left: 'calc(12.5% + 4px)', right: 'calc(12.5% + 4px)', height: 2, background: c.borderLight, borderRadius: 1 }} />
 
@@ -311,7 +458,6 @@ export default function HomePage() {
                       <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/>
                     </svg>
                   ),
-                  title: 'Upload your CV', desc: 'PDF, DOCX or paste text. We extract your skills and experience automatically.',
                 },
                 {
                   num: '02', color: c.success, bg: c.successLight,
@@ -320,7 +466,6 @@ export default function HomePage() {
                       <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
                     </svg>
                   ),
-                  title: 'Get your Career Scan', desc: 'Score, salary range, strengths, gaps and a personalised action plan — in 30 seconds.',
                 },
                 {
                   num: '03', color: c.warning, bg: c.warningLight,
@@ -329,7 +474,6 @@ export default function HomePage() {
                       <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
                     </svg>
                   ),
-                  title: 'Find matching jobs', desc: 'AI searches live boards across DACH and ranks results by how well they fit your profile.',
                 },
                 {
                   num: '04', color: c.accent, bg: c.primaryLight,
@@ -338,19 +482,17 @@ export default function HomePage() {
                       <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
                     </svg>
                   ),
-                  title: 'Apply in one click', desc: 'Tailored CV and cover letter per job — or let Auto Apply fill the whole form for you.',
                 },
-              ] as { num: string; color: string; bg: string; icon: ReactNode; title: string; desc: string }[]).map((step, idx) => (
+              ] as { num: string; color: string; bg: string; icon: ReactNode }[]).map((step, idx) => (
                 <div key={idx} className="jl-step">
                   <div className="jl-step-circle" style={{ background: step.bg, border: `2px solid ${step.color}22` }}>
                     {step.icon}
-                    {/* Step number badge */}
                     <div style={{ position: 'absolute', top: -6, right: -6, width: 20, height: 20, borderRadius: '50%', background: step.color, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 9, fontWeight: 700, color: '#fff', fontFamily: f.heading, letterSpacing: 0.5 }}>
                       {step.num}
                     </div>
                   </div>
-                  <div style={{ fontFamily: f.heading, fontSize: 15, fontWeight: 700, color: c.primary, marginBottom: 8, lineHeight: 1.3 }}>{step.title}</div>
-                  <div style={{ fontSize: 13, color: c.textMuted, lineHeight: 1.65, maxWidth: 200 }}>{step.desc}</div>
+                  <div style={{ fontFamily: f.heading, fontSize: 15, fontWeight: 700, color: c.primary, marginBottom: 8, lineHeight: 1.3 }}>{t.steps[idx].title}</div>
+                  <div style={{ fontSize: 13, color: c.textMuted, lineHeight: 1.65, maxWidth: 200 }}>{t.steps[idx].desc}</div>
                 </div>
               ))}
             </div>
@@ -360,32 +502,26 @@ export default function HomePage() {
         {/* ── Pricing ── */}
         <div style={{ marginTop: 80 }}>
           <div style={{ textAlign: 'center', marginBottom: 52 }}>
-            <div style={{ fontFamily: f.heading, fontSize: 26, fontWeight: 700, color: c.primary, marginBottom: 10 }}>Simple, honest pricing</div>
+            <div style={{ fontFamily: f.heading, fontSize: 26, fontWeight: 700, color: c.primary, marginBottom: 10 }}>{t.pricingTitle}</div>
             <div style={{ fontSize: 14, color: c.textMuted, maxWidth: 480, margin: '0 auto', lineHeight: 1.65 }}>
-              Buy once, use anytime. Credits never expire — perfect for a focused job search.
+              {t.pricingSub}
             </div>
           </div>
 
-          {/* 3-column pricing — middle card raised as "Most Popular" */}
           <div className="jl-pricing-grid" style={{ alignItems: 'start' }}>
 
-            {/* ── Tier 1: Free ── */}
+            {/* Free */}
             <div style={{ background: '#fff', border: `1.5px solid ${c.border}`, borderRadius: 16, padding: '28px 24px', display: 'flex', flexDirection: 'column' as const, gap: 16 }}>
               <div>
                 <div style={{ fontSize: 11, fontWeight: 700, color: c.success, letterSpacing: 1, textTransform: 'uppercase' as const, marginBottom: 8 }}>Free</div>
                 <div style={{ display: 'flex', alignItems: 'baseline', gap: 4 }}>
                   <span style={{ fontFamily: f.heading, fontSize: 34, fontWeight: 700, color: c.primary, lineHeight: 1 }}>€0</span>
                 </div>
-                <div style={{ fontSize: 12, color: c.textMuted, marginTop: 4 }}>Forever free · no card needed</div>
+                <div style={{ fontSize: 12, color: c.textMuted, marginTop: 4 }}>{t.freeTierSub}</div>
               </div>
               <div style={{ height: 1, background: c.border }} />
               <div style={{ display: 'flex', flexDirection: 'column' as const, gap: 10, flex: 1 }}>
-                {[
-                  '5 credits on signup',
-                  'Career Scan (preview)',
-                  'Unlimited job browsing',
-                  'Smart job matching',
-                ].map(item => (
+                {t.freeFeatures.map(item => (
                   <div key={item} style={{ display: 'flex', alignItems: 'flex-start', gap: 8, fontSize: 13, color: c.text }}>
                     <span style={{ color: c.success, fontWeight: 700, fontSize: 15, lineHeight: '1.4', flexShrink: 0 }}>✓</span>
                     <span>{item}</span>
@@ -393,74 +529,62 @@ export default function HomePage() {
                 ))}
               </div>
               <Link href={go('/app/career-scan')} style={{ padding: '11px 0', borderRadius: 9, background: c.primaryLight, color: c.navy, textDecoration: 'none', fontWeight: 700, fontFamily: f.heading, fontSize: 13, textAlign: 'center' as const, display: 'block', transition: 'opacity 0.15s' }}>
-                Start free &rarr;
+                {t.startFree} &rarr;
               </Link>
             </div>
 
-            {/* ── Tier 2: Job Hunt — Most Popular (middle, raised) ── */}
+            {/* Job Hunt — Most Popular */}
             <div style={{ position: 'relative', background: '#fff', border: `2px solid ${c.accent}`, borderRadius: 18, padding: '36px 24px 28px', display: 'flex', flexDirection: 'column' as const, gap: 16, boxShadow: `0 12px 40px ${c.accent}22, 0 2px 8px rgba(0,0,0,0.06)`, marginTop: -16 }}>
-              {/* Badge */}
               <div style={{ position: 'absolute', top: -14, left: '50%', transform: 'translateX(-50%)', background: g.button, color: '#fff', fontSize: 10, fontWeight: 700, padding: '5px 18px', borderRadius: 20, whiteSpace: 'nowrap' as const, letterSpacing: 0.8, boxShadow: `0 4px 12px ${c.accent}40` }}>
-                ★ MOST POPULAR
+                {t.popularBadge}
               </div>
               <div>
                 <div style={{ fontSize: 11, fontWeight: 700, color: c.accent, letterSpacing: 1, textTransform: 'uppercase' as const, marginBottom: 8 }}>Job Hunt</div>
                 <div style={{ display: 'flex', alignItems: 'baseline', gap: 4 }}>
                   <span style={{ fontFamily: f.heading, fontSize: 34, fontWeight: 700, color: c.primary, lineHeight: 1 }}>€12.99</span>
                 </div>
-                <div style={{ fontSize: 12, color: c.textMuted, marginTop: 4 }}>60 credits · never expire</div>
+                <div style={{ fontSize: 12, color: c.textMuted, marginTop: 4 }}>{t.jobHuntSub}</div>
               </div>
               <div style={{ height: 1, background: `${c.accent}22` }} />
               <div style={{ display: 'flex', flexDirection: 'column' as const, gap: 10, flex: 1 }}>
-                {[
-                  '60 credits (~20 full applications)',
-                  'CV tailoring — 1 credit each',
-                  'Cover letter — 1 credit each',
-                  'Career Scan — 2 credits',
-                  'Auto Apply — 3 credits',
-                ].map(item => (
+                {t.jobHuntFeatures.map(item => (
                   <div key={item} style={{ display: 'flex', alignItems: 'flex-start', gap: 8, fontSize: 13, color: c.text }}>
                     <span style={{ color: c.accent, fontWeight: 700, fontSize: 15, lineHeight: '1.4', flexShrink: 0 }}>✓</span>
                     <span>{item}</span>
                   </div>
                 ))}
                 <div style={{ marginTop: 4, padding: '8px 12px', background: c.primaryLight, borderRadius: 8, fontSize: 12, color: c.navy, fontWeight: 600 }}>
-                  Best value for active job seekers
+                  {t.jobHuntNote}
                 </div>
               </div>
               <Link href={go('/app/account')} style={{ padding: '13px 0', borderRadius: 10, background: g.button, color: '#fff', textDecoration: 'none', fontWeight: 700, fontFamily: f.heading, fontSize: 14, textAlign: 'center' as const, display: 'block', boxShadow: `0 4px 14px ${c.accent}35` }}>
-                Get Job Hunt &rarr;
+                {t.getJobHunt} &rarr;
               </Link>
             </div>
 
-            {/* ── Tier 3: Full Sprint ── */}
+            {/* Full Sprint */}
             <div style={{ background: '#fff', border: `1.5px solid ${c.border}`, borderRadius: 16, padding: '28px 24px', display: 'flex', flexDirection: 'column' as const, gap: 16 }}>
               <div>
                 <div style={{ fontSize: 11, fontWeight: 700, color: c.primary, letterSpacing: 1, textTransform: 'uppercase' as const, marginBottom: 8 }}>Full Sprint</div>
                 <div style={{ display: 'flex', alignItems: 'baseline', gap: 4 }}>
                   <span style={{ fontFamily: f.heading, fontSize: 34, fontWeight: 700, color: c.primary, lineHeight: 1 }}>€24.99</span>
                 </div>
-                <div style={{ fontSize: 12, color: c.textMuted, marginTop: 4 }}>150 credits · never expire</div>
+                <div style={{ fontSize: 12, color: c.textMuted, marginTop: 4 }}>{t.fullSprintSub}</div>
               </div>
               <div style={{ height: 1, background: c.border }} />
               <div style={{ display: 'flex', flexDirection: 'column' as const, gap: 10, flex: 1 }}>
-                {[
-                  '150 credits (~50 full applications)',
-                  'Everything in Job Hunt',
-                  'Multi-month job search',
-                  'Ideal for career changers',
-                ].map(item => (
+                {t.fullSprintFeatures.map(item => (
                   <div key={item} style={{ display: 'flex', alignItems: 'flex-start', gap: 8, fontSize: 13, color: c.text }}>
                     <span style={{ color: c.success, fontWeight: 700, fontSize: 15, lineHeight: '1.4', flexShrink: 0 }}>✓</span>
                     <span>{item}</span>
                   </div>
                 ))}
                 <div style={{ marginTop: 4, padding: '8px 12px', background: c.bg, borderRadius: 8, border: `1px solid ${c.border}`, fontSize: 12, color: c.textMuted }}>
-                  Also available: Starter pack €4.99 / 20 credits
+                  {t.starterNote}
                 </div>
               </div>
               <Link href={go('/app/account')} style={{ padding: '11px 0', borderRadius: 9, background: c.primaryLight, color: c.navy, textDecoration: 'none', fontWeight: 700, fontFamily: f.heading, fontSize: 13, textAlign: 'center' as const, display: 'block' }}>
-                Get Full Sprint &rarr;
+                {t.getFullSprint} &rarr;
               </Link>
             </div>
 
@@ -468,7 +592,7 @@ export default function HomePage() {
 
           <div style={{ textAlign: 'center', marginTop: 24 }}>
             <span style={{ fontSize: 13, color: c.textMuted }}>
-              New accounts get <strong style={{ color: c.success }}>5 free credits</strong> — no card needed. Credits never expire.
+              {t.freeNoteBottom} <strong style={{ color: c.success }}>{t.freeCreditsNote}</strong> {t.noCard}
             </span>
           </div>
         </div>
@@ -476,20 +600,20 @@ export default function HomePage() {
         {/* ── Bottom CTA ── */}
         <div style={{ marginTop: 80, background: g.ctaBlock, borderRadius: 20, padding: '56px 32px', textAlign: 'center' }}>
           <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)', marginBottom: 16, letterSpacing: 0.5 }}>
-            5 free credits on signup &nbsp;·&nbsp; No card required
+            {t.ctaTag}
           </div>
           <div style={{ fontFamily: f.heading, fontSize: 28, fontWeight: 700, color: '#fff', marginBottom: 10, letterSpacing: -0.3 }}>
-            Ready to start your job search?
+            {t.ctaTitle}
           </div>
           <div style={{ fontSize: 15, color: 'rgba(255,255,255,0.55)', marginBottom: 36, lineHeight: 1.65 }}>
-            Career analysis, job matching and applications — all in one place.
+            {t.ctaSub}
           </div>
           <div style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap' }}>
             <Link href={go('/app/career-scan')} className="jl-btn-primary" style={{ padding: '13px 28px', borderRadius: 10, color: '#fff', textDecoration: 'none', fontWeight: 700, fontFamily: f.heading, fontSize: 14 }}>
-              Start with Career Scan
+              {t.ctaBtn1}
             </Link>
             <Link href={go('/app/smart-apply')} className="jl-btn-glass" style={{ padding: '13px 28px', borderRadius: 10, color: theme.navbar.text, textDecoration: 'none', fontWeight: 600, fontFamily: f.heading, fontSize: 14 }}>
-              Browse Jobs
+              {t.ctaBtn2}
             </Link>
           </div>
         </div>
@@ -497,15 +621,15 @@ export default function HomePage() {
         {/* Footer */}
         <div style={{ textAlign: 'center', marginTop: 48, paddingBottom: 8 }}>
           <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 20, flexWrap: 'wrap', marginBottom: 12 }}>
-            <span style={{ fontSize: 12, color: c.textFaint }}>🇩🇪 Made in Germany &nbsp;&middot;&nbsp; Job-Lens AI</span>
+            <span style={{ fontSize: 12, color: c.textFaint }}>{t.footerBrand}</span>
             <span style={{ fontSize: 12, color: c.border }}>|</span>
             {user ? (
-              <Link href="/app/career-scan" style={{ fontSize: 12, color: c.textFaint, textDecoration: 'none' }}>Go to App</Link>
+              <Link href="/app/career-scan" style={{ fontSize: 12, color: c.textFaint, textDecoration: 'none' }}>{t.footerGoApp}</Link>
             ) : (
-              <Link href="/login" style={{ fontSize: 12, color: c.textFaint, textDecoration: 'none' }}>Sign in</Link>
+              <Link href="/login" style={{ fontSize: 12, color: c.textFaint, textDecoration: 'none' }}>{t.footerSignIn}</Link>
             )}
-            <Link href="/app/career-scan" style={{ fontSize: 12, color: c.textFaint, textDecoration: 'none' }}>Career Scan</Link>
-            <Link href="/app/smart-apply" style={{ fontSize: 12, color: c.textFaint, textDecoration: 'none' }}>Job Search</Link>
+            <Link href="/app/career-scan" style={{ fontSize: 12, color: c.textFaint, textDecoration: 'none' }}>{t.footerCareerScan}</Link>
+            <Link href="/app/smart-apply" style={{ fontSize: 12, color: c.textFaint, textDecoration: 'none' }}>{t.footerJobSearch}</Link>
           </div>
           <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
             <Link href="/impressum" style={{ fontSize: 11, color: c.textFaint, textDecoration: 'none' }}>Impressum</Link>
