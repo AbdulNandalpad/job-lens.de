@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 
 const orange = '#ff9933'
 const navy = '#042C53'
@@ -34,16 +34,19 @@ function timeAgo(dateStr: string) {
 }
 
 export default function IndiaJobsPage() {
+  const router = useRouter()
   const [query, setQuery] = useState('')
   const [city, setCity] = useState('')
   const [jobs, setJobs] = useState<Job[]>([])
   const [loading, setLoading] = useState(false)
   const [searched, setSearched] = useState(false)
+  const [selectedJobId, setSelectedJobId] = useState<string | null>(null)
 
   async function search() {
     if (!query.trim()) return
     setLoading(true)
     setSearched(true)
+    setSelectedJobId(null)
     try {
       const params = new URLSearchParams({ q: query, country: 'in' })
       if (city) params.set('location', city)
@@ -54,10 +57,28 @@ export default function IndiaJobsPage() {
     setLoading(false)
   }
 
+  function selectJob(job: Job) {
+    setSelectedJobId(prev => prev === job.job_id ? null : job.job_id)
+    sessionStorage.setItem('jl_in_selected_job', JSON.stringify({
+      job_title: job.job_title,
+      employer_name: job.employer_name,
+      job_description: job.job_description,
+      job_city: job.job_city,
+      job_apply_link: job.job_apply_link,
+    }))
+    if (job.job_description) sessionStorage.setItem('jl_ats_jd', job.job_description)
+  }
+
+  function goTo(path: string) { router.push(path) }
+
   return (
     <>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=Outfit:wght@400;600;700&display=swap');
+        .jl-job-card { cursor: pointer; transition: box-shadow 0.15s, border-color 0.15s; }
+        .jl-job-card:hover { box-shadow: 0 4px 16px rgba(4,44,83,0.1) !important; }
+        .jl-action-btn { transition: opacity 0.15s, transform 0.15s; }
+        .jl-action-btn:hover { opacity: 0.85; transform: translateY(-1px); }
       `}</style>
 
       <div style={{ background: '#f0f4f8', minHeight: 'calc(100vh - 52px)', padding: '28px 24px' }}>
@@ -106,52 +127,75 @@ export default function IndiaJobsPage() {
 
           {!loading && jobs.length > 0 && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-              <div style={{ fontSize: 13, color: '#9aafbc', marginBottom: 4 }}>{jobs.length} jobs found</div>
-              {jobs.map(job => (
-                <div key={job.job_id} style={{ background: '#fff', borderRadius: 12, padding: '18px 20px', border: '1px solid #edf1f6', boxShadow: '0 2px 8px rgba(4,44,83,0.05)' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12, flexWrap: 'wrap' }}>
-                    <div style={{ flex: 1 }}>
-                      <div style={{ fontFamily: "'Outfit',sans-serif", fontSize: 15, fontWeight: 700, color: navy, marginBottom: 4 }}>{job.job_title}</div>
-                      <div style={{ fontSize: 13, color: '#6b7c93', marginBottom: 8 }}>
-                        {job.employer_name}{job.job_city ? ` · ${job.job_city}` : ''}
-                        {job.job_employment_type ? ` · ${job.job_employment_type}` : ''}
-                      </div>
-                      {job.job_description && (
-                        <p style={{ fontSize: 12, color: '#8fa3b8', lineHeight: 1.6, margin: '0 0 10px', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+              <div style={{ fontSize: 13, color: '#9aafbc', marginBottom: 4 }}>{jobs.length} jobs found — tap a card to see actions</div>
+              {jobs.map(job => {
+                const isSelected = selectedJobId === job.job_id
+                return (
+                  <div key={job.job_id} className="jl-job-card"
+                    onClick={() => selectJob(job)}
+                    style={{ background: '#fff', borderRadius: 12, padding: '18px 20px', border: `1.5px solid ${isSelected ? orange : '#edf1f6'}`, boxShadow: isSelected ? `0 4px 20px rgba(255,153,51,0.12)` : '0 2px 8px rgba(4,44,83,0.05)', transition: 'all 0.2s' }}>
+
+                    {/* Card header — always visible */}
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 }}>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+                          <div style={{ fontFamily: "'Outfit',sans-serif", fontSize: 15, fontWeight: 700, color: navy }}>{job.job_title}</div>
+                          {isSelected && <span style={{ fontSize: 9, padding: '2px 7px', borderRadius: 10, background: orange + '20', color: orange, fontWeight: 700, flexShrink: 0 }}>Selected</span>}
+                        </div>
+                        <div style={{ fontSize: 13, color: '#6b7c93', marginBottom: 8 }}>
+                          {job.employer_name}{job.job_city ? ` · ${job.job_city}` : ''}{job.job_employment_type ? ` · ${job.job_employment_type}` : ''}
+                        </div>
+                        <p style={{ fontSize: 12, color: '#8fa3b8', lineHeight: 1.6, margin: '0 0 10px', display: '-webkit-box', WebkitLineClamp: isSelected ? undefined : 2, WebkitBoxOrient: 'vertical', overflow: isSelected ? 'visible' : 'hidden' }}>
                           {job.job_description}
                         </p>
-                      )}
-                      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
-                        {job.job_min_salary && job.job_max_salary && (
-                          <span style={{ fontSize: 11, padding: '3px 10px', borderRadius: 12, background: 'rgba(29,158,117,0.1)', color: green, fontWeight: 600 }}>
-                            Rs. {Math.round(job.job_min_salary / 100000)}L – {Math.round(job.job_max_salary / 100000)}L
-                          </span>
-                        )}
-                        {job.job_posted_at_datetime_utc && (
-                          <span style={{ fontSize: 11, color: '#9aafbc' }}>{timeAgo(job.job_posted_at_datetime_utc)}</span>
-                        )}
+                        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+                          {job.job_min_salary && job.job_max_salary && (
+                            <span style={{ fontSize: 11, padding: '3px 10px', borderRadius: 12, background: 'rgba(29,158,117,0.1)', color: green, fontWeight: 600 }}>
+                              Rs. {Math.round(job.job_min_salary / 100000)}L – {Math.round(job.job_max_salary / 100000)}L
+                            </span>
+                          )}
+                          {job.job_posted_at_datetime_utc && (
+                            <span style={{ fontSize: 11, color: '#9aafbc' }}>{timeAgo(job.job_posted_at_datetime_utc)}</span>
+                          )}
+                        </div>
                       </div>
+                      <div style={{ fontSize: 16, color: isSelected ? orange : '#c0cfe0', flexShrink: 0, transition: 'transform 0.2s', transform: isSelected ? 'rotate(180deg)' : 'rotate(0deg)', marginTop: 2 }}>v</div>
                     </div>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8, flexShrink: 0 }}>
-                      <a href={job.job_apply_link} target="_blank" rel="noopener noreferrer"
-                        style={{ padding: '8px 18px', borderRadius: 8, background: `linear-gradient(135deg, ${orange}, #e67300)`, color: '#fff', fontSize: 12, fontWeight: 700, textDecoration: 'none', textAlign: 'center' }}>
-                        Apply
-                      </a>
-                      <Link href={`/in/career-scan`}
-                        style={{ padding: '8px 18px', borderRadius: 8, background: 'rgba(55,138,221,0.08)', color: blue, fontSize: 12, fontWeight: 600, textDecoration: 'none', textAlign: 'center', border: `1px solid rgba(55,138,221,0.2)` }}>
-                        ATS Check
-                      </Link>
-                    </div>
+
+                    {/* Expanded actions */}
+                    {isSelected && (
+                      <div onClick={e => e.stopPropagation()} style={{ marginTop: 18, paddingTop: 16, borderTop: `1px solid ${orange}20` }}>
+                        <div style={{ fontSize: 11, fontWeight: 700, color: orange, letterSpacing: 0.5, textTransform: 'uppercase', marginBottom: 10 }}>What do you want to do?</div>
+                        <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+                          <button className="jl-action-btn" onClick={() => goTo('/in/cv-builder')}
+                            style={{ padding: '10px 18px', borderRadius: 9, border: 'none', background: `linear-gradient(135deg, ${orange}, #e67300)`, color: '#fff', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: "'Outfit',sans-serif" }}>
+                            Build CV for this job
+                          </button>
+                          <button className="jl-action-btn" onClick={() => goTo('/in/cover-letter')}
+                            style={{ padding: '10px 18px', borderRadius: 9, border: `1px solid ${blue}40`, background: blue + '10', color: blue, fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: "'Outfit',sans-serif" }}>
+                            Write Cover Letter
+                          </button>
+                          <button className="jl-action-btn" onClick={() => goTo('/in/career-scan')}
+                            style={{ padding: '10px 18px', borderRadius: 9, border: `1px solid ${green}40`, background: green + '10', color: green, fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: "'Outfit',sans-serif" }}>
+                            ATS Check
+                          </button>
+                          <a href={job.job_apply_link} target="_blank" rel="noopener noreferrer" className="jl-action-btn"
+                            style={{ padding: '10px 18px', borderRadius: 9, border: '1px solid #dce4ef', background: '#f8fafc', color: '#6b7c93', fontSize: 12, fontWeight: 600, textDecoration: 'none', cursor: 'pointer', fontFamily: "'Outfit',sans-serif" }}>
+                            Apply directly →
+                          </a>
+                        </div>
+                      </div>
+                    )}
                   </div>
-                </div>
-              ))}
+                )
+              })}
             </div>
           )}
 
           {!searched && (
             <div style={{ textAlign: 'center', padding: '48px 24px', color: '#9aafbc' }}>
               <p style={{ fontSize: 14, marginBottom: 8 }}>Search for jobs across India</p>
-              <p style={{ fontSize: 12 }}>Then use <strong>ATS Check</strong> on any listing to score your CV before applying.</p>
+              <p style={{ fontSize: 12 }}>Tap any result to build a tailored CV, write a cover letter, or run an ATS check.</p>
             </div>
           )}
         </div>
