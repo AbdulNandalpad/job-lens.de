@@ -678,17 +678,6 @@ export default function CoverLetterPage() {
                         {job.employer_name} - {job.job_title}
                       </div>
                     )}
-                    <div style={{ display: 'flex', gap: 8, marginTop: 12, flexWrap: 'wrap' }}>
-                      {[
-                        TONES.find(t => t.id === tone)?.label,
-                        letterLang === 'EN' ? t.coverLetter.preview.english : t.coverLetter.preview.deutsch,
-                        length.charAt(0).toUpperCase() + length.slice(1),
-                      ].map((chip, i) => (
-                        <span key={i} style={{ fontSize: 10, padding: '3px 10px', borderRadius: 20, background: '#E6F1FB', color: '#185FA5', fontWeight: 600, border: '1px solid #c3ddf7' }}>
-                          {chip}
-                        </span>
-                      ))}
-                    </div>
                   </div>
 
                   {/* Letter body */}

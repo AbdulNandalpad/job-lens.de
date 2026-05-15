@@ -268,23 +268,12 @@ export default function IndiaCoverLetterPage() {
                     <span style={{ fontSize: 9, fontWeight: 700, color: openSections.format ? accent : 'rgba(255,255,255,0.4)', fontFamily: 'monospace' }}>02</span>
                   </div>
                   <span style={{ fontSize: 13, fontWeight: 600, color: openSections.format ? '#fff' : 'rgba(255,255,255,0.55)' }}>Format</span>
-                  <span style={{ fontSize: 10, color: accent, fontWeight: 600 }}>{lang} . {length}</span>
+                  <span style={{ fontSize: 10, color: accent, fontWeight: 600 }}>{length}</span>
                 </div>
                 <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.3)', transform: openSections.format ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s', display: 'inline-block' }}>v</span>
               </button>
               {openSections.format && (
                 <div style={{ padding: '4px 16px 16px', display: 'flex', flexDirection: 'column', gap: 16 }}>
-                  <div>
-                    <div style={{ fontSize: 10, fontWeight: 600, color: 'rgba(255,255,255,0.4)', letterSpacing: 0.5, textTransform: 'uppercase', marginBottom: 8 }}>Language</div>
-                    <div style={{ display: 'flex', gap: 6 }}>
-                      {(['EN', 'DE'] as Lang[]).map(l => (
-                        <button key={l} onClick={() => setLang(l)}
-                          style={{ flex: 1, padding: '8px 0', borderRadius: 8, border: `1px solid ${lang === l ? accent : 'rgba(255,255,255,0.1)'}`, background: lang === l ? accent + '20' : 'rgba(255,255,255,0.04)', color: lang === l ? '#fff' : 'rgba(255,255,255,0.45)', fontSize: 12, fontWeight: lang === l ? 700 : 400, cursor: 'pointer', fontFamily: 'inherit' }}>
-                          {l === 'EN' ? 'English' : 'Deutsch'}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
                   <div>
                     <div style={{ fontSize: 10, fontWeight: 600, color: 'rgba(255,255,255,0.4)', letterSpacing: 0.5, textTransform: 'uppercase', marginBottom: 8 }}>Length</div>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
