@@ -39,22 +39,44 @@ export default function IndiaJobsPage() {
   const [city, setCity] = useState('')
   const [jobs, setJobs] = useState<Job[]>([])
   const [loading, setLoading] = useState(false)
+  const [loadingMore, setLoadingMore] = useState(false)
   const [searched, setSearched] = useState(false)
   const [selectedJobId, setSelectedJobId] = useState<string | null>(null)
+  const [page, setPage] = useState(1)
+  const [hasMore, setHasMore] = useState(false)
 
   async function search() {
     if (!query.trim()) return
     setLoading(true)
     setSearched(true)
     setSelectedJobId(null)
+    setPage(1)
     try {
-      const params = new URLSearchParams({ q: query, country: 'in' })
+      const params = new URLSearchParams({ q: query, country: 'in', page: '1' })
       if (city) params.set('location', city)
       const res = await fetch(`/api/jobs?${params}`)
       const data = await res.json()
-      setJobs(data.jobs || [])
-    } catch { setJobs([]) }
+      const results = data.jobs || []
+      setJobs(results)
+      setHasMore(results.length === 20)
+    } catch { setJobs([]); setHasMore(false) }
     setLoading(false)
+  }
+
+  async function loadMore() {
+    const nextPage = page + 1
+    setLoadingMore(true)
+    try {
+      const params = new URLSearchParams({ q: query, country: 'in', page: String(nextPage) })
+      if (city) params.set('location', city)
+      const res = await fetch(`/api/jobs?${params}`)
+      const data = await res.json()
+      const more = data.jobs || []
+      setJobs(prev => [...prev, ...more])
+      setPage(nextPage)
+      setHasMore(more.length === 20)
+    } catch {}
+    setLoadingMore(false)
   }
 
   function selectJob(job: Job) {
@@ -69,7 +91,10 @@ export default function IndiaJobsPage() {
     if (job.job_description) sessionStorage.setItem('jl_ats_jd', job.job_description)
   }
 
-  function goTo(path: string) { router.push(path) }
+  function goTo(path: string) {
+    if (path === '/in/cv-builder') sessionStorage.removeItem('jl_ats_suggestions')
+    router.push(path)
+  }
 
   return (
     <>
@@ -128,6 +153,7 @@ export default function IndiaJobsPage() {
           {!loading && jobs.length > 0 && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
               <div style={{ fontSize: 13, color: '#9aafbc', marginBottom: 4 }}>{jobs.length} jobs found — tap a card to see actions</div>
+
               {jobs.map(job => {
                 const isSelected = selectedJobId === job.job_id
                 return (
@@ -189,6 +215,16 @@ export default function IndiaJobsPage() {
                   </div>
                 )
               })}
+            </div>
+          )}
+
+          {/* Load more */}
+          {!loading && hasMore && (
+            <div style={{ textAlign: 'center', marginTop: 16 }}>
+              <button onClick={loadMore} disabled={loadingMore}
+                style={{ padding: '10px 32px', borderRadius: 8, background: loadingMore ? '#ccc' : `linear-gradient(135deg, ${orange}, #e67300)`, color: '#fff', fontWeight: 700, fontSize: 13, border: 'none', cursor: loadingMore ? 'not-allowed' : 'pointer' }}>
+                {loadingMore ? 'Loading...' : 'Load more jobs'}
+              </button>
             </div>
           )}
 

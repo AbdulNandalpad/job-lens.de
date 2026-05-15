@@ -6,6 +6,7 @@ export async function GET(req: NextRequest) {
   const location = searchParams.get('location') || ''
   const country = searchParams.get('country') || 'de'
   const maxDaysOld = searchParams.get('max_days_old') || ''
+  const page = searchParams.get('page') || '1'
 
   const appId = process.env.ADZUNA_APP_ID!
   const appKey = process.env.ADZUNA_APP_KEY!
@@ -22,7 +23,7 @@ export async function GET(req: NextRequest) {
     })
     if (maxDaysOld) params.set('max_days_old', maxDaysOld)
 
-    const url = `https://api.adzuna.com/v1/api/jobs/${country}/search/1?${params}`
+    const url = `https://api.adzuna.com/v1/api/jobs/${country}/search/${page}?${params}`
 
     console.log('Adzuna URL:', url)
 

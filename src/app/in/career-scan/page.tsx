@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useCredits } from '@/lib/useCredits'
 
@@ -78,11 +78,18 @@ export default function IndiaCareerScanPage() {
   const { credits, setCredits } = useCredits()
   const COST = 2
 
+  useEffect(() => {
+    const savedCv = sessionStorage.getItem('jl_cv_text') || sessionStorage.getItem('jl_cvb_generated') || ''
+    const savedJd = sessionStorage.getItem('jl_ats_jd') || ''
+    if (savedCv) setCvText(savedCv)
+    if (savedJd) setJdText(savedJd)
+  }, [])
+
   async function handleFile(file: File) {
     setFileLoading(true)
     if (file.name.endsWith('.txt') || file.type === 'text/plain') {
       const r = new FileReader()
-      r.onload = e => { setCvText((e.target?.result as string) ?? ''); setFileLoading(false) }
+      r.onload = e => { const txt = (e.target?.result as string) ?? ''; setCvText(txt); sessionStorage.setItem('jl_cv_text', txt); setFileLoading(false) }
       r.readAsText(file)
     } else {
       const form = new FormData()
@@ -90,7 +97,7 @@ export default function IndiaCareerScanPage() {
       try {
         const res = await fetch('/api/extract-pdf', { method: 'POST', body: form })
         const data = await res.json()
-        if (data.text) setCvText(data.text)
+        if (data.text) { setCvText(data.text); sessionStorage.setItem('jl_cv_text', data.text) }
         else alert(data.error || 'Could not read file.')
       } catch { alert('Failed to read file.') }
       setFileLoading(false)
@@ -289,6 +296,7 @@ export default function IndiaCareerScanPage() {
                       <button
                         onClick={() => {
                           try {
+                            sessionStorage.setItem('jl_cv_text', cvText)
                             sessionStorage.setItem('jl_ats_suggestions', JSON.stringify({
                               missing_keywords: result.missing_keywords,
                               quick_fixes: result.quick_fixes,
