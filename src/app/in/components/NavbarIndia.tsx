@@ -52,6 +52,7 @@ export default function NavbarIndia() {
         .jl-mobile-page { display: none; }
         .jl-logo-text { display: flex; }
         .jl-clear-btn { display: flex; }
+        .jl-user-name { display: inline; }
         @media (max-width: 768px) {
           .jl-desktop-nav { display: none !important; }
           .jl-hamburger { display: flex !important; }
@@ -59,6 +60,7 @@ export default function NavbarIndia() {
           .jl-mobile-page { display: block !important; }
           .jl-logo-text { display: none !important; }
           .jl-clear-btn { display: none !important; }
+          .jl-user-name { display: none !important; }
         }
       `}</style>
 
@@ -118,7 +120,7 @@ export default function NavbarIndia() {
             <div style={{ width: 22, height: 22, borderRadius: '50%', background: '#ff9933', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 9, fontWeight: 700, color: '#fff' }}>
               {userName.charAt(0).toUpperCase()}
             </div>
-            <span style={{ fontSize: 12, color: '#E6F1FB' }}>{userName}</span>
+            <span className="jl-user-name" style={{ fontSize: 12, color: '#E6F1FB' }}>{userName}</span>
           </div>
 
           <button className="jl-hamburger" onClick={() => setMenuOpen(!menuOpen)}
