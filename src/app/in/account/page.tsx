@@ -10,9 +10,9 @@ const green = '#1D9E75'
 const red = '#e53e3e'
 
 const PACKS = [
-  { label: 'Starter', credits: 20, price: '₹499', desc: 'A quick CV + a few cover letters', amount: '499' },
-  { label: 'Job Hunt', credits: 60, price: '₹1,099', desc: '1–2 month active job search', amount: '1099', popular: true },
-  { label: 'Full Sprint', credits: 150, price: '₹1,999', desc: 'Intensive job search', amount: '1999' },
+  { label: 'Starter', credits: 20, price: '₹149', desc: 'A quick CV + a few cover letters', amount: '149' },
+  { label: 'Job Hunt', credits: 60, price: '₹399', desc: '1–2 month active job search', amount: '399', popular: true },
+  { label: 'Full Sprint', credits: 150, price: '₹799', desc: 'Intensive job search', amount: '799' },
 ]
 
 interface ProfileData {
