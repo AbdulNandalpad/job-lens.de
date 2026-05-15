@@ -47,20 +47,7 @@ Return ONLY the JSON object. No markdown, no backticks, no explanation.`
         messages: [{ role: 'user', content: userContent }],
       })
 
-      let cv = (message.content[0] as { text: string }).text
-
-      // Inject the authenticated user's email as fallback if Claude left it blank
-      if (user.email) {
-        try {
-          const clean = cv.replace(/```json\s*/g, '').replace(/```\s*/g, '').trim()
-          const parsed = JSON.parse(clean)
-          if (!parsed.email?.trim()) {
-            parsed.email = user.email
-            cv = JSON.stringify(parsed)
-          }
-        } catch { /* leave cv unchanged if not valid JSON */ }
-      }
-
+      const cv = (message.content[0] as { text: string }).text
       return NextResponse.json({ cv, creditsRemaining: credits.remaining })
     }
 

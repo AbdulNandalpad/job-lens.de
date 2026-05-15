@@ -528,6 +528,9 @@ export default function IndiaCVBuilderPage() {
   const [downloading, setDownloading] = useState<'pdf' | 'docx' | null>(null)
   const [mobOpen, setMobOpen] = useState(false)
   const [atsFromScan, setAtsFromScan] = useState(false)
+  const [atsSuggestions, setAtsSuggestions] = useState<{ missing_keywords: string[]; quick_fixes: string[] } | null>(null)
+  const [editingContact, setEditingContact] = useState(false)
+  const [contactDraft, setContactDraft] = useState({ name: '', email: '', phone: '', location: '', linkedin: '' })
   const { credits, setCredits } = useCredits()
   const CV_COST = 1
 
@@ -566,9 +569,14 @@ export default function IndiaCVBuilderPage() {
     const savedData = sessionStorage.getItem('jl_cvb_data')
     if (saved) setRawCv(saved)
     if (savedData) { try { setCvData(JSON.parse(savedData)) } catch { } }
-    if (sessionStorage.getItem('jl_ats_suggestions')) {
-      setTemplate('minimal')
-      setAtsFromScan(true)
+    const atsRaw = sessionStorage.getItem('jl_ats_suggestions')
+    if (atsRaw) {
+      try {
+        const s = JSON.parse(atsRaw)
+        setAtsSuggestions(s)
+        setTemplate('minimal')
+        setAtsFromScan(true)
+      } catch {}
     }
   }, [])
 
@@ -587,7 +595,9 @@ Rules:
 - tools: 10-20 specific technologies
 - tone: ${tone}, language: ${lang}, pages: ${pages}
 ${job ? `- Tailor for: ${job.job_title} at ${job.employer_name}` : ''}
-${job?.job_description ? `- Job context: ${job.job_description.slice(0, 800)}` : ''}`
+${job?.job_description ? `- Job context: ${job.job_description.slice(0, 800)}` : ''}
+${atsSuggestions?.missing_keywords?.length ? `- ATS PRIORITY: Naturally incorporate these missing keywords into skills, bullets, and summary: ${atsSuggestions.missing_keywords.join(', ')}` : ''}
+${atsSuggestions?.quick_fixes?.length ? `- ATS FIXES to apply:\n${atsSuggestions.quick_fixes.map((f: string) => `  * ${f}`).join('\n')}` : ''}`
     try {
       const res = await fetch('/api/tailor-cv', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ cvText, job, template, tone, pages, lang, systemPrompt, returnJson: true }) })
       if (res.status === 402) { const d = await res.json(); if (typeof d.credits === 'number') setCredits(d.credits); setLoading(false); alert('Not enough credits.'); return }
@@ -604,7 +614,10 @@ ${job?.job_description ? `- Job context: ${job.job_description.slice(0, 800)}` :
     if (!feedback.trim() || !rawCv) return
     setApplyingFeedback(true)
     try {
-      const res = await fetch('/api/tailor-cv', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ cvText, job, template, tone, pages, lang, systemPrompt: 'Apply the feedback and return updated JSON matching the same schema. Return ONLY valid JSON.', returnJson: true, feedback, currentCv: rawCv }) })
+      const atsContext = atsSuggestions?.missing_keywords?.length
+        ? ` Also ensure these ATS keywords are present: ${atsSuggestions.missing_keywords.join(', ')}.`
+        : ''
+      const res = await fetch('/api/tailor-cv', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ cvText, job, template, tone, pages, lang, systemPrompt: `Apply the feedback and return updated JSON matching the same schema. Return ONLY valid JSON.${atsContext}`, returnJson: true, feedback, currentCv: rawCv }) })
       if (res.status === 402) { alert('Not enough credits.'); setApplyingFeedback(false); return }
       const data = await res.json()
       const raw = data.cv || ''
@@ -838,6 +851,31 @@ ${job?.job_description ? `- Job context: ${job.job_description.slice(0, 800)}` :
                       Minimal selected for best ATS compatibility
                     </div>
                   )}
+                  {atsSuggestions && (
+                    <div style={{ padding: '10px 12px', background: 'rgba(255,153,51,0.08)', border: '1px solid rgba(255,153,51,0.25)', borderRadius: 8, marginBottom: 4 }}>
+                      <div style={{ fontSize: 10, fontWeight: 700, color: accent, letterSpacing: 0.5, textTransform: 'uppercase', marginBottom: 6 }}>ATS Inputs Active</div>
+                      {atsSuggestions.missing_keywords?.length > 0 && (
+                        <div style={{ marginBottom: 6 }}>
+                          <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.4)', fontWeight: 600, marginBottom: 4 }}>KEYWORDS TO ADD</div>
+                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
+                            {atsSuggestions.missing_keywords.slice(0, 8).map((kw: string, i: number) => (
+                              <span key={i} style={{ fontSize: 9, padding: '2px 7px', borderRadius: 10, background: 'rgba(255,153,51,0.15)', color: accent, border: '1px solid rgba(255,153,51,0.3)', fontWeight: 600 }}>{kw}</span>
+                            ))}
+                            {atsSuggestions.missing_keywords.length > 8 && <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.3)' }}>+{atsSuggestions.missing_keywords.length - 8} more</span>}
+                          </div>
+                        </div>
+                      )}
+                      {atsSuggestions.quick_fixes?.length > 0 && (
+                        <div>
+                          <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.4)', fontWeight: 600, marginBottom: 4 }}>FIXES APPLIED</div>
+                          {atsSuggestions.quick_fixes.slice(0, 3).map((fix: string, i: number) => (
+                            <div key={i} style={{ fontSize: 9, color: 'rgba(255,255,255,0.5)', marginBottom: 2, lineHeight: 1.4 }}>• {fix}</div>
+                          ))}
+                          {atsSuggestions.quick_fixes.length > 3 && <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.25)' }}>+{atsSuggestions.quick_fixes.length - 3} more fixes</div>}
+                        </div>
+                      )}
+                    </div>
+                  )}
                   {templates.map(t => (
                     <div key={t.id} onClick={() => setTemplate(t.id)} style={{ padding: '10px 12px', borderRadius: 9, border: `1px solid ${template === t.id ? t.accent : 'rgba(255,255,255,0.09)'}`, background: template === t.id ? t.accent + '14' : 'rgba(255,255,255,0.04)', cursor: 'pointer', transition: 'all 0.15s', display: 'flex', alignItems: 'center', gap: 10 }}>
                       <div style={{ width: 38, height: 48, borderRadius: 4, background: '#1a2535', flexShrink: 0, overflow: 'hidden', border: `1px solid ${template === t.id ? t.accent + '60' : 'rgba(255,255,255,0.07)'}` }}>
@@ -996,7 +1034,40 @@ ${job?.job_description ? `- Job context: ${job.job_description.slice(0, 800)}` :
                 <div ref={previewRef} style={{ borderRadius: 14, overflow: 'hidden', boxShadow: '0 32px 80px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,0.05)' }}>
                   {renderCV()}
                 </div>
+                {/* Free contact info editor */}
                 <div style={{ marginTop: 20, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 10, padding: '14px 16px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: editingContact ? 12 : 0 }}>
+                    <div style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.4)', letterSpacing: 0.5, textTransform: 'uppercase' as const }}>Contact Info</div>
+                    <button onClick={() => {
+                      if (!editingContact) setContactDraft({ name: cvData?.name || '', email: cvData?.email || '', phone: cvData?.phone || '', location: cvData?.location || '', linkedin: cvData?.linkedin || '' })
+                      setEditingContact(e => !e)
+                    }} style={{ fontSize: 11, padding: '3px 10px', borderRadius: 6, border: `1px solid ${accent}50`, background: 'transparent', color: accent, cursor: 'pointer', fontFamily: 'inherit' }}>
+                      {editingContact ? 'Cancel' : 'Edit — free'}
+                    </button>
+                  </div>
+                  {editingContact && (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                      {(['name', 'email', 'phone', 'location', 'linkedin'] as const).map(field => (
+                        <div key={field}>
+                          <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.3)', fontWeight: 600, textTransform: 'uppercase', marginBottom: 3 }}>{field}</div>
+                          <input value={contactDraft[field]} onChange={e => setContactDraft(d => ({ ...d, [field]: e.target.value }))}
+                            style={{ width: '100%', padding: '7px 10px', borderRadius: 6, border: '1px solid rgba(255,255,255,0.12)', background: 'rgba(255,255,255,0.06)', color: '#E6F1FB', fontSize: 12, fontFamily: 'inherit', outline: 'none', boxSizing: 'border-box' as const }} />
+                        </div>
+                      ))}
+                      <button onClick={() => {
+                        if (!cvData) return
+                        const updated = { ...cvData, ...contactDraft }
+                        setCvData(updated)
+                        sessionStorage.setItem('jl_cvb_data', JSON.stringify(updated))
+                        setEditingContact(false)
+                      }} style={{ padding: '8px 0', borderRadius: 7, border: 'none', background: accent, color: '#042C53', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: "'Outfit',sans-serif" }}>
+                        Save contact info
+                      </button>
+                    </div>
+                  )}
+                </div>
+
+                <div style={{ marginTop: 12, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 10, padding: '14px 16px' }}>
                   <div style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.4)', letterSpacing: 0.5, textTransform: 'uppercase' as const, marginBottom: 8 }}>Request changes</div>
                   <textarea value={feedback} onChange={e => setFeedback(e.target.value)} placeholder="e.g. Make the summary shorter, highlight technical skills more…" rows={2}
                     style={{ width: '100%', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 7, color: '#E6F1FB', fontSize: 12, padding: '8px 10px', resize: 'vertical' as const, fontFamily: "'DM Sans', sans-serif", outline: 'none', boxSizing: 'border-box' as const }} />
