@@ -15,6 +15,7 @@ export default function Navbar() {
   const [userName, setUserName] = useState('')
   const [menuOpen, setMenuOpen] = useState(false)
   const [cleared, setCleared] = useState(false)
+  const [langOpen, setLangOpen] = useState(false)
   const { lang, setLang, t } = useLanguage()
 
   function switchToIN() {
@@ -109,22 +110,25 @@ export default function Navbar() {
         {/* User + clear session + lang toggle + hamburger */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
 
-          {/* DE/EN language toggle */}
-          <div className="jl-lang-toggle" style={{ alignItems: 'center', gap: 2, background: 'rgba(255,255,255,0.05)', borderRadius: 10, padding: '3px 4px', border: '1px solid rgba(255,255,255,0.08)' }}>
+          {/* DE/EN language dropdown */}
+          <div className="jl-lang-toggle" style={{ position: 'relative' }}>
             <button
-              onClick={() => setLang('DE')}
-              style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '4px 8px', borderRadius: 7, border: 'none', cursor: 'pointer', fontSize: 11, fontWeight: 600, fontFamily: 'inherit', transition: 'all 0.15s', background: lang === 'DE' ? 'rgba(255,255,255,0.12)' : 'transparent', color: lang === 'DE' ? '#fff' : 'rgba(255,255,255,0.4)' }}
+              onClick={() => setLangOpen(o => !o)}
+              style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '4px 10px', borderRadius: 10, border: '1px solid rgba(255,255,255,0.08)', background: 'rgba(255,255,255,0.05)', cursor: 'pointer', fontSize: 11, fontWeight: 600, color: '#fff', fontFamily: 'inherit' }}
             >
-              <DEFlag size={13} />
-              DE
+              {lang === 'DE' ? <><DEFlag size={13} /> DE</> : <><GBFlag size={13} /> EN</>}
+              <span style={{ fontSize: 9, opacity: 0.5, marginLeft: 2 }}>{langOpen ? '▲' : '▼'}</span>
             </button>
-            <button
-              onClick={() => setLang('EN')}
-              style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '4px 8px', borderRadius: 7, border: 'none', cursor: 'pointer', fontSize: 11, fontWeight: 600, fontFamily: 'inherit', transition: 'all 0.15s', background: lang === 'EN' ? 'rgba(255,255,255,0.12)' : 'transparent', color: lang === 'EN' ? '#fff' : 'rgba(255,255,255,0.4)' }}
-            >
-              <GBFlag size={13} />
-              EN
-            </button>
+            {langOpen && (
+              <div style={{ position: 'absolute', top: '100%', right: 0, marginTop: 6, background: '#0d2137', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 10, overflow: 'hidden', zIndex: 200, minWidth: 110, boxShadow: '0 8px 24px rgba(0,0,0,0.3)' }}>
+                {([['DE', <DEFlag key="de" size={13} />, 'Deutsch'], ['EN', <GBFlag key="en" size={13} />, 'English']] as const).map(([code, flag, label]) => (
+                  <button key={code} onClick={() => { setLang(code); setLangOpen(false) }}
+                    style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', padding: '9px 14px', border: 'none', background: lang === code ? 'rgba(55,138,221,0.2)' : 'transparent', color: lang === code ? '#fff' : 'rgba(255,255,255,0.55)', fontSize: 12, fontWeight: lang === code ? 700 : 400, cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left' }}>
+                    {flag}{code} <span style={{ opacity: 0.6, fontWeight: 400 }}>— {label}</span>
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
 
           {/* Country switcher */}
