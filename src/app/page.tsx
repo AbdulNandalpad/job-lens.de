@@ -272,7 +272,6 @@ export default function HomePage() {
         @media (max-width: 768px) {
           .jl-home-logo-text { display: none !important; }
           .jl-home-lang { display: none !important; }
-          .jl-home-india { display: none !important; }
           .jl-home-greeting { display: none !important; }
           .jl-home-nav-links { display: none !important; }
         }
@@ -313,7 +312,7 @@ export default function HomePage() {
           </div>
 
           {/* India site link */}
-          <Link href="/in" className="jl-home-india" style={{ fontSize: 11, color: '#FF9933', fontWeight: 600, textDecoration: 'none', padding: '5px 10px', borderRadius: 10, border: '1px solid rgba(255,153,51,0.2)', background: 'rgba(255,153,51,0.07)', fontFamily: 'inherit' }}>
+          <Link href="/in" style={{ fontSize: 11, color: '#FF9933', fontWeight: 600, textDecoration: 'none', padding: '5px 10px', borderRadius: 10, border: '1px solid rgba(255,153,51,0.2)', background: 'rgba(255,153,51,0.07)', fontFamily: 'inherit' }}>
             India
           </Link>
 
