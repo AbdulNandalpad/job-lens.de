@@ -225,6 +225,21 @@ export default function AccountPage() {
               )
             })()}
 
+            {/* ── Region ── */}
+            <div style={{ background: c.bgCard, border: `1px solid ${c.border}`, borderRadius: 16, padding: '20px', marginBottom: 16 }}>
+              <div style={{ fontFamily: f.heading, fontSize: 15, fontWeight: 700, color: c.primary, marginBottom: 12 }}>Region</div>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 10 }}>
+                <div>
+                  <div style={{ fontSize: 13, fontWeight: 600, color: c.primary }}>DACH — Germany, Switzerland, Austria</div>
+                  <div style={{ fontSize: 11, color: c.textMuted, marginTop: 2 }}>Jobs across the DACH region · EUR pricing</div>
+                </div>
+                <button onClick={() => { localStorage.setItem('joblens_country', 'in'); router.push('/in') }}
+                  style={{ padding: '8px 16px', borderRadius: 8, border: `1px solid ${c.border}`, background: c.bgSubtle, color: c.textMuted, fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: f.heading }}>
+                  Switch to India →
+                </button>
+              </div>
+            </div>
+
             {/* ── Danger Zone ── */}
             <div style={{ background: c.bgCard, border: `1px solid ${c.border}`, borderRadius: 16, padding: '20px' }}>
               <div style={{ fontFamily: f.heading, fontSize: 15, fontWeight: 700, color: c.primary, marginBottom: 12 }}>{t.account.accountSection}</div>

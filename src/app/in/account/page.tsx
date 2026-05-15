@@ -28,6 +28,7 @@ interface ProfileData {
 
 const ACTION_LABELS: Record<string, string> = {
   career_scan: 'ATS Scan',
+  india_ats_scan: 'ATS Score',
   tailor_cv: 'CV Tailoring',
   cover_letter: 'Cover Letter',
   auto_apply: 'Auto Apply',
@@ -159,22 +160,80 @@ export default function IndiaAccountPage() {
               </div>
 
               {/* Usage log */}
-              {profile.usage.length > 0 && (
-                <div style={{ background: '#fff', border: '1px solid #edf1f6', borderRadius: 16, padding: 20, marginBottom: 16, boxShadow: '0 2px 8px rgba(4,44,83,0.05)' }}>
-                  <div style={{ fontFamily: "'Outfit', sans-serif", fontSize: 15, fontWeight: 700, color: navy, marginBottom: 12 }}>Recent Activity</div>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                    {profile.usage.map((event, i) => (
-                      <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 12px', background: '#f8fafc', borderRadius: 7, border: '1px solid #edf1f6' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                          <span style={{ fontSize: 12, color: navy, fontWeight: 500 }}>{ACTION_LABELS[event.action] || event.action}</span>
-                          <span style={{ fontSize: 11, color: '#9aafbc' }}>{new Date(event.created_at).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })}</span>
+              {profile.usage.length > 0 && (() => {
+                const actionIcons: Record<string, string> = {
+                  career_scan: '◎', india_ats_scan: '◎', tailor_cv: '📄', cover_letter: '✉', auto_apply: '⚡',
+                }
+                const now = new Date()
+                const todayStr = now.toDateString()
+                const yesterdayStr = new Date(now.getTime() - 86400000).toDateString()
+                function dayLabel(dateStr: string) {
+                  const d = new Date(dateStr)
+                  if (d.toDateString() === todayStr) return 'Today'
+                  if (d.toDateString() === yesterdayStr) return 'Yesterday'
+                  return d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: d.getFullYear() !== now.getFullYear() ? 'numeric' : undefined })
+                }
+                const grouped: { label: string; key: string; events: typeof profile.usage }[] = []
+                for (const ev of profile.usage) {
+                  const key = new Date(ev.created_at).toDateString()
+                  const last = grouped[grouped.length - 1]
+                  if (last && last.key === key) { last.events.push(ev) }
+                  else { grouped.push({ label: dayLabel(ev.created_at), key, events: [ev] }) }
+                }
+                const isRefund = (action: string) => action.startsWith('refund_')
+                return (
+                  <div style={{ background: '#fff', border: '1px solid #edf1f6', borderRadius: 16, padding: 20, marginBottom: 16, boxShadow: '0 2px 8px rgba(4,44,83,0.05)' }}>
+                    <div style={{ fontFamily: "'Outfit', sans-serif", fontSize: 15, fontWeight: 700, color: navy, marginBottom: 16 }}>Recent Activity</div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                      {grouped.map(group => (
+                        <div key={group.key}>
+                          <div style={{ fontSize: 11, fontWeight: 700, color: '#9aafbc', letterSpacing: 0.6, textTransform: 'uppercase', marginBottom: 8 }}>{group.label}</div>
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                            {group.events.map((ev, i) => {
+                              const refund = isRefund(ev.action)
+                              const baseAction = refund ? ev.action.replace('refund_', '') : ev.action
+                              const label = refund
+                                ? `${ACTION_LABELS[baseAction] || baseAction} (refund)`
+                                : (ACTION_LABELS[ev.action] || ev.action)
+                              const icon = actionIcons[baseAction] || '·'
+                              const time = new Date(ev.created_at).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })
+                              return (
+                                <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '9px 12px', background: '#f8fafc', borderRadius: 8, border: '1px solid #edf1f6' }}>
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                                    <span style={{ fontSize: 14, width: 20, textAlign: 'center', flexShrink: 0 }}>{icon}</span>
+                                    <div>
+                                      <div style={{ fontSize: 12, color: navy, fontWeight: 600 }}>{label}</div>
+                                      <div style={{ fontSize: 11, color: '#9aafbc', marginTop: 1 }}>{time}</div>
+                                    </div>
+                                  </div>
+                                  <span style={{ fontSize: 13, fontWeight: 700, color: refund ? green : red, flexShrink: 0 }}>
+                                    {refund ? '+' : '−'}{Math.abs(ev.credits_used)}
+                                  </span>
+                                </div>
+                              )
+                            })}
+                          </div>
                         </div>
-                        <span style={{ fontSize: 12, fontWeight: 600, color: red }}>−{event.credits_used}</span>
-                      </div>
-                    ))}
+                      ))}
+                    </div>
                   </div>
+                )
+              })()}
+
+              {/* Region */}
+              <div style={{ background: '#fff', border: '1px solid #edf1f6', borderRadius: 16, padding: 20, marginBottom: 16, boxShadow: '0 2px 8px rgba(4,44,83,0.05)' }}>
+                <div style={{ fontFamily: "'Outfit', sans-serif", fontSize: 15, fontWeight: 700, color: navy, marginBottom: 12 }}>Region</div>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 10 }}>
+                  <div>
+                    <div style={{ fontSize: 13, fontWeight: 600, color: navy }}>India</div>
+                    <div style={{ fontSize: 11, color: '#9aafbc', marginTop: 2 }}>Jobs across India · INR pricing</div>
+                  </div>
+                  <button onClick={() => { localStorage.setItem('joblens_country', 'de'); router.push('/') }}
+                    style={{ padding: '8px 16px', borderRadius: 8, border: '1px solid #dce4ef', background: '#f8fafc', color: '#6b7c93', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: "'Outfit', sans-serif" }}>
+                    Switch to DACH →
+                  </button>
                 </div>
-              )}
+              </div>
 
               {/* Sign out / delete */}
               <div style={{ background: '#fff', border: '1px solid #edf1f6', borderRadius: 16, padding: 20, boxShadow: '0 2px 8px rgba(4,44,83,0.05)' }}>

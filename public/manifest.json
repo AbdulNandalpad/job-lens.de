@@ -1,0 +1,13 @@
+{
+  "name": "Job-Lens AI",
+  "short_name": "Job-Lens",
+  "description": "AI-powered career platform for DACH and India",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#042C53",
+  "theme_color": "#042C53",
+  "icons": [
+    { "src": "/favicon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" },
+    { "src": "/favicon.ico", "sizes": "48x48", "type": "image/x-icon" }
+  ]
+}
