@@ -27,6 +27,7 @@ export default function NavbarIndia() {
       .filter(k => k.startsWith('jl_'))
       .forEach(k => sessionStorage.removeItem(k))
     setConfirmClear(false)
+    window.location.reload()
   }
 
   const navItems = [
