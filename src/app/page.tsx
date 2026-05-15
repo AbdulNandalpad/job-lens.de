@@ -264,6 +264,18 @@ export default function HomePage() {
         .jl-lang-btn.active { background: rgba(255,255,255,0.12); border-color: rgba(255,255,255,0.2); }
         .jl-lang-btn:not(.active) { color: rgba(255,255,255,0.4); }
         .jl-lang-btn:not(.active):hover { color: rgba(255,255,255,0.7); background: rgba(255,255,255,0.06); }
+        .jl-home-logo-text { display: inline; }
+        .jl-home-lang { display: flex; }
+        .jl-home-india { display: flex; }
+        .jl-home-greeting { display: inline; }
+        .jl-home-nav-links { display: contents; }
+        @media (max-width: 768px) {
+          .jl-home-logo-text { display: none !important; }
+          .jl-home-lang { display: none !important; }
+          .jl-home-india { display: none !important; }
+          .jl-home-greeting { display: none !important; }
+          .jl-home-nav-links { display: none !important; }
+        }
       `}</style>
 
       {/* ── Navbar ── */}
@@ -276,14 +288,14 @@ export default function HomePage() {
             <line x1="7" y1="20" x2="33" y2="20" stroke={c.accent} strokeWidth="0.8" strokeDasharray="2,2" opacity="0.5"/>
             <line x1="28" y1="28" x2="36" y2="36" stroke={c.accent} strokeWidth="3" strokeLinecap="round"/>
           </svg>
-          <span style={{ fontFamily: f.heading, fontSize: 16, fontWeight: 700, color: theme.navbar.text }}>
+          <span className="jl-home-logo-text" style={{ fontFamily: f.heading, fontSize: 16, fontWeight: 700, color: theme.navbar.text }}>
             Job-Lens <span style={{ color: c.accent }}>AI</span>
           </span>
         </Link>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
           {/* Language dropdown */}
-          <div style={{ position: 'relative' }}>
+          <div className="jl-home-lang" style={{ position: 'relative' }}>
             <button onClick={() => setLangOpen(o => !o)}
               style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '5px 10px', borderRadius: 10, border: '1px solid rgba(255,255,255,0.08)', background: 'rgba(255,255,255,0.05)', cursor: 'pointer', fontSize: 11, fontWeight: 600, color: '#fff', fontFamily: 'inherit' }}>
               {lang} <span style={{ fontSize: 9, opacity: 0.5, marginLeft: 2 }}>{langOpen ? '▲' : '▼'}</span>
@@ -301,21 +313,21 @@ export default function HomePage() {
           </div>
 
           {/* India site link */}
-          <Link href="/in" style={{ fontSize: 11, color: '#FF9933', fontWeight: 600, textDecoration: 'none', padding: '5px 10px', borderRadius: 10, border: '1px solid rgba(255,153,51,0.2)', background: 'rgba(255,153,51,0.07)', fontFamily: 'inherit' }}>
+          <Link href="/in" className="jl-home-india" style={{ fontSize: 11, color: '#FF9933', fontWeight: 600, textDecoration: 'none', padding: '5px 10px', borderRadius: 10, border: '1px solid rgba(255,153,51,0.2)', background: 'rgba(255,153,51,0.07)', fontFamily: 'inherit' }}>
             India
           </Link>
 
           {!loading && (user ? (
             <>
-              <span style={{ fontSize: 13, color: theme.navbar.textMuted }}>Hi, {user.name}</span>
+              <span className="jl-home-greeting" style={{ fontSize: 13, color: theme.navbar.textMuted }}>Hi, {user.name}</span>
               <Link href="/app/career-scan" className="jl-btn-primary" style={{ fontSize: 12, padding: '6px 18px', borderRadius: 20, color: '#fff', textDecoration: 'none', fontWeight: 600 }}>
                 {t.navGoToApp}
               </Link>
             </>
           ) : (
             <>
-              <Link href="/app/career-scan" className="jl-nav-link" style={{ fontSize: 13, color: theme.navbar.textMuted, textDecoration: 'none', transition: 'color 0.15s' }}>{t.navCareerScan}</Link>
-              <Link href="/app/smart-apply" className="jl-nav-link" style={{ fontSize: 13, color: theme.navbar.textMuted, textDecoration: 'none', transition: 'color 0.15s' }}>{t.navJobSearch}</Link>
+              <Link href="/app/career-scan" className="jl-nav-link jl-home-nav-links" style={{ fontSize: 13, color: theme.navbar.textMuted, textDecoration: 'none', transition: 'color 0.15s' }}>{t.navCareerScan}</Link>
+              <Link href="/app/smart-apply" className="jl-nav-link jl-home-nav-links" style={{ fontSize: 13, color: theme.navbar.textMuted, textDecoration: 'none', transition: 'color 0.15s' }}>{t.navJobSearch}</Link>
               <Link href="/login" className="jl-btn-primary" style={{ fontSize: 12, padding: '6px 18px', borderRadius: 20, color: '#fff', textDecoration: 'none', fontWeight: 600 }}>
                 {t.navSignIn}
               </Link>
