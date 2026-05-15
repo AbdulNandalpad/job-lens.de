@@ -62,7 +62,7 @@ export default function IndiaHomePage() {
         @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=Outfit:wght@400;600;700&display=swap');
         .in-hero-grid { display: grid; grid-template-columns: 1fr auto; gap: 48px; align-items: center; }
         .in-steps-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 32px; position: relative; }
-        .in-pricing-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; align-items: start; }
+        .in-pricing-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; align-items: start; }
         @media (max-width: 768px) {
           .in-hero-grid { grid-template-columns: 1fr !important; gap: 0 !important; }
           .in-hero-score { display: none !important; }
@@ -352,23 +352,28 @@ export default function IndiaHomePage() {
         <div style={{ maxWidth: 900, margin: '0 auto', textAlign: 'center' }}>
           <div style={{ fontSize: 12, fontWeight: 700, color: indiaGreen, letterSpacing: 2, textTransform: 'uppercase', marginBottom: 12 }}>Pricing</div>
           <h2 style={{ fontFamily: "'Outfit',sans-serif", fontSize: 30, fontWeight: 800, color: navy, marginBottom: 8 }}>Simple pricing in INR</h2>
-          <p style={{ color: '#9aafbc', fontSize: 13, marginBottom: 48 }}>No dollar conversions. No credit card required to start.</p>
+          <p style={{ color: '#9aafbc', fontSize: 13, marginBottom: 48 }}>No dollar conversions. Credits never expire. No card required to start.</p>
           <div className="in-pricing-grid">
             {[
               {
-                name: 'Free', price: '0', period: '', color: '#378ADD',
-                features: ['5 credits on signup', '2 full ATS scans', 'Keyword gap report', 'Format issues flagged', 'Quick fixes list'],
+                name: 'Free', price: '0', credits: '5 credits', color: '#378ADD',
+                features: ['5 credits on signup', 'ATS Scan — 2 credits', 'CV Tailoring — 1 credit', 'Cover Letter — 1 credit', 'Unlimited job browsing'],
                 cta: 'Get Started Free', ctaHref: '/login?next=/in/career-scan', raised: false,
               },
               {
-                name: 'Pro', price: '499', period: '/month', color: saffron,
-                features: ['Unlimited ATS scans', 'CV Rewriter', 'JD Keyword Analyzer', 'Job Search India', 'Cover Letter Builder'],
-                cta: 'Go Pro', ctaHref: '/app/account', raised: true, badge: 'Most Popular',
+                name: 'Starter', price: '149', credits: '20 credits', color: saffron,
+                features: ['20 credits (~6 full applications)', 'ATS Scan — 2 credits', 'CV Tailoring — 1 credit', 'Cover Letter — 1 credit', 'Credits never expire'],
+                cta: 'Get Starter', ctaHref: '/in/account', raised: false,
               },
               {
-                name: 'Premium', price: '999', period: '/month', color: indiaGreen,
-                features: ['Everything in Pro', 'ATS Simulator (Taleo / Workday)', 'Application Tracker', 'Priority AI', 'Dedicated support'],
-                cta: 'Go Premium', ctaHref: '/app/account', raised: false,
+                name: 'Job Hunt', price: '399', credits: '60 credits', color: saffron,
+                features: ['60 credits (~20 full applications)', 'ATS Scan — 2 credits', 'CV Tailoring — 1 credit', 'Cover Letter — 1 credit', 'Best value for active job seekers'],
+                cta: 'Get Job Hunt', ctaHref: '/in/account', raised: true, badge: 'Most Popular',
+              },
+              {
+                name: 'Full Sprint', price: '799', credits: '150 credits', color: indiaGreen,
+                features: ['150 credits (~50 full applications)', 'Everything in Job Hunt', 'Multi-month job search', 'Ideal for career changers', 'Credits never expire'],
+                cta: 'Get Full Sprint', ctaHref: '/in/account', raised: false,
               },
             ].map((plan) => (
               <div key={plan.name} style={{
@@ -385,17 +390,17 @@ export default function IndiaHomePage() {
                 )}
                 <div style={{ width: 8, height: 8, borderRadius: '50%', background: plan.color, marginBottom: 12 }} />
                 <div style={{ fontFamily: "'Outfit',sans-serif", fontSize: 18, fontWeight: 700, color: navy, marginBottom: 4 }}>{plan.name}</div>
-                <div style={{ display: 'flex', alignItems: 'baseline', gap: 2, marginBottom: 22 }}>
-                  {plan.price !== '0' && <span style={{ fontSize: 13, color: '#9aafbc' }}>Rs.</span>}
+                <div style={{ display: 'flex', alignItems: 'baseline', gap: 2, marginBottom: 4 }}>
+                  {plan.price !== '0' && <span style={{ fontSize: 13, color: '#9aafbc' }}>₹</span>}
                   <span style={{ fontFamily: "'Outfit',sans-serif", fontSize: 34, fontWeight: 800, color: plan.raised ? saffron : navy }}>
                     {plan.price === '0' ? 'Free' : plan.price}
                   </span>
-                  {plan.period && <span style={{ fontSize: 13, color: '#9aafbc' }}>{plan.period}</span>}
                 </div>
+                <div style={{ fontSize: 12, color: '#9aafbc', marginBottom: 20 }}>{plan.credits}</div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 24 }}>
                   {plan.features.map((feat, j) => (
                     <div key={j} style={{ display: 'flex', alignItems: 'flex-start', gap: 8, fontSize: 13, color: '#374151', textAlign: 'left' }}>
-                      <span style={{ color: plan.color, fontWeight: 700, flexShrink: 0, marginTop: 1 }}>+</span> {feat}
+                      <span style={{ color: plan.color, fontWeight: 700, flexShrink: 0, marginTop: 1 }}>✓</span> {feat}
                     </div>
                   ))}
                 </div>
@@ -413,6 +418,7 @@ export default function IndiaHomePage() {
               </div>
             ))}
           </div>
+          <p style={{ fontSize: 12, color: '#9aafbc', marginTop: 24 }}>New accounts get <strong style={{ color: indiaGreen }}>5 free credits</strong> — no card needed. Credits never expire.</p>
         </div>
       </section>
 
