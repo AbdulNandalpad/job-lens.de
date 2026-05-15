@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { usePathname, useRouter } from 'next/navigation'
+import { usePathname } from 'next/navigation'
 import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase'
 import { theme } from '@/lib/theme'
@@ -11,17 +11,11 @@ const { colors: c, gradients: g, fonts: f } = theme
 
 export default function Navbar() {
   const pathname = usePathname()
-  const router = useRouter()
   const [userName, setUserName] = useState('')
   const [menuOpen, setMenuOpen] = useState(false)
   const [confirmClear, setConfirmClear] = useState(false)
   const [langOpen, setLangOpen] = useState(false)
   const { lang, setLang, t } = useLanguage()
-
-  function switchToIN() {
-    localStorage.setItem('joblens_country', 'in')
-    router.push('/in')
-  }
 
   useEffect(() => {
     const supabase = createClient()
@@ -127,16 +121,6 @@ export default function Navbar() {
                 ))}
               </div>
             )}
-          </div>
-
-          {/* Country switcher */}
-          <div style={{ display: 'flex', alignItems: 'center', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 20, overflow: 'hidden', flexShrink: 0 }}>
-            <div style={{ padding: '4px 10px', background: 'rgba(55,138,221,0.2)', fontSize: 11, color: '#378ADD', fontFamily: f.body, fontWeight: 700 }}>
-              DACH
-            </div>
-            <button onClick={switchToIN} style={{ padding: '4px 10px', background: 'transparent', border: 'none', cursor: 'pointer', fontSize: 11, color: 'rgba(255,255,255,0.45)', fontFamily: f.body, fontWeight: 500 }}>
-              IN
-            </button>
           </div>
 
           {/* New session button + confirmation popup */}

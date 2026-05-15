@@ -350,13 +350,6 @@ export default function HomePage() {
             </Link>
           </div>
 
-          {/* India market switch */}
-          <div style={{ marginTop: 20, display: 'flex', justifyContent: 'center' }}>
-            <Link href="/in" style={{ fontSize: 12, color: 'rgba(255,255,255,0.45)', display: 'inline-flex', alignItems: 'center', gap: 6, background: 'rgba(255,153,51,0.07)', border: '1px solid rgba(255,153,51,0.18)', borderRadius: 20, padding: '6px 16px', textDecoration: 'none' }}>
-              {t.indiaPill} <span style={{ color: '#FF9933', fontWeight: 600 }}>{t.indiaPillCta}</span>
-            </Link>
-          </div>
-
           <div style={{ marginTop: 20, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 18, fontSize: 12, color: 'rgba(255,255,255,0.3)' }}>
             <span>{t.madeIn}</span>
             <span style={{ opacity: 0.4 }}>·</span>

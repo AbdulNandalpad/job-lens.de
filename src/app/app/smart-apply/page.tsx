@@ -648,8 +648,6 @@ function SmartJobSearchPage() {
           <option value="de">{t.smartApply.sidebar.countries.de}</option>
           <option value="ch">{t.smartApply.sidebar.countries.ch}</option>
           <option value="at">{t.smartApply.sidebar.countries.at}</option>
-          <option value="gb">{t.smartApply.sidebar.countries.gb}</option>
-          <option value="us">{t.smartApply.sidebar.countries.us}</option>
         </select>
       </div>
 

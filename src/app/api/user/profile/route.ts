@@ -24,7 +24,7 @@ export async function GET(_req: NextRequest) {
     .select('action, credits_used, created_at')
     .eq('user_id', user.id)
     .order('created_at', { ascending: false })
-    .limit(15)
+    .limit(30)
 
   return NextResponse.json({
     id: user.id,

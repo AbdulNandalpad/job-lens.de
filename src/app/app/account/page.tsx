@@ -29,7 +29,7 @@ interface ProfileData {
 
 export default function AccountPage() {
   const router = useRouter()
-  const { t } = useLanguage()
+  const { t, lang } = useLanguage()
   const [profile, setProfile] = useState<ProfileData | null>(null)
   const [loading, setLoading] = useState(true)
   const [deleting, setDeleting] = useState(false)
@@ -164,22 +164,66 @@ export default function AccountPage() {
             </div>
 
             {/* ── Usage Log ── */}
-            {profile.usage.length > 0 && (
-              <div style={{ background: c.bgCard, border: `1px solid ${c.border}`, borderRadius: 16, padding: '20px', marginBottom: 16 }}>
-                <div style={{ fontFamily: f.heading, fontSize: 15, fontWeight: 700, color: c.primary, marginBottom: 12 }}>{t.account.recentActivity}</div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                  {profile.usage.map((event, i) => (
-                    <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 12px', background: c.bgSubtle, borderRadius: 7, border: `1px solid ${c.border}` }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                        <span style={{ fontSize: 12, color: c.primary, fontWeight: 500 }}>{(t.account.actionLabels as Record<string, string>)[event.action] || event.action}</span>
-                        <span style={{ fontSize: 11, color: c.textFaint }}>{new Date(event.created_at).toLocaleDateString('de-DE', { day: '2-digit', month: 'short' })}</span>
+            {profile.usage.length > 0 && (() => {
+              const actionLabels = t.account.actionLabels as Record<string, string>
+              const actionIcons: Record<string, string> = {
+                career_scan: '◎', tailor_cv: '📄', cover_letter: '✉', auto_apply: '⚡', india_ats_scan: '◎',
+              }
+              const now = new Date()
+              const todayStr = now.toDateString()
+              const yesterdayStr = new Date(now.getTime() - 86400000).toDateString()
+              function dayLabel(dateStr: string) {
+                const d = new Date(dateStr)
+                if (d.toDateString() === todayStr) return lang === 'DE' ? 'Heute' : 'Today'
+                if (d.toDateString() === yesterdayStr) return lang === 'DE' ? 'Gestern' : 'Yesterday'
+                return d.toLocaleDateString(lang === 'DE' ? 'de-DE' : 'en-GB', { day: 'numeric', month: 'short', year: d.getFullYear() !== now.getFullYear() ? 'numeric' : undefined })
+              }
+              const grouped: { label: string; key: string; events: typeof profile.usage }[] = []
+              for (const ev of profile.usage) {
+                const key = new Date(ev.created_at).toDateString()
+                const last = grouped[grouped.length - 1]
+                if (last && last.key === key) { last.events.push(ev) }
+                else { grouped.push({ label: dayLabel(ev.created_at), key, events: [ev] }) }
+              }
+              const isRefund = (action: string) => action.startsWith('refund_')
+              return (
+                <div style={{ background: c.bgCard, border: `1px solid ${c.border}`, borderRadius: 16, padding: '20px', marginBottom: 16 }}>
+                  <div style={{ fontFamily: f.heading, fontSize: 15, fontWeight: 700, color: c.primary, marginBottom: 16 }}>{t.account.recentActivity}</div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                    {grouped.map(group => (
+                      <div key={group.key}>
+                        <div style={{ fontSize: 11, fontWeight: 700, color: c.textFaint, letterSpacing: 0.6, textTransform: 'uppercase', marginBottom: 8 }}>{group.label}</div>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                          {group.events.map((ev, i) => {
+                            const refund = isRefund(ev.action)
+                            const baseAction = refund ? ev.action.replace('refund_', '') : ev.action
+                            const label = refund
+                              ? `${actionLabels[baseAction] || baseAction} (refund)`
+                              : (actionLabels[ev.action] || ev.action)
+                            const icon = actionIcons[baseAction] || '·'
+                            const time = new Date(ev.created_at).toLocaleTimeString(lang === 'DE' ? 'de-DE' : 'en-GB', { hour: '2-digit', minute: '2-digit' })
+                            return (
+                              <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '9px 12px', background: c.bgSubtle, borderRadius: 8, border: `1px solid ${c.border}` }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                                  <span style={{ fontSize: 14, width: 20, textAlign: 'center', flexShrink: 0 }}>{icon}</span>
+                                  <div>
+                                    <div style={{ fontSize: 12, color: c.primary, fontWeight: 600 }}>{label}</div>
+                                    <div style={{ fontSize: 11, color: c.textFaint, marginTop: 1 }}>{time}</div>
+                                  </div>
+                                </div>
+                                <span style={{ fontSize: 13, fontWeight: 700, color: refund ? c.success : c.danger, flexShrink: 0 }}>
+                                  {refund ? '+' : '−'}{Math.abs(ev.credits_used)}
+                                </span>
+                              </div>
+                            )
+                          })}
+                        </div>
                       </div>
-                      <span style={{ fontSize: 12, fontWeight: 600, color: c.danger }}>−{event.credits_used}</span>
-                    </div>
-                  ))}
+                    ))}
+                  </div>
                 </div>
-              </div>
-            )}
+              )
+            })()}
 
             {/* ── Danger Zone ── */}
             <div style={{ background: c.bgCard, border: `1px solid ${c.border}`, borderRadius: 16, padding: '20px' }}>

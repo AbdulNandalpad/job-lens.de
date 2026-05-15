@@ -331,6 +331,7 @@ export const translations = {
         tailor_cv: 'Lebenslauf-Anpassung',
         cover_letter: 'Anschreiben',
         auto_apply: 'Auto-Bewerbung',
+        india_ats_scan: 'ATS-Analyse (Indien)',
       },
     },
     cvBuilder: {
@@ -695,6 +696,7 @@ export const translations = {
         tailor_cv: 'CV Tailoring',
         cover_letter: 'Cover Letter',
         auto_apply: 'Auto Apply',
+        india_ats_scan: 'ATS Score (India)',
       },
     },
     cvBuilder: {

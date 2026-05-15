@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { usePathname, useRouter } from 'next/navigation'
+import { usePathname } from 'next/navigation'
 import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase'
 import { theme } from '@/lib/theme'
@@ -10,7 +10,6 @@ const { colors: c, gradients: g, fonts: f } = theme
 
 export default function NavbarIndia() {
   const pathname = usePathname()
-  const router = useRouter()
   const [userName, setUserName] = useState('')
   const [menuOpen, setMenuOpen] = useState(false)
   const [confirmClear, setConfirmClear] = useState(false)
@@ -28,11 +27,6 @@ export default function NavbarIndia() {
       .filter(k => k.startsWith('jl_'))
       .forEach(k => sessionStorage.removeItem(k))
     setConfirmClear(false)
-  }
-
-  function switchToDE() {
-    localStorage.setItem('joblens_country', 'de')
-    router.push('/')
   }
 
   const navItems = [
@@ -100,16 +94,6 @@ export default function NavbarIndia() {
         {/* Right: switcher + user + hamburger */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
 
-          {/* Country switcher */}
-          <div style={{ display: 'flex', alignItems: 'center', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 20, overflow: 'hidden', flexShrink: 0 }}>
-            <button onClick={switchToDE} style={{ padding: '4px 10px', background: 'transparent', border: 'none', cursor: 'pointer', fontSize: 11, color: 'rgba(255,255,255,0.45)', fontFamily: f.body, fontWeight: 500 }}>
-              DACH
-            </button>
-            <div style={{ padding: '4px 10px', background: 'rgba(255,153,51,0.2)', fontSize: 11, color: '#ff9933', fontFamily: f.body, fontWeight: 700 }}>
-              IN
-            </div>
-          </div>
-
           {/* New session button + confirmation popup */}
           <div className="jl-clear-btn" style={{ position: 'relative' }}>
             <button onClick={() => setConfirmClear(true)}
@@ -153,9 +137,6 @@ export default function NavbarIndia() {
               {isActive(item.href) && <span style={{ fontSize: 10, background: '#378ADD', color: '#fff', padding: '2px 8px', borderRadius: 10, fontWeight: 700 }}>Current</span>}
             </Link>
           ))}
-          <button onClick={() => switchToDE()} style={{ width: '100%', marginTop: 8, padding: '10px 12px', borderRadius: 8, background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', color: 'rgba(255,255,255,0.5)', fontSize: 13, cursor: 'pointer', textAlign: 'left' as const }}>
-            Switch to DACH (Germany, Austria, Switzerland)
-          </button>
         </div>
       )}
     </>
