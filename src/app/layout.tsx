@@ -17,12 +17,21 @@ export const metadata: Metadata = {
   title: "Job-Lens AI — Find your next role in DACH",
   description: "AI-powered career platform for Germany, Switzerland and Austria. CV analysis, job matching, tailored applications.",
   manifest: "/manifest.json",
+  metadataBase: new URL("https://job-lens.de"),
+  openGraph: {
+    title: "Job-Lens AI — Find your next role in DACH",
+    description: "AI-powered career platform for Germany, Switzerland and Austria. CV analysis, job matching, tailored applications.",
+    url: "https://job-lens.de",
+    siteName: "Job-Lens AI",
+    locale: "en_US",
+    type: "website",
+  },
   icons: {
     icon: [
       { url: "/favicon.svg", type: "image/svg+xml" },
       { url: "/favicon.ico" },
     ],
-    apple: { url: "/favicon.svg", type: "image/svg+xml" },
+    apple: { url: "/favicon.ico" },
     shortcut: "/favicon.ico",
   },
 };
