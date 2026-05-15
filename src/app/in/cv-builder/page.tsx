@@ -552,8 +552,12 @@ export default function IndiaCVBuilderPage() {
   function toggleSection(id: string) { setOpenSections(prev => ({ ...prev, [id]: !prev[id] })) }
 
   useEffect(() => {
-    const cv = sessionStorage.getItem('jl_sjs_cv_text') || sessionStorage.getItem('jl_cv_text') || ''
-    const jobRaw = sessionStorage.getItem('jl_cvb_job')
+    const sjs = sessionStorage.getItem('jl_sjs_cv_text') || ''
+    const cvt = sessionStorage.getItem('jl_cv_text') || ''
+    const lnt = sessionStorage.getItem('jl_linkedin_text') || ''
+    const cv = sjs || cvt || lnt
+    if (lnt && !sjs && !cvt) setCvFileName('LinkedIn Profile')
+    const jobRaw = sessionStorage.getItem('jl_in_selected_job') || sessionStorage.getItem('jl_cvb_job')
     const savedRole = sessionStorage.getItem('jl_sjs_target_role') || ''
     setCvText(cv)
     if (jobRaw) { try { const p = JSON.parse(jobRaw); setJob(p); setJobLabel(`${p.employer_name} - ${p.job_title}`) } catch { } }
@@ -617,7 +621,39 @@ ${job?.job_description ? `- Job context: ${job.job_description.slice(0, 800)}` :
     try {
       const { default: jsPDF } = await import('jspdf')
       const doc = new jsPDF({ unit: 'mm', format: 'a4' })
-      const W = 210, H = 297, margin = 18, colLeft = 58
+      const W = 210, H = 297, margin = 18
+
+      if (template === 'minimal') {
+        const mw = W - margin * 2
+        let y = 22
+        const addPage = () => { doc.addPage(); y = 22 }
+        doc.setFont('helvetica', 'bold'); doc.setFontSize(22); doc.setTextColor(13, 33, 55); doc.text(cvData.name, margin, y); y += 7
+        doc.setFontSize(11); doc.setFont('helvetica', 'bold'); doc.setTextColor(26, 82, 160); doc.text(cvData.title || '', margin, y); y += 5
+        const contact = [cvData.email, cvData.phone, cvData.location, cvData.linkedin].filter(Boolean).join('  |  ')
+        if (contact) { doc.setFontSize(8); doc.setFont('helvetica', 'normal'); doc.setTextColor(100, 116, 139); const cl = doc.splitTextToSize(contact, mw); doc.text(cl, margin, y); y += cl.length * 3.8 + 1 }
+        doc.setDrawColor(180, 195, 210); doc.setLineWidth(0.5); doc.line(margin, y, W - margin, y); y += 6
+        const msec = (title: string) => { if (y > 270) { addPage() }; doc.setFontSize(9); doc.setFont('helvetica', 'bold'); doc.setTextColor(13, 33, 55); doc.text(title.toUpperCase(), margin, y); doc.setDrawColor(210, 218, 226); doc.setLineWidth(0.3); doc.line(margin + doc.getTextWidth(title.toUpperCase()) + 3, y - 1, W - margin, y - 1); y += 5 }
+        if (cvData.summary) { msec('Summary'); doc.setFontSize(9); doc.setFont('helvetica', 'normal'); doc.setTextColor(55, 65, 81); const sl = doc.splitTextToSize(cvData.summary, mw); doc.text(sl, margin, y); y += sl.length * 4 + 5 }
+        if (cvData.skills?.length) { msec('Skills'); doc.setFontSize(9); doc.setFont('helvetica', 'normal'); doc.setTextColor(55, 65, 81); const sl = doc.splitTextToSize(cvData.skills.map((s: { name: string }) => s.name).join('  ·  '), mw); doc.text(sl, margin, y); y += sl.length * 4 + 5 }
+        if (cvData.tools?.length) { msec('Tech Stack'); doc.setFontSize(9); doc.setFont('helvetica', 'normal'); doc.setTextColor(26, 95, 165); const tl = doc.splitTextToSize(cvData.tools.join('  ·  '), mw); doc.text(tl, margin, y); y += tl.length * 4 + 5 }
+        if (cvData.experience?.length) {
+          msec('Experience')
+          cvData.experience.forEach((exp: { role: string; company: string; period: string; location: string; type: string; bullets: string[] }) => {
+            if (y > 262) { addPage() }
+            doc.setFontSize(10); doc.setFont('helvetica', 'bold'); doc.setTextColor(13, 33, 55); doc.text(exp.role, margin, y); doc.setFontSize(8.5); doc.setFont('helvetica', 'normal'); doc.setTextColor(26, 95, 165); doc.text(exp.period || '', W - margin, y, { align: 'right' }); y += 4
+            doc.setFontSize(8.5); doc.setFont('helvetica', 'italic'); doc.setTextColor(100, 116, 139); doc.text([exp.company, exp.location, exp.type].filter(Boolean).join('  ·  '), margin, y); y += 4
+            exp.bullets?.forEach((b: string) => { if (y > 265) { addPage() }; doc.setFontSize(8.5); doc.setFont('helvetica', 'normal'); doc.setTextColor(55, 65, 81); doc.text('-', margin, y); const bl = doc.splitTextToSize(b, mw - 5); doc.text(bl, margin + 5, y); y += bl.length * 3.8 })
+            y += 4
+          })
+        }
+        if (cvData.education?.length) { msec('Education'); cvData.education.forEach((e: { degree: string; school: string; year: string }) => { if (y > 270) { addPage() }; doc.setFontSize(10); doc.setFont('helvetica', 'bold'); doc.setTextColor(13, 33, 55); doc.text(e.degree, margin, y); doc.setFontSize(8.5); doc.setFont('helvetica', 'normal'); doc.setTextColor(100, 116, 139); doc.text(`${e.school}  ·  ${e.year}`, margin, y + 4); y += 9 }) }
+        if (cvData.certifications?.length) { msec('Certifications'); cvData.certifications.forEach((c: string) => { if (y > 272) { addPage() }; doc.setFontSize(9); doc.setFont('helvetica', 'normal'); doc.setTextColor(55, 65, 81); doc.text(`- ${c}`, margin, y); y += 5 }) }
+        if (cvData.languages?.length) { msec('Languages'); doc.setFontSize(9); doc.setFont('helvetica', 'normal'); doc.setTextColor(55, 65, 81); const ll = doc.splitTextToSize(cvData.languages.map((l: { name: string; level: number }) => { const lv = l.level >= 90 ? 'Native' : l.level >= 75 ? 'Fluent' : l.level >= 55 ? 'Proficient' : 'Basic'; return `${l.name} (${lv})` }).join('  ·  '), mw); doc.text(ll, margin, y) }
+        doc.save(`CV_${(cvData.name || 'JobLens').replace(/[^a-zA-Z0-9]/g, '_')}_Minimal.pdf`)
+        setDownloading(null); return
+      }
+
+      const colLeft = 58
       let pageCount = 1
       const drawSidebarBg = () => { doc.setFillColor(13, 33, 55); doc.rect(0, 0, colLeft, H, 'F') }
       const addPageWithSidebar = () => { doc.addPage(); pageCount++; drawSidebarBg() }
@@ -712,6 +748,11 @@ ${job?.job_description ? `- Job context: ${job.job_description.slice(0, 800)}` :
   }
 
   function goToCoverLetter() { sessionStorage.setItem('jl_cvb_tailored', rawCv); router.push('/in/cover-letter') }
+  function goToAtsCheck() {
+    sessionStorage.setItem('jl_cvb_generated', rawCv)
+    if (job?.job_description) sessionStorage.setItem('jl_ats_jd', job.job_description)
+    router.push('/in/career-scan')
+  }
 
   const templates: { id: Template; label: string; accent: string; desc: string; ats: string; atsHigh: boolean }[] = [
     { id: 'executive', label: 'Executive', accent: '#00C9A7', desc: 'Dark sidebar . teal accents', ats: 'ATS: Low', atsHigh: false },
@@ -895,6 +936,7 @@ ${job?.job_description ? `- Job context: ${job.job_description.slice(0, 800)}` :
               <div style={{ display: 'flex', gap: 6 }}>
                 <button className="cvb-action" onClick={downloadPDF} disabled={downloading === 'pdf'} style={{ padding: '7px 14px', borderRadius: 7, border: '1px solid rgba(255,255,255,0.1)', background: 'rgba(255,255,255,0.04)', color: downloading === 'pdf' ? accent : 'rgba(255,255,255,0.55)', fontSize: 11, cursor: downloading === 'pdf' ? 'wait' : 'pointer', fontFamily: 'inherit', transition: 'all 0.15s' }}>{downloading === 'pdf' ? 'Building...' : 'PDF'}</button>
                 <button className="cvb-action" onClick={downloadDOCX} disabled={downloading === 'docx'} style={{ padding: '7px 14px', borderRadius: 7, border: '1px solid rgba(255,255,255,0.1)', background: 'rgba(255,255,255,0.04)', color: downloading === 'docx' ? accent : 'rgba(255,255,255,0.55)', fontSize: 11, cursor: downloading === 'docx' ? 'wait' : 'pointer', fontFamily: 'inherit', transition: 'all 0.15s' }}>{downloading === 'docx' ? 'Building...' : 'Word'}</button>
+                <button className="cvb-action" onClick={goToAtsCheck} style={{ padding: '7px 14px', borderRadius: 7, border: `1px solid ${accent}60`, background: accent + '14', color: accent, fontSize: 11, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', transition: 'all 0.15s' }}>ATS Check</button>
                 <button onClick={goToCoverLetter} style={{ padding: '7px 16px', borderRadius: 7, border: 'none', background: accent, color: '#042C53', fontSize: 11, fontWeight: 700, cursor: 'pointer', fontFamily: "'Outfit', sans-serif" }}>Cover Letter {'->'}</button>
               </div>
             )}
@@ -966,6 +1008,7 @@ ${job?.job_description ? `- Job context: ${job.job_description.slice(0, 800)}` :
                 <div style={{ display: 'flex', gap: 10, marginTop: 20, justifyContent: 'center', flexWrap: 'wrap', paddingBottom: 32 }}>
                   <button onClick={downloadPDF} disabled={downloading === 'pdf'} style={{ padding: '10px 22px', borderRadius: 9, border: '1px solid rgba(255,255,255,0.1)', background: 'rgba(255,255,255,0.05)', color: downloading === 'pdf' ? accent : 'rgba(255,255,255,0.7)', fontSize: 12, fontWeight: 600, cursor: downloading === 'pdf' ? 'wait' : 'pointer', fontFamily: "'Outfit', sans-serif" }}>{downloading === 'pdf' ? 'Building PDF...' : 'Download PDF'}</button>
                   <button onClick={downloadDOCX} disabled={downloading === 'docx'} style={{ padding: '10px 22px', borderRadius: 9, border: '1px solid rgba(255,255,255,0.1)', background: 'rgba(255,255,255,0.05)', color: downloading === 'docx' ? accent : 'rgba(255,255,255,0.7)', fontSize: 12, fontWeight: 600, cursor: downloading === 'docx' ? 'wait' : 'pointer', fontFamily: "'Outfit', sans-serif" }}>{downloading === 'docx' ? 'Building Word...' : 'Download Word'}</button>
+                  <button onClick={goToAtsCheck} style={{ padding: '10px 22px', borderRadius: 9, border: `1px solid ${accent}50`, background: accent + '15', color: accent, fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: "'Outfit', sans-serif" }}>Check ATS Score</button>
                   <button onClick={goToCoverLetter} style={{ padding: '10px 26px', borderRadius: 9, border: 'none', background: accent, color: '#042C53', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: "'Outfit', sans-serif", boxShadow: `0 6px 20px ${accent}40` }}>Write Cover Letter {'->'}</button>
                 </div>
               </div>
