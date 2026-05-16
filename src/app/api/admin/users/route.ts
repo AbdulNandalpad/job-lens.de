@@ -75,7 +75,8 @@ export async function PATCH(req: NextRequest) {
   if (status !== undefined) updates.status = status
   if (credits !== undefined) updates.credits = credits
 
-  const { error } = await admin.from('profiles').update(updates).eq('id', id)
+  // upsert so it creates the row if the user has no profile yet
+  const { error } = await admin.from('profiles').upsert({ id, ...updates }, { onConflict: 'id' })
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 
   return NextResponse.json({ ok: true })

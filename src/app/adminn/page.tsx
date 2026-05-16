@@ -95,6 +95,8 @@ export default function AdminPage() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ id, ...updates }),
     })
+    // clear local edit so input reflects the saved server value after reload
+    setCreditEdits(prev => { const next = { ...prev }; delete next[id]; return next })
     await loadUsers()
     setUpdating(null)
   }
