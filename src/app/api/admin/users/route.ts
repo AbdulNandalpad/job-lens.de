@@ -20,34 +20,50 @@ export async function GET(req: NextRequest) {
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 
   const ids = users.map(u => u.id)
-  const { data: profiles } = await admin.from('profiles').select('id, credits, status, created_at').in('id', ids)
+  const { data: profiles } = await admin
+    .from('profiles')
+    .select('id, credits, eu_credits, in_credits, status, created_at')
+    .in('id', ids)
+
   const { data: usageRaw } = await admin
     .from('usage_events')
-    .select('user_id, credits_used')
+    .select('user_id, credits_used, action')
     .in('user_id', ids)
 
   const profileMap = Object.fromEntries((profiles || []).map(p => [p.id, p]))
   const usageMap: Record<string, number> = {}
   for (const e of usageRaw || []) {
-    usageMap[e.user_id] = (usageMap[e.user_id] || 0) + e.credits_used
+    if (!e.action?.startsWith('refund_')) {
+      usageMap[e.user_id] = (usageMap[e.user_id] || 0) + (e.credits_used ?? 0)
+    }
   }
 
-  const result = users.map(u => ({
-    id: u.id,
-    email: u.email,
-    name: u.user_metadata?.full_name ?? '',
-    provider: u.app_metadata?.provider ?? 'unknown',
-    credits: profileMap[u.id]?.credits ?? 5,
-    status: profileMap[u.id]?.status ?? 'active',
-    credits_spent: usageMap[u.id] || 0,
-    created_at: u.created_at,
-    last_sign_in: u.last_sign_in_at,
-  }))
+  const result = users.map(u => {
+    const p = profileMap[u.id]
+    const commonCredits = p?.credits ?? 0
+    const euCredits = p?.eu_credits ?? 0
+    const inCredits = p?.in_credits ?? 0
+    return {
+      id: u.id,
+      email: u.email,
+      name: u.user_metadata?.full_name ?? '',
+      provider: u.app_metadata?.provider ?? 'unknown',
+      credits: commonCredits,
+      euCredits,
+      inCredits,
+      totalCredits: commonCredits + euCredits + inCredits,
+      status: p?.status ?? 'active',
+      credits_spent: usageMap[u.id] || 0,
+      isAdmin: ADMIN_EMAILS.includes((u.email || '').toLowerCase()),
+      created_at: u.created_at,
+      last_sign_in: u.last_sign_in_at,
+    }
+  })
 
   return NextResponse.json({ users: result })
 }
 
-// PATCH /api/admin/users — block or unblock a user, or adjust credits
+// PATCH /api/admin/users — block/unblock a user, or adjust free credits
 export async function PATCH(req: NextRequest) {
   if (!await requireAdmin(req)) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 

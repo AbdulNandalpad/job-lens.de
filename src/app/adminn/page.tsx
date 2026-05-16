@@ -12,9 +12,13 @@ interface AdminUser {
   email: string
   name: string
   provider: string
-  credits: number
+  credits: number       // free pool (editable)
+  euCredits: number     // EU paid pool
+  inCredits: number     // India paid pool
+  totalCredits: number  // sum of all 3
   status: string
   credits_spent: number
+  isAdmin: boolean
   created_at: string
   last_sign_in: string
 }
@@ -31,6 +35,9 @@ interface Purchase {
 }
 
 type Tab = 'users' | 'purchases'
+
+// grid columns: User | Provider | Free | IN | EU | Spent | Status | Actions
+const COLS = '2fr 100px 60px 60px 60px 60px 80px 110px'
 
 export default function AdminPage() {
   const router = useRouter()
@@ -103,10 +110,32 @@ export default function AdminPage() {
   const totalRevenue = purchases.reduce((s, p) => s + (p.amount_eur || 0), 0)
 
   const fmtDate = (d: string) => d ? new Date(d).toLocaleString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '—'
+  const fmtShort = (d: string) => d ? new Date(d).toLocaleDateString('de-DE') : '—'
 
   return (
     <div style={{ minHeight: '100vh', background: c.bg, fontFamily: f.body }}>
-      <style>{`@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=Outfit:wght@400;600;700&display=swap');`}</style>
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=Outfit:wght@400;600;700&display=swap');
+
+        .adm-stats { display:grid; grid-template-columns:repeat(5,1fr); gap:12px; margin-bottom:24px; }
+        .adm-thead { display:grid; grid-template-columns:${COLS}; padding:10px 16px; border-bottom:1px solid ${c.border}; background:${c.bgSubtle}; }
+        .adm-trow  { display:grid; grid-template-columns:${COLS}; padding:12px 16px; border-bottom:1px solid ${c.border}; align-items:center; }
+        .adm-phead { display:grid; grid-template-columns:2fr 1fr 80px 90px 120px; padding:10px 16px; border-bottom:1px solid ${c.border}; background:${c.bgSubtle}; min-width:600px; }
+        .adm-prow  { display:grid; grid-template-columns:2fr 1fr 80px 90px 120px; padding:12px 16px; border-bottom:1px solid ${c.border}; align-items:center; min-width:600px; }
+        .adm-card  { display:none; }
+
+        @media(max-width:900px){
+          .adm-thead, .adm-trow { display:none!important; }
+          .adm-card  { display:flex!important; }
+        }
+        @media(max-width:768px){
+          .adm-stats { grid-template-columns:repeat(2,1fr)!important; gap:8px!important; }
+          .adm-phead, .adm-prow { display:none!important; }
+        }
+        @media(max-width:480px){
+          .adm-stats { grid-template-columns:1fr 1fr!important; }
+        }
+      `}</style>
 
       {/* Header */}
       <div style={{ background: c.primary, padding: '0 24px', height: '52px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', position: 'sticky', top: 0, zIndex: 100, borderBottom: `1px solid rgba(255,255,255,0.1)` }}>
@@ -119,7 +148,7 @@ export default function AdminPage() {
         </button>
       </div>
 
-      <div style={{ maxWidth: 1100, margin: '0 auto', padding: '32px 20px' }}>
+      <div style={{ maxWidth: 1200, margin: '0 auto', padding: '32px 20px' }}>
 
         {error ? (
           <div style={{ background: `${c.danger}15`, border: `1px solid ${c.danger}40`, borderRadius: 12, padding: 24, color: c.danger, textAlign: 'center' }}>{error}</div>
@@ -128,7 +157,7 @@ export default function AdminPage() {
         ) : (
           <>
             {/* Stats row */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 12, marginBottom: 24 }}>
+            <div className="adm-stats">
               {[
                 { label: 'Total Users', value: totalUsers, color: c.accent },
                 { label: 'Active', value: activeUsers, color: c.success },
@@ -161,50 +190,128 @@ export default function AdminPage() {
                 </div>
 
                 <div style={{ background: c.bgCard, border: `1px solid ${c.border}`, borderRadius: 14, overflow: 'hidden' }}>
-                  <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 80px 90px 80px 130px', gap: 0, padding: '10px 16px', borderBottom: `1px solid ${c.border}`, background: c.bgSubtle }}>
-                    {['User', 'Provider', 'Credits', 'Spent', 'Status', 'Actions'].map(h => (
+
+                  {/* Desktop header */}
+                  <div className="adm-thead">
+                    {['User', 'Provider', 'Free', 'IN', 'EU', 'Spent', 'Status', 'Actions'].map(h => (
                       <div key={h} style={{ fontSize: 10, fontWeight: 700, color: c.textMuted, textTransform: 'uppercase' as const, letterSpacing: 0.5 }}>{h}</div>
                     ))}
                   </div>
 
                   {filtered.map(user => (
-                    <div key={user.id} style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 80px 90px 80px 130px', gap: 0, padding: '12px 16px', borderBottom: `1px solid ${c.border}`, alignItems: 'center', opacity: user.status === 'blocked' ? 0.6 : 1 }}>
-                      <div>
-                        <div style={{ fontSize: 13, fontWeight: 600, color: c.primary }}>{user.name || '—'}</div>
-                        <div style={{ fontSize: 11, color: c.textMuted }}>{user.email}</div>
-                        <div style={{ fontSize: 10, color: c.textFaint }}>{user.last_sign_in ? `Last: ${new Date(user.last_sign_in).toLocaleDateString('de-DE')}` : 'Never signed in'}</div>
+                    <>
+                      {/* Desktop row */}
+                      <div key={user.id} className="adm-trow" style={{ opacity: user.status === 'blocked' ? 0.6 : 1, background: user.isAdmin ? `${c.accent}08` : 'transparent' }}>
+                        {/* User */}
+                        <div>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                            <span style={{ fontSize: 13, fontWeight: 600, color: c.primary }}>{user.name || '—'}</span>
+                            {user.isAdmin && <span style={{ fontSize: 10, fontWeight: 700, color: c.accent, background: `${c.accent}18`, padding: '1px 6px', borderRadius: 8 }}>👑 ADMIN</span>}
+                          </div>
+                          <div style={{ fontSize: 11, color: c.textMuted }}>{user.email}</div>
+                          <div style={{ fontSize: 10, color: c.textFaint }}>{user.last_sign_in ? `Last: ${fmtShort(user.last_sign_in)}` : 'Never signed in'}</div>
+                        </div>
+                        {/* Provider */}
+                        <div>
+                          <span style={{ fontSize: 11, fontWeight: 600, color: user.provider === 'google' ? '#EA4335' : '#0A66C2', background: user.provider === 'google' ? '#EA433515' : '#0A66C215', padding: '3px 8px', borderRadius: 10 }}>
+                            {user.provider === 'linkedin_oidc' ? 'LinkedIn' : 'Google'}
+                          </span>
+                        </div>
+                        {/* Free credits (editable) */}
+                        <div>
+                          {user.isAdmin ? (
+                            <span style={{ fontSize: 12, color: c.accent, fontWeight: 700 }}>∞</span>
+                          ) : (
+                            <input type="number" value={creditEdits[user.id] ?? user.credits}
+                              onChange={e => setCreditEdits(prev => ({ ...prev, [user.id]: e.target.value }))}
+                              onBlur={e => { const val = parseInt(e.target.value); if (!isNaN(val) && val !== user.credits) updateUser(user.id, { credits: val }) }}
+                              style={{ width: 44, padding: '3px 4px', borderRadius: 6, border: `1px solid ${c.border}`, background: c.bg, color: c.primary, fontSize: 12, textAlign: 'center' as const }} />
+                          )}
+                        </div>
+                        {/* India credits (read-only) */}
+                        <div style={{ fontSize: 13, fontWeight: 600, color: user.inCredits > 0 ? '#138808' : c.textFaint }}>{user.isAdmin ? '∞' : user.inCredits}</div>
+                        {/* EU credits (read-only) */}
+                        <div style={{ fontSize: 13, fontWeight: 600, color: user.euCredits > 0 ? '#0A66C2' : c.textFaint }}>{user.isAdmin ? '∞' : user.euCredits}</div>
+                        {/* Spent */}
+                        <div style={{ fontSize: 13, color: c.textMuted }}>{user.credits_spent}</div>
+                        {/* Status */}
+                        <div>
+                          <span style={{ fontSize: 11, fontWeight: 700, color: user.isAdmin ? c.accent : user.status === 'active' ? c.success : c.danger, background: user.isAdmin ? `${c.accent}15` : user.status === 'active' ? c.successLight : `${c.danger}15`, padding: '3px 8px', borderRadius: 10 }}>
+                            {user.isAdmin ? 'admin' : user.status}
+                          </span>
+                        </div>
+                        {/* Actions */}
+                        <div>
+                          {user.isAdmin ? (
+                            <span style={{ fontSize: 11, color: c.textFaint }}>—</span>
+                          ) : user.status === 'active' ? (
+                            <button onClick={() => updateUser(user.id, { status: 'blocked' })} disabled={updating === user.id}
+                              style={{ padding: '5px 10px', borderRadius: 6, border: `1px solid ${c.danger}40`, background: `${c.danger}10`, color: c.danger, fontSize: 11, fontWeight: 600, cursor: 'pointer' }}>
+                              {updating === user.id ? '…' : 'Block'}
+                            </button>
+                          ) : (
+                            <button onClick={() => updateUser(user.id, { status: 'active' })} disabled={updating === user.id}
+                              style={{ padding: '5px 10px', borderRadius: 6, border: `1px solid ${c.success}40`, background: `${c.success}10`, color: c.success, fontSize: 11, fontWeight: 600, cursor: 'pointer' }}>
+                              {updating === user.id ? '…' : 'Unblock'}
+                            </button>
+                          )}
+                        </div>
                       </div>
-                      <div>
-                        <span style={{ fontSize: 11, fontWeight: 600, color: user.provider === 'google' ? '#EA4335' : '#0A66C2', background: user.provider === 'google' ? '#EA433515' : '#0A66C215', padding: '3px 8px', borderRadius: 10 }}>
-                          {user.provider === 'linkedin_oidc' ? 'LinkedIn' : 'Google'}
-                        </span>
-                      </div>
-                      <div>
-                        <input type="number" value={creditEdits[user.id] ?? user.credits}
-                          onChange={e => setCreditEdits(prev => ({ ...prev, [user.id]: e.target.value }))}
-                          onBlur={e => { const val = parseInt(e.target.value); if (!isNaN(val) && val !== user.credits) updateUser(user.id, { credits: val }) }}
-                          style={{ width: 52, padding: '3px 6px', borderRadius: 6, border: `1px solid ${c.border}`, background: c.bg, color: c.primary, fontSize: 12, textAlign: 'center' as const }} />
-                      </div>
-                      <div style={{ fontSize: 13, color: c.textMuted }}>{user.credits_spent}</div>
-                      <div>
-                        <span style={{ fontSize: 11, fontWeight: 700, color: user.status === 'active' ? c.success : c.danger, background: user.status === 'active' ? c.successLight : `${c.danger}15`, padding: '3px 8px', borderRadius: 10 }}>
-                          {user.status}
-                        </span>
-                      </div>
-                      <div style={{ display: 'flex', gap: 6 }}>
-                        {user.status === 'active' ? (
-                          <button onClick={() => updateUser(user.id, { status: 'blocked' })} disabled={updating === user.id}
-                            style={{ padding: '5px 10px', borderRadius: 6, border: `1px solid ${c.danger}40`, background: `${c.danger}10`, color: c.danger, fontSize: 11, fontWeight: 600, cursor: 'pointer' }}>
-                            {updating === user.id ? '…' : 'Block'}
-                          </button>
-                        ) : (
-                          <button onClick={() => updateUser(user.id, { status: 'active' })} disabled={updating === user.id}
-                            style={{ padding: '5px 10px', borderRadius: 6, border: `1px solid ${c.success}40`, background: `${c.success}10`, color: c.success, fontSize: 11, fontWeight: 600, cursor: 'pointer' }}>
-                            {updating === user.id ? '…' : 'Unblock'}
+
+                      {/* Mobile card */}
+                      <div key={user.id + '-card'} className="adm-card" style={{ flexDirection: 'column', gap: 10, padding: '14px 16px', borderBottom: `1px solid ${c.border}`, opacity: user.status === 'blocked' ? 0.6 : 1, background: user.isAdmin ? `${c.accent}08` : 'transparent' }}>
+                        <div>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' as const }}>
+                            <span style={{ fontSize: 14, fontWeight: 600, color: c.primary }}>{user.name || '—'}</span>
+                            {user.isAdmin && <span style={{ fontSize: 10, fontWeight: 700, color: c.accent, background: `${c.accent}18`, padding: '1px 6px', borderRadius: 8 }}>👑 ADMIN</span>}
+                          </div>
+                          <div style={{ fontSize: 12, color: c.textMuted, marginTop: 2 }}>{user.email}</div>
+                          <div style={{ fontSize: 11, color: c.textFaint, marginTop: 2 }}>{user.last_sign_in ? `Last: ${fmtShort(user.last_sign_in)}` : 'Never signed in'}</div>
+                        </div>
+                        {/* Badges row */}
+                        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' as const }}>
+                          <span style={{ fontSize: 11, fontWeight: 600, color: user.provider === 'google' ? '#EA4335' : '#0A66C2', background: user.provider === 'google' ? '#EA433515' : '#0A66C215', padding: '3px 8px', borderRadius: 10 }}>
+                            {user.provider === 'linkedin_oidc' ? 'LinkedIn' : 'Google'}
+                          </span>
+                          <span style={{ fontSize: 11, fontWeight: 700, color: user.isAdmin ? c.accent : user.status === 'active' ? c.success : c.danger, background: user.isAdmin ? `${c.accent}15` : user.status === 'active' ? c.successLight : `${c.danger}15`, padding: '3px 8px', borderRadius: 10 }}>
+                            {user.isAdmin ? 'admin' : user.status}
+                          </span>
+                        </div>
+                        {/* Credit pools */}
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8 }}>
+                          <div style={{ background: c.bgSubtle, borderRadius: 8, padding: '8px 10px', textAlign: 'center' as const }}>
+                            <div style={{ fontSize: 10, color: c.textMuted, fontWeight: 600, marginBottom: 4 }}>🎁 FREE</div>
+                            {user.isAdmin ? (
+                              <div style={{ fontSize: 16, fontWeight: 800, color: c.accent }}>∞</div>
+                            ) : (
+                              <input type="number" value={creditEdits[user.id] ?? user.credits}
+                                onChange={e => setCreditEdits(prev => ({ ...prev, [user.id]: e.target.value }))}
+                                onBlur={e => { const val = parseInt(e.target.value); if (!isNaN(val) && val !== user.credits) updateUser(user.id, { credits: val }) }}
+                                style={{ width: '100%', padding: '2px 4px', borderRadius: 6, border: `1px solid ${c.border}`, background: c.bg, color: c.primary, fontSize: 14, fontWeight: 700, textAlign: 'center' as const }} />
+                            )}
+                          </div>
+                          <div style={{ background: '#13880808', border: '1px solid #13880820', borderRadius: 8, padding: '8px 10px', textAlign: 'center' as const }}>
+                            <div style={{ fontSize: 10, color: '#138808', fontWeight: 600, marginBottom: 4 }}>🇮🇳 IN</div>
+                            <div style={{ fontSize: 16, fontWeight: 800, color: user.inCredits > 0 ? '#138808' : c.textFaint }}>{user.isAdmin ? '∞' : user.inCredits}</div>
+                          </div>
+                          <div style={{ background: '#0A66C208', border: '1px solid #0A66C220', borderRadius: 8, padding: '8px 10px', textAlign: 'center' as const }}>
+                            <div style={{ fontSize: 10, color: '#0A66C2', fontWeight: 600, marginBottom: 4 }}>🇪🇺 EU</div>
+                            <div style={{ fontSize: 16, fontWeight: 800, color: user.euCredits > 0 ? '#0A66C2' : c.textFaint }}>{user.isAdmin ? '∞' : user.euCredits}</div>
+                          </div>
+                        </div>
+                        <div style={{ fontSize: 12, color: c.textMuted }}>
+                          AI calls made: <strong style={{ color: c.primary }}>{user.credits_spent}</strong>
+                        </div>
+                        {!user.isAdmin && (
+                          <button
+                            onClick={() => updateUser(user.id, { status: user.status === 'active' ? 'blocked' : 'active' })}
+                            disabled={updating === user.id}
+                            style={{ width: '100%', padding: '9px 0', borderRadius: 8, border: `1px solid ${user.status === 'active' ? c.danger : c.success}40`, background: user.status === 'active' ? `${c.danger}10` : `${c.success}10`, color: user.status === 'active' ? c.danger : c.success, fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: f.body }}>
+                            {updating === user.id ? '…' : user.status === 'active' ? '🚫 Block User' : '✅ Unblock User'}
                           </button>
                         )}
                       </div>
-                    </div>
+                    </>
                   ))}
 
                   {filtered.length === 0 && (
@@ -240,26 +347,42 @@ CREATE POLICY "Admin only" ON purchase_events FOR ALL USING (false);`}</pre>
                   <div style={{ textAlign: 'center', padding: 48, color: c.textMuted, fontSize: 13 }}>No purchases recorded yet.</div>
                 ) : (
                   <div style={{ background: c.bgCard, border: `1px solid ${c.border}`, borderRadius: 14, overflow: 'auto' }}>
-                    <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 80px 90px 120px', gap: 0, padding: '10px 16px', borderBottom: `1px solid ${c.border}`, background: c.bgSubtle, minWidth: 600 }}>
+                    <div className="adm-phead">
                       {['User / Payer', 'PayPal Txn', 'Amount', 'Credits', 'Date'].map(h => (
                         <div key={h} style={{ fontSize: 10, fontWeight: 700, color: c.textMuted, textTransform: 'uppercase' as const, letterSpacing: 0.5 }}>{h}</div>
                       ))}
                     </div>
                     {purchases.map(p => (
-                      <div key={p.id} style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 80px 90px 120px', gap: 0, padding: '12px 16px', borderBottom: `1px solid ${c.border}`, alignItems: 'center', minWidth: 600 }}>
-                        <div>
-                          <div style={{ fontSize: 13, fontWeight: 600, color: c.primary }}>{p.user_email}</div>
-                          {p.paypal_payer_email && p.paypal_payer_email !== p.user_email && (
-                            <div style={{ fontSize: 11, color: c.textMuted }}>PayPal: {p.paypal_payer_email}</div>
-                          )}
+                      <>
+                        <div key={p.id} className="adm-prow">
+                          <div>
+                            <div style={{ fontSize: 13, fontWeight: 600, color: c.primary }}>{p.user_email}</div>
+                            {p.paypal_payer_email && p.paypal_payer_email !== p.user_email && (
+                              <div style={{ fontSize: 11, color: c.textMuted }}>PayPal: {p.paypal_payer_email}</div>
+                            )}
+                          </div>
+                          <div style={{ fontSize: 11, color: c.textFaint, fontFamily: 'monospace' }}>{p.paypal_txn_id || '—'}</div>
+                          <div style={{ fontFamily: f.heading, fontSize: 14, fontWeight: 700, color: '#10b981' }}>€{p.amount_eur?.toFixed(2)}</div>
+                          <div>
+                            <span style={{ fontSize: 12, fontWeight: 700, color: c.accent, background: c.primaryLight, padding: '3px 10px', borderRadius: 8 }}>+{p.credits_added}</span>
+                          </div>
+                          <div style={{ fontSize: 11, color: c.textMuted }}>{fmtDate(p.created_at)}</div>
                         </div>
-                        <div style={{ fontSize: 11, color: c.textFaint, fontFamily: 'monospace' }}>{p.paypal_txn_id || '—'}</div>
-                        <div style={{ fontFamily: f.heading, fontSize: 14, fontWeight: 700, color: '#10b981' }}>€{p.amount_eur?.toFixed(2)}</div>
-                        <div>
-                          <span style={{ fontSize: 12, fontWeight: 700, color: c.accent, background: c.primaryLight, padding: '3px 10px', borderRadius: 8 }}>+{p.credits_added}</span>
+                        <div key={p.id + '-card'} className="adm-card" style={{ flexDirection: 'column', gap: 8, padding: '14px 16px', borderBottom: `1px solid ${c.border}` }}>
+                          <div>
+                            <div style={{ fontSize: 14, fontWeight: 600, color: c.primary }}>{p.user_email}</div>
+                            {p.paypal_payer_email && p.paypal_payer_email !== p.user_email && (
+                              <div style={{ fontSize: 11, color: c.textMuted }}>PayPal: {p.paypal_payer_email}</div>
+                            )}
+                          </div>
+                          <div style={{ display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap' as const }}>
+                            <span style={{ fontFamily: f.heading, fontSize: 18, fontWeight: 700, color: '#10b981' }}>€{p.amount_eur?.toFixed(2)}</span>
+                            <span style={{ fontSize: 12, fontWeight: 700, color: c.accent, background: c.primaryLight, padding: '4px 12px', borderRadius: 8 }}>+{p.credits_added} credits</span>
+                          </div>
+                          <div style={{ fontSize: 11, color: c.textFaint, fontFamily: 'monospace', wordBreak: 'break-all' as const }}>{p.paypal_txn_id || '—'}</div>
+                          <div style={{ fontSize: 11, color: c.textMuted }}>{fmtDate(p.created_at)}</div>
                         </div>
-                        <div style={{ fontSize: 11, color: c.textMuted }}>{fmtDate(p.created_at)}</div>
-                      </div>
+                      </>
                     ))}
                   </div>
                 )}

@@ -65,11 +65,18 @@ career-scan ──writes──► jl_cv_text, jl_target_role
                                                                               │
                                                                           apply-now (reads jl_cl_letter, jl_cvb_job)
 
-India flow:
-in/career-scan ──writes──► jl_cv_text, jl_ats_suggestions
+India flow (current — career-scan NOT yet in live navigation):
 in/jobs        ──writes──► jl_in_selected_job
                     └──► in/cv-builder ──writes──► jl_cvb_tailored, jl_cvb_data
                                    └──► in/cover-letter ──writes──► jl_cl_letter
+
+India flow (planned — career-scan to be added later):
+in/career-scan ──writes──► jl_cv_text, jl_ats_suggestions
+                    └──► in/cv-builder (reads both keys when available)
+
+Note: `src/app/in/career-scan/page.tsx` and `/api/india/career-scan` exist in code
+but are NOT linked in the India navbar/navigation yet. Do not add entry points
+to India career-scan without explicit instruction.
 ```
 
 Rules:

@@ -1,10 +1,32 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerSupabase, createAdminSupabase } from '@/lib/supabase-server'
 
+const ADMIN_EMAILS = (process.env.ADMIN_EMAILS || '').split(',').map(e => e.trim().toLowerCase())
+
 export async function GET(_req: NextRequest) {
   const supabase = await createServerSupabase()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
+  // Admin accounts bypass credit limits — show as unlimited
+  if (user.email && ADMIN_EMAILS.includes(user.email.toLowerCase())) {
+    return NextResponse.json({
+      id: user.id,
+      email: user.email,
+      full_name: user.user_metadata?.full_name ?? '',
+      avatar_url: user.user_metadata?.avatar_url ?? '',
+      provider: user.app_metadata?.provider ?? 'google',
+      credits: 9999,
+      commonCredits: 9999,
+      euCredits: 0,
+      inCredits: 0,
+      totalUsed: 0,
+      status: 'admin',
+      member_since: user.created_at,
+      usage: [],
+      isAdmin: true,
+    })
+  }
 
   const admin = createAdminSupabase()
 

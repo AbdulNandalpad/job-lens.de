@@ -26,8 +26,10 @@ interface ProfileData {
   euCredits: number
   inCredits: number
   totalUsed: number
+  status: string
   member_since: string
   usage: { action: string; credits_used: number; created_at: string }[]
+  isAdmin?: boolean
 }
 
 const ACTION_LABELS: Record<string, string> = {
@@ -68,8 +70,9 @@ export default function IndiaAccountPage() {
   const initials = profile?.full_name?.split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase() || '?'
   const memberYear = profile?.member_since ? new Date(profile.member_since).getFullYear() : ''
   const providerLabel = profile?.provider === 'linkedin_oidc' ? 'LinkedIn' : 'Google'
-  const creditsColor = (profile?.credits ?? 0) <= 3 ? red : (profile?.credits ?? 0) <= 10 ? orange : green
-  const creditsPercent = Math.min(100, ((profile?.credits ?? 0) / 150) * 100)
+  const isAdmin = profile?.isAdmin ?? false
+  const creditsColor = isAdmin ? green : (profile?.credits ?? 0) <= 3 ? red : (profile?.credits ?? 0) <= 10 ? orange : green
+  const creditsPercent = isAdmin ? 100 : Math.min(100, ((profile?.credits ?? 0) / 150) * 100)
 
   return (
     <>
@@ -120,8 +123,8 @@ export default function IndiaAccountPage() {
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 20 }}>
                   <div style={{ background: `${creditsColor}0f`, border: `1.5px solid ${creditsColor}30`, borderRadius: 12, padding: '16px 18px' }}>
                     <div style={{ fontSize: 11, fontWeight: 700, color: creditsColor, letterSpacing: .5, textTransform: 'uppercase', marginBottom: 6 }}>Credits Available</div>
-                    <div style={{ fontFamily: "'Outfit', sans-serif", fontSize: 36, fontWeight: 800, color: creditsColor, lineHeight: 1 }}>{profile.credits}</div>
-                    <div style={{ fontSize: 12, color: '#94a3b8', marginTop: 4 }}>ready to use</div>
+                    <div style={{ fontFamily: "'Outfit', sans-serif", fontSize: isAdmin ? 24 : 36, fontWeight: 800, color: creditsColor, lineHeight: 1 }}>{isAdmin ? '∞ Admin' : profile.credits}</div>
+                    <div style={{ fontSize: 12, color: '#94a3b8', marginTop: 4 }}>{isAdmin ? 'no credit limits' : 'ready to use'}</div>
                   </div>
                   <div style={{ background: '#f8fafc', border: '1.5px solid #e4eaf4', borderRadius: 12, padding: '16px 18px' }}>
                     <div style={{ fontSize: 11, fontWeight: 700, color: '#94a3b8', letterSpacing: .5, textTransform: 'uppercase', marginBottom: 6 }}>Credits Used</div>

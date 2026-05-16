@@ -83,7 +83,7 @@ export default function IndiaCareerScanPage() {
   const [crossWarnPending, setCrossWarnPending] = useState<(() => void) | null>(null)
 
   useEffect(() => {
-    const savedCv = sessionStorage.getItem(SS.cvText) || sessionStorage.getItem('jl_cvb_generated') || ''
+    const savedCv = sessionStorage.getItem(SS.cvText) || ''
     if (savedCv) setCvText(savedCv)
   }, [])
 
