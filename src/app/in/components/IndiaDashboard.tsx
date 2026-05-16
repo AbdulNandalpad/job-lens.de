@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import type { MarketSnapshot } from '@/app/api/india/market-snapshot/route'
+import type { NewsArticle } from '@/app/api/india/news-insights/route'
 
 const saffron = '#FF9933'
 const green   = '#138808'
@@ -13,21 +14,6 @@ interface UserProfile {
   full_name: string
   credits: number
   usage: { action: string; credits_used: number; created_at: string }[]
-}
-
-const ACTION_LABELS: Record<string, string> = {
-  career_scan:    'Career Scan',
-  tailor_cv:      'CV Tailored',
-  cover_letter:   'Cover Letter',
-  india_ats_scan: 'ATS Scan',
-  auto_apply:     'Auto Apply',
-}
-const ACTION_ICONS: Record<string, string> = {
-  career_scan:    '📊',
-  tailor_cv:      '📄',
-  cover_letter:   '✉️',
-  india_ats_scan: '🎯',
-  auto_apply:     '🚀',
 }
 
 const CATEGORY_SEARCH: Record<string, string> = {
@@ -65,12 +51,34 @@ function Shimmer({ h = 20, r = 8, w = '100%' }: { h?: number; r?: number; w?: st
   return <div style={{ height: h, borderRadius: r, width: w, background: 'linear-gradient(90deg,#f0f4fa 25%,#e4eaf4 50%,#f0f4fa 75%)', backgroundSize: '200% 100%', animation: 'shimmer 1.5s infinite' }} />
 }
 
+type NewsTab = 'all' | 'ai' | 'hiring' | 'market'
+
+const NEWS_TAB_LABELS: Record<NewsTab, string> = {
+  all:     '📰 All',
+  ai:      '🤖 AI Impact',
+  hiring:  '📉 Hiring & Firing',
+  market:  '🏢 Market News',
+}
+const NEWS_CAT_COLOR: Record<string, string> = {
+  ai:      '#a855f7',
+  hiring:  '#ef4444',
+  market:  '#0ea5e9',
+}
+const NEWS_CAT_LABEL: Record<string, string> = {
+  ai:      '🤖 AI Impact',
+  hiring:  '📉 Hiring',
+  market:  '🏢 Market',
+}
+
 export default function IndiaDashboard() {
   const router = useRouter()
-  const [profile, setProfile] = useState<UserProfile | null>(null)
-  const [market,  setMarket]  = useState<MarketSnapshot | null>(null)
+  const [profile,  setProfile]  = useState<UserProfile | null>(null)
+  const [market,   setMarket]   = useState<MarketSnapshot | null>(null)
+  const [news,     setNews]     = useState<NewsArticle[]>([])
   const [loadingP, setLoadingP] = useState(true)
   const [loadingM, setLoadingM] = useState(true)
+  const [loadingN, setLoadingN] = useState(true)
+  const [newsTab,  setNewsTab]  = useState<NewsTab>('all')
   const [hoveredCat,  setHoveredCat]  = useState<string | null>(null)
   const [hoveredRole, setHoveredRole] = useState<string | null>(null)
   const [hoveredCity, setHoveredCity] = useState<string | null>(null)
@@ -78,6 +86,7 @@ export default function IndiaDashboard() {
   useEffect(() => {
     fetch('/api/user/profile').then(r => r.json()).then(setProfile).finally(() => setLoadingP(false))
     fetch('/api/india/market-snapshot').then(r => r.json()).then(setMarket).finally(() => setLoadingM(false))
+    fetch('/api/india/news-insights').then(r => r.json()).then(d => setNews(d.articles ?? [])).finally(() => setLoadingN(false))
   }, [])
 
   const hour     = new Date().getHours()
@@ -110,16 +119,17 @@ export default function IndiaDashboard() {
         .kpi-grid      { display:grid; grid-template-columns:repeat(4,1fr); gap:14px; margin-bottom:16px; animation:fadeUp .5s ease both; }
         .cat-grid      { display:grid; grid-template-columns:repeat(3,1fr); gap:12px; }
         .cat-card      { background:#fff; border:1.5px solid #e4eaf4; border-radius:16px; padding:20px; cursor:pointer; transition:all .2s; position:relative; overflow:hidden; }
-        .dash-bottom   { display:grid; grid-template-columns:1fr 1fr 1fr; gap:16px; margin-top:16px; }
-        .role-row      { display:flex; align-items:center; gap:10px; padding:10px 12px; border-radius:10px; cursor:pointer; transition:all .15s; }
-        .city-row      { display:flex; align-items:center; gap:10px; padding:10px 12px; border-radius:10px; cursor:pointer; transition:all .15s; justify-content:space-between; }
+        .news-grid     { display:grid; grid-template-columns:repeat(3,1fr); gap:14px; margin-top:16px; }
+        .news-card     { background:#fff; border:1.5px solid #e4eaf4; border-radius:16px; padding:18px; display:flex; flex-direction:column; gap:10px; transition:all .18s; cursor:pointer; }
+        .news-card:hover { border-color:#FF9933; box-shadow:0 6px 24px rgba(255,153,51,.12); transform:translateY(-2px); }
+        .news-tabs     { display:flex; gap:6px; flex-wrap:wrap; margin-bottom:18px; }
         @media(max-width:900px){
           .dash-hero    { padding:28px 18px 36px!important; }
           .dash-actions { grid-template-columns:repeat(2,1fr)!important; }
           .kpi-grid     { grid-template-columns:repeat(2,1fr)!important; }
           .cat-grid     { grid-template-columns:repeat(2,1fr)!important; }
           .cat-card     { padding:14px!important; }
-          .dash-bottom  { grid-template-columns:1fr!important; }
+          .news-grid    { grid-template-columns:repeat(2,1fr)!important; }
         }
         @media(max-width:480px){
           .dash-hero    { padding:20px 16px 28px!important; }
@@ -128,7 +138,7 @@ export default function IndiaDashboard() {
           .kpi-grid     { grid-template-columns:repeat(2,1fr)!important; gap:10px!important; }
           .cat-grid     { grid-template-columns:1fr 1fr!important; gap:8px!important; }
           .cat-card     { padding:12px!important; border-radius:12px!important; }
-          .dash-bottom  { grid-template-columns:1fr!important; gap:12px!important; }
+          .news-grid    { grid-template-columns:1fr!important; gap:10px!important; }
         }
         @media(max-width:360px){
           .cat-grid     { grid-template-columns:1fr!important; }
@@ -281,117 +291,71 @@ export default function IndiaDashboard() {
           </div>
         </div>
 
-        {/* Bottom row */}
-        <div className="dash-bottom">
-
-          {/* Trending roles */}
-          <div style={{ background:white, border:'1.5px solid #e4eaf4', borderRadius:18, padding:'20px 22px', boxShadow:'0 2px 10px rgba(4,44,83,.05)', animation:'fadeUp .4s .2s ease both' }}>
-            <div style={{ fontFamily:"'Outfit',sans-serif", fontSize:15, fontWeight:700, color:navy, marginBottom:4 }}>🔥 Trending Roles</div>
-            <div style={{ fontSize:11, color:'#94a3b8', marginBottom:16 }}>Click to search jobs instantly</div>
-            {loadingM ? (
-              <div style={{ display:'flex', flexDirection:'column', gap:8 }}>{[1,2,3,4,5,6].map(i => <Shimmer key={i} h={38} r={10} />)}</div>
-            ) : (
-              <div style={{ display:'flex', flexDirection:'column', gap:6 }}>
-                {(market?.trendingRoles ?? []).map((role, i) => {
-                  const isHov = hoveredRole === role.title
-                  return (
-                    <div
-                      key={role.title}
-                      className="role-row"
-                      style={{ background: isHov ? `${saffron}0e` : i % 2 === 0 ? '#f8fafc' : white, border:`1px solid ${isHov ? `${saffron}30` : 'transparent'}` }}
-                      onMouseEnter={() => setHoveredRole(role.title)}
-                      onMouseLeave={() => setHoveredRole(null)}
-                      onClick={() => searchJobs(role.title)}
-                    >
-                      <div style={{ width:24, height:24, borderRadius:7, background: i < 3 ? `${saffron}18` : '#edf1f6', display:'flex', alignItems:'center', justifyContent:'center', fontSize:11, fontWeight:800, color: i < 3 ? saffron : '#94a3b8', flexShrink:0 }}>
-                        {i + 1}
-                      </div>
-                      <span style={{ fontSize:13, color:navy, fontWeight: i < 2 ? 600 : 400, flex:1 }}>{role.title}</span>
-                      {i === 0 && <span style={{ fontSize:10, fontWeight:700, color:saffron, background:`${saffron}15`, padding:'2px 7px', borderRadius:6, flexShrink:0 }}>HOT</span>}
-                      {isHov && i !== 0 && <span style={{ fontSize:11, color:saffron, flexShrink:0 }}>→</span>}
-                    </div>
-                  )
-                })}
-              </div>
-            )}
+        {/* News & Insights */}
+        <div style={{ background:white, border:'1.5px solid #e4eaf4', borderRadius:18, padding:'22px 24px', marginTop:16, boxShadow:'0 2px 10px rgba(4,44,83,.05)', animation:'fadeUp .4s .2s ease both' }}>
+          <div style={{ display:'flex', alignItems:'flex-start', justifyContent:'space-between', flexWrap:'wrap', gap:10, marginBottom:18 }}>
+            <div>
+              <div style={{ fontFamily:"'Outfit',sans-serif", fontSize:16, fontWeight:700, color:navy }}>📰 India Job Market Insights</div>
+              <div style={{ fontSize:12, color:'#94a3b8', marginTop:3 }}>AI impact · hiring & firing · real-time news · refreshed every 6h</div>
+            </div>
           </div>
 
-          {/* Top cities */}
-          <div style={{ background:white, border:'1.5px solid #e4eaf4', borderRadius:18, padding:'20px 22px', boxShadow:'0 2px 10px rgba(4,44,83,.05)', animation:'fadeUp .4s .25s ease both' }}>
-            <div style={{ fontFamily:"'Outfit',sans-serif", fontSize:15, fontWeight:700, color:navy, marginBottom:4 }}>📍 Top Hiring Cities</div>
-            <div style={{ fontSize:11, color:'#94a3b8', marginBottom:16 }}>Click to search jobs in that city</div>
-            {loadingM ? (
-              <div style={{ display:'flex', flexDirection:'column', gap:8 }}>{[1,2,3,4,5].map(i => <Shimmer key={i} h={44} r={10} />)}</div>
-            ) : (
-              <div style={{ display:'flex', flexDirection:'column', gap:6 }}>
-                {(market?.topCities ?? []).map((city, i) => {
-                  const isHov = hoveredCity === city.city
-                  const max   = market?.topCities[0]?.count ?? 1
-                  const pct   = Math.max(8, Math.round((city.count / max) * 100))
-                  return (
-                    <div
-                      key={city.city}
-                      className="city-row"
-                      style={{ background: isHov ? `${green}0d` : i % 2 === 0 ? '#f8fafc' : white, border:`1px solid ${isHov ? `${green}30` : 'transparent'}` }}
-                      onMouseEnter={() => setHoveredCity(city.city)}
-                      onMouseLeave={() => setHoveredCity(null)}
-                      onClick={() => searchJobs('jobs', city.city === 'Delhi NCR' ? 'delhi' : city.city.toLowerCase())}
-                    >
-                      <div style={{ display:'flex', alignItems:'center', gap:8, minWidth:0 }}>
-                        <div style={{ width:24, height:24, borderRadius:7, background: i === 0 ? `${green}18` : '#edf1f6', display:'flex', alignItems:'center', justifyContent:'center', fontSize:11, fontWeight:800, color: i === 0 ? green : '#94a3b8', flexShrink:0 }}>
-                          {i + 1}
-                        </div>
-                        <div style={{ flex:1, minWidth:0 }}>
-                          <div style={{ fontSize:13, color:navy, fontWeight: i === 0 ? 600 : 400 }}>{city.city}</div>
-                          <div style={{ height:3, borderRadius:3, background:'#edf1f6', marginTop:4, overflow:'hidden' }}>
-                            <div style={{ width:`${pct}%`, height:'100%', background:`linear-gradient(90deg,${green},${green}66)`, borderRadius:3 }} />
-                          </div>
-                        </div>
-                      </div>
-                      <div style={{ display:'flex', alignItems:'center', gap:6, flexShrink:0 }}>
-                        <span style={{ fontSize:12, fontWeight:700, color: i === 0 ? green : '#94a3b8' }}>{fmt(city.count)}</span>
-                        {isHov && <span style={{ fontSize:11, color:green }}>→</span>}
-                      </div>
-                    </div>
-                  )
-                })}
-              </div>
-            )}
+          {/* Tabs */}
+          <div className="news-tabs">
+            {(['all','ai','hiring','market'] as NewsTab[]).map(t => (
+              <button key={t} onClick={() => setNewsTab(t)}
+                style={{ padding:'6px 14px', borderRadius:20, border:`1.5px solid ${newsTab===t ? (t==='all'?saffron:NEWS_CAT_COLOR[t]??saffron) : '#e4eaf4'}`, background: newsTab===t ? (t==='all'?`${saffron}15`:NEWS_CAT_COLOR[t]?`${NEWS_CAT_COLOR[t]}15`:`${saffron}15`) : 'transparent', color: newsTab===t ? (t==='all'?saffron:NEWS_CAT_COLOR[t]??saffron) : '#94a3b8', fontSize:12, fontWeight: newsTab===t?700:400, cursor:'pointer', transition:'all .15s', fontFamily:"'DM Sans',sans-serif" }}>
+                {NEWS_TAB_LABELS[t]}
+              </button>
+            ))}
           </div>
 
-          {/* Recent activity */}
-          <div style={{ background:white, border:'1.5px solid #e4eaf4', borderRadius:18, padding:'20px 22px', boxShadow:'0 2px 10px rgba(4,44,83,.05)', animation:'fadeUp .4s .3s ease both' }}>
-            <div style={{ fontFamily:"'Outfit',sans-serif", fontSize:15, fontWeight:700, color:navy, marginBottom:4 }}>🕐 Recent Activity</div>
-            <div style={{ fontSize:11, color:'#94a3b8', marginBottom:16 }}>Your last AI actions</div>
-            {loadingP ? (
-              <div style={{ display:'flex', flexDirection:'column', gap:8 }}>{[1,2,3,4].map(i => <Shimmer key={i} h={50} r={10} />)}</div>
-            ) : profile?.usage?.length ? (
-              <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
-                {profile.usage.slice(0,5).map((e, i) => (
-                  <div key={i} style={{ display:'flex', alignItems:'center', gap:10, padding:'10px 12px', borderRadius:10, background:'#f8fafc' }}>
-                    <div style={{ width:36, height:36, borderRadius:10, background:`${saffron}12`, display:'flex', alignItems:'center', justifyContent:'center', fontSize:17, flexShrink:0 }}>
-                      {ACTION_ICONS[e.action] ?? '⚡'}
+          {/* News cards */}
+          {loadingN ? (
+            <div className="news-grid">{[1,2,3,4,5,6].map(i => <Shimmer key={i} h={160} r={14} />)}</div>
+          ) : news.filter(a => newsTab==='all' || a.category===newsTab).length === 0 ? (
+            <div style={{ textAlign:'center', padding:'40px 0', color:'#94a3b8', fontSize:13 }}>
+              No articles available right now. Check back soon.
+            </div>
+          ) : (
+            <div className="news-grid">
+              {news.filter(a => newsTab==='all' || a.category===newsTab).slice(0,9).map((article, i) => {
+                const catColor = NEWS_CAT_COLOR[article.category] ?? saffron
+                return (
+                  <a key={i} href={article.url} target="_blank" rel="noopener noreferrer"
+                    className="news-card" style={{ textDecoration:'none', animation:`fadeUp .3s ${i*.05}s ease both` }}>
+                    {/* Category + source row */}
+                    <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:8 }}>
+                      <span style={{ fontSize:10, fontWeight:700, color:catColor, background:`${catColor}15`, padding:'3px 9px', borderRadius:20, letterSpacing:.3, flexShrink:0 }}>
+                        {NEWS_CAT_LABEL[article.category]}
+                      </span>
+                      <span style={{ fontSize:10, color:'#94a3b8', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{article.source}</span>
                     </div>
-                    <div style={{ flex:1, minWidth:0 }}>
-                      <div style={{ fontSize:13, fontWeight:500, color:navy, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>
-                        {ACTION_LABELS[e.action] ?? e.action}
+
+                    {/* Headline */}
+                    <div style={{ fontFamily:"'Outfit',sans-serif", fontSize:14, fontWeight:700, color:navy, lineHeight:1.4,
+                      display:'-webkit-box', WebkitLineClamp:3, WebkitBoxOrient:'vertical' as const, overflow:'hidden' }}>
+                      {article.title}
+                    </div>
+
+                    {/* Description */}
+                    {article.description && (
+                      <div style={{ fontSize:12, color:'#64748b', lineHeight:1.5,
+                        display:'-webkit-box', WebkitLineClamp:2, WebkitBoxOrient:'vertical' as const, overflow:'hidden' }}>
+                        {article.description}
                       </div>
-                      <div style={{ fontSize:11, color:'#94a3b8', marginTop:2 }}>{timeAgo(e.created_at)}</div>
+                    )}
+
+                    {/* Footer */}
+                    <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginTop:'auto', paddingTop:6 }}>
+                      <span style={{ fontSize:11, color:'#94a3b8' }}>{timeAgo(article.publishedAt)}</span>
+                      <span style={{ fontSize:11, fontWeight:600, color:saffron }}>Read →</span>
                     </div>
-                    <span style={{ fontSize:12, fontWeight:700, color:saffron, background:`${saffron}10`, padding:'3px 8px', borderRadius:7, flexShrink:0 }}>-{e.credits_used}</span>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div style={{ textAlign:'center', padding:'24px 0' }}>
-                <div style={{ fontSize:36, marginBottom:10 }}>🚀</div>
-                <div style={{ fontSize:13, color:'#94a3b8', lineHeight:1.6, marginBottom:14 }}>No activity yet.<br/>Start by finding a job!</div>
-                <button onClick={() => router.push('/in/jobs')} style={{ padding:'9px 20px', borderRadius:10, background:`linear-gradient(135deg,${saffron},#e67300)`, color:white, fontSize:13, fontWeight:700, border:'none', cursor:'pointer', boxShadow:`0 4px 14px ${saffron}40` }}>
-                  Find Jobs →
-                </button>
-              </div>
-            )}
-          </div>
+                  </a>
+                )
+              })}
+            </div>
+          )}
         </div>
 
         {/* Zero credits alert */}
