@@ -95,7 +95,8 @@ Only these routes exist under `src/app/api/`:
 |-------|--------|---------|--------|------|
 | `/api/extract-pdf` | POST | Extract text from PDF/DOCX | both | free |
 | `/api/career-scan` | POST | AI CV scan + score | eu | 2 |
-| `/api/india/career-scan` | POST | ATS scan for India | in | 2 |
+| `/api/india/career-scan` | POST | ATS scan for India (CV vs JD) | in | 2 |
+| `/api/india/career-scan-pro` | POST | Full profile career analysis for India (INR, India market) | in | 2 |
 | `/api/tailor-cv` | POST | AI CV tailoring | body.market | 1 |
 | `/api/cover-letter` | POST | AI cover letter | body.market | 1 |
 | `/api/analyse-profile` | POST | Extract CV profile for job search | both | free |
