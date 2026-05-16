@@ -52,11 +52,11 @@ export default function DatenschutzPage() {
             Verantwortlicher im Sinne der DSGVO ist:
           </p>
           <p style={{ margin: 0 }}>
-            <strong>[Vor- und Nachname]</strong><br />
-            [Straße und Hausnummer]<br />
-            [PLZ] [Stadt]<br />
+            <strong>Abdul Rasheed Nandalpad</strong><br />
+            Brühlstr 15<br />
+            71034 Böblingen<br />
             Deutschland<br />
-            E-Mail: <a href="mailto:kontakt@job-lens.de" style={{ color: c.accent }}>kontakt@job-lens.de</a>
+            E-Mail: <a href="mailto:abdul.nandalpad@servicesphere.de" style={{ color: c.accent }}>abdul.nandalpad@servicesphere.de</a>
           </p>
         </Section>
 
@@ -139,7 +139,7 @@ export default function DatenschutzPage() {
           </div>
           <p style={{ margin: '16px 0 0' }}>
             Zur Ausübung Ihrer Rechte wenden Sie sich bitte an:{' '}
-            <a href="mailto:kontakt@job-lens.de" style={{ color: c.accent }}>kontakt@job-lens.de</a>.
+            <a href="mailto:abdul.nandalpad@servicesphere.de" style={{ color: c.accent }}>abdul.nandalpad@servicesphere.de</a>.
             Sie haben zudem das Recht, sich bei einer Datenschutz-Aufsichtsbehörde zu beschweren. Zuständig ist die Aufsichtsbehörde Ihres Bundeslandes.
           </p>
         </Section>
