@@ -35,7 +35,6 @@ function timeAgo(dateStr: string) {
 
 export default function IndiaJobsPage() {
   const router = useRouter()
-  const searchParams = useSearchParams()
   const [query, setQuery] = useState('')
   const [city, setCity] = useState('')
   const [jobs, setJobs] = useState<Job[]>([])
