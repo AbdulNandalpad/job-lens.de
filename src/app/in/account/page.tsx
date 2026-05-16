@@ -25,6 +25,7 @@ interface ProfileData {
   commonCredits: number
   euCredits: number
   inCredits: number
+  totalUsed: number
   member_since: string
   usage: { action: string; credits_used: number; created_at: string }[]
 }
@@ -113,48 +114,66 @@ export default function IndiaAccountPage() {
 
               {/* Credits card */}
               <div style={{ background: '#fff', border: '1px solid #edf1f6', borderRadius: 16, padding: 24, marginBottom: 16, boxShadow: '0 2px 8px rgba(4,44,83,0.05)' }}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16, flexWrap: 'wrap', gap: 8 }}>
-                  <div style={{ fontFamily: "'Outfit', sans-serif", fontSize: 15, fontWeight: 700, color: navy }}>AI Credits</div>
-                  <div style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
-                    <span style={{ fontFamily: "'Outfit', sans-serif", fontSize: 36, fontWeight: 700, color: creditsColor }}>{profile.credits}</span>
-                    <span style={{ fontSize: 13, color: '#6b7c93' }}>remaining</span>
+                <div style={{ fontFamily: "'Outfit', sans-serif", fontSize: 15, fontWeight: 700, color: navy, marginBottom: 18 }}>⚡ AI Credits</div>
+
+                {/* Available vs Used */}
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 20 }}>
+                  <div style={{ background: `${creditsColor}0f`, border: `1.5px solid ${creditsColor}30`, borderRadius: 12, padding: '16px 18px' }}>
+                    <div style={{ fontSize: 11, fontWeight: 700, color: creditsColor, letterSpacing: .5, textTransform: 'uppercase', marginBottom: 6 }}>Credits Available</div>
+                    <div style={{ fontFamily: "'Outfit', sans-serif", fontSize: 36, fontWeight: 800, color: creditsColor, lineHeight: 1 }}>{profile.credits}</div>
+                    <div style={{ fontSize: 12, color: '#94a3b8', marginTop: 4 }}>ready to use</div>
+                  </div>
+                  <div style={{ background: '#f8fafc', border: '1.5px solid #e4eaf4', borderRadius: 12, padding: '16px 18px' }}>
+                    <div style={{ fontSize: 11, fontWeight: 700, color: '#94a3b8', letterSpacing: .5, textTransform: 'uppercase', marginBottom: 6 }}>Credits Used</div>
+                    <div style={{ fontFamily: "'Outfit', sans-serif", fontSize: 36, fontWeight: 800, color: navy, lineHeight: 1 }}>{profile.totalUsed ?? 0}</div>
+                    <div style={{ fontSize: 12, color: '#94a3b8', marginTop: 4 }}>last 30 actions</div>
                   </div>
                 </div>
-                <div style={{ height: 6, background: '#edf1f6', borderRadius: 3, marginBottom: 10 }}>
-                  <div style={{ height: '100%', width: `${creditsPercent}%`, background: creditsColor, borderRadius: 3, transition: 'width 0.4s' }} />
-                </div>
 
-                {/* Credit pool breakdown */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 4, marginBottom: 16 }}>
-                  {[
-                    { label: 'Free credits', value: profile.commonCredits ?? 0 },
-                    { label: 'India credits (Razorpay)', value: profile.inCredits ?? 0 },
-                    { label: 'EU credits (PayPal)', value: profile.euCredits ?? 0 },
-                  ].map(row => (
-                    <div key={row.label} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '5px 10px', background: '#f8fafc', borderRadius: 6, border: '1px solid #edf1f6' }}>
-                      <span style={{ fontSize: 12, color: '#6b7c93' }}>{row.label}</span>
-                      <span style={{ fontSize: 12, fontWeight: 600, color: navy }}>{row.value}</span>
-                    </div>
-                  ))}
+                {/* Pool breakdown */}
+                <div style={{ marginBottom: 20 }}>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: '#94a3b8', letterSpacing: .4, textTransform: 'uppercase', marginBottom: 10 }}>Credit Pools</div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    {[
+                      { label: 'Free Credits', sub: 'Signup bonus & promotions', value: profile.commonCredits ?? 0, color: orange, icon: '🎁' },
+                      { label: 'India Credits', sub: 'Purchased via Razorpay (₹)', value: profile.inCredits ?? 0, color: '#138808', icon: '🇮🇳' },
+                      { label: 'EU Credits', sub: 'Purchased via PayPal (€)', value: profile.euCredits ?? 0, color: '#378ADD', icon: '🇪🇺' },
+                    ].map(pool => (
+                      <div key={pool.label} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 14px', background: pool.value > 0 ? `${pool.color}08` : '#f8fafc', borderRadius: 10, border: `1px solid ${pool.value > 0 ? `${pool.color}25` : '#edf1f6'}` }}>
+                        <span style={{ fontSize: 18, flexShrink: 0 }}>{pool.icon}</span>
+                        <div style={{ flex: 1 }}>
+                          <div style={{ fontSize: 13, fontWeight: 600, color: navy }}>{pool.label}</div>
+                          <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 1 }}>{pool.sub}</div>
+                        </div>
+                        <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                          <div style={{ fontFamily: "'Outfit', sans-serif", fontSize: 20, fontWeight: 800, color: pool.value > 0 ? pool.color : '#cbd5e1' }}>{pool.value}</div>
+                          <div style={{ fontSize: 10, color: '#94a3b8' }}>credits</div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 </div>
 
                 {/* Cost table */}
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 6, marginBottom: 20 }}>
-                  {[
-                    { label: 'ATS Scan', cost: '2 credits' },
-                    { label: 'CV Tailoring', cost: '1 credit' },
-                    { label: 'Cover Letter', cost: '1 credit' },
-                    { label: 'Auto Apply', cost: '3 credits' },
-                  ].map(item => (
-                    <div key={item.label} style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 10px', background: '#f8fafc', borderRadius: 7, border: '1px solid #edf1f6' }}>
-                      <span style={{ fontSize: 12, color: '#6b7c93' }}>{item.label}</span>
-                      <span style={{ fontSize: 12, fontWeight: 600, color: navy }}>{item.cost}</span>
-                    </div>
-                  ))}
+                <div style={{ marginBottom: 20 }}>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: '#94a3b8', letterSpacing: .4, textTransform: 'uppercase', marginBottom: 10 }}>What Each Action Costs</div>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 6 }}>
+                    {[
+                      { label: '🎯 ATS Scan', cost: 2 },
+                      { label: '📄 CV Tailoring', cost: 1 },
+                      { label: '✉️ Cover Letter', cost: 1 },
+                      { label: '🚀 Auto Apply', cost: 3 },
+                    ].map(item => (
+                      <div key={item.label} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 12px', background: '#f8fafc', borderRadius: 8, border: '1px solid #edf1f6' }}>
+                        <span style={{ fontSize: 12, color: '#374151' }}>{item.label}</span>
+                        <span style={{ fontSize: 13, fontWeight: 700, color: orange }}>{item.cost} cr</span>
+                      </div>
+                    ))}
+                  </div>
                 </div>
 
                 {/* Buy packs */}
-                <div style={{ fontFamily: "'Outfit', sans-serif", fontSize: 13, fontWeight: 700, color: navy, marginBottom: 12 }}>Buy Credits</div>
+                <div style={{ fontSize: 12, fontWeight: 700, color: '#94a3b8', letterSpacing: .4, textTransform: 'uppercase', marginBottom: 10 }}>Top Up Credits</div>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10 }}>
                   {PACKS.map(pack => (
                     <div key={pack.label} style={{ position: 'relative', border: `1.5px solid ${pack.popular ? orange : '#edf1f6'}`, borderRadius: 12, padding: '14px 12px', background: pack.popular ? `${orange}08` : '#f8fafc' }}>

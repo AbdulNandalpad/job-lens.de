@@ -26,10 +26,11 @@ export async function GET(_req: NextRequest) {
     .order('created_at', { ascending: false })
     .limit(30)
 
-  const commonCredits = profile?.credits ?? 5
+  const commonCredits = profile?.credits ?? 0
   const euCredits = profile?.eu_credits ?? 0
   const inCredits = profile?.in_credits ?? 0
   const totalCredits = commonCredits + euCredits + inCredits
+  const totalUsed = (events ?? []).filter((e: { action: string }) => !e.action.startsWith('refund_')).reduce((s: number, e: { credits_used: number }) => s + (e.credits_used ?? 0), 0)
 
   return NextResponse.json({
     id: user.id,
@@ -41,6 +42,7 @@ export async function GET(_req: NextRequest) {
     commonCredits,
     euCredits,
     inCredits,
+    totalUsed,
     status: profile?.status ?? 'active',
     member_since: profile?.created_at ?? user.created_at,
     usage: events ?? [],
