@@ -176,7 +176,7 @@ export default function IndiaDashboard() {
               { icon:'🔍', label:'Find Jobs',    sub:'Browse live openings',      href:'/in/jobs',         accent:saffron,   dim:false },
               { icon:'📄', label:'Build CV',     sub:'AI-tailored for any role',  href:'/in/cv-builder',   accent:'#378ADD', dim:false },
               { icon:'✉️', label:'Cover Letter', sub:'In your voice, in minutes', href:'/in/cover-letter', accent:green,     dim:false },
-              { icon:'📊', label:'ATS Scan',     sub:'Coming soon',               href:'#',                accent:'#94a3b8', dim:true  },
+              { icon:'📊', label:'ATS Scan',     sub:'Score your CV instantly',   href:'/in/career-scan',  accent:'#a855f7', dim:false },
             ] as const).map(a => (
               <div key={a.label} className={`act-card${a.dim?' dim':''}`} onClick={() => !a.dim && router.push(a.href)}>
                 <div style={{ width:46, height:46, borderRadius:14, background:`${a.accent}22`, display:'flex', alignItems:'center', justifyContent:'center', fontSize:22 }}>{a.icon}</div>
