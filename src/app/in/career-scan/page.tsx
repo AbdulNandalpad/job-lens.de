@@ -4,6 +4,7 @@ import { useState, useRef, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useCredits } from '@/lib/useCredits'
 import CrossMarketModal from '@/components/CrossMarketModal'
+import { CREDIT_COST, LOW_CREDIT_WARN, MARKET, SS, API } from '@/lib/constants'
 
 const orange = '#ff9933'
 const navy = '#042C53'
@@ -78,11 +79,11 @@ export default function IndiaCareerScanPage() {
   const [prevScore, setPrevScore] = useState<number | null>(null)
   const fileRef = useRef<HTMLInputElement>(null)
   const { credits, setCredits, needsCrossMarket, crossMarketAmount } = useCredits()
-  const COST = 2
+  const COST = CREDIT_COST.careerScan
   const [crossWarnPending, setCrossWarnPending] = useState<(() => void) | null>(null)
 
   useEffect(() => {
-    const savedCv = sessionStorage.getItem('jl_cv_text') || sessionStorage.getItem('jl_cvb_generated') || ''
+    const savedCv = sessionStorage.getItem(SS.cvText) || sessionStorage.getItem('jl_cvb_generated') || ''
     if (savedCv) setCvText(savedCv)
   }, [])
 
@@ -90,15 +91,15 @@ export default function IndiaCareerScanPage() {
     setFileLoading(true)
     if (file.name.endsWith('.txt') || file.type === 'text/plain') {
       const r = new FileReader()
-      r.onload = e => { const txt = (e.target?.result as string) ?? ''; setCvText(txt); sessionStorage.setItem('jl_cv_text', txt); setFileLoading(false) }
+      r.onload = e => { const txt = (e.target?.result as string) ?? ''; setCvText(txt); sessionStorage.setItem(SS.cvText, txt); setFileLoading(false) }
       r.readAsText(file)
     } else {
       const form = new FormData()
       form.append('file', file)
       try {
-        const res = await fetch('/api/extract-pdf', { method: 'POST', body: form })
+        const res = await fetch(API.extractPdf, { method: 'POST', body: form })
         const data = await res.json()
-        if (data.text) { setCvText(data.text); sessionStorage.setItem('jl_cv_text', data.text) }
+        if (data.text) { setCvText(data.text); sessionStorage.setItem(SS.cvText, data.text) }
         else alert(data.error || 'Could not read file.')
       } catch { alert('Failed to read file.') }
       setFileLoading(false)
@@ -116,7 +117,7 @@ export default function IndiaCareerScanPage() {
     setResult(null)
 
     try {
-      const res = await fetch('/api/india/career-scan', {
+      const res = await fetch(API.indiaCareerScan, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ cvText, jdText }),
@@ -136,8 +137,8 @@ export default function IndiaCareerScanPage() {
       setTab('overview')
       setShowInputs(false)
       try {
-        sessionStorage.removeItem('jl_ats_suggestions')
-        sessionStorage.setItem('jl_ats_suggestions', JSON.stringify({
+        sessionStorage.removeItem(SS.atsSuggestions)
+        sessionStorage.setItem(SS.atsSuggestions, JSON.stringify({
           missing_keywords: data.missing_keywords || [],
           quick_fixes: data.quick_fixes || [],
           format_issues: data.format_issues || [],
@@ -149,7 +150,7 @@ export default function IndiaCareerScanPage() {
   }
 
   function handleAnalyze() {
-    if (needsCrossMarket(COST, 'in')) {
+    if (needsCrossMarket(COST, MARKET.in)) {
       setCrossWarnPending(() => analyze)
     } else {
       analyze()
@@ -169,8 +170,8 @@ export default function IndiaCareerScanPage() {
       {crossWarnPending && (
         <CrossMarketModal
           cost={COST}
-          market="in"
-          crossAmount={crossMarketAmount(COST, 'in')}
+          market={MARKET.in}
+          crossAmount={crossMarketAmount(COST, MARKET.in)}
           onConfirm={() => { const fn = crossWarnPending; setCrossWarnPending(null); fn() }}
           onCancel={() => setCrossWarnPending(null)}
         />
@@ -324,8 +325,8 @@ export default function IndiaCareerScanPage() {
                       <button
                         onClick={() => {
                           try {
-                            sessionStorage.setItem('jl_cv_text', cvText)
-                            sessionStorage.setItem('jl_ats_suggestions', JSON.stringify({
+                            sessionStorage.setItem(SS.cvText, cvText)
+                            sessionStorage.setItem(SS.atsSuggestions, JSON.stringify({
                               missing_keywords: result.missing_keywords,
                               quick_fixes: result.quick_fixes,
                             }))

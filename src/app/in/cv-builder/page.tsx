@@ -4,6 +4,7 @@ import React, { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { useCredits } from '@/lib/useCredits'
 import CrossMarketModal from '@/components/CrossMarketModal'
+import { CREDIT_COST, LOW_CREDIT_WARN, MARKET, SS, API } from '@/lib/constants'
 
 const accent = '#FF9933'
 
@@ -151,21 +152,21 @@ export default function IndiaCVBuilderPage() {
   const [editingContact, setEditingContact] = useState(false)
   const [contactDraft, setContactDraft] = useState({ name: '', email: '', phone: '', location: '', linkedin: '' })
   const { credits, setCredits, needsCrossMarket, crossMarketAmount } = useCredits()
-  const CV_COST = 1
+  const CV_COST = CREDIT_COST.tailorCv
   const [crossWarnPending, setCrossWarnPending] = useState<(() => void) | null>(null)
 
   async function handleCvFile(file: File) {
     setCvFileName(file.name); setCvText(''); setFileLoading(true)
     if (file.name.endsWith('.txt') || file.type === 'text/plain') {
       const r = new FileReader()
-      r.onload = e => { const text = (e.target?.result as string) ?? ''; setCvText(text); sessionStorage.setItem('jl_cv_text', text); setFileLoading(false) }
+      r.onload = e => { const text = (e.target?.result as string) ?? ''; setCvText(text); sessionStorage.setItem(SS.cvText, text); setFileLoading(false) }
       r.readAsText(file)
     } else {
       const form = new FormData(); form.append('file', file)
       try {
-        const res = await fetch('/api/extract-pdf', { method: 'POST', body: form })
+        const res = await fetch(API.extractPdf, { method: 'POST', body: form })
         const data = await res.json()
-        if (data.text) { setCvText(data.text); sessionStorage.setItem('jl_cv_text', data.text) }
+        if (data.text) { setCvText(data.text); sessionStorage.setItem(SS.cvText, data.text) }
         else { alert(data.error || 'Could not read file.'); setCvFileName('') }
       } catch { alert('Failed to read file.'); setCvFileName('') }
       setFileLoading(false)
@@ -175,21 +176,21 @@ export default function IndiaCVBuilderPage() {
   function toggleSection(id: string) { setOpenSections(prev => ({ ...prev, [id]: !prev[id] })) }
 
   useEffect(() => {
-    const sjs = sessionStorage.getItem('jl_sjs_cv_text') || ''
-    const cvt = sessionStorage.getItem('jl_cv_text') || ''
-    const lnt = sessionStorage.getItem('jl_linkedin_text') || ''
+    const sjs = sessionStorage.getItem(SS.sjsCvText) || ''
+    const cvt = sessionStorage.getItem(SS.cvText) || ''
+    const lnt = sessionStorage.getItem(SS.linkedinText) || ''
     const cv = sjs || cvt || lnt
     if (lnt && !sjs && !cvt) setCvFileName('LinkedIn Profile')
-    const jobRaw = sessionStorage.getItem('jl_in_selected_job') || sessionStorage.getItem('jl_cvb_job')
-    const savedRole = sessionStorage.getItem('jl_sjs_target_role') || ''
+    const jobRaw = sessionStorage.getItem(SS.inSelectedJob) || sessionStorage.getItem(SS.cvbJob)
+    const savedRole = sessionStorage.getItem(SS.sjsTargetRole) || ''
     setCvText(cv)
     if (jobRaw) { try { const p = JSON.parse(jobRaw); setJob(p); setJobLabel(`${p.employer_name} - ${p.job_title}`) } catch { } }
     else if (savedRole) setJobLabel(savedRole)
-    const saved = sessionStorage.getItem('jl_cvb_tailored')
-    const savedData = sessionStorage.getItem('jl_cvb_data')
+    const saved = sessionStorage.getItem(SS.cvbTailored)
+    const savedData = sessionStorage.getItem(SS.cvbData)
     if (saved) setRawCv(saved)
     if (savedData) { try { setCvData(JSON.parse(savedData)) } catch { } }
-    const atsRaw = sessionStorage.getItem('jl_ats_suggestions')
+    const atsRaw = sessionStorage.getItem(SS.atsSuggestions)
     if (atsRaw) {
       try {
         const s = JSON.parse(atsRaw)
@@ -221,19 +222,19 @@ ${atsSuggestions?.quick_fixes?.length ? `- ATS QUICK FIXES to apply:\n${atsSugge
 ${atsSuggestions?.format_issues?.length ? `- ATS FORMAT ISSUES to fix: ${atsSuggestions.format_issues.join('; ')}` : ''}
 ${atsSuggestions?.section_gaps?.length ? `- ATS SECTION GAPS to address: ${atsSuggestions.section_gaps.join('; ')}` : ''}`
     try {
-      const res = await fetch('/api/tailor-cv', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ cvText, job, template, tone, pages, lang, systemPrompt, returnJson: true, market: 'in' }) })
+      const res = await fetch(API.tailorCv, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ cvText, job, template, tone, pages, lang, systemPrompt, returnJson: true, market: MARKET.in }) })
       if (res.status === 402) { const d = await res.json(); if (typeof d.credits === 'number') setCredits(d.credits); setLoading(false); alert('Not enough credits.'); return }
       const data = await res.json()
       if (typeof data.creditsRemaining === 'number') setCredits(data.creditsRemaining)
       const raw = data.cv || data.enhanced || data.result || ''
-      setRawCv(raw); sessionStorage.setItem('jl_cvb_tailored', raw)
-      try { const parsed: CVData = JSON.parse(raw.replace(/```json|```/g, '').trim()); setCvData(parsed); sessionStorage.setItem('jl_cvb_data', JSON.stringify(parsed)) } catch { setCvData(null) }
+      setRawCv(raw); sessionStorage.setItem(SS.cvbTailored, raw)
+      try { const parsed: CVData = JSON.parse(raw.replace(/```json|```/g, '').trim()); setCvData(parsed); sessionStorage.setItem(SS.cvbData, JSON.stringify(parsed)) } catch { setCvData(null) }
     } catch { setRawCv('Failed to generate.') }
     setLoading(false)
   }
 
   function handleGenerate() {
-    if (needsCrossMarket(CV_COST, 'in')) {
+    if (needsCrossMarket(CV_COST, MARKET.in)) {
       setCrossWarnPending(() => generate)
     } else {
       generate()
@@ -247,12 +248,12 @@ ${atsSuggestions?.section_gaps?.length ? `- ATS SECTION GAPS to address: ${atsSu
       const atsContext = atsSuggestions?.missing_keywords?.length
         ? ` Also ensure these ATS keywords are present: ${atsSuggestions.missing_keywords.join(', ')}.`
         : ''
-      const res = await fetch('/api/tailor-cv', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ cvText, job, template, tone, pages, lang, systemPrompt: `Apply the feedback and return updated JSON matching the same schema. Return ONLY valid JSON.${atsContext}`, returnJson: true, feedback, currentCv: rawCv, market: 'in' }) })
+      const res = await fetch(API.tailorCv, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ cvText, job, template, tone, pages, lang, systemPrompt: `Apply the feedback and return updated JSON matching the same schema. Return ONLY valid JSON.${atsContext}`, returnJson: true, feedback, currentCv: rawCv, market: MARKET.in }) })
       if (res.status === 402) { alert('Not enough credits.'); setApplyingFeedback(false); return }
       const data = await res.json()
       const raw = data.cv || ''
-      setRawCv(raw); sessionStorage.setItem('jl_cvb_tailored', raw)
-      try { const parsed: CVData = JSON.parse(raw.replace(/```json|```/g, '').trim()); setCvData(parsed); sessionStorage.setItem('jl_cvb_data', JSON.stringify(parsed)) } catch { }
+      setRawCv(raw); sessionStorage.setItem(SS.cvbTailored, raw)
+      try { const parsed: CVData = JSON.parse(raw.replace(/```json|```/g, '').trim()); setCvData(parsed); sessionStorage.setItem(SS.cvbData, JSON.stringify(parsed)) } catch { }
       setFeedback('')
     } catch { }
     setApplyingFeedback(false)
@@ -329,7 +330,7 @@ ${atsSuggestions?.section_gaps?.length ? `- ATS SECTION GAPS to address: ${atsSu
     setDownloading(null)
   }
 
-  function goToCoverLetter() { sessionStorage.setItem('jl_cvb_tailored', rawCv); router.push('/in/cover-letter') }
+  function goToCoverLetter() { sessionStorage.setItem(SS.cvbTailored, rawCv); router.push('/in/cover-letter') }
   function goToAtsCheck() {
     if (cvData) {
       const lines: string[] = []
@@ -349,9 +350,9 @@ ${atsSuggestions?.section_gaps?.length ? `- ATS SECTION GAPS to address: ${atsSu
       if (cvData.education?.length) { lines.push('\nEDUCATION'); cvData.education.forEach((e: { degree: string; school: string; year: string }) => lines.push(`${e.degree} - ${e.school} (${e.year})`)) }
       if (cvData.certifications?.length) { lines.push('\nCERTIFICATIONS'); cvData.certifications.forEach((c: string) => lines.push(`• ${c}`)) }
       if (cvData.languages?.length) { lines.push('\nLANGUAGES'); lines.push(cvData.languages.map((l: { name: string }) => l.name).join(', ')) }
-      sessionStorage.setItem('jl_cv_text', lines.join('\n'))
+      sessionStorage.setItem(SS.cvText, lines.join('\n'))
     }
-    sessionStorage.removeItem('jl_ats_suggestions')
+    sessionStorage.removeItem(SS.atsSuggestions)
     router.push('/in/career-scan')
   }
 
@@ -395,8 +396,8 @@ ${atsSuggestions?.section_gaps?.length ? `- ATS SECTION GAPS to address: ${atsSu
       {crossWarnPending && (
         <CrossMarketModal
           cost={CV_COST}
-          market="in"
-          crossAmount={crossMarketAmount(CV_COST, 'in')}
+          market={MARKET.in}
+          crossAmount={crossMarketAmount(CV_COST, MARKET.in)}
           onConfirm={() => { const fn = crossWarnPending; setCrossWarnPending(null); fn() }}
           onCancel={() => setCrossWarnPending(null)}
         />
@@ -535,7 +536,7 @@ ${atsSuggestions?.section_gaps?.length ? `- ATS SECTION GAPS to address: ${atsSu
           </div>
 
           <div style={{ padding: '14px 16px', borderTop: '1px solid rgba(255,255,255,0.08)', flexShrink: 0 }}>
-            {credits !== null && credits <= 2 && <div style={{ background: 'rgba(245,158,11,0.15)', border: '1px solid rgba(245,158,11,0.4)', borderRadius: 8, padding: '7px 10px', fontSize: 11, color: '#fcd34d', marginBottom: 8, lineHeight: 1.5 }}>{credits === 0 ? 'No credits left. Top up on Account page.' : `${credits} credit${credits === 1 ? '' : 's'} remaining.`}</div>}
+            {credits !== null && credits <= LOW_CREDIT_WARN && <div style={{ background: 'rgba(245,158,11,0.15)', border: '1px solid rgba(245,158,11,0.4)', borderRadius: 8, padding: '7px 10px', fontSize: 11, color: '#fcd34d', marginBottom: 8, lineHeight: 1.5 }}>{credits === 0 ? 'No credits left. Top up on Account page.' : `${credits} credit${credits === 1 ? '' : 's'} remaining.`}</div>}
             <button className="cvb-gen" onClick={handleGenerate} disabled={loading || !cvText.trim() || (credits !== null && credits < CV_COST)}
               style={{ width: '100%', padding: '12px 0', borderRadius: 10, border: 'none', background: loading || !cvText.trim() || (credits !== null && credits < CV_COST) ? 'rgba(255,255,255,0.08)' : `linear-gradient(135deg, ${accent}, #e67300)`, color: loading || !cvText.trim() || (credits !== null && credits < CV_COST) ? 'rgba(255,255,255,0.25)' : '#042C53', fontFamily: "'Outfit', sans-serif", fontSize: 13, fontWeight: 700, cursor: loading || !cvText.trim() || (credits !== null && credits < CV_COST) ? 'not-allowed' : 'pointer', transition: 'all 0.2s', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
               {loading ? <><div style={{ width: 14, height: 14, borderRadius: '50%', border: '2px solid rgba(255,255,255,0.15)', borderTopColor: 'rgba(255,255,255,0.6)', animation: 'spin 0.7s linear infinite' }} />Generating...</> : credits !== null && credits < CV_COST ? `Need ${CV_COST} credit — you have ${credits}` : cvData ? `Regenerate CV (${CV_COST} credit)` : `Generate CV (${CV_COST} credit)`}
@@ -657,7 +658,7 @@ ${atsSuggestions?.section_gaps?.length ? `- ATS SECTION GAPS to address: ${atsSu
                         if (!cvData) return
                         const updated = { ...cvData, ...contactDraft }
                         setCvData(updated)
-                        sessionStorage.setItem('jl_cvb_data', JSON.stringify(updated))
+                        sessionStorage.setItem(SS.cvbData, JSON.stringify(updated))
                         setEditingContact(false)
                       }} style={{ padding: '8px 0', borderRadius: 7, border: 'none', background: accent, color: '#042C53', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: "'Outfit',sans-serif" }}>
                         Save contact info

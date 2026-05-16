@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useCredits } from '@/lib/useCredits'
 import CrossMarketModal from '@/components/CrossMarketModal'
+import { CREDIT_COST, LOW_CREDIT_WARN, MARKET, SS, API } from '@/lib/constants'
 
 type Tone = 'confident' | 'formal' | 'warm'
 type Length = 'short' | 'medium' | 'long'
@@ -38,15 +39,15 @@ export default function IndiaCoverLetterPage() {
   const [openSections, setOpenSections] = useState<Record<string, boolean>>({ style: false, format: false })
   const [mobOpen, setMobOpen] = useState(false)
   const { credits, setCredits, needsCrossMarket, crossMarketAmount } = useCredits()
-  const CL_COST = 1
+  const CL_COST = CREDIT_COST.coverLetter
   const [crossWarnPending, setCrossWarnPending] = useState<(() => void) | null>(null)
 
   const jobLabel = job ? `${job.employer_name} - ${job.job_title}` : ''
 
   useEffect(() => {
-    const cv = sessionStorage.getItem('jl_cvb_tailored') || sessionStorage.getItem('jl_sjs_cv_text') || sessionStorage.getItem('jl_cv_text') || ''
-    const jobRaw = sessionStorage.getItem('jl_cvb_job')
-    const saved  = sessionStorage.getItem('jl_cl_letter')
+    const cv = sessionStorage.getItem(SS.cvbTailored) || sessionStorage.getItem(SS.sjsCvText) || sessionStorage.getItem(SS.cvText) || ''
+    const jobRaw = sessionStorage.getItem(SS.cvbJob)
+    const saved  = sessionStorage.getItem(SS.clLetter)
     setCvText(cv)
     if (jobRaw) { try { setJob(JSON.parse(jobRaw)) } catch { } }
     if (saved) setLetter(saved)
@@ -58,14 +59,14 @@ export default function IndiaCoverLetterPage() {
     setCvFileName(file.name); setCvText(''); setFileLoading(true)
     if (file.name.endsWith('.txt') || file.type === 'text/plain') {
       const r = new FileReader()
-      r.onload = e => { const t = (e.target?.result as string) ?? ''; setCvText(t); sessionStorage.setItem('jl_cv_text', t); setFileLoading(false) }
+      r.onload = e => { const t = (e.target?.result as string) ?? ''; setCvText(t); sessionStorage.setItem(SS.cvText, t); setFileLoading(false) }
       r.readAsText(file)
     } else {
       const form = new FormData(); form.append('file', file)
       try {
-        const res = await fetch('/api/extract-pdf', { method: 'POST', body: form })
+        const res = await fetch(API.extractPdf, { method: 'POST', body: form })
         const data = await res.json()
-        if (data.text) { setCvText(data.text); sessionStorage.setItem('jl_cv_text', data.text) }
+        if (data.text) { setCvText(data.text); sessionStorage.setItem(SS.cvText, data.text) }
         else { alert(data.error || 'Could not read file.'); setCvFileName('') }
       } catch { alert('Failed to read file.'); setCvFileName('') }
       setFileLoading(false)
@@ -77,21 +78,21 @@ export default function IndiaCoverLetterPage() {
     if (credits !== null && credits < CL_COST) { alert(`You need ${CL_COST} credit. Please top up on the Account page.`); return }
     setLoading(true); setLetter('')
     try {
-      const res = await fetch('/api/cover-letter', {
+      const res = await fetch(API.coverLetter, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ cvText, job, tone, length, lang, market: 'in' }),
+        body: JSON.stringify({ cvText, job, tone, length, lang, market: MARKET.in }),
       })
       if (res.status === 402) { const d = await res.json(); if (typeof d.credits === 'number') setCredits(d.credits); setLoading(false); alert('Not enough credits.'); return }
       const data = await res.json()
       if (typeof data.creditsRemaining === 'number') setCredits(data.creditsRemaining)
       const cl = data.coverLetter || data.letter || ''
-      setLetter(cl); sessionStorage.setItem('jl_cl_letter', cl)
+      setLetter(cl); sessionStorage.setItem(SS.clLetter, cl)
     } catch { setLetter('Failed to generate. Please try again.') }
     finally { setLoading(false) }
   }
 
   function handleGenerate() {
-    if (needsCrossMarket(CL_COST, 'in')) {
+    if (needsCrossMarket(CL_COST, MARKET.in)) {
       setCrossWarnPending(() => generate)
     } else {
       generate()
@@ -102,14 +103,14 @@ export default function IndiaCoverLetterPage() {
     if (!feedback.trim() || !letter) return
     setApplyingFeedback(true)
     try {
-      const res = await fetch('/api/cover-letter', {
+      const res = await fetch(API.coverLetter, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ cvText, job, tone, length, lang, feedback, currentLetter: letter, market: 'in' }),
+        body: JSON.stringify({ cvText, job, tone, length, lang, feedback, currentLetter: letter, market: MARKET.in }),
       })
       if (res.status === 402) { alert('Not enough credits.'); setApplyingFeedback(false); return }
       const data = await res.json()
       const cl = data.coverLetter || data.letter || ''
-      setLetter(cl); sessionStorage.setItem('jl_cl_letter', cl); setFeedback('')
+      setLetter(cl); sessionStorage.setItem(SS.clLetter, cl); setFeedback('')
     } catch { }
     setApplyingFeedback(false)
   }
@@ -185,8 +186,8 @@ export default function IndiaCoverLetterPage() {
       {crossWarnPending && (
         <CrossMarketModal
           cost={CL_COST}
-          market="in"
-          crossAmount={crossMarketAmount(CL_COST, 'in')}
+          market={MARKET.in}
+          crossAmount={crossMarketAmount(CL_COST, MARKET.in)}
           onConfirm={() => { const fn = crossWarnPending; setCrossWarnPending(null); fn() }}
           onCancel={() => setCrossWarnPending(null)}
         />
@@ -293,7 +294,7 @@ export default function IndiaCoverLetterPage() {
 
           {/* Generate */}
           <div style={{ padding: '14px 16px', borderTop: '1px solid rgba(255,255,255,0.08)', flexShrink: 0 }}>
-            {credits !== null && credits <= 2 && (
+            {credits !== null && credits <= LOW_CREDIT_WARN && (
               <div style={{ background: 'rgba(245,158,11,0.15)', border: '1px solid rgba(245,158,11,0.4)', borderRadius: 8, padding: '7px 10px', fontSize: 11, color: '#fcd34d', marginBottom: 8, lineHeight: 1.5 }}>
                 {credits === 0 ? 'No credits left. Top up on Account page.' : `${credits} credit${credits === 1 ? '' : 's'} remaining.`}
               </div>

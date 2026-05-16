@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { useSearchParams } from 'next/navigation'
 import Navbar from '../components/Navbar'
 import { useLanguage } from '@/lib/i18n'
+import { SS, API } from '@/lib/constants'
 
 interface Job {
   job_id: string
@@ -78,16 +79,16 @@ function SmartJobSearchPage() {
   useEffect(() => {
     const fromCareerScan = searchParams.get('from') === 'career-scan'
     if (fromCareerScan) {
-      const savedCv = sessionStorage.getItem('jl_cv_text')
-      const savedRole = sessionStorage.getItem('jl_target_role')
+      const savedCv = sessionStorage.getItem(SS.cvText)
+      const savedRole = sessionStorage.getItem(SS.targetRole)
       if (savedCv) { setCvText(savedCv); setCvFileName('From Career Scan'); setCarriedOver(true) }
       if (savedRole) setTargetRole(savedRole)
     } else {
-      const savedJobs = sessionStorage.getItem('jl_jobs')
-      const savedQuery = sessionStorage.getItem('jl_used_query')
-      const savedCv = sessionStorage.getItem('jl_sjs_cv_text')
-      const savedCvName = sessionStorage.getItem('jl_sjs_cv_name')
-      const savedRole = sessionStorage.getItem('jl_sjs_target_role')
+      const savedJobs = sessionStorage.getItem(SS.jobs)
+      const savedQuery = sessionStorage.getItem(SS.usedQuery)
+      const savedCv = sessionStorage.getItem(SS.sjsCvText)
+      const savedCvName = sessionStorage.getItem(SS.sjsCvName)
+      const savedRole = sessionStorage.getItem(SS.sjsTargetRole)
       if (savedJobs) {
         try {
           setJobs(JSON.parse(savedJobs))
@@ -101,13 +102,13 @@ function SmartJobSearchPage() {
 
   useEffect(() => {
     if (jobs.length > 0) {
-      sessionStorage.setItem('jl_jobs', JSON.stringify(jobs))
-      sessionStorage.setItem('jl_used_query', usedQuery)
+      sessionStorage.setItem(SS.jobs, JSON.stringify(jobs))
+      sessionStorage.setItem(SS.usedQuery, usedQuery)
     }
   }, [jobs, usedQuery])
 
   useEffect(() => {
-    if (cvText) { sessionStorage.setItem('jl_sjs_cv_text', cvText); sessionStorage.setItem('jl_sjs_cv_name', cvFileName) }
+    if (cvText) { sessionStorage.setItem(SS.sjsCvText, cvText); sessionStorage.setItem(SS.sjsCvName, cvFileName) }
   }, [cvText, cvFileName])
 
   // Auto-trigger job search when CV is carried over from Career Scan
@@ -119,7 +120,7 @@ function SmartJobSearchPage() {
   }, [carriedOver, cvText])
 
   useEffect(() => {
-    if (targetRole) sessionStorage.setItem('jl_sjs_target_role', targetRole)
+    if (targetRole) sessionStorage.setItem(SS.sjsTargetRole, targetRole)
   }, [targetRole])
 
   useEffect(() => {
@@ -134,7 +135,7 @@ function SmartJobSearchPage() {
     const form = new FormData()
     form.append('file', file)
     try {
-      const res = await fetch('/api/extract-pdf', { method: 'POST', body: form })
+      const res = await fetch(API.extractPdf, { method: 'POST', body: form })
       const data = await res.json()
       if (data.text) setLinkedinText(data.text)
     } catch { }
@@ -150,7 +151,7 @@ function SmartJobSearchPage() {
       const form = new FormData()
       form.append('file', file)
       try {
-        const res = await fetch('/api/extract-pdf', { method: 'POST', body: form })
+        const res = await fetch(API.extractPdf, { method: 'POST', body: form })
         const data = await res.json()
         if (data.text) { setCvText(data.text) } else { alert(data.error || 'Could not read PDF.'); setCvFileName('') }
       } catch { alert('Failed to read PDF.'); setCvFileName('') }
@@ -173,11 +174,11 @@ function SmartJobSearchPage() {
     setLoggedJobs(new Set())
     if (linkedinRef.current) linkedinRef.current.value = ''
     if (cvRef.current) cvRef.current.value = ''
-    sessionStorage.removeItem('jl_jobs'); sessionStorage.removeItem('jl_used_query')
-    sessionStorage.removeItem('jl_sjs_cv_text'); sessionStorage.removeItem('jl_sjs_cv_name')
-    sessionStorage.removeItem('jl_sjs_target_role'); sessionStorage.removeItem('jl_cv_text')
-    sessionStorage.removeItem('jl_target_role')
-    sessionStorage.removeItem('jl_cvb_job')
+    sessionStorage.removeItem(SS.jobs); sessionStorage.removeItem(SS.usedQuery)
+    sessionStorage.removeItem(SS.sjsCvText); sessionStorage.removeItem(SS.sjsCvName)
+    sessionStorage.removeItem(SS.sjsTargetRole); sessionStorage.removeItem(SS.cvText)
+    sessionStorage.removeItem(SS.targetRole)
+    sessionStorage.removeItem(SS.cvbJob)
   }
 
   function generateMatchChips(job: Job, extractedProfile: Profile | null): { label: string; positive: boolean }[] {
@@ -218,7 +219,7 @@ function SmartJobSearchPage() {
     if (hasProfile) {
       setAnalysing(true)
       try {
-        const res = await fetch('/api/analyse-profile', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ linkedinText, cvText, targetRole, experience, jobTypes }) })
+        const res = await fetch(API.analyseProfile, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ linkedinText, cvText, targetRole, experience, jobTypes }) })
         extractedProfile = await res.json()
         setProfile(extractedProfile)
         // AI has read both the CV and target role together and produced a clean, short query.
@@ -262,15 +263,15 @@ function SmartJobSearchPage() {
 
   // Save job to sessionStorage and navigate to CV Builder
   function openCvBuilder(job: Job) {
-    sessionStorage.setItem('jl_cvb_job', JSON.stringify(job))
+    sessionStorage.setItem(SS.cvbJob, JSON.stringify(job))
     // Clear any previously tailored CV so builder starts fresh for this job
-    sessionStorage.removeItem('jl_cvb_tailored')
+    sessionStorage.removeItem(SS.cvbTailored)
     router.push('/app/cv-builder')
   }
 
   // Save job to sessionStorage and navigate to Cover Letter Builder
   function openCoverLetter(job: Job) {
-    sessionStorage.setItem('jl_cvb_job', JSON.stringify(job))
+    sessionStorage.setItem(SS.cvbJob, JSON.stringify(job))
     router.push('/app/cover-letter')
   }
 

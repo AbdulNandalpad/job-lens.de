@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
 import Anthropic from '@anthropic-ai/sdk'
 import { createServerSupabase, checkAndDeductCredits, refundCredits } from '@/lib/supabase-server'
+import { CREDIT_COST, MARKET } from '@/lib/constants'
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
-const COST = 2
+const COST = CREDIT_COST.careerScan
 
 const SYSTEM_PROMPT = `You are an ATS (Applicant Tracking System) expert specializing in Indian recruitment systems: Taleo, Workday, iCIMS, Naukri ATS, and SmartRecruiters.
 
@@ -68,7 +69,7 @@ export async function POST(req: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const credits = await checkAndDeductCredits(user.id, COST, 'india_ats_scan', user.email ?? '', 'in')
+  const credits = await checkAndDeductCredits(user.id, COST, 'india_ats_scan', user.email ?? '', MARKET.in)
   if (!credits.ok) {
     return NextResponse.json({ error: 'Insufficient credits', credits: credits.remaining, required: COST }, { status: 402 })
   }

@@ -6,6 +6,7 @@ import Navbar from '../components/Navbar'
 import { useCredits } from '@/lib/useCredits'
 import { useLanguage } from '@/lib/i18n'
 import CrossMarketModal from '@/components/CrossMarketModal'
+import { CREDIT_COST, LOW_CREDIT_WARN, MARKET, SS, API } from '@/lib/constants'
 
 type Tone = 'confident' | 'formal' | 'warm'
 type Length = 'short' | 'medium' | 'long'
@@ -46,7 +47,7 @@ export default function CoverLetterPage() {
   const [feedback, setFeedback] = useState('')
   const [applyingFeedback, setApplyingFeedback] = useState(false)
   const { credits, setCredits, needsCrossMarket, crossMarketAmount } = useCredits()
-  const CL_COST = 1
+  const CL_COST = CREDIT_COST.coverLetter
   const [crossWarnPending, setCrossWarnPending] = useState<(() => void) | null>(null)
   const [openSections, setOpenSections] = useState<Record<string, boolean>>({ style: false, format: false, summary: false })
   const [mobOpen, setMobOpen] = useState(false)
@@ -54,9 +55,9 @@ export default function CoverLetterPage() {
   const jobLabel = job ? `${job.employer_name} - ${job.job_title}` : ''
 
   useEffect(() => {
-    const cv = sessionStorage.getItem('jl_cvb_tailored') || sessionStorage.getItem('jl_sjs_cv_text') || sessionStorage.getItem('jl_cv_text') || ''
-    const jobRaw = sessionStorage.getItem('jl_cvb_job')
-    const saved = sessionStorage.getItem('jl_cl_letter')
+    const cv = sessionStorage.getItem(SS.cvbTailored) || sessionStorage.getItem(SS.sjsCvText) || sessionStorage.getItem(SS.cvText) || ''
+    const jobRaw = sessionStorage.getItem(SS.cvbJob)
+    const saved = sessionStorage.getItem(SS.clLetter)
     setCvText(cv)
     if (jobRaw) { try { setJob(JSON.parse(jobRaw)) } catch { } }
     if (saved) setLetter(saved)
@@ -75,7 +76,7 @@ export default function CoverLetterPage() {
       r.onload = e => {
         const text = (e.target?.result as string) ?? ''
         setCvText(text)
-        sessionStorage.setItem('jl_cv_text', text)
+        sessionStorage.setItem(SS.cvText, text)
         setFileLoading(false)
       }
       r.readAsText(file)
@@ -83,11 +84,11 @@ export default function CoverLetterPage() {
       const form = new FormData()
       form.append('file', file)
       try {
-        const res = await fetch('/api/extract-pdf', { method: 'POST', body: form })
+        const res = await fetch(API.extractPdf, { method: 'POST', body: form })
         const data = await res.json()
         if (data.text) {
           setCvText(data.text)
-          sessionStorage.setItem('jl_cv_text', data.text)
+          sessionStorage.setItem(SS.cvText, data.text)
         } else {
           alert(data.error || 'Could not read file. Try a different format.')
           setCvFileName('')
@@ -102,7 +103,7 @@ export default function CoverLetterPage() {
     if (credits !== null && credits < CL_COST) { alert(`You need ${CL_COST} credit to generate a cover letter. Please top up on the Account page.`); return }
     setLoading(true); setLetter('')
     try {
-      const res = await fetch('/api/cover-letter', {
+      const res = await fetch(API.coverLetter, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ cvText, job, tone, length, lang: letterLang }),
@@ -112,7 +113,7 @@ export default function CoverLetterPage() {
       if (typeof data.creditsRemaining === 'number') setCredits(data.creditsRemaining)
       const cl = data.coverLetter || data.letter || data.result || ''
       setLetter(cl)
-      sessionStorage.setItem('jl_cl_letter', cl)
+      sessionStorage.setItem(SS.clLetter, cl)
       setPersonalization(data.personalization || (job ? `${job.employer_name} . ${job.job_city || 'location'} . role context . DE/EN bilingual` : 'Company context applied'))
       setOptional(data.optional || 'Mention specific product line. Add referral name if available. Include LinkedIn profile URL.')
       setOpenSections(prev => ({ ...prev, summary: true }))
@@ -121,7 +122,7 @@ export default function CoverLetterPage() {
   }
 
   function handleGenerate() {
-    if (needsCrossMarket(CL_COST, 'eu')) {
+    if (needsCrossMarket(CL_COST, MARKET.eu)) {
       setCrossWarnPending(() => generate)
     } else {
       generate()
@@ -132,7 +133,7 @@ export default function CoverLetterPage() {
     if (!feedback.trim() || !letter) return
     setApplyingFeedback(true)
     try {
-      const res = await fetch('/api/cover-letter', {
+      const res = await fetch(API.coverLetter, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ cvText, job, tone, length, lang: letterLang, feedback, currentLetter: letter }),
@@ -141,7 +142,7 @@ export default function CoverLetterPage() {
       const data = await res.json()
       const cl = data.coverLetter || data.letter || ''
       setLetter(cl)
-      sessionStorage.setItem('jl_cl_letter', cl)
+      sessionStorage.setItem(SS.clLetter, cl)
       setFeedback('')
     } catch { /* silent */ }
     setApplyingFeedback(false)
@@ -318,7 +319,7 @@ export default function CoverLetterPage() {
   }
 
   function goApply() {
-    sessionStorage.setItem('jl_cl_letter', letter)
+    sessionStorage.setItem(SS.clLetter, letter)
     router.push('/app/apply-now')
   }
 
@@ -352,7 +353,7 @@ export default function CoverLetterPage() {
         <CrossMarketModal
           cost={CL_COST}
           market="eu"
-          crossAmount={crossMarketAmount(CL_COST, 'eu')}
+          crossAmount={crossMarketAmount(CL_COST, MARKET.eu)}
           onConfirm={() => { const fn = crossWarnPending; setCrossWarnPending(null); fn() }}
           onCancel={() => setCrossWarnPending(null)}
         />
@@ -491,7 +492,7 @@ export default function CoverLetterPage() {
 
           {/* Generate button */}
           <div style={{ padding: '14px 16px', borderTop: '1px solid rgba(255,255,255,0.08)', flexShrink: 0 }}>
-            {credits !== null && credits <= 2 && (
+            {credits !== null && credits <= LOW_CREDIT_WARN && (
               <div style={{ background: 'rgba(245,158,11,0.15)', border: '1px solid rgba(245,158,11,0.4)', borderRadius: 8, padding: '7px 10px', fontSize: 11, color: '#fcd34d', marginBottom: 8, lineHeight: 1.5 }}>
                 {credits === 0 ? t.coverLetter.sidebar.noCredits : t.coverLetter.sidebar.lowCredits(credits!)}
               </div>
@@ -569,7 +570,7 @@ export default function CoverLetterPage() {
                 </div>
               </div>
               {/* Generate */}
-              {credits !== null && credits <= 2 && (
+              {credits !== null && credits <= LOW_CREDIT_WARN && (
                 <div style={{ background: 'rgba(245,158,11,0.15)', border: '1px solid rgba(245,158,11,0.4)', borderRadius: 8, padding: '7px 10px', fontSize: 11, color: '#fcd34d', lineHeight: 1.5 }}>
                   {credits === 0 ? t.coverLetter.sidebar.noCredits : t.coverLetter.sidebar.lowCredits(credits!)}
                 </div>

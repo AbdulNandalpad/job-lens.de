@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
 import Anthropic from '@anthropic-ai/sdk'
 import { createServerSupabase, checkAndDeductCredits } from '@/lib/supabase-server'
+import { CREDIT_COST, MARKET } from '@/lib/constants'
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
-const COST = 1
+const COST = CREDIT_COST.tailorCv
 
 export async function POST(req: NextRequest) {
   const supabase = await createServerSupabase()
@@ -12,7 +13,7 @@ export async function POST(req: NextRequest) {
 
   const body = await req.json()
   const { cvText, job, template, tone, pages, lang, systemPrompt, returnJson, feedback, currentCv, market } = body
-  const resolvedMarket: 'eu' | 'in' = market === 'in' ? 'in' : 'eu'
+  const resolvedMarket: 'eu' | 'in' = market === MARKET.in ? MARKET.in : MARKET.eu
 
   const credits = await checkAndDeductCredits(user.id, COST, 'tailor_cv', user.email ?? '', resolvedMarket)
   if (!credits.ok) {

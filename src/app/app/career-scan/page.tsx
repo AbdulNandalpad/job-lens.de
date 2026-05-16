@@ -8,6 +8,7 @@ import { theme } from '@/lib/theme'
 import { useCredits } from '@/lib/useCredits'
 import { useLanguage } from '@/lib/i18n'
 import CrossMarketModal from '@/components/CrossMarketModal'
+import { CREDIT_COST, LOW_CREDIT_WARN, MARKET, SS, API } from '@/lib/constants'
 
 const { colors: c, gradients: g, fonts: f } = theme
 
@@ -79,24 +80,24 @@ export default function CareerScanPage() {
   const [toastMsg, setToastMsg] = useState('')
   const [showJobSearchBanner, setShowJobSearchBanner] = useState(false)
   const { credits, setCredits, needsCrossMarket, crossMarketAmount } = useCredits()
-  const SCAN_COST = 2
+  const SCAN_COST = CREDIT_COST.careerScan
   const [crossWarnPending, setCrossWarnPending] = useState<(() => void) | null>(null)
 
   useEffect(() => {
     if (phase === 'results' && result) {
-      sessionStorage.setItem('jl_scan_result', JSON.stringify(result))
-      sessionStorage.setItem('jl_scan_role', role)
-      sessionStorage.setItem('jl_scan_market', market)
-      sessionStorage.setItem('jl_scan_phase', 'results')
+      sessionStorage.setItem(SS.scanResult, JSON.stringify(result))
+      sessionStorage.setItem(SS.scanRole, role)
+      sessionStorage.setItem(SS.scanMarket, market)
+      sessionStorage.setItem(SS.scanPhase, 'results')
     }
   }, [phase, result])
 
   useEffect(() => {
-    const savedPhase = sessionStorage.getItem('jl_scan_phase')
+    const savedPhase = sessionStorage.getItem(SS.scanPhase)
     if (savedPhase === 'results') {
-      const savedResult = sessionStorage.getItem('jl_scan_result')
-      const savedRole = sessionStorage.getItem('jl_scan_role')
-      const savedMarket = sessionStorage.getItem('jl_scan_market')
+      const savedResult = sessionStorage.getItem(SS.scanResult)
+      const savedRole = sessionStorage.getItem(SS.scanRole)
+      const savedMarket = sessionStorage.getItem(SS.scanMarket)
       if (savedResult) {
         try {
           setResult(JSON.parse(savedResult))
@@ -121,7 +122,7 @@ export default function CareerScanPage() {
       const form = new FormData()
       form.append('file', file)
       try {
-        const res = await fetch('/api/extract-pdf', { method: 'POST', body: form })
+        const res = await fetch(API.extractPdf, { method: 'POST', body: form })
         const data = await res.json()
         if (data.text) { setCvText(data.text) } else { alert(data.error || 'Could not read PDF. Please paste your CV text below.'); setFileName('') }
       } catch { alert('Failed to read PDF. Please paste your CV text below.'); setFileName('') }
@@ -137,7 +138,7 @@ export default function CareerScanPage() {
     const form = new FormData()
     form.append('file', file)
     try {
-      const res = await fetch('/api/extract-pdf', { method: 'POST', body: form })
+      const res = await fetch(API.extractPdf, { method: 'POST', body: form })
       const data = await res.json()
       if (data.text && !cvText) setCvText(data.text)
     } catch { }
@@ -149,9 +150,9 @@ export default function CareerScanPage() {
   function resetAll() {
     setPhase('upload'); setFileName(''); setCvText(''); setLinkedinFileName('')
     setShowJobSearchBanner(false); setResult(null); setRole('')
-    sessionStorage.removeItem('jl_scan_result'); sessionStorage.removeItem('jl_scan_phase')
-    sessionStorage.removeItem('jl_scan_role'); sessionStorage.removeItem('jl_scan_market')
-    sessionStorage.removeItem('jl_cv_text'); sessionStorage.removeItem('jl_target_role')
+    sessionStorage.removeItem(SS.scanResult); sessionStorage.removeItem(SS.scanPhase)
+    sessionStorage.removeItem(SS.scanRole); sessionStorage.removeItem(SS.scanMarket)
+    sessionStorage.removeItem(SS.cvText); sessionStorage.removeItem(SS.targetRole)
   }
 
   async function runScan() {
@@ -160,7 +161,7 @@ export default function CareerScanPage() {
     const loadingSteps = t.careerScan.loadingSteps
     const timer = setInterval(() => setStep(p => Math.min(p + 1, loadingSteps.length - 1)), 1800)
     try {
-      const res = await fetch('/api/career-scan', {
+      const res = await fetch(API.careerScan, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ cvText, role, market, lang }),
@@ -183,7 +184,7 @@ export default function CareerScanPage() {
   }
 
   function handleRunScan() {
-    if (needsCrossMarket(SCAN_COST, 'eu')) {
+    if (needsCrossMarket(SCAN_COST, MARKET.eu)) {
       setCrossWarnPending(() => runScan)
     } else {
       runScan()
@@ -191,8 +192,8 @@ export default function CareerScanPage() {
   }
 
   function goToJobSearch() {
-    sessionStorage.setItem('jl_cv_text', cvText)
-    sessionStorage.setItem('jl_target_role', role)
+    sessionStorage.setItem(SS.cvText, cvText)
+    sessionStorage.setItem(SS.targetRole, role)
     router.push('/app/smart-apply?from=career-scan')
   }
 
@@ -335,7 +336,7 @@ export default function CareerScanPage() {
         </button>
       )}
 
-      {credits !== null && credits <= 2 && (
+      {credits !== null && credits <= LOW_CREDIT_WARN && (
         <div style={{ background: 'rgba(245,158,11,0.15)', border: '1px solid rgba(245,158,11,0.4)', borderRadius: 8, padding: '8px 12px', fontSize: 11, color: '#fcd34d', lineHeight: 1.5 }}>
           {credits === 0
             ? cs.sidebar.noCredits
@@ -660,7 +661,7 @@ export default function CareerScanPage() {
         <CrossMarketModal
           cost={SCAN_COST}
           market="eu"
-          crossAmount={crossMarketAmount(SCAN_COST, 'eu')}
+          crossAmount={crossMarketAmount(SCAN_COST, MARKET.eu)}
           onConfirm={() => { const fn = crossWarnPending; setCrossWarnPending(null); fn() }}
           onCancel={() => setCrossWarnPending(null)}
         />

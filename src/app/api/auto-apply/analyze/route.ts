@@ -2,16 +2,17 @@ import { NextRequest, NextResponse } from 'next/server'
 import Anthropic from '@anthropic-ai/sdk'
 import { analyzeForm } from '@/lib/auto-apply-engine'
 import { createServerSupabase, checkAndDeductCredits } from '@/lib/supabase-server'
+import { CREDIT_COST, MARKET } from '@/lib/constants'
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
-const COST = 3
+const COST = CREDIT_COST.autoApply
 
 export async function POST(req: NextRequest) {
   const supabase = await createServerSupabase()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const credits = await checkAndDeductCredits(user.id, COST, 'auto_apply', user.email ?? '', 'eu')
+  const credits = await checkAndDeductCredits(user.id, COST, 'auto_apply', user.email ?? '', MARKET.eu)
   if (!credits.ok) {
     return NextResponse.json({ error: 'Insufficient credits', credits: credits.remaining, required: COST }, { status: 402 })
   }

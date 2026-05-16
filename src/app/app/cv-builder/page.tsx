@@ -6,6 +6,7 @@ import Navbar from '../components/Navbar'
 import { useCredits } from '@/lib/useCredits'
 import { useLanguage } from '@/lib/i18n'
 import CrossMarketModal from '@/components/CrossMarketModal'
+import { CREDIT_COST, LOW_CREDIT_WARN, MARKET, SS, API } from '@/lib/constants'
 
 type Template = 'executive' | 'modern' | 'minimal' | 'technical'
 type Tone = 'professional' | 'concise' | 'detailed'
@@ -686,7 +687,7 @@ export default function CVBuilderPage() {
   const [feedback, setFeedback] = useState('')
   const [applyingFeedback, setApplyingFeedback] = useState(false)
   const { credits, setCredits, needsCrossMarket, crossMarketAmount } = useCredits()
-  const CV_COST = 1
+  const CV_COST = CREDIT_COST.tailorCv
   const [crossWarnPending, setCrossWarnPending] = useState<(() => void) | null>(null)
   const [mobOpen, setMobOpen] = useState(false)
 
@@ -699,7 +700,7 @@ export default function CVBuilderPage() {
       r.onload = e => {
         const text = (e.target?.result as string) ?? ''
         setCvText(text)
-        sessionStorage.setItem('jl_cv_text', text)
+        sessionStorage.setItem(SS.cvText, text)
         setFileLoading(false)
       }
       r.readAsText(file)
@@ -707,11 +708,11 @@ export default function CVBuilderPage() {
       const form = new FormData()
       form.append('file', file)
       try {
-        const res = await fetch('/api/extract-pdf', { method: 'POST', body: form })
+        const res = await fetch(API.extractPdf, { method: 'POST', body: form })
         const data = await res.json()
         if (data.text) {
           setCvText(data.text)
-          sessionStorage.setItem('jl_cv_text', data.text)
+          sessionStorage.setItem(SS.cvText, data.text)
         } else {
           alert(data.error || 'Could not read file. Try a different format.')
           setCvFileName('')
@@ -726,9 +727,9 @@ export default function CVBuilderPage() {
   }
 
   useEffect(() => {
-    const cv = sessionStorage.getItem('jl_sjs_cv_text') || sessionStorage.getItem('jl_cv_text') || ''
-    const jobRaw = sessionStorage.getItem('jl_cvb_job')
-    const savedRole = sessionStorage.getItem('jl_sjs_target_role') || ''
+    const cv = sessionStorage.getItem(SS.sjsCvText) || sessionStorage.getItem(SS.cvText) || ''
+    const jobRaw = sessionStorage.getItem(SS.cvbJob)
+    const savedRole = sessionStorage.getItem(SS.sjsTargetRole) || ''
     setCvText(cv)
     if (jobRaw) {
       try {
@@ -740,8 +741,8 @@ export default function CVBuilderPage() {
       setJobLabel(savedRole)
     }
     // restore saved cv
-    const saved = sessionStorage.getItem('jl_cvb_tailored')
-    const savedData = sessionStorage.getItem('jl_cvb_data')
+    const saved = sessionStorage.getItem(SS.cvbTailored)
+    const savedData = sessionStorage.getItem(SS.cvbData)
     if (saved) setRawCv(saved)
     if (savedData) { try { setCvData(JSON.parse(savedData)) } catch { } }
   }, [])
@@ -797,7 +798,7 @@ ${job ? `- Tailor specifically for this role: ${job.job_title} at ${job.employer
 ${job?.job_description ? `- Job context: ${job.job_description.slice(0, 800)}` : ''}`
 
     try {
-      const res = await fetch('/api/tailor-cv', {
+      const res = await fetch(API.tailorCv, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -816,14 +817,14 @@ ${job?.job_description ? `- Job context: ${job.job_description.slice(0, 800)}` :
       if (typeof data.creditsRemaining === 'number') setCredits(data.creditsRemaining)
       const raw = data.cv || data.enhanced || data.result || ''
       setRawCv(raw)
-      sessionStorage.setItem('jl_cvb_tailored', raw)
+      sessionStorage.setItem(SS.cvbTailored, raw)
 
       // Try to parse as JSON for visual render
       try {
         const clean = raw.replace(/```json|```/g, '').trim()
         const parsed: CVData = JSON.parse(clean)
         setCvData(parsed)
-        sessionStorage.setItem('jl_cvb_data', JSON.stringify(parsed))
+        sessionStorage.setItem(SS.cvbData, JSON.stringify(parsed))
       } catch {
         // Fallback: show raw text
         setCvData(null)
@@ -835,7 +836,7 @@ ${job?.job_description ? `- Job context: ${job.job_description.slice(0, 800)}` :
   }
 
   function handleGenerate() {
-    if (needsCrossMarket(CV_COST, 'eu')) {
+    if (needsCrossMarket(CV_COST, MARKET.eu)) {
       setCrossWarnPending(() => generate)
     } else {
       generate()
@@ -849,7 +850,7 @@ ${job?.job_description ? `- Job context: ${job.job_description.slice(0, 800)}` :
     const systemPrompt = `You are an elite CV designer. The user has requested changes to their CV. Apply the feedback and return updated JSON matching the same schema. Return ONLY valid JSON, no markdown.`
 
     try {
-      const res = await fetch('/api/tailor-cv', {
+      const res = await fetch(API.tailorCv, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ cvText, job, template, tone, pages, lang, systemPrompt, returnJson: true, feedback, currentCv: rawCv }),
@@ -858,12 +859,12 @@ ${job?.job_description ? `- Job context: ${job.job_description.slice(0, 800)}` :
       const data = await res.json()
       const raw = data.cv || ''
       setRawCv(raw)
-      sessionStorage.setItem('jl_cvb_tailored', raw)
+      sessionStorage.setItem(SS.cvbTailored, raw)
       try {
         const clean = raw.replace(/```json|```/g, '').trim()
         const parsed: CVData = JSON.parse(clean)
         setCvData(parsed)
-        sessionStorage.setItem('jl_cvb_data', JSON.stringify(parsed))
+        sessionStorage.setItem(SS.cvbData, JSON.stringify(parsed))
       } catch { /* keep existing */ }
       setFeedback('')
     } catch { /* silent */ }
@@ -1099,7 +1100,7 @@ ${job?.job_description ? `- Job context: ${job.job_description.slice(0, 800)}` :
   }
 
   function goToCoverLetter() {
-    sessionStorage.setItem('jl_cvb_tailored', rawCv)
+    sessionStorage.setItem(SS.cvbTailored, rawCv)
     router.push('/app/cover-letter')
   }
 
@@ -1154,7 +1155,7 @@ ${job?.job_description ? `- Job context: ${job.job_description.slice(0, 800)}` :
         <CrossMarketModal
           cost={CV_COST}
           market="eu"
-          crossAmount={crossMarketAmount(CV_COST, 'eu')}
+          crossAmount={crossMarketAmount(CV_COST, MARKET.eu)}
           onConfirm={() => { const fn = crossWarnPending; setCrossWarnPending(null); fn() }}
           onCancel={() => setCrossWarnPending(null)}
         />
@@ -1343,7 +1344,7 @@ ${job?.job_description ? `- Job context: ${job.job_description.slice(0, 800)}` :
 
           {/* Generate button - pinned bottom */}
           <div style={{ padding: '14px 16px', borderTop: '1px solid rgba(255,255,255,0.08)', flexShrink: 0 }}>
-            {credits !== null && credits <= 2 && (
+            {credits !== null && credits <= LOW_CREDIT_WARN && (
               <div style={{ background: 'rgba(245,158,11,0.15)', border: '1px solid rgba(245,158,11,0.4)', borderRadius: 8, padding: '7px 10px', fontSize: 11, color: '#fcd34d', marginBottom: 8, lineHeight: 1.5 }}>
                 {credits === 0 ? t.cvBuilder.sidebar.noCredits : t.cvBuilder.sidebar.lowCredits(credits!)}
               </div>
@@ -1422,7 +1423,7 @@ ${job?.job_description ? `- Job context: ${job.job_description.slice(0, 800)}` :
                 </div>
               </div>
               {/* Generate */}
-              {credits !== null && credits <= 2 && (
+              {credits !== null && credits <= LOW_CREDIT_WARN && (
                 <div style={{ background: 'rgba(245,158,11,0.15)', border: '1px solid rgba(245,158,11,0.4)', borderRadius: 8, padding: '7px 10px', fontSize: 11, color: '#fcd34d', lineHeight: 1.5 }}>
                   {credits === 0 ? t.cvBuilder.sidebar.noCredits : t.cvBuilder.sidebar.lowCredits(credits!)}
                 </div>
