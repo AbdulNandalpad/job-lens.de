@@ -2,7 +2,8 @@ export const translations = {
   DE: {
     navbar: {
       careerScan: 'Career Scan',
-      smartApply: 'Job-Suche',
+      jobSearch: 'Job-Suche',
+      smartApply: 'AI Job Match',
       cvBuilder: 'Lebenslauf',
       coverLetter: 'Anschreiben',
       applyNow: 'Jetzt bewerben',
@@ -367,7 +368,8 @@ export const translations = {
   EN: {
     navbar: {
       careerScan: 'Career Scan',
-      smartApply: 'Smart Job Search',
+      jobSearch: 'Job Search',
+      smartApply: 'AI Job Match',
       cvBuilder: 'CV Builder',
       coverLetter: 'Cover Letter',
       applyNow: 'Apply Now',

@@ -31,6 +31,7 @@ export async function middleware(request: NextRequest) {
     path === '/' ||
     path === '/in' ||
     path.startsWith('/login') ||
+    path.startsWith('/in/login') ||
     path.startsWith('/auth') ||
     path.startsWith('/impressum') ||
     path.startsWith('/datenschutz') ||
@@ -39,8 +40,8 @@ export async function middleware(request: NextRequest) {
 
   if (!user && !isPublic) {
     const url = request.nextUrl.clone()
-    url.pathname = '/login'
-    // Preserve the intended destination so the user lands in the right market after sign-in
+    // Route India paths to India-branded login, DACH paths to shared login
+    url.pathname = path.startsWith('/in/') ? '/in/login' : '/login'
     url.searchParams.set('next', path)
     return NextResponse.redirect(url)
   }

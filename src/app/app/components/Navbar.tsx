@@ -35,15 +35,15 @@ export default function Navbar() {
 
   const navItems = [
     { label: t.navbar.careerScan, href: '/app/career-scan' },
+    { label: t.navbar.jobSearch,  href: '/app/jobs' },
     { label: t.navbar.smartApply, href: '/app/smart-apply' },
-    { label: t.navbar.cvBuilder, href: '/app/cv-builder' },
-    { label: t.navbar.coverLetter, href: '/app/cover-letter' },
-    { label: t.navbar.applyNow, href: '/app/apply-now' },
+    { label: t.navbar.cvBuilder,  href: '/app/cv-builder' },
+    { label: t.navbar.coverLetter,href: '/app/cover-letter' },
     ...(process.env.NEXT_PUBLIC_AUTO_APPLY_ENABLED === 'true'
       ? [{ label: t.navbar.autoApply, href: '/app/auto-apply' }]
       : []),
-    { label: t.navbar.tracker, href: '/app/tracker' },
-    { label: t.navbar.account, href: '/app/account' },
+    { label: t.navbar.tracker,    href: '/app/tracker' },
+    { label: t.navbar.account,    href: '/app/account' },
   ]
 
   const isActive = (href: string) => pathname === href

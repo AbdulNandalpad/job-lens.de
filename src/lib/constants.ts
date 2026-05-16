@@ -49,8 +49,11 @@ export const SS = {
   clLetter:       'jl_cl_letter',
 
   // India-specific
-  inSelectedJob:  'jl_in_selected_job',
-  atsSuggestions: 'jl_ats_suggestions',
+  inSelectedJob:       'jl_in_selected_job',
+  atsSuggestions:      'jl_ats_suggestions',
+  inCareerScanMode:    'jl_in_career_scan_mode', // 'ats' | 'career'
+  inCareerScanResult:  'jl_in_career_scan_result',
+  inCareerScanRole:    'jl_in_career_scan_role',
 } as const
 
 // ── API routes ───────────────────────────────────────────────────────────────
@@ -64,5 +67,6 @@ export const API = {
   analyseProfile:   '/api/analyse-profile',
   jobs:             '/api/jobs',
   autoApplyAnalyze: '/api/auto-apply/analyze',
-  userProfile:      '/api/user/profile',
+  userProfile:          '/api/user/profile',
+  indiaCareerScanPro:   '/api/india/career-scan-pro',
 } as const
