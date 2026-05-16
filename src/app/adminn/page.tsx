@@ -226,8 +226,7 @@ export default function AdminPage() {
                           ) : (
                             <input type="number" value={creditEdits[user.id] ?? user.credits}
                               onChange={e => setCreditEdits(prev => ({ ...prev, [user.id]: e.target.value }))}
-                              onBlur={e => { const val = parseInt(e.target.value); if (!isNaN(val) && val !== user.credits) updateUser(user.id, { credits: val }) }}
-                              style={{ width: 44, padding: '3px 4px', borderRadius: 6, border: `1px solid ${c.border}`, background: c.bg, color: c.primary, fontSize: 12, textAlign: 'center' as const }} />
+                              style={{ width: 44, padding: '3px 4px', borderRadius: 6, border: `1px solid ${creditEdits[user.id] !== undefined ? c.accent : c.border}`, background: c.bg, color: c.primary, fontSize: 12, textAlign: 'center' as const }} />
                           )}
                         </div>
                         {/* India credits (read-only) */}
@@ -243,7 +242,16 @@ export default function AdminPage() {
                           </span>
                         </div>
                         {/* Actions */}
-                        <div>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+                          {/* Save credits button — only shown when value has been edited */}
+                          {!user.isAdmin && creditEdits[user.id] !== undefined && (
+                            <button
+                              onClick={() => { const val = parseInt(creditEdits[user.id]); if (!isNaN(val)) updateUser(user.id, { credits: val }) }}
+                              disabled={updating === user.id}
+                              style={{ padding: '5px 10px', borderRadius: 6, border: `1px solid ${c.accent}60`, background: `${c.accent}15`, color: c.accent, fontSize: 11, fontWeight: 700, cursor: 'pointer' }}>
+                              {updating === user.id ? '…' : '💾 Save'}
+                            </button>
+                          )}
                           {user.isAdmin ? (
                             <span style={{ fontSize: 11, color: c.textFaint }}>—</span>
                           ) : user.status === 'active' ? (
@@ -288,8 +296,7 @@ export default function AdminPage() {
                             ) : (
                               <input type="number" value={creditEdits[user.id] ?? user.credits}
                                 onChange={e => setCreditEdits(prev => ({ ...prev, [user.id]: e.target.value }))}
-                                onBlur={e => { const val = parseInt(e.target.value); if (!isNaN(val) && val !== user.credits) updateUser(user.id, { credits: val }) }}
-                                style={{ width: '100%', padding: '2px 4px', borderRadius: 6, border: `1px solid ${c.border}`, background: c.bg, color: c.primary, fontSize: 14, fontWeight: 700, textAlign: 'center' as const }} />
+                                style={{ width: '100%', padding: '2px 4px', borderRadius: 6, border: `1px solid ${creditEdits[user.id] !== undefined ? c.accent : c.border}`, background: c.bg, color: c.primary, fontSize: 14, fontWeight: 700, textAlign: 'center' as const }} />
                             )}
                           </div>
                           <div style={{ background: '#13880808', border: '1px solid #13880820', borderRadius: 8, padding: '8px 10px', textAlign: 'center' as const }}>
@@ -304,6 +311,14 @@ export default function AdminPage() {
                         <div style={{ fontSize: 12, color: c.textMuted }}>
                           AI calls made: <strong style={{ color: c.primary }}>{user.credits_spent}</strong>
                         </div>
+                        {!user.isAdmin && creditEdits[user.id] !== undefined && (
+                          <button
+                            onClick={() => { const val = parseInt(creditEdits[user.id]); if (!isNaN(val)) updateUser(user.id, { credits: val }) }}
+                            disabled={updating === user.id}
+                            style={{ width: '100%', padding: '9px 0', borderRadius: 8, border: `1px solid ${c.accent}60`, background: `${c.accent}15`, color: c.accent, fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: f.body }}>
+                            {updating === user.id ? '…' : '💾 Save Credits'}
+                          </button>
+                        )}
                         {!user.isAdmin && (
                           <button
                             onClick={() => updateUser(user.id, { status: user.status === 'active' ? 'blocked' : 'active' })}

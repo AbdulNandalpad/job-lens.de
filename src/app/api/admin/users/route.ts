@@ -75,8 +75,14 @@ export async function PATCH(req: NextRequest) {
   if (status !== undefined) updates.status = status
   if (credits !== undefined) updates.credits = credits
 
-  // upsert so it creates the row if the user has no profile yet
-  const { error } = await admin.from('profiles').upsert({ id, ...updates }, { onConflict: 'id' })
+  // try update first; if no row exists yet, insert with safe defaults
+  const { data: existing } = await admin.from('profiles').select('id').eq('id', id).single()
+  let error
+  if (existing) {
+    ;({ error } = await admin.from('profiles').update(updates).eq('id', id))
+  } else {
+    ;({ error } = await admin.from('profiles').insert({ id, credits: 0, eu_credits: 0, in_credits: 0, ...updates }))
+  }
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 
   return NextResponse.json({ ok: true })
