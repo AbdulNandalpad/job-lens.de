@@ -114,10 +114,25 @@ export default function IndiaDashboard() {
         .role-row      { display:flex; align-items:center; gap:10px; padding:10px 12px; border-radius:10px; cursor:pointer; transition:all .15s; }
         .city-row      { display:flex; align-items:center; gap:10px; padding:10px 12px; border-radius:10px; cursor:pointer; transition:all .15s; justify-content:space-between; }
         @media(max-width:900px){
+          .dash-hero    { padding:28px 18px 36px!important; }
           .dash-actions { grid-template-columns:repeat(2,1fr)!important; }
           .kpi-grid     { grid-template-columns:repeat(2,1fr)!important; }
           .cat-grid     { grid-template-columns:repeat(2,1fr)!important; }
+          .cat-card     { padding:14px!important; }
           .dash-bottom  { grid-template-columns:1fr!important; }
+        }
+        @media(max-width:480px){
+          .dash-hero    { padding:20px 16px 28px!important; }
+          .dash-actions { grid-template-columns:repeat(2,1fr)!important; gap:8px!important; }
+          .act-card     { padding:14px 10px!important; }
+          .kpi-grid     { grid-template-columns:repeat(2,1fr)!important; gap:10px!important; }
+          .cat-grid     { grid-template-columns:1fr 1fr!important; gap:8px!important; }
+          .cat-card     { padding:12px!important; border-radius:12px!important; }
+          .dash-bottom  { grid-template-columns:1fr!important; gap:12px!important; }
+        }
+        @media(max-width:360px){
+          .cat-grid     { grid-template-columns:1fr!important; }
+          .kpi-grid     { grid-template-columns:1fr 1fr!important; }
         }
       `}</style>
 
@@ -132,7 +147,7 @@ export default function IndiaDashboard() {
               <p style={{ margin:'0 0 4px', fontSize:12, color:'rgba(255,255,255,.45)', letterSpacing:.6 }}>
                 {new Date().toLocaleDateString('en-IN',{weekday:'long',day:'numeric',month:'long'})}
               </p>
-              <h1 style={{ margin:0, fontFamily:"'Outfit',sans-serif", fontSize:28, fontWeight:800, color:white }}>
+              <h1 style={{ margin:0, fontFamily:"'Outfit',sans-serif", fontSize:'clamp(20px,5vw,28px)', fontWeight:800, color:white }}>
                 {greeting}{firstName ? `, ${firstName}` : ''} 👋
               </h1>
               <p style={{ margin:'6px 0 0', fontSize:13, color:'rgba(255,255,255,.5)' }}>Your India job market command centre</p>
