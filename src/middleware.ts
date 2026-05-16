@@ -30,6 +30,7 @@ export async function middleware(request: NextRequest) {
   const isPublic =
     path === '/' ||
     path === '/in' ||
+    path === '/app' ||        // DACH dashboard (handles own auth check)
     path.startsWith('/login') ||
     path.startsWith('/in/login') ||
     path.startsWith('/auth') ||
