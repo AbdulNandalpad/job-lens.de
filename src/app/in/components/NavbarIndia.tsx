@@ -31,13 +31,13 @@ export default function NavbarIndia() {
   }
 
   const navItems = [
-    { label: 'Career Scan',       href: '/in/career-scan' },
-    { label: 'Profile Analysis',  href: '/in/profile-analysis' },
-    { label: 'Job Search',        href: '/in/jobs' },
-    { label: 'CV Builder',        href: '/in/cv-builder' },
-    { label: 'Cover Letter',      href: '/in/cover-letter' },
-    { label: 'Tracker',           href: '/in/tracker' },
-    { label: 'Account',           href: '/in/account' },
+    { label: 'Career Scan',  href: '/in/profile-analysis' },
+    { label: 'ATS Score',    href: '/in/career-scan' },
+    { label: 'Job Search',   href: '/in/jobs' },
+    { label: 'CV Builder',   href: '/in/cv-builder' },
+    { label: 'Cover Letter', href: '/in/cover-letter' },
+    { label: 'Tracker',      href: '/in/tracker' },
+    { label: 'Account',      href: '/in/account' },
   ]
 
   const isActive = (href: string) => pathname === href

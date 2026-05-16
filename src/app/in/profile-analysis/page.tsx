@@ -190,7 +190,7 @@ export default function ProfileAnalysisPage() {
 
           {/* Header */}
           <div style={{ marginBottom: 24, paddingLeft: 14, borderLeft: `3px solid ${orange}` }}>
-            <h1 style={{ fontFamily: "'Outfit',sans-serif", fontSize: 22, fontWeight: 700, color: navy, margin: 0 }}>Profile Analysis</h1>
+            <h1 style={{ fontFamily: "'Outfit',sans-serif", fontSize: 22, fontWeight: 700, color: navy, margin: 0 }}>Career Scan</h1>
             <p style={{ fontSize: 13, color: '#6b7c93', margin: '4px 0 0' }}>
               Upload your CV, pick a target role — get salary benchmarks, AI risk exposure, and a 3-month career roadmap.
             </p>
