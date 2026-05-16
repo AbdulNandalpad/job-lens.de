@@ -92,7 +92,6 @@ export async function PATCH(req: NextRequest) {
       credits: 0,
       eu_credits: 0,
       in_credits: 0,
-      status: 'active',
       ...patch,           // override with the field(s) being set
     },
     { onConflict: 'id' }  // update existing row, insert if missing
