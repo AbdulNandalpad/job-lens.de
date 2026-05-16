@@ -60,10 +60,10 @@ export async function checkAndDeductCredits(
 
   const admin = createAdminSupabase()
 
-  // Fetch current credits (all three pools)
+  // Fetch current credits, paid pools, and status
   const { data: profile, error: fetchError } = await admin
     .from('profiles')
-    .select('credits, eu_credits, in_credits')
+    .select('credits, eu_credits, in_credits, status')
     .eq('id', userId)
     .single()
 
@@ -72,7 +72,7 @@ export async function checkAndDeductCredits(
     const { data: inserted, error: insertError } = await admin
       .from('profiles')
       .insert({ id: userId, credits: 5, eu_credits: 0, in_credits: 0 })
-      .select('credits, eu_credits, in_credits')
+      .select('credits, eu_credits, in_credits, status')
       .single()
     if (insertError) {
       console.error('Profile insert failed:', insertError.message)
@@ -85,8 +85,13 @@ export async function checkAndDeductCredits(
     return { ok: false, remaining: 0 }
   }
 
-  // Treat null credits as 5 starter credits, paid pools default to 0
-  let common = profile?.credits ?? 5
+  // Block if admin has set status to blocked
+  if (profile?.status === 'blocked') {
+    return { ok: false, remaining: 0 }
+  }
+
+  // null credits = 0 (not 5) — never grant free credits due to missing data
+  let common = profile?.credits ?? 0
   let eu = profile?.eu_credits ?? 0
   let inPool = profile?.in_credits ?? 0
   const total = common + eu + inPool
