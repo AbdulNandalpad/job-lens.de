@@ -270,6 +270,15 @@ export default function IndiaDashboard() {
               })}
             </div>
           )}
+
+          {/* Disclaimer */}
+          <div style={{ marginTop:14, display:'flex', alignItems:'center', gap:6, flexWrap:'wrap' }}>
+            <span style={{ fontSize:11, color:'#94a3b8' }}>
+              ⓘ Job counts are sourced from{' '}
+              <a href="https://www.adzuna.in" target="_blank" rel="noopener noreferrer" style={{ color:'#94a3b8', textDecoration:'underline' }}>Adzuna India</a>
+              {' '}and refreshed every 4 hours. Figures reflect publicly listed job postings and may not represent the full market. Data is provided for informational purposes only.
+            </span>
+          </div>
         </div>
 
         {/* Bottom row */}
