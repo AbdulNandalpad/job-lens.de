@@ -1,9 +1,7 @@
 'use client'
 
-export const dynamic = 'force-dynamic'
-
 import { useState, useEffect, useRef } from 'react'
-import { useRouter, useSearchParams } from 'next/navigation'
+import { useRouter } from 'next/navigation'
 
 const orange = '#ff9933'
 const navy = '#042C53'
@@ -51,28 +49,24 @@ export default function IndiaJobsPage() {
 
   // Auto-search when navigated from dashboard with ?q= params
   useEffect(() => {
-    if (autoSearched.current) return
-    const q = searchParams.get('q')
-    const loc = searchParams.get('location')
+    if (autoSearched.current || typeof window === 'undefined') return
+    const params = new URLSearchParams(window.location.search)
+    const q = params.get('q')
+    const loc = params.get('location')
     if (q) {
       autoSearched.current = true
       setQuery(q)
       if (loc) setCity(loc)
-      // Trigger search after state is set
-      setTimeout(async () => {
-        setLoading(true); setSearched(true); setPage(1)
-        try {
-          const params = new URLSearchParams({ q, country: 'in', page: '1' })
-          if (loc) params.set('location', loc)
-          const res = await fetch(`/api/jobs?${params}`)
-          const data = await res.json()
-          const results = data.jobs || []
-          setJobs(results); setHasMore(results.length === 20)
-        } catch { setJobs([]); setHasMore(false) }
-        setLoading(false)
-      }, 50)
+      setLoading(true); setSearched(true); setPage(1)
+      const fetchParams = new URLSearchParams({ q, country: 'in', page: '1' })
+      if (loc) fetchParams.set('location', loc)
+      fetch(`/api/jobs?${fetchParams}`)
+        .then(r => r.json())
+        .then(data => { const results = data.jobs || []; setJobs(results); setHasMore(results.length === 20) })
+        .catch(() => { setJobs([]); setHasMore(false) })
+        .finally(() => setLoading(false))
     }
-  }, [searchParams])
+  }, [])
 
   async function search() {
     if (!query.trim()) return
