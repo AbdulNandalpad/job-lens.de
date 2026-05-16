@@ -41,9 +41,9 @@ export default function ImpressumPage() {
           <section>
             <h2 style={{ fontFamily: f.heading, fontSize: 16, fontWeight: 700, color: c.primary, marginBottom: 12 }}>Anbieter</h2>
             <p style={{ margin: 0 }}>
-              <strong>[Vor- und Nachname]</strong><br />
-              [Straße und Hausnummer]<br />
-              [PLZ] [Stadt]<br />
+              <strong>Abdul Rasheed Nandalpad</strong><br />
+              Brühlstr 15<br />
+              71034 Böblingen<br />
               Deutschland
             </p>
           </section>
@@ -51,8 +51,8 @@ export default function ImpressumPage() {
           <section>
             <h2 style={{ fontFamily: f.heading, fontSize: 16, fontWeight: 700, color: c.primary, marginBottom: 12 }}>Kontakt</h2>
             <p style={{ margin: 0 }}>
-              E-Mail: <a href="mailto:kontakt@job-lens.de" style={{ color: c.accent }}>kontakt@job-lens.de</a><br />
-              Telefon: [Telefonnummer] (optional)<br />
+              E-Mail: <a href="mailto:abdul.nandalpad@servicesphere.de" style={{ color: c.accent }}>abdul.nandalpad@servicesphere.de</a><br />
+              Telefon: +49 151 41412851<br />
               Web: <a href="https://job-lens.de" style={{ color: c.accent }}>https://job-lens.de</a>
             </p>
           </section>
@@ -60,16 +60,15 @@ export default function ImpressumPage() {
           <section>
             <h2 style={{ fontFamily: f.heading, fontSize: 16, fontWeight: 700, color: c.primary, marginBottom: 12 }}>Umsatzsteuer</h2>
             <p style={{ margin: 0 }}>
-              Gemäß § 19 UStG wird keine Umsatzsteuer berechnet (Kleinunternehmerregelung).<br />
-              <em style={{ color: c.textMuted }}>[Alternativ, falls zutreffend: USt-IdNr.: DE__________]</em>
+              Gemäß § 19 UStG wird keine Umsatzsteuer berechnet (Kleinunternehmerregelung).
             </p>
           </section>
 
           <section>
             <h2 style={{ fontFamily: f.heading, fontSize: 16, fontWeight: 700, color: c.primary, marginBottom: 12 }}>Verantwortlich für den Inhalt nach § 55 Abs. 2 RStV</h2>
             <p style={{ margin: 0 }}>
-              [Vor- und Nachname]<br />
-              [Adresse wie oben]
+              Abdul Rasheed Nandalpad<br />
+              Brühlstr 15, 71034 Böblingen
             </p>
           </section>
 
