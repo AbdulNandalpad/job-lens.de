@@ -90,14 +90,24 @@ export default function AdminPage() {
 
   async function updateUser(id: string, updates: Record<string, unknown>) {
     setUpdating(id)
-    await fetch('/api/admin/users', {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id, ...updates }),
-    })
-    // clear local edit so input reflects the saved server value after reload
-    setCreditEdits(prev => { const next = { ...prev }; delete next[id]; return next })
-    await loadUsers()
+    try {
+      const res = await fetch('/api/admin/users', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id, ...updates }),
+      })
+      const data = await res.json()
+      if (!res.ok || !data.ok) {
+        alert(`Save failed: ${data.error || 'unknown error'}`)
+        setUpdating(null)
+        return
+      }
+      // Success — clear local edit state so input shows the fresh server value
+      setCreditEdits(prev => { const next = { ...prev }; delete next[id]; return next })
+      await loadUsers()
+    } catch (e) {
+      alert('Save failed: network error')
+    }
     setUpdating(null)
   }
 

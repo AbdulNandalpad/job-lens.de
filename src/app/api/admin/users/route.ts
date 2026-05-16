@@ -71,19 +71,37 @@ export async function PATCH(req: NextRequest) {
   if (!id) return NextResponse.json({ error: 'id required' }, { status: 400 })
 
   const admin = createAdminSupabase()
-  const updates: Record<string, unknown> = {}
-  if (status !== undefined) updates.status = status
-  if (credits !== undefined) updates.credits = credits
 
-  // try update first; if no row exists yet, insert with safe defaults
-  const { data: existing } = await admin.from('profiles').select('id').eq('id', id).single()
-  let error
-  if (existing) {
-    ;({ error } = await admin.from('profiles').update(updates).eq('id', id))
-  } else {
-    ;({ error } = await admin.from('profiles').insert({ id, credits: 0, eu_credits: 0, in_credits: 0, ...updates }))
+  // Fetch auth user so we have email for profile creation if needed
+  const { data: { user: authUser }, error: authErr } = await admin.auth.admin.getUserById(id)
+  if (authErr || !authUser) {
+    console.error('Admin PATCH: auth user fetch failed', authErr?.message)
+    return NextResponse.json({ error: 'User not found' }, { status: 404 })
   }
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+
+  // Build only the fields being changed
+  const patch: Record<string, unknown> = {}
+  if (status !== undefined) patch.status = status
+  if (credits !== undefined) patch.credits = Number(credits)
+
+  // Upsert: provide all required profile fields so new rows are valid
+  const { error } = await admin.from('profiles').upsert(
+    {
+      id,
+      email: authUser.email ?? '',
+      credits: 0,
+      eu_credits: 0,
+      in_credits: 0,
+      status: 'active',
+      ...patch,           // override with the field(s) being set
+    },
+    { onConflict: 'id' }  // update existing row, insert if missing
+  )
+
+  if (error) {
+    console.error('Admin PATCH: upsert failed', error.message)
+    return NextResponse.json({ error: error.message }, { status: 500 })
+  }
 
   return NextResponse.json({ ok: true })
 }
