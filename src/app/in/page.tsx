@@ -1,4 +1,7 @@
 import Link from 'next/link'
+import { createServerClient } from '@supabase/ssr'
+import { cookies } from 'next/headers'
+import IndiaDashboard from './components/IndiaDashboard'
 
 const saffron = '#FF9933'
 const indiaGreen = '#138808'
@@ -55,7 +58,21 @@ function ScoreRing({ score, size = 120, label, color }: { score: number; size?: 
   )
 }
 
-export default function IndiaHomePage() {
+export default async function IndiaHomePage() {
+  // Check auth — show dashboard for logged-in users
+  try {
+    const cookieStore = await cookies()
+    const supabase = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      { cookies: { get: (name: string) => cookieStore.get(name)?.value } }
+    )
+    const { data: { user } } = await supabase.auth.getUser()
+    if (user) return <IndiaDashboard />
+  } catch {
+    // Not logged in or cookie error — fall through to landing page
+  }
+
   return (
     <div style={{ fontFamily: "'DM Sans', sans-serif" }}>
       <style>{`
