@@ -11,8 +11,8 @@ interface CrossMarketModalProps {
 export default function CrossMarketModal({ cost, market, crossAmount, onConfirm, onCancel }: CrossMarketModalProps) {
   const isEU = market === 'eu'
   // If the user is on the EU site and needs to dip into India credits (and vice versa)
-  const nativeLabel = isEU ? 'DACH' : 'India'
-  const crossLabel = isEU ? 'India' : 'DACH'
+  const nativeLabel = isEU ? 'Europe' : 'India'
+  const crossLabel = isEU ? 'India' : 'Europe'
 
   return (
     <div style={{
