@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import type { MarketSnapshot } from '@/app/api/india/market-snapshot/route'
 import type { NewsArticle } from '@/app/api/india/news-insights/route'
@@ -130,6 +130,26 @@ export default function IndiaDashboard() {
   const [dashTab,    setDashTab]    = useState<DashTab>('pulse')
   const [newsTab,    setNewsTab]    = useState<NewsTab>('all')
   const [hoveredCat, setHoveredCat] = useState<string|null>(null)
+  // Mobile collapse — all sections closed by default
+  const [mobSec, setMobSec] = useState<Record<string,boolean>>({})
+  function toggleMob(id:string){setMobSec(p=>({...p,[id]:!p[id]}))}
+  // Wrap a section so it collapses on mobile and is always visible on desktop
+  function MobSection({id,title,icon,children}:{id:string;title:string;icon:string;children:React.ReactNode}){
+    const open=!!mobSec[id]
+    return (
+      <div>
+        <button className="mob-sec-hdr" onClick={()=>toggleMob(id)}
+          style={{width:'100%',display:'none',alignItems:'center',justifyContent:'space-between',
+            padding:'13px 18px',background:'rgba(255,255,255,.04)',border:`1px solid ${border}`,
+            borderRadius:open?'16px 16px 0 0':16,color:txt1,fontFamily:"'DM Sans',sans-serif",
+            fontSize:13,fontWeight:600,cursor:'pointer',marginBottom:open?0:8,transition:'border-radius .2s'}}>
+          <span style={{display:'flex',alignItems:'center',gap:8}}><span style={{fontSize:18}}>{icon}</span>{title}</span>
+          <span style={{fontSize:14,color:txt3,transition:'transform .2s',transform:open?'rotate(180deg)':'none'}}>▾</span>
+        </button>
+        <div className={open?'mob-sec-body mob-sec-open':'mob-sec-body'}>{children}</div>
+      </div>
+    )
+  }
 
   useEffect(()=>{
     fetch('/api/user/profile').then(r=>r.json()).then(setProfile).finally(()=>setLoadingP(false))
@@ -287,6 +307,15 @@ export default function IndiaDashboard() {
           .salary-row {grid-template-columns:1fr!important;gap:6px!important}
           .dash-actions{gap:8px!important}
           .act-card   {padding:14px 10px!important}
+
+          /* Mobile collapse */
+          .mob-sec-hdr { display:flex!important }
+          .mob-sec-body { display:none; border:1px solid rgba(255,255,255,.08); border-top:none; border-radius:0 0 16px 16px; margin-bottom:10px; overflow:hidden }
+          .mob-sec-body.mob-sec-open { display:block }
+          /* Remove the card's own outer border/radius on mobile — the collapse wrapper handles it */
+          .mob-sec-body > div:first-child { border-radius:0!important; border:none!important; margin-bottom:0!important }
+          /* KPI grid needs padding inside collapse body */
+          .mob-sec-body > .kpi-grid { padding:14px!important; margin-bottom:0!important }
         }
         @media(max-width:360px){
           .cat-grid{grid-template-columns:1fr!important}
@@ -359,7 +388,8 @@ export default function IndiaDashboard() {
       <div className="dash-page" style={{maxWidth:1100,margin:'0 auto',padding:'28px 20px 80px'}}>
 
         {/* KPI row */}
-        <div className="kpi-grid">
+        <MobSection id="kpi" title="Market Snapshot" icon="📊">
+        <div className="kpi-grid" style={{marginBottom:0}}>
           {[
             {label:'Open Roles',     value:loadingM?null:fmt(totalJobs),                           sub:'across all sectors',      color:saffron, icon:'📋'},
             {label:'Hottest Sector', value:loadingM?null:(topCat?.label??'—'),                     sub:`${fmt(topCat?.count??0)} listings`, color:cyan,    icon:'🔥'},
@@ -379,6 +409,7 @@ export default function IndiaDashboard() {
             </div>
           ))}
         </div>
+        </MobSection>
 
         {/* ── TAB NAV ── */}
         <div className="tab-nav">
@@ -404,6 +435,7 @@ export default function IndiaDashboard() {
           <div style={{animation:'fadeUp .3s ease both'}}>
 
             {/* World Bank macro */}
+            <MobSection id="macro" title="India Macro Indicators" icon="🌐">
             <div style={{background:card,border:`1px solid ${border}`,borderRadius:20,padding:'22px 26px',marginBottom:16}}>
               <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:18}}>
                 <GlowDot color={cyan}/>
@@ -435,8 +467,10 @@ export default function IndiaDashboard() {
                 }
               </div>
             </div>
+            </MobSection>
 
             {/* Sector heatmap */}
+            <MobSection id="sectors" title="Live Job Market by Sector" icon="🇮🇳">
             <div style={{background:card,border:`1px solid ${border}`,borderRadius:20,padding:'22px 26px',marginBottom:16}}>
               <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:20}}>
                 <GlowDot color={saffron}/>
@@ -488,8 +522,10 @@ export default function IndiaDashboard() {
                 ⓘ Data from <a href="https://www.adzuna.in" target="_blank" rel="noopener noreferrer" style={{color:txt2}}>Adzuna India</a> · publicly listed postings only · informational purposes
               </div>
             </div>
+            </MobSection>
 
             {/* Salary guide */}
+            <MobSection id="salary" title="India Salary Guide 2026" icon="💸">
             <div style={{background:card,border:`1px solid ${border}`,borderRadius:20,padding:'22px 26px'}}>
               <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:20}}>
                 <GlowDot color={emerald}/>
@@ -521,6 +557,7 @@ export default function IndiaDashboard() {
                 ⓘ Bar = range · white marker = median · 2025–26 India tech market
               </div>
             </div>
+            </MobSection>
           </div>
         )}
 
@@ -529,6 +566,7 @@ export default function IndiaDashboard() {
           <div style={{animation:'fadeUp .3s ease both'}}>
 
             {/* Big 3 stats */}
+            <MobSection id="aistats" title="AI Jobs Impact 2026" icon="🚀">
             <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:14,marginBottom:16}}>
               {[
                 {icon:'🚀',label:'New AI roles created in India (2025)',value:'4.2M+',color:emerald},
@@ -542,8 +580,10 @@ export default function IndiaDashboard() {
                 </div>
               ))}
             </div>
+            </MobSection>
 
             {/* Sector disruption */}
+            <MobSection id="disruption" title="AI Disruption by Sector" icon="🔬">
             <div style={{background:card,border:`1px solid ${border}`,borderRadius:20,padding:'22px 26px',marginBottom:16}}>
               <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:20}}>
                 <GlowDot color={purple}/>
@@ -576,8 +616,10 @@ export default function IndiaDashboard() {
                 })}
               </div>
             </div>
+            </MobSection>
 
             {/* Skills */}
+            <MobSection id="skills" title="Skill Demand Signals" icon="📡">
             <div style={{background:card,border:`1px solid ${border}`,borderRadius:20,padding:'22px 26px'}}>
               <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:6}}>
                 <GlowDot color={cyan}/>
@@ -630,12 +672,14 @@ export default function IndiaDashboard() {
                 ⓘ Trend data from Adzuna, Naukri & LinkedIn India job postings · 2024–26
               </div>
             </div>
+            </MobSection>
           </div>
         )}
 
         {/* ══ TAB 3: NEWS & SIGNALS ══ */}
         {dashTab==='news'&&(
           <div style={{animation:'fadeUp .3s ease both'}}>
+            <MobSection id="news" title="India Job Market News" icon="📰">
             <div style={{background:card,border:`1px solid ${border}`,borderRadius:20,padding:'22px 26px'}}>
               <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:6}}>
                 <GlowDot color={saffron}/>
@@ -695,6 +739,7 @@ export default function IndiaDashboard() {
                 </div>
               )}
             </div>
+            </MobSection>
           </div>
         )}
 
