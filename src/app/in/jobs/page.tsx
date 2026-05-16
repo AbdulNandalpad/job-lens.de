@@ -1,7 +1,7 @@
 'use client'
 
-import { useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useState, useEffect, useRef } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 
 const orange = '#ff9933'
 const navy = '#042C53'
@@ -35,6 +35,7 @@ function timeAgo(dateStr: string) {
 
 export default function IndiaJobsPage() {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const [query, setQuery] = useState('')
   const [city, setCity] = useState('')
   const [jobs, setJobs] = useState<Job[]>([])
@@ -44,6 +45,32 @@ export default function IndiaJobsPage() {
   const [selectedJobId, setSelectedJobId] = useState<string | null>(null)
   const [page, setPage] = useState(1)
   const [hasMore, setHasMore] = useState(false)
+  const autoSearched = useRef(false)
+
+  // Auto-search when navigated from dashboard with ?q= params
+  useEffect(() => {
+    if (autoSearched.current) return
+    const q = searchParams.get('q')
+    const loc = searchParams.get('location')
+    if (q) {
+      autoSearched.current = true
+      setQuery(q)
+      if (loc) setCity(loc)
+      // Trigger search after state is set
+      setTimeout(async () => {
+        setLoading(true); setSearched(true); setPage(1)
+        try {
+          const params = new URLSearchParams({ q, country: 'in', page: '1' })
+          if (loc) params.set('location', loc)
+          const res = await fetch(`/api/jobs?${params}`)
+          const data = await res.json()
+          const results = data.jobs || []
+          setJobs(results); setHasMore(results.length === 20)
+        } catch { setJobs([]); setHasMore(false) }
+        setLoading(false)
+      }, 50)
+    }
+  }, [searchParams])
 
   async function search() {
     if (!query.trim()) return
