@@ -14,7 +14,11 @@ function IndiaLoginForm() {
   const next = searchParams.get('next') || '/in/career-scan'
 
   const signInWithGoogle = async () => {
-    const callbackUrl = `${window.location.origin}/auth/callback?next=${encodeURIComponent(next)}`
+    // Store destination in a cookie before the OAuth round-trip.
+    // Supabase only allowlists the bare callback URL, so passing `next` as a
+    // query param gets stripped. The cookie survives the full redirect chain.
+    document.cookie = `jl_login_next=${encodeURIComponent(next)}; path=/; max-age=300; SameSite=Lax`
+    const callbackUrl = `${window.location.origin}/auth/callback`
     await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: { redirectTo: callbackUrl },

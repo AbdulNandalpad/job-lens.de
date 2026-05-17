@@ -375,7 +375,7 @@ export default async function IndiaHomePage() {
               {
                 name: 'Free', price: '0', credits: '5 credits', color: '#378ADD',
                 features: ['5 credits on signup', 'ATS Scan — 2 credits', 'CV Tailoring — 1 credit', 'Cover Letter — 1 credit', 'Unlimited job browsing'],
-                cta: 'Get Started Free', ctaHref: '/login?next=/in/career-scan', raised: false,
+                cta: 'Get Started Free', ctaHref: '/in/login', raised: false,
               },
               {
                 name: 'Starter', price: '149', credits: '20 credits', color: saffron,

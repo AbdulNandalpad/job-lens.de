@@ -13,7 +13,16 @@ function safeNext(next: string | null): string {
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url)
   const code = searchParams.get('code')
-  const next = safeNext(searchParams.get('next'))
+
+  // Query param may be stripped if the full URL wasn't in Supabase's allowlist.
+  // Fall back to the cookie the login page set just before redirecting to Google.
+  let nextRaw = searchParams.get('next')
+  if (!nextRaw) {
+    const cookieStore = await cookies()
+    const cookieVal = cookieStore.get('jl_login_next')?.value
+    if (cookieVal) nextRaw = decodeURIComponent(cookieVal)
+  }
+  const next = safeNext(nextRaw)
 
   if (code) {
     const cookieStore = await cookies()
