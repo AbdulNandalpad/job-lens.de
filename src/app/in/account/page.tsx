@@ -76,7 +76,15 @@ export default function IndiaAccountPage() {
 
   return (
     <>
-      <style>{`@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=Outfit:wght@400;600;700&display=swap');`}</style>
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=Outfit:wght@400;600;700&display=swap');
+        .acc-packs { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+        .acc-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 20px; }
+        @media (max-width: 768px) {
+          .acc-packs { grid-template-columns: 1fr; }
+          .acc-stats { grid-template-columns: 1fr; }
+        }
+      `}</style>
       <div style={{ background: '#f0f4f8', minHeight: 'calc(100vh - 52px)', padding: '28px 24px', fontFamily: "'DM Sans', sans-serif" }}>
         <div style={{ maxWidth: 720, margin: '0 auto' }}>
 
@@ -120,7 +128,7 @@ export default function IndiaAccountPage() {
                 <div style={{ fontFamily: "'Outfit', sans-serif", fontSize: 15, fontWeight: 700, color: navy, marginBottom: 18 }}>⚡ AI Credits</div>
 
                 {/* Available vs Used */}
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 20 }}>
+                <div className="acc-stats">
                   <div style={{ background: `${creditsColor}0f`, border: `1.5px solid ${creditsColor}30`, borderRadius: 12, padding: '16px 18px' }}>
                     <div style={{ fontSize: 11, fontWeight: 700, color: creditsColor, letterSpacing: .5, textTransform: 'uppercase', marginBottom: 6 }}>Credits Available</div>
                     <div style={{ fontFamily: "'Outfit', sans-serif", fontSize: isAdmin ? 24 : 36, fontWeight: 800, color: creditsColor, lineHeight: 1 }}>{isAdmin ? '∞ Admin' : profile.credits}</div>
@@ -177,7 +185,7 @@ export default function IndiaAccountPage() {
 
                 {/* Buy packs */}
                 <div style={{ fontSize: 12, fontWeight: 700, color: '#94a3b8', letterSpacing: .4, textTransform: 'uppercase', marginBottom: 10 }}>Top Up Credits</div>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10 }}>
+                <div className="acc-packs">
                   {PACKS.map(pack => (
                     <div key={pack.label} style={{ position: 'relative', border: `1.5px solid ${pack.popular ? orange : '#edf1f6'}`, borderRadius: 12, padding: '14px 12px', background: pack.popular ? `${orange}08` : '#f8fafc' }}>
                       {pack.popular && (

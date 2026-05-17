@@ -124,9 +124,15 @@ export default function IndiaJobsPage() {
         .jl-job-card:hover { box-shadow: 0 4px 16px rgba(4,44,83,0.1) !important; }
         .jl-action-btn { transition: opacity 0.15s, transform 0.15s; }
         .jl-action-btn:hover { opacity: 0.85; transform: translateY(-1px); }
+        @media (max-width: 768px) {
+          .jl-search-bar { flex-direction: column !important; }
+          .jl-search-bar input { min-width: unset !important; }
+          .jl-job-actions { flex-direction: column !important; gap: 8px !important; }
+          .jl-job-actions > * { width: 100% !important; text-align: center !important; box-sizing: border-box !important; }
+        }
       `}</style>
 
-      <div style={{ background: '#f0f4f8', minHeight: 'calc(100vh - 52px)', padding: '28px 24px' }}>
+      <div style={{ background: '#f0f4f8', minHeight: 'calc(100vh - 52px)', padding: '28px 16px' }}>
         <div style={{ maxWidth: 900, margin: '0 auto' }}>
 
           <div style={{ marginBottom: 24, paddingLeft: 14, borderLeft: `3px solid ${orange}` }}>
@@ -136,7 +142,7 @@ export default function IndiaJobsPage() {
 
           {/* Search bar */}
           <div style={{ background: '#fff', borderRadius: 14, boxShadow: '0 2px 12px rgba(4,44,83,0.06)', border: '1px solid #edf1f6', marginBottom: 24, overflow: 'hidden' }}>
-            <div style={{ display: 'flex', gap: 12, padding: 16, flexWrap: 'wrap' }}>
+            <div className="jl-search-bar" style={{ display: 'flex', gap: 12, padding: 16, flexWrap: 'wrap' }}>
               <input
                 value={query}
                 onChange={e => setQuery(e.target.value)}
