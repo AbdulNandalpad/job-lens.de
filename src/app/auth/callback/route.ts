@@ -46,7 +46,11 @@ export async function GET(request: Request) {
         .from('profiles')
         .upsert({ id: data.user.id, market }, { onConflict: 'id', ignoreDuplicates: false })
 
-      const destination = next || (market === 'in' ? '/in' : '/app')
+      // Never land on /in directly — it's a server component that races the
+      // freshly-set session cookie and may show the marketing page instead of
+      // the dashboard. Send India users to a middleware-protected page instead.
+      const rawDest = next || (market === 'in' ? '/in/career-scan' : '/app')
+      const destination = rawDest === '/in' ? '/in/career-scan' : rawDest
       return NextResponse.redirect(`${origin}${destination}`)
     }
   }
