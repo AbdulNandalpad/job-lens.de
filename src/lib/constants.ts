@@ -8,6 +8,7 @@ export const CREDIT_COST = {
   coverLetter:     1,  // /api/cover-letter
   autoApply:       3,  // /api/auto-apply/analyze
   zeugnisDecoder:  1,  // /api/zeugnis — decode Arbeitszeugnis
+  visaCheck:       1,  // /api/visa — Fachkräfte eligibility analysis
 } as const
 
 // ── UI threshold — show low-credit warning when credits fall to or below this
@@ -69,6 +70,7 @@ export const API = {
   jobs:             '/api/jobs',
   baJobs:           '/api/ba-jobs',
   zeugnis:          '/api/zeugnis',
+  visa:             '/api/visa',
   autoApplyAnalyze: '/api/auto-apply/analyze',
   userProfile:          '/api/user/profile',
   indiaCareerScanPro:   '/api/india/career-scan-pro',
