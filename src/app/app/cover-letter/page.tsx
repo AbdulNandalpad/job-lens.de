@@ -106,7 +106,7 @@ export default function CoverLetterPage() {
       const res = await fetch(API.coverLetter, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ cvText, job, tone, length, lang: letterLang }),
+        body: JSON.stringify({ cvText, job, tone, length, lang: letterLang, market: MARKET.eu }),
       })
       if (res.status === 402) { const d = await res.json(); if (typeof d.credits === 'number') setCredits(d.credits); setLoading(false); alert('Not enough credits. Please top up on the Account page.'); return }
       const data = await res.json()

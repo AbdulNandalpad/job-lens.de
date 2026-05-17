@@ -225,7 +225,7 @@ export default function IndiaCoverLetterPage() {
               </div>
             ) : (
               <div style={{ marginTop: 12, padding: '7px 10px', background: 'rgba(29,158,117,0.12)', border: '1px solid rgba(29,158,117,0.3)', borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6 }}>
-                <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.7)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' as const }}>+ {cvFileName || 'CV loaded'}</span>
+                <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.7)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' as const }}>✓ {cvFileName || 'CV loaded'}</span>
                 <button onClick={() => { setCvText(''); setCvFileName(''); if (fileInputRef.current) fileInputRef.current.value = '' }}
                   style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.35)', cursor: 'pointer', fontSize: 16, padding: 0, flexShrink: 0 }}>x</button>
               </div>
@@ -283,6 +283,17 @@ export default function IndiaCoverLetterPage() {
                           style={{ padding: '9px 11px', borderRadius: 8, border: `1px solid ${length === l.id ? accent : 'rgba(255,255,255,0.08)'}`, background: length === l.id ? accent + '14' : 'rgba(255,255,255,0.03)', cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                           <span style={{ fontSize: 12, fontWeight: 600, color: length === l.id ? '#fff' : 'rgba(255,255,255,0.6)' }}>{l.label}</span>
                           <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)' }}>{l.desc}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                  <div>
+                    <div style={{ fontSize: 10, fontWeight: 600, color: 'rgba(255,255,255,0.4)', letterSpacing: 0.5, textTransform: 'uppercase', marginBottom: 8 }}>Language</div>
+                    <div style={{ display: 'flex', gap: 6 }}>
+                      {(['EN', 'DE'] as Lang[]).map(l => (
+                        <div key={l} onClick={() => setLang(l)}
+                          style={{ flex: 1, padding: '8px 0', borderRadius: 8, border: `1px solid ${lang === l ? accent : 'rgba(255,255,255,0.08)'}`, background: lang === l ? accent + '14' : 'rgba(255,255,255,0.03)', cursor: 'pointer', textAlign: 'center' }}>
+                          <span style={{ fontSize: 12, fontWeight: 700, color: lang === l ? '#fff' : 'rgba(255,255,255,0.45)' }}>{l}</span>
                         </div>
                       ))}
                     </div>

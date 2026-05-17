@@ -330,7 +330,11 @@ ${atsSuggestions?.section_gaps?.length ? `- ATS SECTION GAPS to address: ${atsSu
     setDownloading(null)
   }
 
-  function goToCoverLetter() { sessionStorage.setItem(SS.cvbTailored, rawCv); router.push('/in/cover-letter') }
+  function goToCoverLetter() {
+    sessionStorage.setItem(SS.cvbTailored, rawCv)
+    if (job) sessionStorage.setItem(SS.cvbJob, JSON.stringify(job))
+    router.push('/in/cover-letter')
+  }
   function goToAtsCheck() {
     if (cvData) {
       const lines: string[] = []
