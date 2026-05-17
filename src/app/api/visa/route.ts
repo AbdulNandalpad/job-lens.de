@@ -12,7 +12,7 @@ export async function POST(req: NextRequest) {
 
   const body = await req.json()
   const credits = await checkAndDeductCredits(
-    user.id, CREDIT_COST.visaCheck, 'visa_check', user.email ?? '', MARKET.eu
+    user.id, CREDIT_COST.visaCheck, 'visa_check', user.email ?? '', MARKET.in
   )
   if (!credits.ok) {
     return NextResponse.json({ error: 'Insufficient credits', credits: credits.remaining, required: CREDIT_COST.visaCheck }, { status: 402 })

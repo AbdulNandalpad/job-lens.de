@@ -60,7 +60,6 @@ export default function Navbar() {
     { label: t.navbar.cvBuilder,   href: '/app/cv-builder' },
     { label: t.navbar.coverLetter, href: '/app/cover-letter' },
     { label: t.navbar.zeugnis,     href: '/app/zeugnis' },
-    { label: t.navbar.visa,        href: '/app/visa' },
     { label: t.navbar.tracker,     href: '/app/tracker' },
     { label: t.navbar.account,     href: '/app/account' },
   ]
