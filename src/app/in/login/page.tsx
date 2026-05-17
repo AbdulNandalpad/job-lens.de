@@ -11,7 +11,7 @@ const border  = 'rgba(255,255,255,0.1)'
 function IndiaLoginForm() {
   const supabase = createClient()
   const searchParams = useSearchParams()
-  const next = searchParams.get('next') || '/in'
+  const next = searchParams.get('next') || '/in/career-scan'
 
   const signInWithGoogle = async () => {
     const callbackUrl = `${window.location.origin}/auth/callback?next=${encodeURIComponent(next)}`
