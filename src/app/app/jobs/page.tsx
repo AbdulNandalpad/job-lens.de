@@ -9,6 +9,8 @@ const blue  = '#378ADD'
 const navy  = '#042C53'
 const green = '#1D9E75'
 
+type JobSource = 'adzuna' | 'ba'
+
 interface Job {
   job_id: string
   job_title: string
@@ -20,6 +22,7 @@ interface Job {
   job_posted_at_datetime_utc: string
   job_min_salary: number | null
   job_max_salary: number | null
+  job_source?: JobSource
 }
 
 const COUNTRIES = [
@@ -51,14 +54,33 @@ export default function DACHJobsPage() {
   const [page,      setPage]      = useState(1)
   const [hasMore,   setHasMore]   = useState(false)
   const [usedQuery, setUsedQuery] = useState('')
+  const [source,    setSource]    = useState<JobSource>('adzuna')
   const autoSearched = useRef(false)
 
+  // ── Adzuna: fallback by trimming last word on 0 results ──────
   async function fetchWithFallback(q: string, countryCode: string): Promise<{ jobs: Job[]; usedQuery: string }> {
     let current = q.trim()
     while (current.length > 0) {
       const res  = await fetch(`/api/jobs?${new URLSearchParams({ q: current, country: countryCode, page: '1' })}`)
       const data = await res.json()
-      const jobs = data.jobs || []
+      const jobs = (data.jobs || []).map((j: Job) => ({ ...j, job_source: 'adzuna' as JobSource }))
+      if (jobs.length > 0) return { jobs, usedQuery: current }
+      const words = current.split(' ')
+      if (words.length === 1) break
+      current = words.slice(0, -1).join(' ')
+    }
+    return { jobs: [], usedQuery: current }
+  }
+
+  // ── BA Jobbörse (Mittelstand): same fallback logic ───────────
+  async function fetchBAWithFallback(q: string, location: string): Promise<{ jobs: Job[]; usedQuery: string }> {
+    let current = q.trim()
+    while (current.length > 0) {
+      const params = new URLSearchParams({ q: current, page: '1' })
+      if (location) params.set('location', location)
+      const res  = await fetch(`/api/ba-jobs?${params}`)
+      const data = await res.json()
+      const jobs = (data.jobs || []).map((j: Job) => ({ ...j, job_source: 'ba' as JobSource }))
       if (jobs.length > 0) return { jobs, usedQuery: current }
       const words = current.split(' ')
       if (words.length === 1) break
@@ -88,7 +110,9 @@ export default function DACHJobsPage() {
     if (!query.trim()) return
     setLoading(true); setSearched(true); setSelectedJobId(null); setPage(1)
     try {
-      const { jobs: results, usedQuery: uq } = await fetchWithFallback(query, country)
+      const { jobs: results, usedQuery: uq } = source === 'ba'
+        ? await fetchBAWithFallback(query, country === 'de' ? '' : country)
+        : await fetchWithFallback(query, country)
       setJobs(results); setUsedQuery(uq); setHasMore(results.length === 20)
     } catch { setJobs([]); setUsedQuery(query); setHasMore(false) }
     setLoading(false)
@@ -98,12 +122,35 @@ export default function DACHJobsPage() {
     const next = page + 1
     setLoadingMore(true)
     try {
-      const res  = await fetch(`/api/jobs?${new URLSearchParams({ q: usedQuery, country, page: String(next) })}`)
-      const data = await res.json()
-      const more = data.jobs || []
+      let more: Job[] = []
+      if (source === 'ba') {
+        const params = new URLSearchParams({ q: usedQuery, page: String(next) })
+        const res  = await fetch(`/api/ba-jobs?${params}`)
+        const data = await res.json()
+        more = (data.jobs || []).map((j: Job) => ({ ...j, job_source: 'ba' as JobSource }))
+      } else {
+        const res  = await fetch(`/api/jobs?${new URLSearchParams({ q: usedQuery, country, page: String(next) })}`)
+        const data = await res.json()
+        more = (data.jobs || []).map((j: Job) => ({ ...j, job_source: 'adzuna' as JobSource }))
+      }
       setJobs(prev => [...prev, ...more]); setPage(next); setHasMore(more.length === 20)
     } catch {}
     setLoadingMore(false)
+  }
+
+  // Re-search when source toggle changes (if already searched)
+  function switchSource(s: JobSource) {
+    setSource(s)
+    if (searched && query.trim()) {
+      setLoading(true); setSelectedJobId(null); setPage(1)
+      const fetch$ = s === 'ba'
+        ? fetchBAWithFallback(query, country === 'de' ? '' : country)
+        : fetchWithFallback(query, country)
+      fetch$
+        .then(({ jobs, usedQuery: uq }) => { setJobs(jobs); setUsedQuery(uq); setHasMore(jobs.length === 20) })
+        .catch(() => { setJobs([]); setUsedQuery(query); setHasMore(false) })
+        .finally(() => setLoading(false))
+    }
   }
 
   function selectJob(job: Job) {
@@ -149,7 +196,9 @@ export default function DACHJobsPage() {
               {label('Job-Suche DACH', 'DACH Job Search')}
             </h1>
             <p style={{ fontSize: 13, color: '#6b7c93', margin: '4px 0 0' }}>
-              {label('Live-Stellenanzeigen aus Deutschland, Österreich und der Schweiz', 'Live job listings from Germany, Austria and Switzerland — powered by Adzuna')}
+              {source === 'ba'
+                ? label('Mittelstand-Stellen direkt von der Bundesagentur für Arbeit', 'Mittelstand roles direct from Bundesagentur für Arbeit')
+                : label('Live-Stellenanzeigen aus Deutschland, Österreich und der Schweiz', 'Live job listings from Germany, Austria and Switzerland — powered by Adzuna')}
             </p>
           </div>
 
@@ -171,29 +220,61 @@ export default function DACHJobsPage() {
               </button>
             </div>
 
-            {/* Country pills — shown before first search */}
+            {/* Source + Country filters — shown before first search */}
             {!searched && (
-              <div style={{ padding: '0 16px 16px' }}>
-                <div style={{ fontSize: 11, fontWeight: 600, color: '#9aafbc', marginBottom: 8, letterSpacing: .5, textTransform: 'uppercase' }}>
-                  {label('Land', 'Country')}
-                </div>
-                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                  {COUNTRIES.map(c => (
-                    <button key={c.code} className="country-pill" onClick={() => setCountry(c.code)}
-                      style={{ padding: '8px 16px', borderRadius: 20, border: `1.5px solid ${country === c.code ? blue : '#dce4ef'}`, background: country === c.code ? blue + '12' : '#f8fafc', color: country === c.code ? blue : '#6b7c93', fontSize: 12, fontWeight: country === c.code ? 700 : 400, cursor: 'pointer', fontFamily: "'DM Sans',sans-serif" }}>
-                      {c.label} {c.name}
+              <div style={{ padding: '0 16px 16px', display: 'flex', flexDirection: 'column', gap: 14 }}>
+
+                {/* Source toggle */}
+                <div>
+                  <div style={{ fontSize: 11, fontWeight: 600, color: '#9aafbc', marginBottom: 8, letterSpacing: .5, textTransform: 'uppercase' }}>
+                    {label('Quelle', 'Source')}
+                  </div>
+                  <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                    <button onClick={() => setSource('adzuna')}
+                      style={{ padding: '8px 16px', borderRadius: 20, border: `1.5px solid ${source === 'adzuna' ? blue : '#dce4ef'}`, background: source === 'adzuna' ? blue + '12' : '#f8fafc', color: source === 'adzuna' ? blue : '#6b7c93', fontSize: 12, fontWeight: source === 'adzuna' ? 700 : 400, cursor: 'pointer', fontFamily: "'DM Sans',sans-serif" }}>
+                      🌐 {label('International (Adzuna)', 'International (Adzuna)')}
                     </button>
-                  ))}
+                    <button onClick={() => setSource('ba')}
+                      style={{ padding: '8px 16px', borderRadius: 20, border: `1.5px solid ${source === 'ba' ? '#1D9E75' : '#dce4ef'}`, background: source === 'ba' ? '#1D9E7512' : '#f8fafc', color: source === 'ba' ? '#1D9E75' : '#6b7c93', fontSize: 12, fontWeight: source === 'ba' ? 700 : 400, cursor: 'pointer', fontFamily: "'DM Sans',sans-serif" }}>
+                      🏢 {label('Mittelstand (Bundesagentur)', 'Mittelstand (Bundesagentur)')}
+                    </button>
+                  </div>
+                  {source === 'ba' && (
+                    <p style={{ fontSize: 11, color: '#9aafbc', margin: '8px 0 0' }}>
+                      {label('Offizielle Jobbörse der Bundesagentur für Arbeit — viele Mittelstand-Stellen die nicht auf Adzuna erscheinen.', 'Official Bundesagentur für Arbeit job board — thousands of Mittelstand roles not listed on Adzuna.')}
+                    </p>
+                  )}
                 </div>
+
+                {/* Country pills — only for Adzuna (BA is Germany-only) */}
+                {source === 'adzuna' && (
+                  <div>
+                    <div style={{ fontSize: 11, fontWeight: 600, color: '#9aafbc', marginBottom: 8, letterSpacing: .5, textTransform: 'uppercase' }}>
+                      {label('Land', 'Country')}
+                    </div>
+                    <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                      {COUNTRIES.map(c => (
+                        <button key={c.code} className="country-pill" onClick={() => setCountry(c.code)}
+                          style={{ padding: '8px 16px', borderRadius: 20, border: `1.5px solid ${country === c.code ? blue : '#dce4ef'}`, background: country === c.code ? blue + '12' : '#f8fafc', color: country === c.code ? blue : '#6b7c93', fontSize: 12, fontWeight: country === c.code ? 700 : 400, cursor: 'pointer', fontFamily: "'DM Sans',sans-serif" }}>
+                          {c.label} {c.name}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
             )}
 
-            {/* Compact country chip after search */}
+            {/* Compact chips after search */}
             {searched && (
-              <div style={{ padding: '0 16px 12px', display: 'flex', alignItems: 'center', gap: 8 }}>
-                <span style={{ fontSize: 11, padding: '3px 10px', borderRadius: 12, background: blue + '12', color: blue, fontWeight: 600 }}>
-                  {countryInfo?.label} {countryInfo?.name}
+              <div style={{ padding: '0 16px 12px', display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                <span style={{ fontSize: 11, padding: '3px 10px', borderRadius: 12, background: source === 'ba' ? '#1D9E7512' : blue + '12', color: source === 'ba' ? '#1D9E75' : blue, fontWeight: 600 }}>
+                  {source === 'ba' ? '🏢 Mittelstand' : `🌐 ${countryInfo?.label} ${countryInfo?.name}`}
                 </span>
+                <button onClick={() => switchSource(source === 'ba' ? 'adzuna' : 'ba')}
+                  style={{ fontSize: 11, color: '#9aafbc', background: 'none', border: 'none', cursor: 'pointer', padding: 0, textDecoration: 'underline' }}>
+                  {source === 'ba' ? label('Zu Adzuna wechseln', 'Switch to Adzuna') : label('Zu Mittelstand wechseln', 'Switch to Mittelstand')}
+                </button>
                 <button onClick={() => setSearched(false)} style={{ fontSize: 11, color: '#9aafbc', background: 'none', border: 'none', cursor: 'pointer', padding: 0, textDecoration: 'underline' }}>
                   {label('Filter ändern', 'change filters')}
                 </button>
@@ -245,8 +326,15 @@ export default function DACHJobsPage() {
                           <div style={{ fontFamily: "'Outfit',sans-serif", fontSize: 15, fontWeight: 700, color: navy }}>{job.job_title}</div>
                           {isSelected && <span style={{ fontSize: 9, padding: '2px 7px', borderRadius: 10, background: blue + '20', color: blue, fontWeight: 700, flexShrink: 0 }}>Selected</span>}
                         </div>
-                        <div style={{ fontSize: 13, color: '#6b7c93', marginBottom: 8 }}>
-                          {job.employer_name}{job.job_city ? ` · ${job.job_city}` : ''}{job.job_employment_type ? ` · ${job.job_employment_type}` : ''}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8, flexWrap: 'wrap' }}>
+                          <span style={{ fontSize: 13, color: '#6b7c93' }}>
+                            {job.employer_name}{job.job_city ? ` · ${job.job_city}` : ''}{job.job_employment_type ? ` · ${job.job_employment_type}` : ''}
+                          </span>
+                          {job.job_source === 'ba' && (
+                            <span style={{ fontSize: 10, padding: '2px 7px', borderRadius: 8, background: '#1D9E7515', color: '#1D9E75', fontWeight: 700, flexShrink: 0 }}>
+                              🏢 Mittelstand
+                            </span>
+                          )}
                         </div>
                         <p style={{ fontSize: 12, color: '#8fa3b8', lineHeight: 1.6, margin: '0 0 10px', display: '-webkit-box', WebkitLineClamp: isSelected ? undefined : 2, WebkitBoxOrient: 'vertical', overflow: isSelected ? 'visible' : 'hidden' }}>
                           {job.job_description}

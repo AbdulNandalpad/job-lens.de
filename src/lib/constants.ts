@@ -66,6 +66,7 @@ export const API = {
   coverLetter:      '/api/cover-letter',
   analyseProfile:   '/api/analyse-profile',
   jobs:             '/api/jobs',
+  baJobs:           '/api/ba-jobs',
   autoApplyAnalyze: '/api/auto-apply/analyze',
   userProfile:          '/api/user/profile',
   indiaCareerScanPro:   '/api/india/career-scan-pro',
