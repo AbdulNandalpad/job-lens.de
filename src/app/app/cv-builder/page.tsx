@@ -690,6 +690,8 @@ export default function CVBuilderPage() {
   const CV_COST = CREDIT_COST.tailorCv
   const [crossWarnPending, setCrossWarnPending] = useState<(() => void) | null>(null)
   const [mobOpen, setMobOpen] = useState(false)
+  const [editingContact, setEditingContact] = useState(false)
+  const [contactDraft, setContactDraft] = useState({ name: '', email: '', phone: '', location: '', linkedin: '' })
 
   async function handleCvFile(file: File) {
     setCvFileName(file.name)
@@ -1537,8 +1539,41 @@ ${job?.job_description ? `- Job context: ${job.job_description.slice(0, 800)}` :
                   {renderCV()}
                 </div>
 
-                {/* Feedback input */}
+                {/* Free contact info editor */}
                 <div style={{ marginTop: 20, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 10, padding: '14px 16px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: editingContact ? 12 : 0 }}>
+                    <div style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.4)', letterSpacing: 0.5, textTransform: 'uppercase' as const }}>{lang === 'DE' ? 'Kontaktdaten' : 'Contact Info'}</div>
+                    <button onClick={() => {
+                      if (!editingContact) setContactDraft({ name: cvData?.name || '', email: cvData?.email || '', phone: cvData?.phone || '', location: cvData?.location || '', linkedin: cvData?.linkedin || '' })
+                      setEditingContact(e => !e)
+                    }} style={{ fontSize: 11, padding: '3px 10px', borderRadius: 6, border: `1px solid ${currentAccent}50`, background: 'transparent', color: currentAccent, cursor: 'pointer', fontFamily: 'inherit' }}>
+                      {editingContact ? (lang === 'DE' ? 'Abbrechen' : 'Cancel') : (lang === 'DE' ? 'Bearbeiten — kostenlos' : 'Edit — free')}
+                    </button>
+                  </div>
+                  {editingContact && (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                      {(['name', 'email', 'phone', 'location', 'linkedin'] as const).map(field => (
+                        <div key={field}>
+                          <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.3)', fontWeight: 600, textTransform: 'uppercase', marginBottom: 3 }}>{field}</div>
+                          <input value={contactDraft[field]} onChange={e => setContactDraft(d => ({ ...d, [field]: e.target.value }))}
+                            style={{ width: '100%', padding: '7px 10px', borderRadius: 6, border: '1px solid rgba(255,255,255,0.12)', background: 'rgba(255,255,255,0.06)', color: '#E6F1FB', fontSize: 12, fontFamily: 'inherit', outline: 'none', boxSizing: 'border-box' as const }} />
+                        </div>
+                      ))}
+                      <button onClick={() => {
+                        if (!cvData) return
+                        const updated = { ...cvData, ...contactDraft }
+                        setCvData(updated)
+                        sessionStorage.setItem(SS.cvbData, JSON.stringify(updated))
+                        setEditingContact(false)
+                      }} style={{ padding: '8px 0', borderRadius: 7, border: 'none', background: currentAccent, color: '#042C53', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: "'Outfit',sans-serif" }}>
+                        {lang === 'DE' ? 'Kontaktdaten speichern' : 'Save contact info'}
+                      </button>
+                    </div>
+                  )}
+                </div>
+
+                {/* Feedback input */}
+                <div style={{ marginTop: 12, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 10, padding: '14px 16px' }}>
                   <div style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.4)', letterSpacing: 0.5, textTransform: 'uppercase' as const, marginBottom: 8 }}>{lang === 'DE' ? 'Änderungen anfordern' : 'Request changes'}</div>
                   <textarea
                     value={feedback}
