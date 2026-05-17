@@ -62,15 +62,11 @@ export default function CareerScanPage() {
   const router = useRouter()
   const { lang, t } = useLanguage()
   const fileInputRef = useRef<HTMLInputElement>(null)
-  const linkedinInputRef = useRef<HTMLInputElement>(null)
 
-  const [linkedinFileName, setLinkedinFileName] = useState('')
   const [cvText, setCvText] = useState('')
   const [fileName, setFileName] = useState('')
   const [fileLoading, setFileLoading] = useState(false)
-  const [linkedinLoading, setLinkedinLoading] = useState(false)
   const [role, setRole] = useState('')
-  const [market, setMarket] = useState('Germany')
   const [phase, setPhase] = useState<'upload' | 'loading' | 'results' | 'error'>('upload')
   const [step, setStep] = useState(0)
   const [result, setResult] = useState<ScanResult | null>(null)
@@ -87,7 +83,6 @@ export default function CareerScanPage() {
     if (phase === 'results' && result) {
       sessionStorage.setItem(SS.scanResult, JSON.stringify(result))
       sessionStorage.setItem(SS.scanRole, role)
-      sessionStorage.setItem(SS.scanMarket, market)
       sessionStorage.setItem(SS.scanPhase, 'results')
     }
   }, [phase, result])
@@ -97,14 +92,12 @@ export default function CareerScanPage() {
     if (savedPhase === 'results') {
       const savedResult = sessionStorage.getItem(SS.scanResult)
       const savedRole = sessionStorage.getItem(SS.scanRole)
-      const savedMarket = sessionStorage.getItem(SS.scanMarket)
       if (savedResult) {
         try {
           setResult(JSON.parse(savedResult))
           setPhase('results')
           setShowJobSearchBanner(false)
           if (savedRole) setRole(savedRole)
-          if (savedMarket) setMarket(savedMarket)
         } catch { }
       }
     }
@@ -132,26 +125,11 @@ export default function CareerScanPage() {
 
   function clearCvFile() { setFileName(''); setCvText(''); if (fileInputRef.current) fileInputRef.current.value = '' }
 
-  async function handleLinkedinFile(file: File) {
-    setLinkedinFileName(file.name)
-    setLinkedinLoading(true)
-    const form = new FormData()
-    form.append('file', file)
-    try {
-      const res = await fetch(API.extractPdf, { method: 'POST', body: form })
-      const data = await res.json()
-      if (data.text && !cvText) setCvText(data.text)
-    } catch { }
-    setLinkedinLoading(false)
-  }
-
-  function clearLinkedinFile() { setLinkedinFileName(''); if (linkedinInputRef.current) linkedinInputRef.current.value = '' }
-
   function resetAll() {
-    setPhase('upload'); setFileName(''); setCvText(''); setLinkedinFileName('')
+    setPhase('upload'); setFileName(''); setCvText('')
     setShowJobSearchBanner(false); setResult(null); setRole('')
     sessionStorage.removeItem(SS.scanResult); sessionStorage.removeItem(SS.scanPhase)
-    sessionStorage.removeItem(SS.scanRole); sessionStorage.removeItem(SS.scanMarket)
+    sessionStorage.removeItem(SS.scanRole)
     sessionStorage.removeItem(SS.cvText); sessionStorage.removeItem(SS.targetRole)
   }
 
@@ -164,7 +142,7 @@ export default function CareerScanPage() {
       const res = await fetch(API.careerScan, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ cvText, role, market, lang }),
+        body: JSON.stringify({ cvText, role, market: 'Germany', lang }),
       })
       const data = await res.json()
       clearInterval(timer)
@@ -192,9 +170,7 @@ export default function CareerScanPage() {
   }
 
   function goToJobSearch() {
-    sessionStorage.setItem(SS.cvText, cvText)
-    sessionStorage.setItem(SS.targetRole, role)
-    router.push('/app/smart-apply?from=career-scan')
+    router.push('/app/jobs')
   }
 
   function showToast(msg: string) { setToastMsg(msg); setTimeout(() => setToastMsg(''), 2500) }
@@ -257,7 +233,7 @@ export default function CareerScanPage() {
     )
   }
 
-  const extracting = fileLoading || linkedinLoading
+  const extracting = fileLoading
   const hasEnoughCredits = credits === null || credits >= SCAN_COST
   const canScan = cvText.trim().length > 0 && role.trim() && phase !== 'loading' && !extracting && hasEnoughCredits
 
@@ -270,7 +246,6 @@ export default function CareerScanPage() {
         <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.6)', marginTop: 3 }}>{cs.sidebar.subtitle}</div>
       </div>
 
-      <UploadBox label={cs.sidebar.linkedinLabel} sublabel={cs.sidebar.linkedinSub} fileName={linkedinFileName} inputRef={linkedinInputRef} onFile={handleLinkedinFile} onClear={clearLinkedinFile} accept=".pdf" />
       <UploadBox label={cs.sidebar.cvLabel} sublabel={cs.sidebar.cvSub} fileName={fileName} inputRef={fileInputRef} onFile={handleFile} onClear={clearCvFile} accept=".pdf,.txt,.doc,.docx" />
 
       <div style={{ height: 1, background: 'rgba(255,255,255,0.1)' }} />
@@ -282,7 +257,7 @@ export default function CareerScanPage() {
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <div style={{ width: 16, height: 16, borderRadius: '50%', border: `2px solid ${c.accentLight}`, borderTopColor: 'transparent', animation: 'spin 0.8s linear infinite', flexShrink: 0 }} />
             <span style={{ fontSize: 12, color: c.accentLight, fontWeight: 600 }}>
-              {linkedinLoading ? cs.sidebar.readingLinkedin : cs.sidebar.readingCv}
+              {cs.sidebar.readingCv}
             </span>
           </div>
           <div style={{ display: 'flex', gap: 4 }}>
@@ -321,16 +296,9 @@ export default function CareerScanPage() {
         <input value={role} onChange={e => setRole(e.target.value)} placeholder={cs.sidebar.targetRolePlaceholder} style={inp} />
       </div>
 
-      <div>
-        {secLabel(cs.sidebar.targetMarketLabel)}
-        <select value={market} onChange={e => setMarket(e.target.value)} style={inp}>
-          {cs.sidebar.marketOptions.map((label, i) => (
-            <option key={cs.sidebar.marketValues[i]} value={cs.sidebar.marketValues[i]}>{label}</option>
-          ))}
-        </select>
-      </div>
 
-      {(cvText || fileName || linkedinFileName || phase === 'results') && (
+
+      {(cvText || fileName || phase === 'results') && (
         <button onClick={resetAll} style={{ width: '100%', padding: 9, borderRadius: 10, border: '1px solid rgba(255,255,255,0.2)', background: 'rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.7)', fontFamily: f.heading, fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
           {cs.sidebar.resetBtn}
         </button>
@@ -472,7 +440,7 @@ export default function CareerScanPage() {
             </div>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
               {result.role_suggestions.map(r => (
-                <Link key={r} href={`/app/smart-apply?q=${encodeURIComponent(r)}`} style={{ display: 'inline-flex', alignItems: 'center', fontSize: 12, padding: '6px 14px', borderRadius: 20, background: c.primaryLight, color: c.navy, border: `1px solid ${c.accentLight}`, textDecoration: 'none', fontWeight: 600, transition: 'all 0.15s' }}>
+                <Link key={r} href={`/app/jobs?q=${encodeURIComponent(r)}`} style={{ display: 'inline-flex', alignItems: 'center', fontSize: 12, padding: '6px 14px', borderRadius: 20, background: c.primaryLight, color: c.navy, border: `1px solid ${c.accentLight}`, textDecoration: 'none', fontWeight: 600, transition: 'all 0.15s' }}>
                   {r} &rarr;
                 </Link>
               ))}
