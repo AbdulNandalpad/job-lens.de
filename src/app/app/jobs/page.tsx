@@ -48,9 +48,24 @@ export default function DACHJobsPage() {
   const [loadingMore, setLoadingMore] = useState(false)
   const [searched, setSearched] = useState(false)
   const [selectedJobId, setSelectedJobId] = useState<string | null>(null)
-  const [page,     setPage]     = useState(1)
-  const [hasMore,  setHasMore]  = useState(false)
+  const [page,      setPage]      = useState(1)
+  const [hasMore,   setHasMore]   = useState(false)
+  const [usedQuery, setUsedQuery] = useState('')
   const autoSearched = useRef(false)
+
+  async function fetchWithFallback(q: string, countryCode: string): Promise<{ jobs: Job[]; usedQuery: string }> {
+    let current = q.trim()
+    while (current.length > 0) {
+      const res  = await fetch(`/api/jobs?${new URLSearchParams({ q: current, country: countryCode, page: '1' })}`)
+      const data = await res.json()
+      const jobs = data.jobs || []
+      if (jobs.length > 0) return { jobs, usedQuery: current }
+      const words = current.split(' ')
+      if (words.length === 1) break
+      current = words.slice(0, -1).join(' ')
+    }
+    return { jobs: [], usedQuery: current }
+  }
 
   const label = (de: string, en: string) => lang === 'DE' ? de : en
 
@@ -62,10 +77,9 @@ export default function DACHJobsPage() {
       autoSearched.current = true
       setQuery(q)
       setLoading(true); setSearched(true); setPage(1)
-      fetch(`/api/jobs?${new URLSearchParams({ q, country, page: '1' })}`)
-        .then(r => r.json())
-        .then(d => { const res = d.jobs || []; setJobs(res); setHasMore(res.length === 20) })
-        .catch(() => { setJobs([]); setHasMore(false) })
+      fetchWithFallback(q, country)
+        .then(({ jobs, usedQuery: uq }) => { setJobs(jobs); setUsedQuery(uq); setHasMore(jobs.length === 20) })
+        .catch(() => { setJobs([]); setUsedQuery(q); setHasMore(false) })
         .finally(() => setLoading(false))
     }
   }, [country])
@@ -74,11 +88,9 @@ export default function DACHJobsPage() {
     if (!query.trim()) return
     setLoading(true); setSearched(true); setSelectedJobId(null); setPage(1)
     try {
-      const res  = await fetch(`/api/jobs?${new URLSearchParams({ q: query, country, page: '1' })}`)
-      const data = await res.json()
-      const results = data.jobs || []
-      setJobs(results); setHasMore(results.length === 20)
-    } catch { setJobs([]); setHasMore(false) }
+      const { jobs: results, usedQuery: uq } = await fetchWithFallback(query, country)
+      setJobs(results); setUsedQuery(uq); setHasMore(results.length === 20)
+    } catch { setJobs([]); setUsedQuery(query); setHasMore(false) }
     setLoading(false)
   }
 
@@ -86,7 +98,7 @@ export default function DACHJobsPage() {
     const next = page + 1
     setLoadingMore(true)
     try {
-      const res  = await fetch(`/api/jobs?${new URLSearchParams({ q: query, country, page: String(next) })}`)
+      const res  = await fetch(`/api/jobs?${new URLSearchParams({ q: usedQuery, country, page: String(next) })}`)
       const data = await res.json()
       const more = data.jobs || []
       setJobs(prev => [...prev, ...more]); setPage(next); setHasMore(more.length === 20)
@@ -205,6 +217,17 @@ export default function DACHJobsPage() {
 
           {!loading && jobs.length > 0 && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+              {usedQuery && usedQuery.toLowerCase() !== query.trim().toLowerCase() && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px', borderRadius: 10, background: 'rgba(55,138,221,0.07)', border: '1px solid rgba(55,138,221,0.2)', marginBottom: 4 }}>
+                  <span style={{ fontSize: 16 }}>🔍</span>
+                  <span style={{ fontSize: 13, color: '#6b7c93' }}>
+                    {label('Keine Ergebnisse für', 'No results for')}{' '}
+                    <span style={{ fontWeight: 700, color: '#374151' }}>"{query}"</span>
+                    {' — '}{label('zeige Ergebnisse für', 'showing results for')}{' '}
+                    <span style={{ fontWeight: 700, color: blue }}>"{usedQuery}"</span>
+                  </span>
+                </div>
+              )}
               <div style={{ fontSize: 13, color: '#9aafbc', marginBottom: 4 }}>
                 {jobs.length} {label('Stellen gefunden — Karte anklicken für Aktionen', 'jobs found — tap a card to see actions')}
               </div>
