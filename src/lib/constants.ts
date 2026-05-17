@@ -3,10 +3,11 @@
 
 // ── Credit costs ────────────────────────────────────────────────────────────
 export const CREDIT_COST = {
-  careerScan:  2,  // /api/career-scan + /api/india/career-scan
-  tailorCv:    1,  // /api/tailor-cv
-  coverLetter: 1,  // /api/cover-letter
-  autoApply:   3,  // /api/auto-apply/analyze
+  careerScan:      2,  // /api/career-scan + /api/india/career-scan
+  tailorCv:        1,  // /api/tailor-cv
+  coverLetter:     1,  // /api/cover-letter
+  autoApply:       3,  // /api/auto-apply/analyze
+  zeugnisDecoder:  1,  // /api/zeugnis — decode Arbeitszeugnis
 } as const
 
 // ── UI threshold — show low-credit warning when credits fall to or below this
@@ -67,6 +68,7 @@ export const API = {
   analyseProfile:   '/api/analyse-profile',
   jobs:             '/api/jobs',
   baJobs:           '/api/ba-jobs',
+  zeugnis:          '/api/zeugnis',
   autoApplyAnalyze: '/api/auto-apply/analyze',
   userProfile:          '/api/user/profile',
   indiaCareerScanPro:   '/api/india/career-scan-pro',
