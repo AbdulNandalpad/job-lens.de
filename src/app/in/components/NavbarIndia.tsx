@@ -98,6 +98,16 @@ export default function NavbarIndia() {
         {/* Right: switcher + user + hamburger */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
 
+          {/* Market pills */}
+          <div className="jl-clear-btn" style={{ display: 'flex', gap: 6 }}>
+            <Link href="/" style={{ fontSize: 11, fontWeight: 600, textDecoration: 'none', padding: '5px 12px', borderRadius: 10, border: '1px solid rgba(55,138,221,0.2)', background: 'rgba(55,138,221,0.07)', color: '#85B7EB' }}>
+              🇩🇪 DACH
+            </Link>
+            <span style={{ fontSize: 11, fontWeight: 700, padding: '5px 12px', borderRadius: 10, border: '1px solid rgba(255,153,51,0.4)', background: 'rgba(255,153,51,0.12)', color: '#FF9933' }}>
+              🇮🇳 India
+            </span>
+          </div>
+
           {/* New session button + confirmation popup */}
           <div className="jl-clear-btn" style={{ position: 'relative' }}>
             <button onClick={() => setConfirmClear(true)}

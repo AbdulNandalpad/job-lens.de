@@ -95,38 +95,6 @@ export default async function IndiaHomePage() {
         }
       `}</style>
 
-      {/* Sticky navbar */}
-      <div style={{ background: '#042C53', padding: '0 20px', height: 52, display: 'flex', alignItems: 'center', justifyContent: 'space-between', position: 'sticky', top: 0, zIndex: 100, borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
-        {/* Logo */}
-        <Link href="/in" style={{ display: 'flex', alignItems: 'center', gap: 10, textDecoration: 'none' }}>
-          <svg width="24" height="24" viewBox="0 0 44 44">
-            <circle cx="20" cy="20" r="13" fill="none" stroke="#FF9933" strokeWidth="2.5"/>
-            <circle cx="20" cy="20" r="8" fill="none" stroke="#ffbb66" strokeWidth="1.2"/>
-            <circle cx="20" cy="20" r="3" fill="#FF9933"/>
-            <line x1="7" y1="20" x2="33" y2="20" stroke="#FF9933" strokeWidth="0.8" strokeDasharray="2,2" opacity="0.5"/>
-            <line x1="28" y1="28" x2="36" y2="36" stroke="#FF9933" strokeWidth="3" strokeLinecap="round"/>
-          </svg>
-          <span style={{ fontFamily: "'Outfit', sans-serif", fontSize: 16, fontWeight: 700, color: '#E6F1FB' }}>
-            Job-Lens <span style={{ color: saffron }}>&nbsp;India</span>
-          </span>
-        </Link>
-
-        {/* Market pills + Sign In */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <div style={{ display: 'flex', gap: 6 }}>
-            <Link href="/" style={{ fontSize: 11, fontWeight: 600, textDecoration: 'none', padding: '5px 12px', borderRadius: 10, border: '1px solid rgba(55,138,221,0.2)', background: 'rgba(55,138,221,0.07)', color: '#85B7EB', fontFamily: "'DM Sans', sans-serif" }}>
-              🇩🇪 DACH
-            </Link>
-            <span style={{ fontSize: 11, fontWeight: 700, padding: '5px 12px', borderRadius: 10, border: '1px solid rgba(255,153,51,0.4)', background: 'rgba(255,153,51,0.12)', color: saffron, fontFamily: "'DM Sans', sans-serif" }}>
-              🇮🇳 India
-            </span>
-          </div>
-          <Link href="/login" style={{ fontSize: 12, padding: '6px 18px', borderRadius: 20, background: `linear-gradient(135deg, ${saffron} 0%, #e67300 100%)`, color: '#fff', textDecoration: 'none', fontWeight: 600, fontFamily: "'DM Sans', sans-serif" }}>
-            Sign In
-          </Link>
-        </div>
-      </div>
-
       {/* Hero */}
       <section style={{
         background: `radial-gradient(ellipse at 15% 60%, rgba(255,153,51,0.18) 0%, transparent 50%), radial-gradient(ellipse at 80% 20%, rgba(19,136,8,0.1) 0%, transparent 50%), linear-gradient(160deg, #0a1520 0%, #0f2035 60%, #0a1c2e 100%)`,
