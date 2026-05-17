@@ -16,5 +16,5 @@ export default async function DACHHomePage() {
   } catch {
     // fall through
   }
-  redirect('/login')
+  redirect('/')
 }

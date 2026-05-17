@@ -46,7 +46,7 @@ export async function GET(request: Request) {
         .from('profiles')
         .upsert({ id: data.user.id, market }, { onConflict: 'id', ignoreDuplicates: false })
 
-      const destination = next || (market === 'in' ? '/in/career-scan' : '/app/career-scan')
+      const destination = next || (market === 'in' ? '/in' : '/app')
       return NextResponse.redirect(`${origin}${destination}`)
     }
   }

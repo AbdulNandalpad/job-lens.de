@@ -26,6 +26,23 @@ export async function middleware(request: NextRequest) {
 
   const path = request.nextUrl.pathname
 
+  // IP-based and auth-based root routing
+  if (path === '/') {
+    const country = request.headers.get('x-vercel-ip-country') ?? ''
+    if (country === 'IN') {
+      // India IP → always show India site
+      const url = request.nextUrl.clone()
+      url.pathname = '/in'
+      return NextResponse.redirect(url)
+    }
+    if (user) {
+      // Logged-in non-India user at root → go straight to DACH dashboard
+      const url = request.nextUrl.clone()
+      url.pathname = '/app'
+      return NextResponse.redirect(url)
+    }
+  }
+
   // Public paths — no auth required
   const isPublic =
     path === '/' ||

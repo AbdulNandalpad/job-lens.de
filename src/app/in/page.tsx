@@ -122,13 +122,13 @@ export default async function IndiaHomePage() {
                 In India, lakhs of candidates apply for every job. Companies use software called ATS to automatically filter out 90% of CVs — before a recruiter even opens them. Job-Lens scans, scores and fixes your CV so the bot says yes.
               </p>
               <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
-                <Link href="/in/career-scan" style={{
+                <Link href="/in/login" style={{
                   display: 'inline-block', padding: '14px 30px', borderRadius: 10,
                   background: `linear-gradient(135deg, ${saffron} 0%, #e67300 100%)`,
                   color: white, fontWeight: 700, fontSize: 15, textDecoration: 'none',
                   boxShadow: '0 6px 24px rgba(255,153,51,0.45)',
                 }}>
-                  Check My ATS Score — Free
+                  Get Started Free
                 </Link>
                 <a href="#what-is-ats" style={{
                   display: 'inline-block', padding: '14px 28px', borderRadius: 10,
@@ -328,13 +328,13 @@ export default async function IndiaHomePage() {
             ))}
           </div>
           <div style={{ marginTop: 40 }}>
-            <Link href="/in/career-scan" style={{
+            <Link href="/in/login" style={{
               display: 'inline-block', padding: '15px 36px', borderRadius: 10,
               background: `linear-gradient(135deg, ${saffron} 0%, #e67300 100%)`,
               color: white, fontWeight: 700, fontSize: 16, textDecoration: 'none',
               boxShadow: '0 6px 24px rgba(255,153,51,0.4)',
             }}>
-              Scan Your CV Now — Free
+              Get Started Free
             </Link>
           </div>
         </div>
