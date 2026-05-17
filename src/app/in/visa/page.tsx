@@ -1,7 +1,6 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import NavbarIndia from '../components/NavbarIndia'
 
 const SS_KEY = 'jl_visa_result'
 
@@ -263,8 +262,6 @@ export default function VisaPageIndia() {
           .v-grid3 { grid-template-columns: 1fr !important; }
         }
       `}</style>
-
-      <NavbarIndia />
 
       <div style={{ background: '#f0f4f8', minHeight: 'calc(100vh - 52px)', padding: '28px 16px', fontFamily: "'DM Sans',sans-serif" }}>
         <div style={{ maxWidth: 860, margin: '0 auto' }}>
