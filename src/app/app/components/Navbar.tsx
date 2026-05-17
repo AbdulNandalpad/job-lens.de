@@ -1,8 +1,8 @@
 'use client'
 
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
-import { useState, useEffect } from 'react'
+import { usePathname, useRouter } from 'next/navigation'
+import { useState, useEffect, useRef } from 'react'
 import { createClient } from '@/lib/supabase'
 import { theme } from '@/lib/theme'
 import { useLanguage, DEFlag, GBFlag } from '@/lib/i18n'
@@ -11,10 +11,13 @@ const { colors: c, gradients: g, fonts: f } = theme
 
 export default function Navbar() {
   const pathname = usePathname()
+  const router = useRouter()
   const [userName, setUserName] = useState('')
   const [menuOpen, setMenuOpen] = useState(false)
   const [confirmClear, setConfirmClear] = useState(false)
   const [langOpen, setLangOpen] = useState(false)
+  const [userMenuOpen, setUserMenuOpen] = useState(false)
+  const userMenuRef = useRef<HTMLDivElement>(null)
   const { lang, setLang, t } = useLanguage()
 
   useEffect(() => {
@@ -24,6 +27,24 @@ export default function Navbar() {
       setUserName(full.split(' ')[0] || 'User')
     })
   }, [])
+
+  // Close user menu on outside click
+  useEffect(() => {
+    function handleClick(e: MouseEvent) {
+      if (userMenuRef.current && !userMenuRef.current.contains(e.target as Node)) {
+        setUserMenuOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClick)
+    return () => document.removeEventListener('mousedown', handleClick)
+  }, [])
+
+  async function signOut() {
+    const supabase = createClient()
+    await supabase.auth.signOut()
+    router.push('/app')
+    router.refresh()
+  }
 
   function clearSession() {
     Object.keys(sessionStorage)
@@ -99,7 +120,7 @@ export default function Navbar() {
           ))}
         </div>
 
-        {/* User + clear session + lang toggle + hamburger */}
+        {/* Right side */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
 
           {/* DE/EN language dropdown */}
@@ -142,12 +163,28 @@ export default function Navbar() {
             )}
           </div>
 
-          {/* User avatar */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'rgba(255,255,255,0.08)', border: '0.5px solid rgba(255,255,255,0.15)', borderRadius: 20, padding: '4px 10px 4px 5px' }}>
-            <div style={{ width: 22, height: 22, borderRadius: '50%', background: '#378ADD', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 9, fontWeight: 700, color: '#fff' }}>
-              {userName.charAt(0).toUpperCase()}
-            </div>
-            <span className="jl-user-name" style={{ fontSize: 12, color: '#E6F1FB' }}>{userName}</span>
+          {/* User avatar + logout dropdown */}
+          <div ref={userMenuRef} style={{ position: 'relative' }}>
+            <button onClick={() => setUserMenuOpen(o => !o)}
+              style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'rgba(255,255,255,0.08)', border: '0.5px solid rgba(255,255,255,0.15)', borderRadius: 20, padding: '4px 10px 4px 5px', cursor: 'pointer' }}>
+              <div style={{ width: 22, height: 22, borderRadius: '50%', background: '#378ADD', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 9, fontWeight: 700, color: '#fff', flexShrink: 0 }}>
+                {userName.charAt(0).toUpperCase()}
+              </div>
+              <span className="jl-user-name" style={{ fontSize: 12, color: '#E6F1FB' }}>{userName}</span>
+              <span style={{ fontSize: 9, opacity: 0.5, color: '#E6F1FB' }}>{userMenuOpen ? '▲' : '▼'}</span>
+            </button>
+            {userMenuOpen && (
+              <div style={{ position: 'absolute', top: '100%', right: 0, marginTop: 6, background: '#0d2137', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 10, overflow: 'hidden', zIndex: 300, minWidth: 160, boxShadow: '0 8px 24px rgba(0,0,0,0.4)' }}>
+                <Link href="/app/account" onClick={() => setUserMenuOpen(false)}
+                  style={{ display: 'block', padding: '10px 14px', fontSize: 13, color: 'rgba(255,255,255,0.75)', textDecoration: 'none', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
+                  Account
+                </Link>
+                <button onClick={signOut}
+                  style={{ display: 'block', width: '100%', padding: '10px 14px', fontSize: 13, color: '#e53e3e', background: 'transparent', border: 'none', cursor: 'pointer', textAlign: 'left', fontFamily: 'inherit', fontWeight: 600 }}>
+                  Sign out
+                </button>
+              </div>
+            )}
           </div>
 
           <button className="jl-hamburger" onClick={() => setMenuOpen(!menuOpen)}
@@ -176,10 +213,16 @@ export default function Navbar() {
               <GBFlag size={15} /> EN — English
             </button>
           </div>
-          <button onClick={() => { setMenuOpen(false); setConfirmClear(true) }}
-            style={{ width: '100%', marginTop: 8, padding: '10px 12px', borderRadius: 8, background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', color: 'rgba(255,255,255,0.5)', fontSize: 13, cursor: 'pointer', textAlign: 'left' as const }}>
-            {t.navbar.clearAll}
-          </button>
+          <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
+            <button onClick={() => { setMenuOpen(false); setConfirmClear(true) }}
+              style={{ flex: 1, padding: '10px 0', borderRadius: 8, background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', color: 'rgba(255,255,255,0.5)', fontSize: 13, cursor: 'pointer', fontFamily: 'inherit' }}>
+              {t.navbar.clearAll}
+            </button>
+            <button onClick={signOut}
+              style={{ flex: 1, padding: '10px 0', borderRadius: 8, background: 'rgba(229,62,62,0.12)', border: '1px solid rgba(229,62,62,0.3)', color: '#e53e3e', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>
+              Sign out
+            </button>
+          </div>
         </div>
       )}
     </>

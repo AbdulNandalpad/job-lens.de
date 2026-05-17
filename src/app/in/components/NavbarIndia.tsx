@@ -1,8 +1,8 @@
 'use client'
 
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
-import { useState, useEffect } from 'react'
+import { usePathname, useRouter } from 'next/navigation'
+import { useState, useEffect, useRef } from 'react'
 import { createClient } from '@/lib/supabase'
 import { theme } from '@/lib/theme'
 
@@ -10,17 +10,44 @@ const { colors: c, gradients: g, fonts: f } = theme
 
 export default function NavbarIndia() {
   const pathname = usePathname()
+  const router = useRouter()
   const [userName, setUserName] = useState('')
+  const [isLoggedIn, setIsLoggedIn] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
   const [confirmClear, setConfirmClear] = useState(false)
+  const [userMenuOpen, setUserMenuOpen] = useState(false)
+  const userMenuRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     const supabase = createClient()
     supabase.auth.getUser().then(({ data }) => {
-      const full = data.user?.user_metadata?.full_name ?? data.user?.email ?? ''
-      setUserName(full.split(' ')[0] || 'User')
+      if (data.user) {
+        const full = data.user.user_metadata?.full_name ?? data.user.email ?? ''
+        setUserName(full.split(' ')[0] || 'User')
+        setIsLoggedIn(true)
+      } else {
+        setIsLoggedIn(false)
+      }
     })
   }, [])
+
+  // Close user menu on outside click
+  useEffect(() => {
+    function handleClick(e: MouseEvent) {
+      if (userMenuRef.current && !userMenuRef.current.contains(e.target as Node)) {
+        setUserMenuOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClick)
+    return () => document.removeEventListener('mousedown', handleClick)
+  }, [])
+
+  async function signOut() {
+    const supabase = createClient()
+    await supabase.auth.signOut()
+    router.push('/in')
+    router.refresh()
+  }
 
   function clearSession() {
     Object.keys(sessionStorage)
@@ -54,6 +81,7 @@ export default function NavbarIndia() {
         .jl-logo-text { display: flex; }
         .jl-clear-btn { display: flex; }
         .jl-user-name { display: inline; }
+        .jl-market-pills { display: flex; }
         @media (max-width: 768px) {
           .jl-desktop-nav { display: none !important; }
           .jl-hamburger { display: flex !important; }
@@ -62,6 +90,7 @@ export default function NavbarIndia() {
           .jl-logo-text { display: none !important; }
           .jl-clear-btn { display: none !important; }
           .jl-user-name { display: none !important; }
+          .jl-market-pills { display: none !important; }
         }
       `}</style>
 
@@ -86,20 +115,22 @@ export default function NavbarIndia() {
           {currentPage}
         </div>
 
-        {/* Desktop nav */}
-        <div className="jl-desktop-nav" style={{ gap: 4 }}>
-          {navItems.map(item => (
-            <Link key={item.href} href={item.href} style={{ fontSize: 12, padding: '6px 14px', borderRadius: 20, textDecoration: 'none', color: isActive(item.href) ? theme.navbar.text : theme.navbar.textMuted, background: isActive(item.href) ? g.navActivePill : 'transparent', fontWeight: isActive(item.href) ? 600 : 400, transition: 'all 0.15s' }}>
-              {item.label}
-            </Link>
-          ))}
-        </div>
+        {/* Desktop nav — only when logged in */}
+        {isLoggedIn && (
+          <div className="jl-desktop-nav" style={{ gap: 4 }}>
+            {navItems.map(item => (
+              <Link key={item.href} href={item.href} style={{ fontSize: 12, padding: '6px 14px', borderRadius: 20, textDecoration: 'none', color: isActive(item.href) ? theme.navbar.text : theme.navbar.textMuted, background: isActive(item.href) ? g.navActivePill : 'transparent', fontWeight: isActive(item.href) ? 600 : 400, transition: 'all 0.15s' }}>
+                {item.label}
+              </Link>
+            ))}
+          </div>
+        )}
 
-        {/* Right: switcher + user + hamburger */}
+        {/* Right side */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
 
           {/* Market pills */}
-          <div className="jl-clear-btn" style={{ display: 'flex', gap: 6 }}>
+          <div className="jl-market-pills" style={{ display: 'flex', gap: 6 }}>
             <Link href="/" style={{ fontSize: 11, fontWeight: 600, textDecoration: 'none', padding: '5px 12px', borderRadius: 10, border: '1px solid rgba(55,138,221,0.2)', background: 'rgba(55,138,221,0.07)', color: '#85B7EB' }}>
               🇩🇪 DACH
             </Link>
@@ -108,35 +139,60 @@ export default function NavbarIndia() {
             </span>
           </div>
 
-          {/* New session button + confirmation popup */}
-          <div className="jl-clear-btn" style={{ position: 'relative' }}>
-            <button onClick={() => setConfirmClear(true)}
-              style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '5px 12px', borderRadius: 8, background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.18)', cursor: 'pointer' }}>
-              <span style={{ fontSize: 12, color: '#fff', fontFamily: f.body, fontWeight: 600 }}>+ New session</span>
-            </button>
-            {confirmClear && (
-              <div style={{ position: 'absolute', top: '100%', right: 0, marginTop: 8, background: '#0d2137', border: '1px solid rgba(255,255,255,0.15)', borderRadius: 10, padding: '14px 16px', zIndex: 300, minWidth: 220, boxShadow: '0 8px 32px rgba(0,0,0,0.4)' }}>
-                <div style={{ fontSize: 12, color: '#E6F1FB', fontWeight: 600, marginBottom: 4 }}>Clear all session data?</div>
-                <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)', marginBottom: 12, lineHeight: 1.5 }}>Removes your CV, job selections, scan results and cover letter.</div>
-                <div style={{ display: 'flex', gap: 8 }}>
-                  <button onClick={clearSession} style={{ flex: 1, padding: '7px 0', borderRadius: 7, border: 'none', background: '#FF9933', color: '#042C53', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>Clear</button>
-                  <button onClick={() => setConfirmClear(false)} style={{ flex: 1, padding: '7px 0', borderRadius: 7, border: '1px solid rgba(255,255,255,0.15)', background: 'transparent', color: 'rgba(255,255,255,0.6)', fontSize: 12, cursor: 'pointer', fontFamily: 'inherit' }}>Cancel</button>
-                </div>
+          {isLoggedIn ? (
+            <>
+              {/* New session button */}
+              <div className="jl-clear-btn" style={{ position: 'relative' }}>
+                <button onClick={() => setConfirmClear(true)}
+                  style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '5px 12px', borderRadius: 8, background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.18)', cursor: 'pointer' }}>
+                  <span style={{ fontSize: 12, color: '#fff', fontFamily: f.body, fontWeight: 600 }}>+ New session</span>
+                </button>
+                {confirmClear && (
+                  <div style={{ position: 'absolute', top: '100%', right: 0, marginTop: 8, background: '#0d2137', border: '1px solid rgba(255,255,255,0.15)', borderRadius: 10, padding: '14px 16px', zIndex: 300, minWidth: 220, boxShadow: '0 8px 32px rgba(0,0,0,0.4)' }}>
+                    <div style={{ fontSize: 12, color: '#E6F1FB', fontWeight: 600, marginBottom: 4 }}>Clear all session data?</div>
+                    <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)', marginBottom: 12, lineHeight: 1.5 }}>Removes your CV, job selections, scan results and cover letter.</div>
+                    <div style={{ display: 'flex', gap: 8 }}>
+                      <button onClick={clearSession} style={{ flex: 1, padding: '7px 0', borderRadius: 7, border: 'none', background: '#FF9933', color: '#042C53', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>Clear</button>
+                      <button onClick={() => setConfirmClear(false)} style={{ flex: 1, padding: '7px 0', borderRadius: 7, border: '1px solid rgba(255,255,255,0.15)', background: 'transparent', color: 'rgba(255,255,255,0.6)', fontSize: 12, cursor: 'pointer', fontFamily: 'inherit' }}>Cancel</button>
+                    </div>
+                  </div>
+                )}
               </div>
-            )}
-          </div>
 
-          {/* User avatar */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'rgba(255,255,255,0.08)', border: '0.5px solid rgba(255,255,255,0.15)', borderRadius: 20, padding: '4px 10px 4px 5px' }}>
-            <div style={{ width: 22, height: 22, borderRadius: '50%', background: '#ff9933', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 9, fontWeight: 700, color: '#fff' }}>
-              {userName.charAt(0).toUpperCase()}
-            </div>
-            <span className="jl-user-name" style={{ fontSize: 12, color: '#E6F1FB' }}>{userName}</span>
-          </div>
+              {/* User avatar + logout dropdown */}
+              <div ref={userMenuRef} style={{ position: 'relative' }}>
+                <button onClick={() => setUserMenuOpen(o => !o)}
+                  style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'rgba(255,255,255,0.08)', border: '0.5px solid rgba(255,255,255,0.15)', borderRadius: 20, padding: '4px 10px 4px 5px', cursor: 'pointer' }}>
+                  <div style={{ width: 22, height: 22, borderRadius: '50%', background: '#ff9933', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 9, fontWeight: 700, color: '#fff', flexShrink: 0 }}>
+                    {userName.charAt(0).toUpperCase()}
+                  </div>
+                  <span className="jl-user-name" style={{ fontSize: 12, color: '#E6F1FB' }}>{userName}</span>
+                  <span style={{ fontSize: 9, opacity: 0.5, color: '#E6F1FB' }}>{userMenuOpen ? '▲' : '▼'}</span>
+                </button>
+                {userMenuOpen && (
+                  <div style={{ position: 'absolute', top: '100%', right: 0, marginTop: 6, background: '#0d2137', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 10, overflow: 'hidden', zIndex: 300, minWidth: 160, boxShadow: '0 8px 24px rgba(0,0,0,0.4)' }}>
+                    <Link href="/in/account" onClick={() => setUserMenuOpen(false)}
+                      style={{ display: 'block', padding: '10px 14px', fontSize: 13, color: 'rgba(255,255,255,0.75)', textDecoration: 'none', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
+                      Account
+                    </Link>
+                    <button onClick={signOut}
+                      style={{ display: 'block', width: '100%', padding: '10px 14px', fontSize: 13, color: '#FF9933', background: 'transparent', border: 'none', cursor: 'pointer', textAlign: 'left', fontFamily: 'inherit', fontWeight: 600 }}>
+                      Sign out
+                    </button>
+                  </div>
+                )}
+              </div>
+            </>
+          ) : (
+            /* Not logged in — Sign In button */
+            <Link href="/in/login" style={{ fontSize: 12, padding: '6px 18px', borderRadius: 20, background: 'linear-gradient(135deg, #FF9933 0%, #e67300 100%)', color: '#fff', textDecoration: 'none', fontWeight: 600, fontFamily: f.body, whiteSpace: 'nowrap' }}>
+              Sign In
+            </Link>
+          )}
 
           <button className="jl-hamburger" onClick={() => setMenuOpen(!menuOpen)}
             style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#E6F1FB', fontSize: 20, padding: 4, alignItems: 'center', justifyContent: 'center' }}>
-            {menuOpen ? 'x' : '='}
+            {menuOpen ? '✕' : '☰'}
           </button>
         </div>
       </div>
@@ -144,13 +200,44 @@ export default function NavbarIndia() {
       {/* Mobile dropdown */}
       {menuOpen && (
         <div className="jl-mobile-menu" style={{ background: c.primary, borderBottom: `1px solid ${theme.navbar.border}`, padding: '8px 16px 12px', zIndex: 99, position: 'sticky', top: 52 }}>
-          {navItems.map(item => (
-            <Link key={item.href} href={item.href} onClick={() => setMenuOpen(false)}
-              style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 12px', borderRadius: 8, textDecoration: 'none', fontSize: 14, marginBottom: 4, color: isActive(item.href) ? '#E6F1FB' : '#85B7EB', background: isActive(item.href) ? 'rgba(55,138,221,0.2)' : 'transparent', fontWeight: isActive(item.href) ? 600 : 400 }}>
-              {item.label}
-              {isActive(item.href) && <span style={{ fontSize: 10, background: '#378ADD', color: '#fff', padding: '2px 8px', borderRadius: 10, fontWeight: 700 }}>Current</span>}
+
+          {/* Market pills row */}
+          <div style={{ display: 'flex', gap: 6, marginBottom: 8, paddingBottom: 8, borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
+            <Link href="/" onClick={() => setMenuOpen(false)}
+              style={{ flex: 1, textAlign: 'center', fontSize: 12, fontWeight: 600, textDecoration: 'none', padding: '8px 0', borderRadius: 8, border: '1px solid rgba(55,138,221,0.25)', background: 'rgba(55,138,221,0.08)', color: '#85B7EB' }}>
+              🇩🇪 DACH
             </Link>
-          ))}
+            <span style={{ flex: 1, textAlign: 'center', fontSize: 12, fontWeight: 700, padding: '8px 0', borderRadius: 8, border: '1px solid rgba(255,153,51,0.4)', background: 'rgba(255,153,51,0.12)', color: '#FF9933' }}>
+              🇮🇳 India
+            </span>
+          </div>
+
+          {isLoggedIn ? (
+            <>
+              {navItems.map(item => (
+                <Link key={item.href} href={item.href} onClick={() => setMenuOpen(false)}
+                  style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 12px', borderRadius: 8, textDecoration: 'none', fontSize: 14, marginBottom: 4, color: isActive(item.href) ? '#E6F1FB' : '#85B7EB', background: isActive(item.href) ? 'rgba(55,138,221,0.2)' : 'transparent', fontWeight: isActive(item.href) ? 600 : 400 }}>
+                  {item.label}
+                  {isActive(item.href) && <span style={{ fontSize: 10, background: '#378ADD', color: '#fff', padding: '2px 8px', borderRadius: 10, fontWeight: 700 }}>Current</span>}
+                </Link>
+              ))}
+              <div style={{ display: 'flex', gap: 8, marginTop: 8, paddingTop: 8, borderTop: '1px solid rgba(255,255,255,0.08)' }}>
+                <button onClick={() => { setMenuOpen(false); setConfirmClear(true) }}
+                  style={{ flex: 1, padding: '10px 0', borderRadius: 8, background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', color: 'rgba(255,255,255,0.5)', fontSize: 13, cursor: 'pointer', fontFamily: 'inherit' }}>
+                  + New session
+                </button>
+                <button onClick={signOut}
+                  style={{ flex: 1, padding: '10px 0', borderRadius: 8, background: 'rgba(255,153,51,0.12)', border: '1px solid rgba(255,153,51,0.3)', color: '#FF9933', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>
+                  Sign out
+                </button>
+              </div>
+            </>
+          ) : (
+            <Link href="/in/login" onClick={() => setMenuOpen(false)}
+              style={{ display: 'block', textAlign: 'center', padding: '12px', borderRadius: 8, background: 'linear-gradient(135deg, #FF9933 0%, #e67300 100%)', color: '#fff', textDecoration: 'none', fontSize: 14, fontWeight: 700 }}>
+              Sign In
+            </Link>
+          )}
         </div>
       )}
     </>
