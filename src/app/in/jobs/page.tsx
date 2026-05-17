@@ -44,7 +44,23 @@ export default function IndiaJobsPage() {
   const [selectedJobId, setSelectedJobId] = useState<string | null>(null)
   const [page, setPage] = useState(1)
   const [hasMore, setHasMore] = useState(false)
+  const [usedQuery, setUsedQuery] = useState('')
   const autoSearched = useRef(false)
+
+  async function fetchWithFallback(q: string): Promise<{ jobs: Job[]; usedQuery: string }> {
+    let current = q.trim()
+    while (current.length > 0) {
+      const params = new URLSearchParams({ q: current, country: 'in', page: '1' })
+      const res  = await fetch(`/api/jobs?${params}`)
+      const data = await res.json()
+      const jobs = data.jobs || []
+      if (jobs.length > 0) return { jobs, usedQuery: current }
+      const words = current.split(' ')
+      if (words.length === 1) break
+      current = words.slice(0, -1).join(' ')
+    }
+    return { jobs: [], usedQuery: current }
+  }
 
   useEffect(() => {
     if (autoSearched.current || typeof window === 'undefined') return
@@ -56,12 +72,9 @@ export default function IndiaJobsPage() {
       setQuery(q)
       if (loc) setCity(loc)
       setLoading(true); setSearched(true); setPage(1)
-      const fetchParams = new URLSearchParams({ q, country: 'in', page: '1' })
-      if (loc) fetchParams.set('location', loc)
-      fetch(`/api/jobs?${fetchParams}`)
-        .then(r => r.json())
-        .then(data => { const results = data.jobs || []; setJobs(results); setHasMore(results.length === 20) })
-        .catch(() => { setJobs([]); setHasMore(false) })
+      fetchWithFallback(q)
+        .then(({ jobs, usedQuery: uq }) => { setJobs(jobs); setUsedQuery(uq); setHasMore(jobs.length === 20) })
+        .catch(() => { setJobs([]); setUsedQuery(q); setHasMore(false) })
         .finally(() => setLoading(false))
     }
   }, [])
@@ -73,14 +86,9 @@ export default function IndiaJobsPage() {
     setSelectedJobId(null)
     setPage(1)
     try {
-      const params = new URLSearchParams({ q: query, country: 'in', page: '1' })
-      if (city) params.set('location', city)
-      const res = await fetch(`/api/jobs?${params}`)
-      const data = await res.json()
-      const results = data.jobs || []
-      setJobs(results)
-      setHasMore(results.length === 20)
-    } catch { setJobs([]); setHasMore(false) }
+      const { jobs: results, usedQuery: uq } = await fetchWithFallback(query)
+      setJobs(results); setUsedQuery(uq); setHasMore(results.length === 20)
+    } catch { setJobs([]); setUsedQuery(query); setHasMore(false) }
     setLoading(false)
   }
 
@@ -88,7 +96,7 @@ export default function IndiaJobsPage() {
     const nextPage = page + 1
     setLoadingMore(true)
     try {
-      const params = new URLSearchParams({ q: query, country: 'in', page: String(nextPage) })
+      const params = new URLSearchParams({ q: usedQuery, country: 'in', page: String(nextPage) })
       if (city) params.set('location', city)
       const res = await fetch(`/api/jobs?${params}`)
       const data = await res.json()
@@ -187,6 +195,15 @@ export default function IndiaJobsPage() {
 
           {!loading && jobs.length > 0 && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+              {usedQuery && usedQuery.toLowerCase() !== query.trim().toLowerCase() && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px', borderRadius: 10, background: `${orange}0d`, border: `1px solid ${orange}35`, marginBottom: 4 }}>
+                  <span style={{ fontSize: 16 }}>🔍</span>
+                  <span style={{ fontSize: 13, color: '#6b7c93' }}>
+                    No results for <span style={{ fontWeight: 700, color: '#374151' }}>"{query}"</span>
+                    {' — '}showing results for <span style={{ fontWeight: 700, color: orange }}>"{usedQuery}"</span>
+                  </span>
+                </div>
+              )}
               <div style={{ fontSize: 13, color: '#9aafbc', marginBottom: 4 }}>{jobs.length} jobs found — tap a card to see actions</div>
 
               {jobs.map(job => {
