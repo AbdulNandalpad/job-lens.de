@@ -330,8 +330,6 @@ export default function HomePage() {
             </>
           ) : (
             <>
-              <Link href="/app/career-scan" className="jl-nav-link jl-home-nav-links" style={{ fontSize: 13, color: theme.navbar.textMuted, textDecoration: 'none', transition: 'color 0.15s' }}>{t.navCareerScan}</Link>
-              <Link href="/app/jobs" className="jl-nav-link jl-home-nav-links" style={{ fontSize: 13, color: theme.navbar.textMuted, textDecoration: 'none', transition: 'color 0.15s' }}>{t.navJobSearch}</Link>
               <Link href="/login" className="jl-btn-primary" style={{ fontSize: 12, padding: '6px 18px', borderRadius: 20, color: '#fff', textDecoration: 'none', fontWeight: 600 }}>
                 {t.navSignIn}
               </Link>
