@@ -82,7 +82,6 @@ export default function NavbarIndia() {
         .jl-logo-text { display: flex; }
         .jl-clear-btn { display: flex; }
         .jl-user-name { display: inline; }
-        .jl-market-pills { display: flex; }
         @media (max-width: 768px) {
           .jl-desktop-nav { display: none !important; }
           .jl-hamburger { display: flex !important; }
@@ -91,7 +90,6 @@ export default function NavbarIndia() {
           .jl-logo-text { display: none !important; }
           .jl-clear-btn { display: none !important; }
           .jl-user-name { display: none !important; }
-          .jl-market-pills { display: none !important; }
         }
       `}</style>
 
@@ -129,16 +127,6 @@ export default function NavbarIndia() {
 
         {/* Right side */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
-
-          {/* Market pills */}
-          <div className="jl-market-pills" style={{ display: 'flex', gap: 6 }}>
-            <Link href="/" style={{ fontSize: 11, fontWeight: 600, textDecoration: 'none', padding: '5px 12px', borderRadius: 10, border: '1px solid rgba(55,138,221,0.2)', background: 'rgba(55,138,221,0.07)', color: '#85B7EB' }}>
-              🇩🇪 DACH
-            </Link>
-            <span style={{ fontSize: 11, fontWeight: 700, padding: '5px 12px', borderRadius: 10, border: '1px solid rgba(255,153,51,0.4)', background: 'rgba(255,153,51,0.12)', color: '#FF9933' }}>
-              🇮🇳 India
-            </span>
-          </div>
 
           {isLoggedIn ? (
             <>
@@ -201,17 +189,6 @@ export default function NavbarIndia() {
       {/* Mobile dropdown */}
       {menuOpen && (
         <div className="jl-mobile-menu" style={{ background: c.primary, borderBottom: `1px solid ${theme.navbar.border}`, padding: '8px 16px 12px', zIndex: 99, position: 'sticky', top: 52 }}>
-
-          {/* Market pills row */}
-          <div style={{ display: 'flex', gap: 6, marginBottom: 8, paddingBottom: 8, borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
-            <Link href="/" onClick={() => setMenuOpen(false)}
-              style={{ flex: 1, textAlign: 'center', fontSize: 12, fontWeight: 600, textDecoration: 'none', padding: '8px 0', borderRadius: 8, border: '1px solid rgba(55,138,221,0.25)', background: 'rgba(55,138,221,0.08)', color: '#85B7EB' }}>
-              🇩🇪 DACH
-            </Link>
-            <span style={{ flex: 1, textAlign: 'center', fontSize: 12, fontWeight: 700, padding: '8px 0', borderRadius: 8, border: '1px solid rgba(255,153,51,0.4)', background: 'rgba(255,153,51,0.12)', color: '#FF9933' }}>
-              🇮🇳 India
-            </span>
-          </div>
 
           {isLoggedIn ? (
             <>
