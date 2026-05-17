@@ -50,6 +50,10 @@ export const SS = {
   // Cover Letter
   clLetter:       'jl_cl_letter',
 
+  // Zeugnis + Visa
+  zeugnisResult:       'jl_zeugnis_result',
+  visaResult:          'jl_visa_result',
+
   // India-specific
   inSelectedJob:       'jl_in_selected_job',
   atsSuggestions:      'jl_ats_suggestions',

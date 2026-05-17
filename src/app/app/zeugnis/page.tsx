@@ -1,7 +1,9 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Navbar from '../components/Navbar'
+
+const SS_KEY = 'jl_zeugnis_result'
 
 const blue   = '#378ADD'
 const navy   = '#042C53'
@@ -125,6 +127,68 @@ const EMPTY_FORM: RequestForm = {
   companyAddress: '', hrName: '', hrEmail: '', lastDay: '',
 }
 
+// ── Download helper ─────────────────────────────────────────────────────────
+function downloadZeugnisReport(result: ZeugnisResult) {
+  const gradeBar = '★'.repeat(6 - result.overallGrade) + '☆'.repeat(result.overallGrade - 1)
+  const html = `<!DOCTYPE html><html lang="de"><head><meta charset="UTF-8">
+<title>Arbeitszeugnis Analyse — Job-Lens AI</title>
+<style>
+  body { font-family: 'Segoe UI', Arial, sans-serif; max-width: 820px; margin: 40px auto; padding: 0 24px; color: #1a2332; }
+  h1 { color: #042C53; font-size: 22px; margin-bottom: 4px; }
+  .sub { color: #6b7c93; font-size: 13px; margin-bottom: 32px; }
+  .grade-box { display: flex; align-items: center; gap: 24px; background: #f8fafc; border: 2px solid #dce4ef; border-radius: 12px; padding: 20px 24px; margin-bottom: 24px; }
+  .grade-num { font-size: 56px; font-weight: 800; color: #042C53; line-height: 1; }
+  h2 { font-size: 15px; color: #042C53; border-bottom: 2px solid #edf1f6; padding-bottom: 6px; margin: 24px 0 12px; }
+  .phrase { padding: 10px 0; border-bottom: 1px solid #f5f7fa; }
+  .phrase-orig { font-style: italic; color: #374151; margin-bottom: 3px; }
+  .phrase-decoded { font-size: 13px; color: #6b7c93; }
+  .badge { display: inline-block; padding: 2px 10px; border-radius: 20px; font-size: 11px; font-weight: 700; margin-left: 8px; }
+  .pos { background:#dcfce7; color:#166534; } .neu { background:#dbeafe; color:#1e40af; }
+  .neg { background:#fef9ec; color:#92400e; } .vneg { background:#fee2e2; color:#991b1b; }
+  .flag { padding: 6px 0; color: #991b1b; font-size: 13px; }
+  .missing { padding: 6px 0; color: #92400e; font-size: 13px; }
+  .legal { background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 8px; padding: 14px 16px; font-size: 13px; color: #1e40af; margin-top: 16px; }
+  .footer { margin-top: 40px; font-size: 11px; color: #9aafbc; text-align: center; border-top: 1px solid #edf1f6; padding-top: 16px; }
+  @media print { body { margin: 20px; } }
+</style></head><body>
+<h1>Arbeitszeugnis Analyse</h1>
+<div class="sub">Erstellt von Job-Lens AI · ${new Date().toLocaleDateString('de-DE', { day: '2-digit', month: 'long', year: 'numeric' })}</div>
+
+${result.employeeName || result.employerName ? `<p><strong>Mitarbeiter:</strong> ${result.employeeName || '—'} &nbsp;|&nbsp; <strong>Unternehmen:</strong> ${result.employerName || '—'} &nbsp;|&nbsp; <strong>Position:</strong> ${result.jobTitle || '—'} &nbsp;|&nbsp; <strong>Bis:</strong> ${result.employmentEnd || '—'}</p>` : ''}
+
+<div class="grade-box">
+  <div class="grade-num">${result.overallGrade}</div>
+  <div>
+    <div style="font-size:22px;font-weight:800;color:#042C53">${result.gradeLabel}</div>
+    <div style="font-size:18px;letter-spacing:2px;margin:4px 0">${gradeBar}</div>
+    <div style="font-size:13px;color:#6b7c93">${result.summary}</div>
+  </div>
+</div>
+
+${result.redFlags.length ? `<h2>🚩 Rote Flags</h2>${result.redFlags.map(f => `<div class="flag">⚠ ${f}</div>`).join('')}` : ''}
+
+<h2>📋 Formulierungen im Detail</h2>
+${result.phrases.map(p => {
+  const cls = p.rating === 'positive' ? 'pos' : p.rating === 'neutral' ? 'neu' : p.rating === 'very_negative' ? 'vneg' : 'neg'
+  const lbl = p.rating === 'positive' ? '✓ Positiv' : p.rating === 'neutral' ? '→ Neutral' : p.rating === 'very_negative' ? '✗ Sehr negativ' : '⚠ Negativ'
+  return `<div class="phrase"><div class="phrase-orig">"${p.original}"<span class="badge ${cls}">${lbl}</span></div><div class="phrase-decoded">${p.decoded}</div>${p.tip ? `<div style="font-size:12px;color:#378ADD;margin-top:3px">💡 ${p.tip}</div>` : ''}</div>`
+}).join('')}
+
+${result.missingPhrases.length ? `<h2>📭 Fehlende Formulierungen</h2>${result.missingPhrases.map(m => `<div class="missing">○ ${m}</div>`).join('')}` : ''}
+
+${result.correctionGrounds ? `<div class="legal">⚖️ <strong>Grundlage für Berichtigungsanspruch:</strong><br>${result.correctionGrounds}</div>` : ''}
+
+<div class="footer">Job-Lens AI · Arbeitszeugnis Decoder · job-lens.de<br>Dieses Dokument dient nur zu Informationszwecken und ersetzt keine Rechtsberatung.</div>
+</body></html>`
+
+  const w = window.open('', '_blank')
+  if (!w) return
+  w.document.write(html)
+  w.document.close()
+  w.focus()
+  setTimeout(() => w.print(), 400)
+}
+
 // ── Main page ───────────────────────────────────────────────────────────────
 export default function ZeugnisPage() {
   const [tab, setTab] = useState<'decode' | 'request'>('decode')
@@ -141,6 +205,19 @@ export default function ZeugnisPage() {
   const [letter, setLetter]   = useState('')
   const [copied, setCopied]   = useState(false)
 
+  // Restore from session on mount
+  useEffect(() => {
+    try {
+      const saved = sessionStorage.getItem(SS_KEY)
+      if (saved) {
+        const parsed = JSON.parse(saved) as { result: ZeugnisResult; form: RequestForm; zeugnisText: string }
+        setResult(parsed.result)
+        setForm(parsed.form)
+        setZeugnisText(parsed.zeugnisText || '')
+      }
+    } catch {}
+  }, [])
+
   const f = (k: keyof RequestForm) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
     setForm(p => ({ ...p, [k]: e.target.value }))
 
@@ -152,14 +229,16 @@ export default function ZeugnisPage() {
       const data = await res.json()
       if (!res.ok) { setError(data.error || 'Something went wrong'); return }
       setResult(data)
-      // Pre-fill request form with whatever was extracted from the Zeugnis
-      setForm(prev => ({
-        ...prev,
-        yourName:    data.employeeName   || prev.yourName,
-        companyName: data.employerName   || prev.companyName,
-        jobTitle:    data.jobTitle       || prev.jobTitle,
-        lastDay:     data.employmentEnd  || prev.lastDay,
-      }))
+      const prefilled = {
+        ...EMPTY_FORM,
+        yourName:    data.employeeName   || '',
+        companyName: data.employerName   || '',
+        jobTitle:    data.jobTitle       || '',
+        lastDay:     data.employmentEnd  || '',
+      }
+      setForm(prefilled)
+      // Persist to session
+      try { sessionStorage.setItem(SS_KEY, JSON.stringify({ result: data, form: prefilled, zeugnisText })) } catch {}
     } catch { setError('Network error. Please try again.') }
     finally { setLoading(false) }
   }
@@ -266,6 +345,15 @@ export default function ZeugnisPage() {
               {/* Results */}
               {result && (
                 <>
+                  {/* Session banner + download */}
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 14px', borderRadius: 9, background: '#f0f9ff', border: '1px solid #bae6fd', marginBottom: 12, flexWrap: 'wrap', gap: 8 }}>
+                    <span style={{ fontSize: 12, color: '#0369a1' }}>💾 Results saved for this session</span>
+                    <button onClick={() => downloadZeugnisReport(result)}
+                      style={{ padding: '6px 14px', borderRadius: 7, border: `1px solid ${blue}40`, background: blue + '10', color: blue, fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>
+                      ↓ Download PDF Report
+                    </button>
+                  </div>
+
                   {/* Overall grade card */}
                   <div style={{ ...cardStyle, borderLeft: `4px solid ${GRADE_COLORS[result.gradeColor]}` }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
