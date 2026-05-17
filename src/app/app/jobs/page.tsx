@@ -283,10 +283,6 @@ export default function DACHJobsPage() {
                             style={{ padding: '10px 18px', borderRadius: 9, border: `1px solid ${green}40`, background: green + '10', color: green, fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: "'Outfit',sans-serif" }}>
                             Career Scan
                           </button>
-                          <button className="dach-action-btn" onClick={() => goTo('/app/smart-apply')}
-                            style={{ padding: '10px 18px', borderRadius: 9, border: '1px solid #e8e4ff', background: '#f5f3ff', color: '#7c3aed', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: "'Outfit',sans-serif" }}>
-                            {label('KI-Bewerbung', 'AI Job Match')}
-                          </button>
                           <a href={job.job_apply_link} target="_blank" rel="noopener noreferrer" className="dach-action-btn"
                             style={{ padding: '10px 18px', borderRadius: 9, border: '1px solid #dce4ef', background: '#f8fafc', color: '#6b7c93', fontSize: 12, fontWeight: 600, textDecoration: 'none', cursor: 'pointer', fontFamily: "'Outfit',sans-serif" }}>
                             {label('Stellenanzeige öffnen →', 'Open job listing →')}
