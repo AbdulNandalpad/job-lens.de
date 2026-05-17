@@ -42,6 +42,10 @@ German Zeugnis grading uses legally mandated coded language. Key rules:
 
 Return ONLY valid JSON in this exact structure (no markdown, no explanation outside JSON):
 {
+  "employeeName": "<full name of the employee extracted from the Zeugnis, or empty string if not found>",
+  "employerName": "<name of the company/employer extracted from the Zeugnis, or empty string if not found>",
+  "jobTitle": "<job title/position extracted from the Zeugnis, or empty string if not found>",
+  "employmentEnd": "<last day of employment extracted from the Zeugnis e.g. '31.12.2024', or empty string if not found>",
   "overallGrade": <number 1-5>,
   "gradeLabel": "<Sehr Gut|Gut|Befriedigend|Ausreichend|Mangelhaft>",
   "gradeColor": "<green|blue|yellow|orange|red>",

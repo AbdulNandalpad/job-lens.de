@@ -17,6 +17,10 @@ interface ZeugnisPhrase {
 }
 
 interface ZeugnisResult {
+  employeeName: string
+  employerName: string
+  jobTitle: string
+  employmentEnd: string
   overallGrade: number
   gradeLabel: string
   gradeColor: 'green' | 'blue' | 'yellow' | 'orange' | 'red'
@@ -148,7 +152,14 @@ export default function ZeugnisPage() {
       const data = await res.json()
       if (!res.ok) { setError(data.error || 'Something went wrong'); return }
       setResult(data)
-      // Auto-switch to request tab CTA is visible after result
+      // Pre-fill request form with whatever was extracted from the Zeugnis
+      setForm(prev => ({
+        ...prev,
+        yourName:    data.employeeName   || prev.yourName,
+        companyName: data.employerName   || prev.companyName,
+        jobTitle:    data.jobTitle       || prev.jobTitle,
+        lastDay:     data.employmentEnd  || prev.lastDay,
+      }))
     } catch { setError('Network error. Please try again.') }
     finally { setLoading(false) }
   }
@@ -266,7 +277,7 @@ export default function ZeugnisPage() {
                         <div style={{ fontFamily: "'Outfit',sans-serif", fontSize: 20, fontWeight: 700, color: GRADE_COLORS[result.gradeColor], marginBottom: 4 }}>{result.gradeLabel}</div>
                         <p style={{ fontSize: 13, color: '#374151', lineHeight: 1.65, margin: 0 }}>{result.summary}</p>
                       </div>
-                      <button onClick={() => setTab('request')}
+                      <button onClick={() => { setTab('request'); setReqTab(result.overallGrade >= 3 ? 'correction' : 'initial') }}
                         style={{ padding: '10px 18px', borderRadius: 9, background: result.overallGrade >= 3 ? `linear-gradient(135deg,${red},#c0392b)` : `linear-gradient(135deg,${green},#16a085)`, color: '#fff', fontWeight: 700, fontSize: 12, border: 'none', cursor: 'pointer', fontFamily: "'Outfit',sans-serif", flexShrink: 0 }}>
                         {result.overallGrade >= 3 ? '✉️ Request correction' : '✉️ Request Zeugnis'}
                       </button>
