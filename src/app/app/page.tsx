@@ -1,6 +1,7 @@
 import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
+import DACHDashboard from './components/DACHDashboard'
 
 export default async function DACHHomePage() {
   try {
@@ -11,10 +12,9 @@ export default async function DACHHomePage() {
       { cookies: { get: (name: string) => cookieStore.get(name)?.value } }
     )
     const { data: { user } } = await supabase.auth.getUser()
-    if (user) redirect('/app/jobs')
+    if (user) return <DACHDashboard />
   } catch {
     // fall through
   }
-
   redirect('/login')
 }
