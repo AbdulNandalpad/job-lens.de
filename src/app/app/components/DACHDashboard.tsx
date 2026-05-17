@@ -22,15 +22,14 @@ const txt1    = '#f1f5f9'
 const txt2    = '#94a3b8'
 const txt3    = '#475569'
 
-type Country = 'de' | 'ch' | 'at' | 'gb'
+type Country = 'de' | 'ch' | 'at'
 type DashTab = 'pulse' | 'ai'
 
 // ── Static market data per country ──────────────────────
 const COUNTRY_META: Record<Country, { flag: string; name: string; currency: string; salaryNote: string }> = {
-  de: { flag: '🇩🇪', name: 'Deutschland',    currency: 'EUR', salaryNote: 'Bruttojahresgehalt in EUR · 2025–26' },
-  ch: { flag: '🇨🇭', name: 'Schweiz',        currency: 'CHF', salaryNote: 'Bruttojahresgehalt in CHF · 2025–26' },
-  at: { flag: '🇦🇹', name: 'Österreich',     currency: 'EUR', salaryNote: 'Bruttojahresgehalt in EUR · 2025–26' },
-  gb: { flag: '🇬🇧', name: 'United Kingdom', currency: 'GBP', salaryNote: 'Annual gross salary in GBP · 2025–26' },
+  de: { flag: '🇩🇪', name: 'Deutschland', currency: 'EUR', salaryNote: 'Bruttojahresgehalt in EUR · 2025–26' },
+  ch: { flag: '🇨🇭', name: 'Schweiz',     currency: 'CHF', salaryNote: 'Bruttojahresgehalt in CHF · 2025–26' },
+  at: { flag: '🇦🇹', name: 'Österreich',  currency: 'EUR', salaryNote: 'Bruttojahresgehalt in EUR · 2025–26' },
 }
 
 const KPI_DATA: Record<Country, { label: string; value: string; sub: string; color: string; icon: string }[]> = {
@@ -51,12 +50,6 @@ const KPI_DATA: Record<Country, { label: string; value: string; sub: string; col
     { label: 'Hottest Sector', value: 'Engineering',sub: '14k listings',      color: cyan,   icon: '🔥' },
     { label: 'Top City',       value: 'Wien',   sub: '18k openings',          color: emerald,icon: '📍' },
     { label: 'Fastest Rising', value: 'DevOps', sub: 'trending role 2026',   color: purple, icon: '⭐' },
-  ],
-  gb: [
-    { label: 'Open Roles',     value: '320k',  sub: 'Adzuna UK',             color: blue,   icon: '📋' },
-    { label: 'Hottest Sector', value: 'IT & Tech',sub: '89k listings',        color: cyan,   icon: '🔥' },
-    { label: 'Top City',       value: 'London', sub: '95k openings',          color: emerald,icon: '📍' },
-    { label: 'Fastest Rising', value: 'Data Eng',sub: 'trending role 2026',  color: purple, icon: '⭐' },
   ],
 }
 
@@ -85,14 +78,6 @@ const SECTOR_DATA: Record<Country, { label: string; count: number; color: string
     { label: 'Finance',             count: 5000,  color: cyan,   emoji: '💰' },
     { label: 'Logistics',           count: 4000,  color: purple, emoji: '🚚' },
   ],
-  gb: [
-    { label: 'IT & Software',       count: 89000, color: blue,   emoji: '💻' },
-    { label: 'Healthcare & NHS',    count: 74000, color: red,    emoji: '🏥' },
-    { label: 'Finance & FinTech',   count: 52000, color: orange, emoji: '💰' },
-    { label: 'Engineering',         count: 41000, color: emerald,emoji: '⚙️' },
-    { label: 'Sales & Marketing',   count: 35000, color: cyan,   emoji: '📣' },
-    { label: 'HR & Operations',     count: 28000, color: purple, emoji: '👥' },
-  ],
 }
 
 const MACRO_DATA: Record<Country, { icon: string; label: string; value: string; unit: string; trend: 'up' | 'down' | 'flat'; year: string }[]> = {
@@ -113,12 +98,6 @@ const MACRO_DATA: Record<Country, { icon: string; label: string; value: string; 
     { icon: '📈', label: 'GDP Growth',         value: '0.9',  unit: '%', trend: 'up',   year: '2025' },
     { icon: '💰', label: 'Avg. Salary Growth', value: '3.8',  unit: '%', trend: 'up',   year: '2025 vs 2024' },
     { icon: '🤖', label: 'Remote Job Share',   value: '28',   unit: '%', trend: 'up',   year: 'Q1 2026' },
-  ],
-  gb: [
-    { icon: '📉', label: 'Unemployment Rate', value: '4.4',  unit: '%', trend: 'flat', year: 'Q1 2026' },
-    { icon: '📈', label: 'GDP Growth',         value: '0.8',  unit: '%', trend: 'up',   year: '2025' },
-    { icon: '💰', label: 'Avg. Salary Growth', value: '5.1',  unit: '%', trend: 'up',   year: '2025 vs 2024' },
-    { icon: '🤖', label: 'Remote Job Share',   value: '38',   unit: '%', trend: 'up',   year: 'Q1 2026' },
   ],
 }
 
@@ -152,16 +131,6 @@ const SALARY_DATA: Record<Country, { role: string; min: number; max: number; avg
     { role: 'DevOps Engineer',     min: 50,  max: 85,  avg: 64  },
     { role: 'Frontend Developer',  min: 44,  max: 72,  avg: 55  },
     { role: 'Business Analyst',    min: 42,  max: 68,  avg: 52  },
-  ],
-  gb: [
-    { role: 'ML / AI Engineer',    min: 70,  max: 130, avg: 95  },
-    { role: 'Cloud Architect',     min: 75,  max: 140, avg: 105 },
-    { role: 'Product Manager',     min: 65,  max: 115, avg: 88  },
-    { role: 'Data Scientist',      min: 60,  max: 105, avg: 80  },
-    { role: 'Backend Engineer',    min: 55,  max: 90,  avg: 70  },
-    { role: 'DevOps Engineer',     min: 58,  max: 95,  avg: 74  },
-    { role: 'Frontend Developer',  min: 48,  max: 78,  avg: 60  },
-    { role: 'Business Analyst',    min: 45,  max: 72,  avg: 56  },
   ],
 }
 
@@ -260,7 +229,6 @@ export default function DACHDashboard() {
     { code: 'de', flag: '🇩🇪', name: 'DE' },
     { code: 'ch', flag: '🇨🇭', name: 'CH' },
     { code: 'at', flag: '🇦🇹', name: 'AT' },
-    { code: 'gb', flag: '🇬🇧', name: 'GB' },
   ]
 
   function searchJobs(q: string) {
@@ -569,7 +537,7 @@ export default function DACHDashboard() {
                         <div style={{ position: 'absolute', left: `${avgPct}%`, top: 0, width: 2, height: '100%', background: '#fff', borderRadius: 2, transform: 'translateX(-50%)', boxShadow: '0 0 6px rgba(255,255,255,.8)' }} />
                       </div>
                       <div style={{ textAlign: 'right' as const }}>
-                        <span style={{ fontFamily: "'Outfit',sans-serif", fontSize: 14, fontWeight: 700, color: blue }}>{meta.currency === 'GBP' ? '£' : meta.currency === 'CHF' ? 'Fr.'  : '€'}{row.avg}k</span>
+                        <span style={{ fontFamily: "'Outfit',sans-serif", fontSize: 14, fontWeight: 700, color: blue }}>{meta.currency === 'CHF' ? 'Fr.' : '€'}{row.avg}k</span>
                         <span style={{ fontSize: 10, color: txt3, display: 'block' }}>{row.min}–{row.max}k</span>
                       </div>
                     </div>

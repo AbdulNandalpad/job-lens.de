@@ -26,7 +26,6 @@ const COUNTRIES = [
   { code: 'de', label: 'DE 🇩🇪', name: 'Deutschland' },
   { code: 'ch', label: 'CH 🇨🇭', name: 'Schweiz' },
   { code: 'at', label: 'AT 🇦🇹', name: 'Österreich' },
-  { code: 'gb', label: 'GB 🇬🇧', name: 'United Kingdom' },
 ]
 
 function timeAgo(dateStr: string) {
