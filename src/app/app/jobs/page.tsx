@@ -23,9 +23,9 @@ interface Job {
 }
 
 const COUNTRIES = [
-  { code: 'de', label: 'DE 🇩🇪', name: 'Deutschland' },
-  { code: 'ch', label: 'CH 🇨🇭', name: 'Schweiz' },
-  { code: 'at', label: 'AT 🇦🇹', name: 'Österreich' },
+  { code: 'de', label: '🇩🇪', name: 'Deutschland' },
+  { code: 'ch', label: '🇨🇭', name: 'Schweiz' },
+  { code: 'at', label: '🇦🇹', name: 'Österreich' },
 ]
 
 function timeAgo(dateStr: string) {
@@ -289,7 +289,7 @@ export default function DACHJobsPage() {
           {!searched && (
             <div style={{ textAlign: 'center', padding: '48px 24px', color: '#9aafbc' }}>
               <p style={{ fontSize: 14, marginBottom: 8 }}>
-                {label('Jobs in Deutschland, Österreich, Schweiz oder UK suchen', 'Search jobs across Germany, Austria, Switzerland or the UK')}
+                {label('Jobs in Deutschland, Österreich und der Schweiz suchen', 'Search jobs across Germany, Austria and Switzerland')}
               </p>
               <p style={{ fontSize: 12 }}>
                 {label('Karte antippen für CV-Erstellung, Anschreiben oder Career Scan.', 'Tap any result to build a tailored CV, write a cover letter, or run a Career Scan.')}
