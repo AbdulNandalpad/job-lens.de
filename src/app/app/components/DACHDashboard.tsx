@@ -31,49 +31,49 @@ const COUNTRY_META: Record<Country, { flag: string; name: string; currency: stri
 
 const KPI_DATA: Record<Country, { label: string; value: string; sub: string; color: string; icon: string }[]> = {
   de: [
-    { label: 'Open Roles',     value: '186k',      sub: 'Adzuna Deutschland',  color: blue,    icon: '📋' },
-    { label: 'Hottest Sector', value: 'IT & Tech', sub: '42k listings',        color: cyan,    icon: '🔥' },
-    { label: 'Top City',       value: 'Berlin',    sub: '28k openings',        color: emerald, icon: '📍' },
-    { label: 'Fastest Rising', value: 'KI-Ing.',   sub: 'trending role 2026',  color: purple,  icon: '⭐' },
+    { label: 'Open Roles',     value: '186k',      sub: 'Adzuna Deutschland', color: blue,    icon: '📋' },
+    { label: 'Hottest Sector', value: 'IT & Tech', sub: '42k listings',       color: cyan,    icon: '🔥' },
+    { label: 'Top City',       value: 'Berlin',    sub: '28k openings',       color: emerald, icon: '📍' },
+    { label: 'Fastest Rising', value: 'KI-Ing.',   sub: 'trending role 2026', color: purple,  icon: '⭐' },
   ],
   ch: [
-    { label: 'Open Roles',     value: '67k',      sub: 'Adzuna Schweiz',      color: blue,    icon: '📋' },
-    { label: 'Hottest Sector', value: 'Finance',  sub: '18k listings',        color: cyan,    icon: '🔥' },
-    { label: 'Top City',       value: 'Zürich',   sub: '22k openings',        color: emerald, icon: '📍' },
-    { label: 'Fastest Rising', value: 'Cloud',    sub: 'trending role 2026',  color: purple,  icon: '⭐' },
+    { label: 'Open Roles',     value: '67k',      sub: 'Adzuna Schweiz',     color: blue,    icon: '📋' },
+    { label: 'Hottest Sector', value: 'Finance',  sub: '18k listings',       color: cyan,    icon: '🔥' },
+    { label: 'Top City',       value: 'Zürich',   sub: '22k openings',       color: emerald, icon: '📍' },
+    { label: 'Fastest Rising', value: 'Cloud',    sub: 'trending role 2026', color: purple,  icon: '⭐' },
   ],
   at: [
-    { label: 'Open Roles',     value: '45k',         sub: 'Adzuna Österreich',  color: blue,    icon: '📋' },
-    { label: 'Hottest Sector', value: 'Engineering',  sub: '14k listings',       color: cyan,    icon: '🔥' },
-    { label: 'Top City',       value: 'Wien',         sub: '18k openings',       color: emerald, icon: '📍' },
-    { label: 'Fastest Rising', value: 'DevOps',       sub: 'trending role 2026', color: purple,  icon: '⭐' },
+    { label: 'Open Roles',     value: '45k',        sub: 'Adzuna Österreich',  color: blue,    icon: '📋' },
+    { label: 'Hottest Sector', value: 'Engineering', sub: '14k listings',       color: cyan,    icon: '🔥' },
+    { label: 'Top City',       value: 'Wien',        sub: '18k openings',       color: emerald, icon: '📍' },
+    { label: 'Fastest Rising', value: 'DevOps',      sub: 'trending role 2026', color: purple,  icon: '⭐' },
   ],
 }
 
 const SECTOR_DATA: Record<Country, { label: string; count: number; color: string; emoji: string }[]> = {
   de: [
-    { label: 'IT & Software',    count: 42000, color: blue,   emoji: '💻' },
-    { label: 'Engineering',      count: 38000, color: emerald,emoji: '⚙️' },
-    { label: 'Healthcare',       count: 29000, color: red,    emoji: '🏥' },
-    { label: 'Finance & Banking',count: 21000, color: orange, emoji: '💰' },
-    { label: 'Sales & Marketing',count: 18000, color: cyan,   emoji: '📣' },
-    { label: 'HR & Operations',  count: 12000, color: purple, emoji: '👥' },
+    { label: 'IT & Software',     count: 42000, color: blue,    emoji: '💻' },
+    { label: 'Engineering',       count: 38000, color: emerald, emoji: '⚙️' },
+    { label: 'Healthcare',        count: 29000, color: red,     emoji: '🏥' },
+    { label: 'Finance & Banking', count: 21000, color: orange,  emoji: '💰' },
+    { label: 'Sales & Marketing', count: 18000, color: cyan,    emoji: '📣' },
+    { label: 'HR & Operations',   count: 12000, color: purple,  emoji: '👥' },
   ],
   ch: [
-    { label: 'Finance & Banking',count: 18000, color: orange, emoji: '💰' },
-    { label: 'IT & Software',    count: 16000, color: blue,   emoji: '💻' },
-    { label: 'Healthcare',       count: 11000, color: red,    emoji: '🏥' },
-    { label: 'Engineering',      count: 9000,  color: emerald,emoji: '⚙️' },
-    { label: 'Pharma & Life Sci.',count: 7000, color: cyan,   emoji: '🧬' },
-    { label: 'Operations',       count: 5000,  color: purple, emoji: '🏭' },
+    { label: 'Finance & Banking',  count: 18000, color: orange,  emoji: '💰' },
+    { label: 'IT & Software',      count: 16000, color: blue,    emoji: '💻' },
+    { label: 'Healthcare',         count: 11000, color: red,     emoji: '🏥' },
+    { label: 'Engineering',        count: 9000,  color: emerald, emoji: '⚙️' },
+    { label: 'Pharma & Life Sci.', count: 7000,  color: cyan,    emoji: '🧬' },
+    { label: 'Operations',         count: 5000,  color: purple,  emoji: '🏭' },
   ],
   at: [
-    { label: 'Engineering',       count: 14000, color: emerald,emoji: '⚙️' },
-    { label: 'IT & Software',     count: 12000, color: blue,   emoji: '💻' },
-    { label: 'Healthcare',        count: 8000,  color: red,    emoji: '🏥' },
-    { label: 'Tourism & Hosp.',   count: 6000,  color: orange, emoji: '🏨' },
-    { label: 'Finance',           count: 5000,  color: cyan,   emoji: '💰' },
-    { label: 'Logistics',         count: 4000,  color: purple, emoji: '🚚' },
+    { label: 'Engineering',      count: 14000, color: emerald, emoji: '⚙️' },
+    { label: 'IT & Software',    count: 12000, color: blue,    emoji: '💻' },
+    { label: 'Healthcare',       count: 8000,  color: red,     emoji: '🏥' },
+    { label: 'Tourism & Hosp.', count: 6000,  color: orange,  emoji: '🏨' },
+    { label: 'Finance',          count: 5000,  color: cyan,    emoji: '💰' },
+    { label: 'Logistics',        count: 4000,  color: purple,  emoji: '🚚' },
   ],
 }
 
@@ -100,49 +100,49 @@ const MACRO_DATA: Record<Country, { icon: string; label: string; value: string; 
 
 const SALARY_DATA: Record<Country, { role: string; min: number; max: number; avg: number }[]> = {
   de: [
-    { role: 'ML / AI Engineer',   min: 75,  max: 130, avg: 95  },
-    { role: 'Cloud Architect',    min: 80,  max: 140, avg: 105 },
-    { role: 'Product Manager',    min: 70,  max: 115, avg: 88  },
-    { role: 'Data Scientist',     min: 65,  max: 105, avg: 82  },
-    { role: 'Backend Engineer',   min: 55,  max: 90,  avg: 70  },
-    { role: 'DevOps Engineer',    min: 60,  max: 95,  avg: 75  },
+    { role: 'ML / AI Engineer',  min: 75,  max: 130, avg: 95  },
+    { role: 'Cloud Architect',   min: 80,  max: 140, avg: 105 },
+    { role: 'Product Manager',   min: 70,  max: 115, avg: 88  },
+    { role: 'Data Scientist',    min: 65,  max: 105, avg: 82  },
+    { role: 'Backend Engineer',  min: 55,  max: 90,  avg: 70  },
+    { role: 'DevOps Engineer',   min: 60,  max: 95,  avg: 75  },
   ],
   ch: [
-    { role: 'ML / AI Engineer',   min: 110, max: 180, avg: 140 },
-    { role: 'Cloud Architect',    min: 115, max: 190, avg: 150 },
-    { role: 'Product Manager',    min: 100, max: 165, avg: 128 },
-    { role: 'Data Scientist',     min: 95,  max: 155, avg: 120 },
-    { role: 'Backend Engineer',   min: 85,  max: 135, avg: 105 },
-    { role: 'DevOps Engineer',    min: 88,  max: 140, avg: 108 },
+    { role: 'ML / AI Engineer',  min: 110, max: 180, avg: 140 },
+    { role: 'Cloud Architect',   min: 115, max: 190, avg: 150 },
+    { role: 'Product Manager',   min: 100, max: 165, avg: 128 },
+    { role: 'Data Scientist',    min: 95,  max: 155, avg: 120 },
+    { role: 'Backend Engineer',  min: 85,  max: 135, avg: 105 },
+    { role: 'DevOps Engineer',   min: 88,  max: 140, avg: 108 },
   ],
   at: [
-    { role: 'ML / AI Engineer',   min: 65,  max: 110, avg: 82  },
-    { role: 'Cloud Architect',    min: 68,  max: 115, avg: 88  },
-    { role: 'Product Manager',    min: 60,  max: 100, avg: 76  },
-    { role: 'Data Scientist',     min: 55,  max: 95,  avg: 72  },
-    { role: 'Backend Engineer',   min: 48,  max: 80,  avg: 60  },
-    { role: 'DevOps Engineer',    min: 50,  max: 85,  avg: 64  },
+    { role: 'ML / AI Engineer',  min: 65,  max: 110, avg: 82 },
+    { role: 'Cloud Architect',   min: 68,  max: 115, avg: 88 },
+    { role: 'Product Manager',   min: 60,  max: 100, avg: 76 },
+    { role: 'Data Scientist',    min: 55,  max: 95,  avg: 72 },
+    { role: 'Backend Engineer',  min: 48,  max: 80,  avg: 60 },
+    { role: 'DevOps Engineer',   min: 50,  max: 85,  avg: 64 },
   ],
 }
 
 const AI_IMPACT = [
-  { sector: 'Software & IT',     emoji: '💻', impact: 'creating',   score: 85, headline: 'KI-Engineering +180% YoY',              color: emerald },
-  { sector: 'Data & Analytics',  emoji: '📊', impact: 'creating',   score: 80, headline: 'MLOps & Data Engineers top-demanded',    color: emerald },
-  { sector: 'MedTech & Health',  emoji: '🏥', impact: 'creating',   score: 68, headline: 'AI diagnostics boom — DACH leads',       color: emerald },
-  { sector: 'Automotive',        emoji: '🚗', impact: 'mixed',      score: 58, headline: 'EV creates roles, disrupts legacy',      color: orange  },
-  { sector: 'Finance & Banking', emoji: '🏦', impact: 'mixed',      score: 52, headline: 'Analysts valued, back-office automated', color: orange  },
-  { sector: 'Marketing',         emoji: '📣', impact: 'mixed',      score: 45, headline: 'GenAI copilots reshape every role',      color: orange  },
-  { sector: 'Shared Services',   emoji: '🎧', impact: 'disrupting', score: 74, headline: 'LLMs automating routine tasks fast',     color: red     },
-  { sector: 'Logistics & Mfg.',  emoji: '🏭', impact: 'disrupting', score: 62, headline: 'Robotics displacing manual roles',       color: red     },
+  { sector: 'Software & IT',    emoji: '💻', impact: 'creating',   score: 85, headline: 'KI-Engineering +180% YoY',              color: emerald },
+  { sector: 'Data & Analytics', emoji: '📊', impact: 'creating',   score: 80, headline: 'MLOps & Data Engineers top-demanded',    color: emerald },
+  { sector: 'MedTech & Health', emoji: '🏥', impact: 'creating',   score: 68, headline: 'AI diagnostics boom — DACH leads',       color: emerald },
+  { sector: 'Automotive',       emoji: '🚗', impact: 'mixed',      score: 58, headline: 'EV creates roles, disrupts legacy',      color: orange  },
+  { sector: 'Finance & Banking',emoji: '🏦', impact: 'mixed',      score: 52, headline: 'Analysts valued, back-office automated', color: orange  },
+  { sector: 'Marketing',        emoji: '📣', impact: 'mixed',      score: 45, headline: 'GenAI copilots reshape every role',      color: orange  },
+  { sector: 'Shared Services',  emoji: '🎧', impact: 'disrupting', score: 74, headline: 'LLMs automating routine tasks fast',     color: red     },
+  { sector: 'Logistics & Mfg.', emoji: '🏭', impact: 'disrupting', score: 62, headline: 'Robotics displacing manual roles',       color: red     },
 ]
 
 const RISING_SKILLS = [
-  { skill: 'Generative AI',     growth: '+290%', hot: true  },
-  { skill: 'LLM / RAG Systems', growth: '+260%', hot: true  },
-  { skill: 'MLOps',             growth: '+180%', hot: true  },
-  { skill: 'Prompt Engineering',growth: '+155%', hot: false },
-  { skill: 'Cloud (AWS/Azure)', growth: '+88%',  hot: false },
-  { skill: 'Data Engineering',  growth: '+80%',  hot: false },
+  { skill: 'Generative AI',      growth: '+290%', hot: true  },
+  { skill: 'LLM / RAG Systems',  growth: '+260%', hot: true  },
+  { skill: 'MLOps',              growth: '+180%', hot: true  },
+  { skill: 'Prompt Engineering', growth: '+155%', hot: false },
+  { skill: 'Cloud (AWS/Azure)',  growth: '+88%',  hot: false },
+  { skill: 'Data Engineering',   growth: '+80%',  hot: false },
 ]
 const DECLINING_SKILLS = [
   { skill: 'Manual Testing',    drop: '-45%' },
@@ -157,14 +157,30 @@ function fmt(n: number) {
   if (n >= 1000) return `${(n / 1000).toFixed(0)}k`
   return n.toString()
 }
+
 function GlowDot({ color }: { color: string }) {
-  return <span style={{ display: 'inline-block', width: 7, height: 7, borderRadius: '50%', background: color, boxShadow: `0 0 7px ${color}`, flexShrink: 0 }} />
+  return (
+    <span style={{ display: 'inline-block', width: 7, height: 7, borderRadius: '50%', background: color, boxShadow: `0 0 7px ${color}`, flexShrink: 0 }} />
+  )
+}
+
+// ── Section header ───────────────────────────────────────────
+function SectionHeader({ icon, title, sub }: { icon: string; title: string; sub: string }) {
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 20 }}>
+      <GlowDot color={blue} />
+      <div>
+        <div style={{ fontFamily: "'Outfit',sans-serif", fontSize: 14, fontWeight: 700, color: '#fff' }}>{icon} {title}</div>
+        <div style={{ fontSize: 11, color: txt3, marginTop: 1 }}>{sub}</div>
+      </div>
+    </div>
+  )
 }
 
 // ── SVG Horizontal Bar Chart ─────────────────────────────────
 function BarChart({ data }: { data: { label: string; count: number; color: string; emoji: string }[] }) {
   const max = Math.max(...data.map(d => d.count))
-  const ROW = 38, LEFT = 118, BAR = 180, LABEL_X = 200
+  const ROW = 38, LEFT = 118, BAR = 170
   const h = data.length * ROW + 16
   return (
     <svg viewBox={`0 0 ${LEFT + BAR + 56} ${h}`} style={{ width: '100%', display: 'block', overflow: 'visible' }}>
@@ -190,47 +206,14 @@ function BarChart({ data }: { data: { label: string; count: number; color: strin
   )
 }
 
-// ── SVG Donut Chart ──────────────────────────────────────────
-function DonutChart({ data }: { data: { label: string; count: number; color: string; emoji: string }[] }) {
-  const total = data.reduce((s, d) => s + d.count, 0)
-  const cx = 95, cy = 95, R = 74, inner = 48
-  let angle = -Math.PI / 2
-  const segs = data.map(d => {
-    const sweep = (d.count / total) * 2 * Math.PI
-    const x1 = cx + R * Math.cos(angle), y1 = cy + R * Math.sin(angle)
-    angle += sweep
-    const x2 = cx + R * Math.cos(angle), y2 = cy + R * Math.sin(angle)
-    return { d: `M${cx},${cy} L${x1},${y1} A${R},${R} 0 ${sweep > Math.PI ? 1 : 0} 1 ${x2},${y2} Z`, color: d.color, label: d.label, emoji: d.emoji }
-  })
-  return (
-    <div>
-      <svg viewBox={`0 0 ${cx * 2} ${cy * 2}`} style={{ width: '100%', maxWidth: 190, display: 'block', margin: '0 auto' }}>
-        {segs.map((s, i) => <path key={i} d={s.d} fill={s.color} opacity={0.82} stroke={bg} strokeWidth={2} />)}
-        <circle cx={cx} cy={cy} r={inner} fill={bg} />
-        <text x={cx} y={cy - 10} textAnchor="middle" fontSize={10} fill={txt3}>Total</text>
-        <text x={cx} y={cy + 10} textAnchor="middle" fontSize={20} fontWeight={800} fill={txt1} fontFamily="Outfit,sans-serif">{fmt(total)}</text>
-        <text x={cx} y={cy + 24} textAnchor="middle" fontSize={9} fill={txt3}>open roles</text>
-      </svg>
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '5px 10px', marginTop: 14 }}>
-        {data.map(d => (
-          <div key={d.label} style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-            <span style={{ width: 8, height: 8, borderRadius: '50%', background: d.color, display: 'inline-block', flexShrink: 0 }} />
-            <span style={{ fontSize: 10.5, color: txt2 }}>{d.emoji} {d.label.split(' ')[0]}</span>
-          </div>
-        ))}
-      </div>
-    </div>
-  )
-}
-
 // ── CSS Salary Range Bar ─────────────────────────────────────
 function SalaryBar({ role, min, max, avg, sym, scaleMax }: { role: string; min: number; max: number; avg: number; sym: string; scaleMax: number }) {
   const minPct = (min / scaleMax) * 100
   const maxPct = (max / scaleMax) * 100
   const avgPct = (avg / scaleMax) * 100
   return (
-    <div style={{ marginBottom: 16 }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 5 }}>
+    <div style={{ marginBottom: 18 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
         <span style={{ fontSize: 12, color: txt2, fontWeight: 500 }}>{role}</span>
         <span style={{ fontSize: 12, color: blue, fontWeight: 700 }}>{sym}{avg}k avg</span>
       </div>
@@ -253,34 +236,21 @@ export default function DACHDashboard() {
   const [profile,  setProfile]  = useState<{ full_name?: string; credits?: number; eu_credits?: number } | null>(null)
   const [loadingP, setLoadingP] = useState(true)
   const [country,  setCountry]  = useState<Country>('de')
-  const [mobSec,   setMobSec]   = useState<Record<string, boolean>>({})
+  const [sectorsExpanded, setSectorsExpanded] = useState(false)
+  const [salaryExpanded,  setSalaryExpanded]  = useState(false)
 
   const t = (de: string, en: string) => lang === 'DE' ? de : en
-  function toggleMob(id: string) { setMobSec(p => ({ ...p, [id]: !p[id] })) }
-  function MobSection({ id, title, icon, children }: { id: string; title: string; icon: string; children: React.ReactNode }) {
-    const open = !!mobSec[id]
-    return (
-      <div>
-        <button className="mob-sec-hdr" onClick={() => toggleMob(id)}
-          style={{ width: '100%', display: 'none', alignItems: 'center', justifyContent: 'space-between', padding: '13px 18px', background: 'rgba(255,255,255,.04)', border: `1px solid ${border}`, borderRadius: open ? '16px 16px 0 0' : 16, color: txt1, fontFamily: "'DM Sans',sans-serif", fontSize: 13, fontWeight: 600, cursor: 'pointer', marginBottom: open ? 0 : 8 }}>
-          <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}><span style={{ fontSize: 18 }}>{icon}</span>{title}</span>
-          <span style={{ fontSize: 14, color: txt3, transform: open ? 'rotate(180deg)' : 'none', display: 'inline-block' }}>▾</span>
-        </button>
-        <div className={open ? 'mob-sec-body mob-sec-open' : 'mob-sec-body'}>{children}</div>
-      </div>
-    )
-  }
 
   useEffect(() => {
     fetch('/api/user/profile').then(r => r.json()).then(setProfile).finally(() => setLoadingP(false))
   }, [])
 
-  const hour      = new Date().getHours()
-  const greeting  = lang === 'DE'
+  const hour     = new Date().getHours()
+  const greeting = lang === 'DE'
     ? (hour < 12 ? 'Guten Morgen' : hour < 18 ? 'Guten Tag' : 'Guten Abend')
     : (hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening')
-  const firstName     = (profile?.full_name ?? '').split(' ')[0]
-  const totalCredits  = (profile?.credits ?? 0) + (profile?.eu_credits ?? 0)
+  const firstName    = (profile?.full_name ?? '').split(' ')[0]
+  const totalCredits = (profile?.credits ?? 0) + (profile?.eu_credits ?? 0)
 
   const meta     = COUNTRY_META[country]
   const kpi      = KPI_DATA[country]
@@ -300,13 +270,17 @@ export default function DACHDashboard() {
   const mixed      = AI_IMPACT.filter(x => x.impact === 'mixed')
   const disrupting = AI_IMPACT.filter(x => x.impact === 'disrupting')
 
+  const cardStyle: React.CSSProperties = { background: card, border: `1px solid ${border}`, borderRadius: 20, padding: '22px 24px' }
+
+  const visibleSectors = sectorsExpanded ? sectors : sectors.slice(0, 5)
+  const visibleSalaries = salaryExpanded ? salaries : salaries.slice(0, 5)
+
   return (
     <div style={{ minHeight: '100vh', background: bg, fontFamily: "'DM Sans',sans-serif", color: txt1 }}>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=Outfit:wght@400;600;700;800&display=swap');
-        @keyframes fadeUp  { from{opacity:0;transform:translateY(14px)} to{opacity:1;transform:none} }
-        @keyframes glow    { 0%,100%{box-shadow:0 0 20px rgba(55,138,221,.15)} 50%{box-shadow:0 0 40px rgba(55,138,221,.4)} }
-        @keyframes pulse   { 0%,100%{opacity:1} 50%{opacity:.45} }
+        @keyframes fadeUp { from{opacity:0;transform:translateY(14px)} to{opacity:1;transform:none} }
+        @keyframes glow   { 0%,100%{box-shadow:0 0 20px rgba(55,138,221,.15)} 50%{box-shadow:0 0 40px rgba(55,138,221,.4)} }
         * { box-sizing:border-box }
 
         .dash-page {
@@ -316,349 +290,310 @@ export default function DACHDashboard() {
         }
         .dash-hero {
           background:linear-gradient(135deg,#081525 0%,#091522 55%,#080d1a 100%);
-          padding:36px 28px 44px;
-          position:relative;overflow:hidden;
+          padding:32px 28px 36px;
+          position:relative; overflow:hidden;
           border-bottom:1px solid ${border};
         }
-        /* ── Quick action cards ── */
-        .act-grid { display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-top:32px }
-        .act-card { background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:18px;padding:22px 16px;display:flex;flex-direction:column;align-items:center;gap:10px;text-align:center;cursor:pointer;transition:all .2s }
-        .act-card:hover { background:rgba(255,255,255,.08);border-color:rgba(55,138,221,.4);transform:translateY(-3px);box-shadow:0 12px 40px rgba(55,138,221,.12) }
-        /* ── KPI cards ── */
+        /* KPI */
         .kpi-grid { display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:24px }
         .kpi-card { background:${card};border:1px solid ${border};border-radius:16px;padding:20px;transition:all .2s }
         .kpi-card:hover { background:${cardHov};border-color:rgba(255,255,255,.18) }
-        /* ── Charts grid ── */
-        .charts-2col { display:grid;grid-template-columns:3fr 2fr;gap:18px;margin-bottom:18px }
-        .charts-2col-eq { display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-bottom:18px }
-        /* ── AI heatmap ── */
-        .ai-heat { display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:18px }
-        .ai-col-cards { display:flex;flex-direction:column;gap:10px }
-        /* ── Skills ── */
-        .skills-2col { display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:24px }
-        /* ── Macro ── */
-        .macro-2x2 { display:grid;grid-template-columns:1fr 1fr;gap:10px }
-        /* ── Country pill ── */
+        /* Two column layouts */
+        .two-col   { display:grid;grid-template-columns:1fr 1fr;gap:18px }
+        .skills-cols { display:grid;grid-template-columns:1fr 1fr;gap:16px }
+        .macro-grid { display:grid;grid-template-columns:1fr 1fr;gap:10px }
+        /* AI heatmap */
+        .ai-heat { display:grid;grid-template-columns:repeat(3,1fr);gap:16px }
+        /* country pill */
         .country-pill { cursor:pointer;transition:all .15s }
         .country-pill:hover { border-color:rgba(55,138,221,.5) !important }
+        /* expand button */
+        .expand-btn { background:none;border:1px solid rgba(255,255,255,.1);color:${txt2};border-radius:8px;padding:6px 18px;font-size:12px;cursor:pointer;margin-top:14px;width:100%;font-family:inherit;transition:all .15s }
+        .expand-btn:hover { border-color:rgba(55,138,221,.4);color:${blue} }
+        /* go to app button */
+        .goto-app-btn { display:flex;align-items:center;gap:7px;padding:10px 20px;border-radius:12px;border:1px solid rgba(55,138,221,.35);background:rgba(55,138,221,.1);color:${blue};font-size:13px;font-weight:700;cursor:pointer;font-family:"Outfit",sans-serif;transition:all .2s }
+        .goto-app-btn:hover { background:rgba(55,138,221,.18);border-color:rgba(55,138,221,.6);transform:translateY(-1px) }
 
         @media(max-width:900px){
-          .act-grid  { grid-template-columns:repeat(2,1fr)!important }
-          .kpi-grid  { grid-template-columns:repeat(2,1fr)!important }
-          .charts-2col { grid-template-columns:1fr!important }
-          .charts-2col-eq { grid-template-columns:1fr!important }
-          .ai-heat   { grid-template-columns:1fr!important }
-          .skills-2col { grid-template-columns:1fr!important }
+          .kpi-grid    { grid-template-columns:repeat(2,1fr)!important }
+          .two-col     { grid-template-columns:1fr!important }
+          .skills-cols { grid-template-columns:1fr!important }
+          .ai-heat     { grid-template-columns:1fr!important }
         }
         @media(max-width:600px){
-          .dash-hero { padding:22px 16px 32px!important }
-          .act-card  { padding:14px 10px!important }
-          .kpi-grid  { grid-template-columns:1fr 1fr!important;gap:10px!important }
-          .macro-2x2 { grid-template-columns:1fr!important }
-          .mob-sec-hdr { display:flex!important }
-          .mob-sec-body { display:none;border:1px solid rgba(255,255,255,.08);border-top:none;border-radius:0 0 16px 16px;margin-bottom:10px;overflow:hidden }
-          .mob-sec-body.mob-sec-open { display:block }
+          .dash-hero   { padding:20px 16px 28px!important }
+          .kpi-grid    { grid-template-columns:1fr 1fr!important;gap:10px!important }
+          .macro-grid  { grid-template-columns:1fr!important }
+          .hero-top    { flex-direction:column!important;align-items:flex-start!important }
         }
         @media(max-width:380px){
-          .kpi-grid  { grid-template-columns:1fr!important }
-          .act-grid  { grid-template-columns:1fr 1fr!important }
+          .kpi-grid    { grid-template-columns:1fr!important }
         }
       `}</style>
 
       {/* ── HERO ─────────────────────────────────────── */}
       <div className="dash-hero">
         {/* Ambient glows */}
-        <div style={{ position:'absolute', top:-100, right:-60, width:380, height:380, borderRadius:'50%', background:'radial-gradient(circle,rgba(55,138,221,.14) 0%,transparent 65%)', pointerEvents:'none' }} />
-        <div style={{ position:'absolute', bottom:-120, left:-80, width:400, height:400, borderRadius:'50%', background:'radial-gradient(circle,rgba(16,185,129,.08) 0%,transparent 65%)', pointerEvents:'none' }} />
+        <div style={{ position: 'absolute', top: -100, right: -60, width: 380, height: 380, borderRadius: '50%', background: 'radial-gradient(circle,rgba(55,138,221,.14) 0%,transparent 65%)', pointerEvents: 'none' }} />
+        <div style={{ position: 'absolute', bottom: -120, left: -80, width: 400, height: 400, borderRadius: '50%', background: 'radial-gradient(circle,rgba(16,185,129,.08) 0%,transparent 65%)', pointerEvents: 'none' }} />
 
         {/* Faint logo watermark */}
-        <div style={{ position:'absolute', right:32, top:'50%', transform:'translateY(-50%)', opacity:0.04, pointerEvents:'none', userSelect:'none' }}>
-          <svg width="260" height="260" viewBox="0 0 44 44">
-            <circle cx="20" cy="20" r="13" fill="none" stroke="#378ADD" strokeWidth="2"/>
-            <circle cx="20" cy="20" r="8"  fill="none" stroke="#378ADD" strokeWidth="1"/>
-            <circle cx="20" cy="20" r="3"  fill="#378ADD"/>
-            <line x1="7" y1="20" x2="33" y2="20" stroke="#378ADD" strokeWidth="0.6"/>
-            <line x1="28" y1="28" x2="36" y2="36" stroke="#378ADD" strokeWidth="2.5" strokeLinecap="round"/>
+        <div style={{ position: 'absolute', right: 32, top: '50%', transform: 'translateY(-50%)', opacity: 0.04, pointerEvents: 'none', userSelect: 'none' }}>
+          <svg width="220" height="220" viewBox="0 0 44 44">
+            <circle cx="20" cy="20" r="13" fill="none" stroke="#378ADD" strokeWidth="2" />
+            <circle cx="20" cy="20" r="8"  fill="none" stroke="#378ADD" strokeWidth="1" />
+            <circle cx="20" cy="20" r="3"  fill="#378ADD" />
+            <line x1="7" y1="20" x2="33" y2="20" stroke="#378ADD" strokeWidth="0.6" />
+            <line x1="28" y1="28" x2="36" y2="36" stroke="#378ADD" strokeWidth="2.5" strokeLinecap="round" />
           </svg>
         </div>
 
-        <div style={{ maxWidth:1100, margin:'0 auto', position:'relative' }}>
-          <div style={{ display:'flex', alignItems:'flex-start', justifyContent:'space-between', flexWrap:'wrap', gap:16 }}>
+        <div style={{ maxWidth: 1100, margin: '0 auto', position: 'relative' }}>
+          {/* Top row: brand + controls */}
+          <div className="hero-top" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
 
-            {/* Left: Logo + greeting */}
+            {/* Brand + greeting */}
             <div>
-              {/* Brand row */}
-              <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom:14 }}>
-                <svg width="22" height="22" viewBox="0 0 44 44">
-                  <circle cx="20" cy="20" r="13" fill="none" stroke={blue} strokeWidth="2.5"/>
-                  <circle cx="20" cy="20" r="8"  fill="none" stroke="#85B7EB" strokeWidth="1.2"/>
-                  <circle cx="20" cy="20" r="3"  fill={blue}/>
-                  <line x1="7" y1="20" x2="33" y2="20" stroke={blue} strokeWidth="0.8" strokeDasharray="2,2" opacity="0.5"/>
-                  <line x1="28" y1="28" x2="36" y2="36" stroke={blue} strokeWidth="3" strokeLinecap="round"/>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
+                <svg width="20" height="20" viewBox="0 0 44 44">
+                  <circle cx="20" cy="20" r="13" fill="none" stroke={blue} strokeWidth="2.5" />
+                  <circle cx="20" cy="20" r="8"  fill="none" stroke="#85B7EB" strokeWidth="1.2" />
+                  <circle cx="20" cy="20" r="3"  fill={blue} />
+                  <line x1="7" y1="20" x2="33" y2="20" stroke={blue} strokeWidth="0.8" strokeDasharray="2,2" opacity="0.5" />
+                  <line x1="28" y1="28" x2="36" y2="36" stroke={blue} strokeWidth="3" strokeLinecap="round" />
                 </svg>
-                <span style={{ fontFamily:"'Outfit',sans-serif", fontSize:13, fontWeight:700, color:'rgba(255,255,255,0.5)', letterSpacing:0.5 }}>
-                  Job-Lens <span style={{ color:blue }}>AI</span>
-                  <span style={{ color:txt3, fontWeight:400, marginLeft:8 }}>·</span>
-                  <span style={{ color:txt3, fontWeight:400, marginLeft:8 }}>DACH Intelligence Platform</span>
+                <span style={{ fontFamily: "'Outfit',sans-serif", fontSize: 12, fontWeight: 700, color: 'rgba(255,255,255,0.45)', letterSpacing: 0.5 }}>
+                  Job-Lens <span style={{ color: blue }}>AI</span>
+                  <span style={{ color: txt3, fontWeight: 400, marginLeft: 7 }}>· DACH Intelligence</span>
                 </span>
               </div>
-
-              <div style={{ display:'flex', alignItems:'center', gap:7, marginBottom:6 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
                 <GlowDot color={emerald} />
-                <span style={{ fontSize:11, color:txt3, letterSpacing:.8, textTransform:'uppercase' }}>
-                  {new Date().toLocaleDateString(lang==='DE' ? 'de-DE' : 'en-GB', { weekday:'long', day:'numeric', month:'long' })}
+                <span style={{ fontSize: 11, color: txt3, letterSpacing: 0.8, textTransform: 'uppercase' }}>
+                  {new Date().toLocaleDateString(lang === 'DE' ? 'de-DE' : 'en-GB', { weekday: 'long', day: 'numeric', month: 'long' })}
                 </span>
               </div>
-              <h1 style={{ margin:0, fontFamily:"'Outfit',sans-serif", fontSize:'clamp(22px,5vw,32px)', fontWeight:800, color:'#fff', letterSpacing:-.5 }}>
+              <h1 style={{ margin: 0, fontFamily: "'Outfit',sans-serif", fontSize: 'clamp(20px,4.5vw,30px)', fontWeight: 800, color: '#fff', letterSpacing: -0.5 }}>
                 {greeting}{firstName ? `, ${firstName}` : ''} 👋
               </h1>
-              <p style={{ margin:'6px 0 0', fontSize:13, color:txt2 }}>
-                {t('Dein DACH-Karriere-Dashboard', 'Your DACH career intelligence dashboard')}
+              <p style={{ margin: '5px 0 0', fontSize: 13, color: txt2 }}>
+                {t('Dein DACH-Karriere-Intelligence-Dashboard', 'Your DACH career intelligence dashboard')}
               </p>
             </div>
 
-            {/* Right: Country + credits */}
-            <div style={{ display:'flex', gap:10, alignItems:'center', flexWrap:'wrap' }}>
-              <div style={{ display:'flex', gap:5, background:'rgba(255,255,255,.04)', border:`1px solid ${border}`, borderRadius:12, padding:5 }}>
+            {/* Right controls */}
+            <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
+              {/* Country switcher */}
+              <div style={{ display: 'flex', gap: 4, background: 'rgba(255,255,255,.04)', border: `1px solid ${border}`, borderRadius: 12, padding: 4 }}>
                 {COUNTRIES.map(c => (
                   <button key={c.code} className="country-pill" onClick={() => setCountry(c.code)}
-                    style={{ padding:'7px 13px', borderRadius:8, border:`1px solid ${country===c.code ? blue : 'transparent'}`, background:country===c.code ? blue+'22' : 'transparent', color:country===c.code ? '#fff' : txt2, fontSize:12, fontWeight:country===c.code ? 700 : 400, cursor:'pointer', fontFamily:"'DM Sans',sans-serif" }}>
+                    style={{ padding: '7px 13px', borderRadius: 8, border: `1px solid ${country === c.code ? blue : 'transparent'}`, background: country === c.code ? blue + '22' : 'transparent', color: country === c.code ? '#fff' : txt2, fontSize: 12, fontWeight: country === c.code ? 700 : 400, cursor: 'pointer', fontFamily: "'DM Sans',sans-serif" }}>
                     {c.flag} {c.name}
                   </button>
                 ))}
               </div>
+
+              {/* Credits */}
               {!loadingP && profile && (
                 <div onClick={() => router.push('/app/account')}
-                  style={{ display:'flex', alignItems:'center', gap:10, background:'rgba(55,138,221,.1)', border:'1px solid rgba(55,138,221,.28)', borderRadius:14, padding:'10px 18px', cursor:'pointer', animation:'glow 3s infinite' }}>
-                  <span style={{ fontSize:20 }}>⚡</span>
+                  style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'rgba(55,138,221,.1)', border: '1px solid rgba(55,138,221,.28)', borderRadius: 12, padding: '8px 16px', cursor: 'pointer', animation: 'glow 3s infinite' }}>
+                  <span style={{ fontSize: 18 }}>⚡</span>
                   <div>
-                    <div style={{ fontFamily:"'Outfit',sans-serif", fontSize:22, fontWeight:800, color:blue, lineHeight:1 }}>{totalCredits}</div>
-                    <div style={{ fontSize:10, color:'rgba(55,138,221,.55)', letterSpacing:.5 }}>CREDITS</div>
+                    <div style={{ fontFamily: "'Outfit',sans-serif", fontSize: 20, fontWeight: 800, color: blue, lineHeight: 1 }}>{totalCredits}</div>
+                    <div style={{ fontSize: 10, color: 'rgba(55,138,221,.55)', letterSpacing: 0.5 }}>CREDITS</div>
                   </div>
                 </div>
               )}
-            </div>
-          </div>
 
-          {/* Quick actions */}
-          <div className="act-grid">
-            {([
-              { icon:'🔍', label:t('Jobs suchen','Find Jobs'),     sub:t('Live-Stellen DACH','Browse DACH openings'),    href:'/app/jobs',         accent:blue    },
-              { icon:'🎯', label:t('Career Scan','Career Scan'),   sub:t('Profil analysieren','Analyse your profile'),   href:'/app/career-scan',  accent:cyan    },
-              { icon:'📄', label:t('Lebenslauf','Build CV'),       sub:t('KI-optimiert','AI-tailored for any role'),     href:'/app/cv-builder',   accent:emerald },
-              { icon:'✉️', label:t('Anschreiben','Cover Letter'),  sub:t('In deiner Stimme','In your voice, in minutes'),href:'/app/cover-letter', accent:purple  },
-            ] as const).map(a => (
-              <div key={a.href} className="act-card" onClick={() => router.push(a.href)}>
-                <div style={{ width:50, height:50, borderRadius:14, background:`${a.accent}20`, border:`1px solid ${a.accent}30`, display:'flex', alignItems:'center', justifyContent:'center', fontSize:22 }}>{a.icon}</div>
-                <div>
-                  <div style={{ fontFamily:"'Outfit',sans-serif", fontSize:14, fontWeight:700, color:'#fff' }}>{a.label}</div>
-                  <div style={{ fontSize:11, color:txt3, marginTop:2 }}>{a.sub}</div>
-                </div>
-              </div>
-            ))}
+              {/* Go to App */}
+              <button className="goto-app-btn" onClick={() => router.push('/app/jobs')}>
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <rect x="3" y="3" width="7" height="7" rx="1" /><rect x="14" y="3" width="7" height="7" rx="1" />
+                  <rect x="3" y="14" width="7" height="7" rx="1" /><rect x="14" y="14" width="7" height="7" rx="1" />
+                </svg>
+                {t('Zur App', 'Go to App')}
+              </button>
+            </div>
           </div>
         </div>
       </div>
 
-      {/* ── BODY ─────────────────────────────────────── */}
-      <div className="dash-page" style={{ maxWidth:1100, margin:'0 auto', padding:'28px 20px 80px' }}>
+      {/* ── ANALYTICS BODY ───────────────────────────── */}
+      <div className="dash-page" style={{ maxWidth: 1100, margin: '0 auto', padding: '28px 20px 80px' }}>
 
-        {/* KPI row */}
-        <MobSection id="kpi" title={t('Markt-Snapshot','Market Snapshot')} icon="📊">
-          <div className="kpi-grid">
-            {kpi.map((k, i) => (
-              <div key={k.label} className="kpi-card" style={{ animationDelay:`${i*.07}s`, animationFillMode:'both', animation:'fadeUp .45s ease both' }}>
-                <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:12 }}>
-                  <span style={{ fontSize:10, fontWeight:600, color:txt3, letterSpacing:.7, textTransform:'uppercase' }}>{k.label}</span>
-                  <div style={{ width:32, height:32, borderRadius:9, background:`${k.color}15`, border:`1px solid ${k.color}28`, display:'flex', alignItems:'center', justifyContent:'center', fontSize:15 }}>{k.icon}</div>
-                </div>
-                <div style={{ fontFamily:"'Outfit',sans-serif", fontSize:26, fontWeight:800, color:k.color, lineHeight:1, letterSpacing:-.5 }}>{k.value}</div>
-                <div style={{ fontSize:11, color:txt3, marginTop:6 }}>{k.sub}</div>
+        {/* ── KPI snapshot ── */}
+        <div className="kpi-grid" style={{ marginBottom: 28 }}>
+          {kpi.map((k, i) => (
+            <div key={k.label} className="kpi-card" style={{ animation: `fadeUp .45s ease ${i * 0.07}s both` }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+                <span style={{ fontSize: 10, fontWeight: 600, color: txt3, letterSpacing: 0.7, textTransform: 'uppercase' }}>{k.label}</span>
+                <div style={{ width: 32, height: 32, borderRadius: 9, background: `${k.color}15`, border: `1px solid ${k.color}28`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 15 }}>{k.icon}</div>
               </div>
-            ))}
-          </div>
-        </MobSection>
+              <div style={{ fontFamily: "'Outfit',sans-serif", fontSize: 26, fontWeight: 800, color: k.color, lineHeight: 1, letterSpacing: -0.5 }}>{k.value}</div>
+              <div style={{ fontSize: 11, color: txt3, marginTop: 6 }}>{k.sub}</div>
+            </div>
+          ))}
+        </div>
 
-        {/* ── Section header helper */}
-        {(() => {
-          const H = ({ icon, title, sub }: { icon:string; title:string; sub:string }) => (
-            <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom:20 }}>
-              <GlowDot color={blue} />
-              <div>
-                <div style={{ fontFamily:"'Outfit',sans-serif", fontSize:14, fontWeight:700, color:'#fff' }}>{icon} {title}</div>
-                <div style={{ fontSize:11, color:txt3, marginTop:1 }}>{sub}</div>
+        {/* ── 1. Skills: Rising + Declining ── */}
+        <div style={{ marginBottom: 20 }}>
+          <div className="skills-cols">
+            {/* Rising */}
+            <div style={cardStyle}>
+              <SectionHeader icon="🚀" title={t('Wachsende Skills', 'Rising Skills')} sub={t('Nachfrage-Anstieg YoY · DACH', 'YoY demand growth · DACH market')} />
+              {RISING_SKILLS.map(s => (
+                <div key={s.skill} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '9px 0', borderBottom: `1px solid rgba(255,255,255,.05)` }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    {s.hot && <span style={{ fontSize: 9, fontWeight: 700, color: orange, background: `${orange}20`, padding: '1px 6px', borderRadius: 8, letterSpacing: 0.3 }}>HOT</span>}
+                    <span style={{ fontSize: 13, color: txt2 }}>{s.skill}</span>
+                  </div>
+                  <span style={{ fontSize: 13, fontWeight: 700, color: emerald }}>{s.growth}</span>
+                </div>
+              ))}
+            </div>
+            {/* Declining */}
+            <div style={cardStyle}>
+              <SectionHeader icon="📉" title={t('Sinkende Skills', 'Declining Skills')} sub={t('Rückgang der Jobnachfrage · DACH', 'Drop in job demand · DACH market')} />
+              {DECLINING_SKILLS.map(s => (
+                <div key={s.skill} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '9px 0', borderBottom: `1px solid rgba(255,255,255,.05)` }}>
+                  <span style={{ fontSize: 13, color: txt2 }}>{s.skill}</span>
+                  <span style={{ fontSize: 13, fontWeight: 700, color: red }}>{s.drop}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* ── 2. Jobs by Sector + Salary Ranges ── */}
+        <div style={{ marginBottom: 20 }}>
+          <div className="two-col">
+            {/* Jobs by Sector */}
+            <div style={cardStyle}>
+              <SectionHeader icon={meta.flag} title={t('Jobs nach Branche', 'Jobs by Sector')} sub={`Adzuna ${meta.name} · ${t('Top 5 Branchen', 'Top 5 sectors')}`} />
+              <BarChart data={visibleSectors} />
+              {sectors.length > 5 && (
+                <button className="expand-btn" onClick={() => setSectorsExpanded(p => !p)}>
+                  {sectorsExpanded ? t('Weniger anzeigen ▲', 'Show less ▲') : t(`Alle ${sectors.length} anzeigen ▼`, `Show all ${sectors.length} ▼`)}
+                </button>
+              )}
+            </div>
+
+            {/* Salary Ranges */}
+            <div style={cardStyle}>
+              <SectionHeader icon="💶" title={t('Gehaltsspannen 2026', 'Salary Ranges 2026')} sub={`${t('Bruttojahresgehalt in', 'Annual gross in')} ${meta.currency} · min ● avg ● max`} />
+              {visibleSalaries.map(s => (
+                <SalaryBar key={s.role} role={s.role} min={s.min} max={s.max} avg={s.avg} sym={sym} scaleMax={scaleMax} />
+              ))}
+              {salaries.length > 5 && (
+                <button className="expand-btn" onClick={() => setSalaryExpanded(p => !p)}>
+                  {salaryExpanded ? t('Weniger anzeigen ▲', 'Show less ▲') : t(`Alle ${salaries.length} anzeigen ▼`, `Show all ${salaries.length} ▼`)}
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* ── 3. Macro Indicators ── */}
+        <div style={{ ...cardStyle, marginBottom: 20 }}>
+          <SectionHeader icon={meta.flag} title={`${meta.name} — ${t('Makro-Indikatoren', 'Macro Indicators')}`} sub={`Eurostat · ${t('aktualisiert jährlich', 'updated annually')}`} />
+          <div className="macro-grid">
+            {macro.map(ind => {
+              const good = ind.label === 'Unemployment' ? ind.trend === 'down' : ind.trend === 'up'
+              const tc   = ind.trend === 'flat' ? txt3 : good ? emerald : red
+              const arr  = ind.trend === 'up' ? '↑' : ind.trend === 'down' ? '↓' : '→'
+              return (
+                <div key={ind.label} style={{ background: cardHov, border: `1px solid ${border}`, borderRadius: 14, padding: '16px 18px', borderTop: `2px solid ${tc}` }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+                    <span style={{ fontSize: 22 }}>{ind.icon}</span>
+                    <span style={{ fontSize: 12, fontWeight: 700, color: tc, background: `${tc}18`, padding: '2px 8px', borderRadius: 20 }}>{arr}</span>
+                  </div>
+                  <div style={{ fontFamily: "'Outfit',sans-serif", fontSize: 28, fontWeight: 800, color: tc, lineHeight: 1 }}>{ind.value}{ind.unit}</div>
+                  <div style={{ fontSize: 12, color: txt2, marginTop: 6 }}>{ind.label}</div>
+                  <div style={{ fontSize: 10, color: txt3, marginTop: 2 }}>{ind.year}</div>
+                </div>
+              )
+            })}
+          </div>
+        </div>
+
+        {/* ── 4. AI Impact Heat Map ── */}
+        <div style={{ ...cardStyle, marginBottom: 20 }}>
+          <SectionHeader icon="🤖" title={t('KI-Auswirkung nach Sektor', 'AI Impact by Sector')} sub={t('DACH-Markt 2026 · Grün = schafft Jobs · Rot = verdrängt Jobs', 'DACH 2026 · Green = creating jobs · Red = disrupting roles')} />
+          <div className="ai-heat">
+            {/* Creating */}
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 10 }}>
+                <span style={{ width: 9, height: 9, borderRadius: '50%', background: emerald, display: 'inline-block', boxShadow: `0 0 7px ${emerald}` }} />
+                <span style={{ fontSize: 12, fontWeight: 700, color: emerald }}>{t('Schafft Jobs', 'Creating Jobs')}</span>
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                {creating.map(x => (
+                  <div key={x.sector} style={{ background: `${emerald}08`, border: `1px solid ${emerald}28`, borderRadius: 12, padding: '11px 13px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
+                      <span style={{ fontSize: 14 }}>{x.emoji}</span>
+                      <div style={{ display: 'flex', gap: 3 }}>
+                        {Array.from({ length: 5 }).map((_, i) => (
+                          <div key={i} style={{ width: 6, height: 6, borderRadius: 1, background: i < Math.round(x.score / 20) ? emerald : 'rgba(255,255,255,.1)' }} />
+                        ))}
+                      </div>
+                    </div>
+                    <div style={{ fontSize: 12, fontWeight: 600, color: txt1 }}>{x.sector}</div>
+                    <div style={{ fontSize: 11, color: txt3, marginTop: 2 }}>{x.headline}</div>
+                  </div>
+                ))}
               </div>
             </div>
-          )
-          const cardStyle: React.CSSProperties = { background:card, border:`1px solid ${border}`, borderRadius:20, padding:'22px 24px' }
 
-          return (
-            <>
-              {/* ── Charts row 1: Bar chart + Donut ── */}
-              <MobSection id="sectors" title={t('Job-Markt Branchen','Job Market by Sector')} icon={meta.flag}>
-                <div className="charts-2col">
-                  {/* Bar chart */}
-                  <div style={cardStyle}>
-                    <H icon={meta.flag} title={t('Jobs nach Branche','Jobs by Sector')} sub={`Adzuna ${meta.name} · ${t('klicken = suchen','click sector to search')}`} />
-                    <BarChart data={sectors} />
-                  </div>
-                  {/* Donut */}
-                  <div style={cardStyle}>
-                    <H icon="🥧" title={t('Marktanteile','Market Distribution')} sub={t('Anteil nach Sektor','Share by sector')} />
-                    <DonutChart data={sectors} />
-                  </div>
-                </div>
-              </MobSection>
-
-              {/* ── Charts row 2: Salary ranges + Macro ── */}
-              <div className="charts-2col-eq">
-                {/* Salary ranges */}
-                <MobSection id="salary" title={t('Gehaltsspannen','Salary Ranges')} icon="💶">
-                  <div style={cardStyle}>
-                    <H icon="💶" title={t('Gehaltsspannen 2026','Salary Ranges 2026')} sub={`${t('Bruttojahresgehalt in','Annual gross in')} ${meta.currency} — min ● avg ● max`} />
-                    {salaries.map(s => (
-                      <SalaryBar key={s.role} role={s.role} min={s.min} max={s.max} avg={s.avg} sym={sym} scaleMax={scaleMax} />
-                    ))}
-                  </div>
-                </MobSection>
-
-                {/* Macro indicators */}
-                <MobSection id="macro" title={t(`${meta.flag} Makro-Indikatoren`,`${meta.flag} Macro Indicators`)} icon="🌐">
-                  <div style={cardStyle}>
-                    <H icon="🌐" title={`${meta.flag} ${meta.name} — ${t('Makro','Macro')}`} sub={`Eurostat · ${t('aktualisiert jährlich','updated annually')}`} />
-                    <div className="macro-2x2">
-                      {macro.map(ind => {
-                        const good = ind.label==='Unemployment' ? ind.trend==='down' : ind.trend==='up'
-                        const tc   = ind.trend==='flat' ? txt3 : good ? emerald : red
-                        const arr  = ind.trend==='up' ? '↑' : ind.trend==='down' ? '↓' : '→'
-                        return (
-                          <div key={ind.label} style={{ background:cardHov, border:`1px solid ${border}`, borderRadius:14, padding:'16px 18px', borderTop:`2px solid ${tc}` }}>
-                            <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:8 }}>
-                              <span style={{ fontSize:20 }}>{ind.icon}</span>
-                              <span style={{ fontSize:12, fontWeight:700, color:tc, background:`${tc}18`, padding:'2px 8px', borderRadius:20 }}>{arr}</span>
-                            </div>
-                            <div style={{ fontFamily:"'Outfit',sans-serif", fontSize:26, fontWeight:800, color:tc, lineHeight:1 }}>{ind.value}{ind.unit}</div>
-                            <div style={{ fontSize:11, color:txt2, marginTop:5 }}>{ind.label}</div>
-                            <div style={{ fontSize:10, color:txt3, marginTop:2 }}>{ind.year}</div>
-                          </div>
-                        )
-                      })}
-                    </div>
-                  </div>
-                </MobSection>
+            {/* Mixed */}
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 10 }}>
+                <span style={{ width: 9, height: 9, borderRadius: '50%', background: orange, display: 'inline-block', boxShadow: `0 0 7px ${orange}` }} />
+                <span style={{ fontSize: 12, fontWeight: 700, color: orange }}>{t('Gemischt', 'Mixed Impact')}</span>
               </div>
-
-              {/* ── AI Impact Heat Map ── */}
-              <MobSection id="ai" title={t('KI-Impact','AI Impact')} icon="🤖">
-                <div style={{ ...cardStyle, marginBottom:18 }}>
-                  <H icon="🤖" title={t('KI-Auswirkung nach Sektor','AI Impact Heat Map')} sub={t('DACH-Markt 2026 · Grün = schafft Jobs · Rot = verdrängt Jobs','DACH market 2026 · Green = creating jobs · Red = disrupting')} />
-                  <div className="ai-heat">
-                    {/* Creating */}
-                    <div>
-                      <div style={{ display:'flex', alignItems:'center', gap:6, marginBottom:10 }}>
-                        <span style={{ width:10, height:10, borderRadius:'50%', background:emerald, display:'inline-block', boxShadow:`0 0 8px ${emerald}` }} />
-                        <span style={{ fontSize:12, fontWeight:700, color:emerald }}>{t('Schafft Jobs','Creating Jobs')}</span>
-                      </div>
-                      <div className="ai-col-cards">
-                        {creating.map(x => (
-                          <div key={x.sector} style={{ background:`${emerald}08`, border:`1px solid ${emerald}28`, borderRadius:12, padding:'12px 14px' }}>
-                            <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:5 }}>
-                              <span style={{ fontSize:14 }}>{x.emoji}</span>
-                              <div style={{ display:'flex', gap:3 }}>
-                                {Array.from({length:5}).map((_,i)=>(
-                                  <div key={i} style={{ width:6, height:6, borderRadius:1, background: i < Math.round(x.score/20) ? emerald : 'rgba(255,255,255,.1)' }} />
-                                ))}
-                              </div>
-                            </div>
-                            <div style={{ fontSize:12, fontWeight:600, color:txt1 }}>{x.sector}</div>
-                            <div style={{ fontSize:11, color:txt3, marginTop:3 }}>{x.headline}</div>
-                          </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                {mixed.map(x => (
+                  <div key={x.sector} style={{ background: `${orange}08`, border: `1px solid ${orange}28`, borderRadius: 12, padding: '11px 13px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
+                      <span style={{ fontSize: 14 }}>{x.emoji}</span>
+                      <div style={{ display: 'flex', gap: 3 }}>
+                        {Array.from({ length: 5 }).map((_, i) => (
+                          <div key={i} style={{ width: 6, height: 6, borderRadius: 1, background: i < Math.round(x.score / 20) ? orange : 'rgba(255,255,255,.1)' }} />
                         ))}
                       </div>
                     </div>
+                    <div style={{ fontSize: 12, fontWeight: 600, color: txt1 }}>{x.sector}</div>
+                    <div style={{ fontSize: 11, color: txt3, marginTop: 2 }}>{x.headline}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
 
-                    {/* Mixed */}
-                    <div>
-                      <div style={{ display:'flex', alignItems:'center', gap:6, marginBottom:10 }}>
-                        <span style={{ width:10, height:10, borderRadius:'50%', background:orange, display:'inline-block', boxShadow:`0 0 8px ${orange}` }} />
-                        <span style={{ fontSize:12, fontWeight:700, color:orange }}>{t('Gemischt','Mixed Impact')}</span>
-                      </div>
-                      <div className="ai-col-cards">
-                        {mixed.map(x => (
-                          <div key={x.sector} style={{ background:`${orange}08`, border:`1px solid ${orange}28`, borderRadius:12, padding:'12px 14px' }}>
-                            <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:5 }}>
-                              <span style={{ fontSize:14 }}>{x.emoji}</span>
-                              <div style={{ display:'flex', gap:3 }}>
-                                {Array.from({length:5}).map((_,i)=>(
-                                  <div key={i} style={{ width:6, height:6, borderRadius:1, background: i < Math.round(x.score/20) ? orange : 'rgba(255,255,255,.1)' }} />
-                                ))}
-                              </div>
-                            </div>
-                            <div style={{ fontSize:12, fontWeight:600, color:txt1 }}>{x.sector}</div>
-                            <div style={{ fontSize:11, color:txt3, marginTop:3 }}>{x.headline}</div>
-                          </div>
+            {/* Disrupting */}
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 10 }}>
+                <span style={{ width: 9, height: 9, borderRadius: '50%', background: red, display: 'inline-block', boxShadow: `0 0 7px ${red}` }} />
+                <span style={{ fontSize: 12, fontWeight: 700, color: red }}>{t('Verdrängt Jobs', 'Disrupting Jobs')}</span>
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                {disrupting.map(x => (
+                  <div key={x.sector} style={{ background: `${red}08`, border: `1px solid ${red}28`, borderRadius: 12, padding: '11px 13px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
+                      <span style={{ fontSize: 14 }}>{x.emoji}</span>
+                      <div style={{ display: 'flex', gap: 3 }}>
+                        {Array.from({ length: 5 }).map((_, i) => (
+                          <div key={i} style={{ width: 6, height: 6, borderRadius: 1, background: i < Math.round(x.score / 20) ? red : 'rgba(255,255,255,.1)' }} />
                         ))}
                       </div>
                     </div>
+                    <div style={{ fontSize: 12, fontWeight: 600, color: txt1 }}>{x.sector}</div>
+                    <div style={{ fontSize: 11, color: txt3, marginTop: 2 }}>{x.headline}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
 
-                    {/* Disrupting */}
-                    <div>
-                      <div style={{ display:'flex', alignItems:'center', gap:6, marginBottom:10 }}>
-                        <span style={{ width:10, height:10, borderRadius:'50%', background:red, display:'inline-block', boxShadow:`0 0 8px ${red}` }} />
-                        <span style={{ fontSize:12, fontWeight:700, color:red }}>{t('Verdrängt Jobs','Disrupting Jobs')}</span>
-                      </div>
-                      <div className="ai-col-cards">
-                        {disrupting.map(x => (
-                          <div key={x.sector} style={{ background:`${red}08`, border:`1px solid ${red}28`, borderRadius:12, padding:'12px 14px' }}>
-                            <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:5 }}>
-                              <span style={{ fontSize:14 }}>{x.emoji}</span>
-                              <div style={{ display:'flex', gap:3 }}>
-                                {Array.from({length:5}).map((_,i)=>(
-                                  <div key={i} style={{ width:6, height:6, borderRadius:1, background: i < Math.round(x.score/20) ? red : 'rgba(255,255,255,.1)' }} />
-                                ))}
-                              </div>
-                            </div>
-                            <div style={{ fontSize:12, fontWeight:600, color:txt1 }}>{x.sector}</div>
-                            <div style={{ fontSize:11, color:txt3, marginTop:3 }}>{x.headline}</div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </MobSection>
-
-              {/* ── Skills ── */}
-              <MobSection id="skills" title={t('Skills-Trends','Skill Trends')} icon="🧠">
-                <div className="skills-2col">
-                  {/* Rising */}
-                  <div style={cardStyle}>
-                    <H icon="🚀" title={t('Wachsende Skills','Rising Skills')} sub={t('Nachfrage-Anstieg YoY','YoY demand growth')} />
-                    {RISING_SKILLS.map(s => (
-                      <div key={s.skill} style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'9px 0', borderBottom:`1px solid rgba(255,255,255,.05)` }}>
-                        <div style={{ display:'flex', alignItems:'center', gap:8 }}>
-                          {s.hot && <span style={{ fontSize:9, fontWeight:700, color:orange, background:`${orange}20`, padding:'1px 6px', borderRadius:8, letterSpacing:.3 }}>HOT</span>}
-                          <span style={{ fontSize:13, color:txt2 }}>{s.skill}</span>
-                        </div>
-                        <span style={{ fontSize:13, fontWeight:700, color:emerald }}>{s.growth}</span>
-                      </div>
-                    ))}
-                  </div>
-                  {/* Declining */}
-                  <div style={cardStyle}>
-                    <H icon="📉" title={t('Sinkende Skills','Declining Skills')} sub={t('Rückgang der Jobangebote','Drop in job demand')} />
-                    {DECLINING_SKILLS.map(s => (
-                      <div key={s.skill} style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'9px 0', borderBottom:`1px solid rgba(255,255,255,.05)` }}>
-                        <span style={{ fontSize:13, color:txt2 }}>{s.skill}</span>
-                        <span style={{ fontSize:13, fontWeight:700, color:red }}>{s.drop}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </MobSection>
-            </>
-          )
-        })()}
       </div>
     </div>
   )
