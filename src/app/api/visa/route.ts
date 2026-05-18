@@ -83,7 +83,7 @@ Return ONLY valid JSON (no markdown):
 
   try {
     const message = await anthropic.messages.create({
-      model: 'claude-opus-4-5',
+      model: 'claude-sonnet-4-6',
       max_tokens: 3000,
       messages: [{ role: 'user', content: prompt }],
     })

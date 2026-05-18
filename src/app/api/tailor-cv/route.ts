@@ -44,7 +44,7 @@ ${job?.job_description ? `Job Description: ${job.job_description.slice(0, 800)}`
 Return ONLY the JSON object. No markdown, no backticks, no explanation.`
 
       const message = await anthropic.messages.create({
-        model: 'claude-opus-4-5',
+        model: 'claude-sonnet-4-6',
         max_tokens: 6000,
         system: systemPrompt,
         messages: [{ role: 'user', content: userContent }],
@@ -75,7 +75,7 @@ Return ONLY the JSON object. No markdown, no backticks, no explanation.`
       : ''
 
     const message = await anthropic.messages.create({
-      model: 'claude-opus-4-5',
+      model: 'claude-sonnet-4-6',
       max_tokens: 2000,
       messages: [{
         role: 'user',

@@ -52,7 +52,7 @@ ${cvText.slice(0, 2000)}
 Write the cover letter:`
 
     const message = await anthropic.messages.create({
-      model: 'claude-opus-4-5',
+      model: 'claude-sonnet-4-6',
       max_tokens: 1000,
       messages: [{ role: 'user', content: basePrompt }],
     })
