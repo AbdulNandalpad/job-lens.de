@@ -36,7 +36,7 @@ ${job ? `Target Job: ${job.job_title} at ${job.employer_name}` : ''}
 Return ONLY the updated JSON object. No markdown, no backticks, no explanation.`
         : `Here is the candidate's CV to extract and enhance:
 
-${cvText.slice(0, 10000)}
+${cvText.slice(0, 30000)}
 
 ${job ? `Target Job: ${job.job_title} at ${job.employer_name}` : ''}
 ${job?.job_description ? `Job Description: ${job.job_description.slice(0, 800)}` : ''}
@@ -45,7 +45,7 @@ Return ONLY the JSON object. No markdown, no backticks, no explanation.`
 
       const message = await anthropic.messages.create({
         model: 'claude-sonnet-4-6',
-        max_tokens: 6000,
+        max_tokens: 8000,
         system: systemPrompt,
         messages: [{ role: 'user', content: userContent }],
       })
@@ -91,7 +91,7 @@ Company: ${company}
 Job Description: ${jobDesc}
 
 Original CV:
-${cvText.slice(0, 8000)}${feedbackSection}
+${cvText.slice(0, 25000)}${feedbackSection}
 
 Return the tailored CV in plain text format.`,
       }],
