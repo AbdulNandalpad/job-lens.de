@@ -15,13 +15,13 @@ const red     = '#ef4444'
 const orange  = '#f59e0b'
 
 const bg      = '#07111f'
-const card    = 'rgba(255,255,255,0.04)'
-const cardHov = 'rgba(255,255,255,0.07)'
-const border  = 'rgba(255,255,255,0.08)'
-const borderH = 'rgba(255,255,255,0.18)'
+const card    = 'rgba(255,255,255,0.07)'
+const cardHov = 'rgba(255,255,255,0.11)'
+const border  = 'rgba(255,255,255,0.10)'
+const borderH = 'rgba(255,255,255,0.20)'
 const txt1    = '#f1f5f9'
 const txt2    = '#94a3b8'
-const txt3    = '#475569'
+const txt3    = '#7a8fa8'
 
 type NewsTab = 'all' | 'ai' | 'hiring' | 'market'
 
@@ -192,6 +192,7 @@ export default function IndiaDashboard() {
   const [newsTab,    setNewsTab]    = useState<NewsTab>('all')
   const [sectorsExpanded, setSectorsExpanded] = useState(false)
   const [salaryExpanded,  setSalaryExpanded]  = useState(false)
+  const [aiExpanded,      setAiExpanded]      = useState(false)
   const [hoveredCat, setHoveredCat] = useState<string|null>(null)
 
   useEffect(()=>{
@@ -449,78 +450,84 @@ export default function IndiaDashboard() {
 
         {/* ── 4. AI Impact Heat Map ── */}
         <div style={{...cardStyle, marginBottom:20}}>
-          <SectionHeader icon="🤖" title="AI Impact by Sector" sub="India 2026 · Green = creating jobs · Red = disrupting roles"/>
-          <div className="ai-heat">
-            {/* Creating */}
-            <div>
-              <div style={{display:'flex',alignItems:'center',gap:6,marginBottom:10}}>
-                <span style={{width:9,height:9,borderRadius:'50%',background:emerald,display:'inline-block',boxShadow:`0 0 7px ${emerald}`}}/>
-                <span style={{fontSize:12,fontWeight:700,color:emerald}}>Creating Jobs</span>
-              </div>
-              <div style={{display:'flex',flexDirection:'column',gap:8}}>
-                {creating.map(x=>(
-                  <div key={x.sector} style={{background:`${emerald}08`,border:`1px solid ${emerald}28`,borderRadius:12,padding:'11px 13px'}}>
-                    <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:4}}>
-                      <span style={{fontSize:14}}>{x.emoji}</span>
-                      <div style={{display:'flex',gap:3}}>
-                        {Array.from({length:5}).map((_,i)=>(
-                          <div key={i} style={{width:6,height:6,borderRadius:1,background:i<Math.round(x.score/20)?emerald:'rgba(255,255,255,.1)'}}/>
-                        ))}
-                      </div>
-                    </div>
-                    <div style={{fontSize:12,fontWeight:600,color:txt1}}>{x.sector}</div>
-                    <div style={{fontSize:11,color:txt3,marginTop:2}}>{x.headline}</div>
-                  </div>
-                ))}
-              </div>
-            </div>
-            {/* Mixed */}
-            <div>
-              <div style={{display:'flex',alignItems:'center',gap:6,marginBottom:10}}>
-                <span style={{width:9,height:9,borderRadius:'50%',background:orange,display:'inline-block',boxShadow:`0 0 7px ${orange}`}}/>
-                <span style={{fontSize:12,fontWeight:700,color:orange}}>Mixed Impact</span>
-              </div>
-              <div style={{display:'flex',flexDirection:'column',gap:8}}>
-                {mixed.map(x=>(
-                  <div key={x.sector} style={{background:`${orange}08`,border:`1px solid ${orange}28`,borderRadius:12,padding:'11px 13px'}}>
-                    <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:4}}>
-                      <span style={{fontSize:14}}>{x.emoji}</span>
-                      <div style={{display:'flex',gap:3}}>
-                        {Array.from({length:5}).map((_,i)=>(
-                          <div key={i} style={{width:6,height:6,borderRadius:1,background:i<Math.round(x.score/20)?orange:'rgba(255,255,255,.1)'}}/>
-                        ))}
-                      </div>
-                    </div>
-                    <div style={{fontSize:12,fontWeight:600,color:txt1}}>{x.sector}</div>
-                    <div style={{fontSize:11,color:txt3,marginTop:2}}>{x.headline}</div>
-                  </div>
-                ))}
-              </div>
-            </div>
-            {/* Disrupting */}
-            <div>
-              <div style={{display:'flex',alignItems:'center',gap:6,marginBottom:10}}>
-                <span style={{width:9,height:9,borderRadius:'50%',background:red,display:'inline-block',boxShadow:`0 0 7px ${red}`}}/>
-                <span style={{fontSize:12,fontWeight:700,color:red}}>Disrupting Jobs</span>
-              </div>
-              <div style={{display:'flex',flexDirection:'column',gap:8}}>
-                {disrupting.map(x=>(
-                  <div key={x.sector} style={{background:`${red}08`,border:`1px solid ${red}28`,borderRadius:12,padding:'11px 13px'}}>
-                    <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:4}}>
-                      <span style={{fontSize:14}}>{x.emoji}</span>
-                      <div style={{display:'flex',gap:3}}>
-                        {Array.from({length:5}).map((_,i)=>(
-                          <div key={i} style={{width:6,height:6,borderRadius:1,background:i<Math.round(x.score/20)?red:'rgba(255,255,255,.1)'}}/>
-                        ))}
-                      </div>
-                    </div>
-                    <div style={{fontSize:12,fontWeight:600,color:txt1}}>{x.sector}</div>
-                    <div style={{fontSize:11,color:txt3,marginTop:2}}>{x.headline}</div>
-                  </div>
-                ))}
-              </div>
-            </div>
+          {/* Collapsible header */}
+          <div onClick={()=>setAiExpanded(p=>!p)} style={{display:'flex',alignItems:'center',justifyContent:'space-between',cursor:'pointer',userSelect:'none'}}>
+            <SectionHeader icon="🤖" title="AI Impact by Sector" sub="India 2026 · Green = creating jobs · Red = disrupting roles"/>
+            <span style={{fontSize:18,color:txt2,marginTop:-12,flexShrink:0}}>{aiExpanded?'▲':'▼'}</span>
           </div>
+          {aiExpanded && (
+            <div className="ai-heat" style={{marginTop:8}}>
+              {/* Creating */}
+              <div>
+                <div style={{display:'flex',alignItems:'center',gap:6,marginBottom:10}}>
+                  <span style={{width:9,height:9,borderRadius:'50%',background:emerald,display:'inline-block',boxShadow:`0 0 7px ${emerald}`}}/>
+                  <span style={{fontSize:12,fontWeight:700,color:emerald}}>Creating Jobs</span>
+                </div>
+                <div style={{display:'flex',flexDirection:'column',gap:8}}>
+                  {creating.map(x=>(
+                    <div key={x.sector} style={{background:`${emerald}08`,border:`1px solid ${emerald}28`,borderRadius:12,padding:'11px 13px'}}>
+                      <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:4}}>
+                        <span style={{fontSize:14}}>{x.emoji}</span>
+                        <div style={{display:'flex',gap:3}}>
+                          {Array.from({length:5}).map((_,i)=>(
+                            <div key={i} style={{width:6,height:6,borderRadius:1,background:i<Math.round(x.score/20)?emerald:'rgba(255,255,255,.1)'}}/>
+                          ))}
+                        </div>
+                      </div>
+                      <div style={{fontSize:12,fontWeight:600,color:txt1}}>{x.sector}</div>
+                      <div style={{fontSize:11,color:txt3,marginTop:2}}>{x.headline}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+              {/* Mixed */}
+              <div>
+                <div style={{display:'flex',alignItems:'center',gap:6,marginBottom:10}}>
+                  <span style={{width:9,height:9,borderRadius:'50%',background:orange,display:'inline-block',boxShadow:`0 0 7px ${orange}`}}/>
+                  <span style={{fontSize:12,fontWeight:700,color:orange}}>Mixed Impact</span>
+                </div>
+                <div style={{display:'flex',flexDirection:'column',gap:8}}>
+                  {mixed.map(x=>(
+                    <div key={x.sector} style={{background:`${orange}08`,border:`1px solid ${orange}28`,borderRadius:12,padding:'11px 13px'}}>
+                      <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:4}}>
+                        <span style={{fontSize:14}}>{x.emoji}</span>
+                        <div style={{display:'flex',gap:3}}>
+                          {Array.from({length:5}).map((_,i)=>(
+                            <div key={i} style={{width:6,height:6,borderRadius:1,background:i<Math.round(x.score/20)?orange:'rgba(255,255,255,.1)'}}/>
+                          ))}
+                        </div>
+                      </div>
+                      <div style={{fontSize:12,fontWeight:600,color:txt1}}>{x.sector}</div>
+                      <div style={{fontSize:11,color:txt3,marginTop:2}}>{x.headline}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+              {/* Disrupting */}
+              <div>
+                <div style={{display:'flex',alignItems:'center',gap:6,marginBottom:10}}>
+                  <span style={{width:9,height:9,borderRadius:'50%',background:red,display:'inline-block',boxShadow:`0 0 7px ${red}`}}/>
+                  <span style={{fontSize:12,fontWeight:700,color:red}}>Disrupting Jobs</span>
+                </div>
+                <div style={{display:'flex',flexDirection:'column',gap:8}}>
+                  {disrupting.map(x=>(
+                    <div key={x.sector} style={{background:`${red}08`,border:`1px solid ${red}28`,borderRadius:12,padding:'11px 13px'}}>
+                      <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:4}}>
+                        <span style={{fontSize:14}}>{x.emoji}</span>
+                        <div style={{display:'flex',gap:3}}>
+                          {Array.from({length:5}).map((_,i)=>(
+                            <div key={i} style={{width:6,height:6,borderRadius:1,background:i<Math.round(x.score/20)?red:'rgba(255,255,255,.1)'}}/>
+                          ))}
+                        </div>
+                      </div>
+                      <div style={{fontSize:12,fontWeight:600,color:txt1}}>{x.sector}</div>
+                      <div style={{fontSize:11,color:txt3,marginTop:2}}>{x.headline}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* ── 5. News & Signals ── */}
