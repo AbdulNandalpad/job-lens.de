@@ -101,7 +101,10 @@ export default function IndiaJobsPage() {
       const res = await fetch(`/api/jobs?${params}`)
       const data = await res.json()
       const more = data.jobs || []
-      setJobs(prev => [...prev, ...more])
+      setJobs(prev => {
+        const seen = new Set(prev.map(j => j.job_id))
+        return [...prev, ...more.filter((j: Job) => !seen.has(j.job_id))]
+      })
       setPage(nextPage)
       setHasMore(more.length === 20)
     } catch {}

@@ -133,7 +133,11 @@ export default function DACHJobsPage() {
         const data = await res.json()
         more = (data.jobs || []).map((j: Job) => ({ ...j, job_source: 'adzuna' as JobSource }))
       }
-      setJobs(prev => [...prev, ...more]); setPage(next); setHasMore(more.length === 20)
+      setJobs(prev => {
+        const seen = new Set(prev.map(j => j.job_id))
+        return [...prev, ...more.filter((j: Job) => !seen.has(j.job_id))]
+      })
+      setPage(next); setHasMore(more.length === 20)
     } catch {}
     setLoadingMore(false)
   }
