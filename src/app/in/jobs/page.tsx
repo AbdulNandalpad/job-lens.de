@@ -46,6 +46,11 @@ export default function IndiaJobsPage() {
   const [hasMore, setHasMore] = useState(false)
   const [usedQuery, setUsedQuery] = useState('')
   const autoSearched = useRef(false)
+  const [expandedDescs, setExpandedDescs] = useState<Set<string>>(new Set())
+  function toggleDesc(id: string, e: React.MouseEvent) {
+    e.stopPropagation()
+    setExpandedDescs(prev => { const next = new Set(prev); next.has(id) ? next.delete(id) : next.add(id); return next })
+  }
 
   async function fetchWithFallback(q: string): Promise<{ jobs: Job[]; usedQuery: string }> {
     let current = q.trim()
@@ -225,9 +230,22 @@ export default function IndiaJobsPage() {
                         <div style={{ fontSize: 13, color: '#6b7c93', marginBottom: 8 }}>
                           {job.employer_name}{job.job_city ? ` · ${job.job_city}` : ''}{job.job_employment_type ? ` · ${job.job_employment_type}` : ''}
                         </div>
-                        <p style={{ fontSize: 12, color: '#8fa3b8', lineHeight: 1.6, margin: '0 0 10px', display: '-webkit-box', WebkitLineClamp: isSelected ? undefined : 2, WebkitBoxOrient: 'vertical', overflow: isSelected ? 'visible' : 'hidden' }}>
-                          {job.job_description}
-                        </p>
+                        {(() => {
+                          const expanded = expandedDescs.has(job.job_id)
+                          const long = job.job_description.length > 220
+                          return (
+                            <>
+                              <p style={{ fontSize: 12, color: '#8fa3b8', lineHeight: 1.6, margin: '0 0 4px', display: '-webkit-box', WebkitLineClamp: expanded ? undefined : 3, WebkitBoxOrient: 'vertical' as const, overflow: expanded ? 'visible' : 'hidden' }}>
+                                {job.job_description}
+                              </p>
+                              {long && (
+                                <button onClick={e => toggleDesc(job.job_id, e)} style={{ background: 'none', border: 'none', padding: '2px 0 8px', fontSize: 11, color: orange, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>
+                                  {expanded ? 'Show less' : 'Show more'}
+                                </button>
+                              )}
+                            </>
+                          )
+                        })()}
                         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
                           {job.job_min_salary && job.job_max_salary && (
                             <span style={{ fontSize: 11, padding: '3px 10px', borderRadius: 12, background: 'rgba(29,158,117,0.1)', color: green, fontWeight: 600 }}>

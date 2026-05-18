@@ -41,16 +41,16 @@ function ScoreRing({ score, size = 100, label, color }: { score: number; size?: 
   const fill = circ * (1 - score / 100)
   return (
     <div style={{ textAlign: 'center' }}>
-      <svg width={size} height={size} style={{ transform: 'rotate(-90deg)' }}>
-        <circle cx={size/2} cy={size/2} r={r} fill="none" stroke="rgba(4,44,83,0.08)" strokeWidth={7}/>
-        <circle cx={size/2} cy={size/2} r={r} fill="none" stroke={color} strokeWidth={7}
-          strokeDasharray={circ} strokeDashoffset={fill} strokeLinecap="round" style={{ transition: 'stroke-dashoffset 0.8s ease' }}/>
-        <text x="50%" y="50%" textAnchor="middle" dominantBaseline="middle"
-          fill={navy} fontSize={size * 0.22} fontWeight="700"
-          style={{ transform: 'rotate(90deg)', transformOrigin: '50% 50%', fontFamily: "'Outfit',sans-serif" }}>
+      <div style={{ position: 'relative', width: size, height: size, margin: '0 auto' }}>
+        <svg width={size} height={size} style={{ transform: 'rotate(-90deg)' }}>
+          <circle cx={size/2} cy={size/2} r={r} fill="none" stroke="rgba(4,44,83,0.08)" strokeWidth={7}/>
+          <circle cx={size/2} cy={size/2} r={r} fill="none" stroke={color} strokeWidth={7}
+            strokeDasharray={circ} strokeDashoffset={fill} strokeLinecap="round" style={{ transition: 'stroke-dashoffset 0.8s ease' }}/>
+        </svg>
+        <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%,-50%)', fontSize: Math.round(size * 0.22), fontWeight: 700, color: navy, fontFamily: "'Outfit',sans-serif", lineHeight: 1 }}>
           {score}
-        </text>
-      </svg>
+        </div>
+      </div>
       <div style={{ fontSize: 11, color: '#6b7c93', marginTop: 4, fontFamily: "'DM Sans',sans-serif" }}>{label}</div>
     </div>
   )
@@ -83,10 +83,22 @@ export default function IndiaCareerScanPage() {
   const { credits, setCredits, needsCrossMarket, crossMarketAmount } = useCredits()
   const COST = CREDIT_COST.careerScan
   const [crossWarnPending, setCrossWarnPending] = useState<(() => void) | null>(null)
+  const [jobFromSearch, setJobFromSearch] = useState<{ title: string; employer: string } | null>(null)
 
   useEffect(() => {
     const savedCv = sessionStorage.getItem(SS.cvText) || ''
     if (savedCv) setCvText(savedCv)
+    // Pre-fill JD when coming from jobs page
+    const jobRaw = sessionStorage.getItem(SS.inSelectedJob)
+    if (jobRaw) {
+      try {
+        const job = JSON.parse(jobRaw)
+        if (job.job_description) {
+          setJdText(job.job_description)
+          setJobFromSearch({ title: job.job_title, employer: job.employer_name })
+        }
+      } catch {}
+    }
   }, [])
 
   async function handleFile(file: File) {
@@ -234,14 +246,22 @@ export default function IndiaCareerScanPage() {
                   </div>
 
                   {/* JD input */}
-                  <div style={{ background: '#fff', borderRadius: 14, padding: 20, boxShadow: '0 2px 12px rgba(4,44,83,0.06)', border: '1px solid #edf1f6' }}>
-                    <label style={{ fontSize: 13, fontWeight: 700, color: navy, fontFamily: "'Outfit',sans-serif", display: 'block', marginBottom: 10 }}>
-                      Job Description
-                      <span style={{ fontSize: 11, color: '#9aafbc', fontWeight: 400, marginLeft: 8 }}>From Naukri, LinkedIn, or any portal</span>
-                    </label>
+                  <div style={{ background: '#fff', borderRadius: 14, padding: 20, boxShadow: '0 2px 12px rgba(4,44,83,0.06)', border: `1px solid ${jobFromSearch ? orange + '40' : '#edf1f6'}` }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+                      <label style={{ fontSize: 13, fontWeight: 700, color: navy, fontFamily: "'Outfit',sans-serif" }}>
+                        Job Description
+                      </label>
+                      {jobFromSearch ? (
+                        <span style={{ fontSize: 11, padding: '3px 10px', borderRadius: 10, background: orange + '18', color: orange, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 5 }}>
+                          ✓ {jobFromSearch.employer} — {jobFromSearch.title}
+                        </span>
+                      ) : (
+                        <span style={{ fontSize: 11, color: '#9aafbc' }}>From Naukri, LinkedIn, or any portal</span>
+                      )}
+                    </div>
                     <textarea
                       value={jdText}
-                      onChange={e => setJdText(e.target.value)}
+                      onChange={e => { setJdText(e.target.value); if (jobFromSearch) setJobFromSearch(null) }}
                       placeholder="Paste the job description here..."
                       rows={8}
                       style={{ width: '100%', resize: 'vertical', padding: '10px 12px', borderRadius: 8, border: '1px solid #dce4ef', fontSize: 12, color: '#374151', fontFamily: "'DM Sans',sans-serif", lineHeight: 1.6, outline: 'none', boxSizing: 'border-box' }}
