@@ -1,6 +1,6 @@
-﻿'use client'
+'use client'
 
-import React, { useState, useEffect, useRef } from 'react'
+import React, { useState, useEffect, useRef, useLayoutEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useCredits } from '@/lib/useCredits'
 import CrossMarketModal from '@/components/CrossMarketModal'
@@ -8,7 +8,7 @@ import { CREDIT_COST, LOW_CREDIT_WARN, MARKET, SS, API } from '@/lib/constants'
 
 const accent = '#FF9933'
 
-type Template = 'clean' | 'saffron' | 'classic'
+type Template = 'clean' | 'saffron' | 'classic' | 'modern' | 'executive'
 type Tone = 'professional' | 'concise' | 'detailed'
 type Pages = '1' | '2'
 type Lang = 'EN'
@@ -32,7 +32,8 @@ interface CVData {
   highlights: string[]
 }
 
-function IndiaCV({ cv, accent: ac }: { cv: CVData; accent: string }) {
+// ── Template 1: Clean / Saffron / Classic (single-column ATS) ─────────────
+function IndiaCV({ cv, ac }: { cv: CVData; ac: string }) {
   const navy = '#0d2137'
   const secHeader = (title: string) => (
     <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8, marginTop: 18 }}>
@@ -48,27 +49,11 @@ function IndiaCV({ cv, accent: ac }: { cv: CVData; accent: string }) {
         <div style={{ fontSize: 11, color: '#6b7c93' }}>{[cv.email, cv.phone, cv.location, cv.linkedin].filter(Boolean).join('  |  ')}</div>
       </div>
       <div style={{ height: 1, background: '#ccd5e0', marginBottom: 4 }} />
-      {cv.summary && (
-        <div>
-          {secHeader('Summary')}
-          <div style={{ fontSize: 11.5, color: '#374151', lineHeight: 1.8 }}>{cv.summary}</div>
-        </div>
-      )}
-      {cv.skills.length > 0 && (
-        <div>
-          {secHeader('Skills')}
-          <div style={{ fontSize: 11.5, color: '#374151', lineHeight: 1.7 }}>{cv.skills.map(s => s.name).join('  ·  ')}</div>
-        </div>
-      )}
-      {cv.tools.length > 0 && (
-        <div>
-          {secHeader('Tech Stack')}
-          <div style={{ fontSize: 11.5, color: ac, lineHeight: 1.7 }}>{cv.tools.join('  ·  ')}</div>
-        </div>
-      )}
+      {cv.summary && (<div>{secHeader('Summary')}<div style={{ fontSize: 11.5, color: '#374151', lineHeight: 1.8 }}>{cv.summary}</div></div>)}
+      {cv.skills.length > 0 && (<div>{secHeader('Skills')}<div style={{ fontSize: 11.5, color: '#374151', lineHeight: 1.7 }}>{cv.skills.map(s => s.name).join('  ·  ')}</div></div>)}
+      {cv.tools.length > 0 && (<div>{secHeader('Tech Stack')}<div style={{ fontSize: 11.5, color: ac, lineHeight: 1.7 }}>{cv.tools.join('  ·  ')}</div></div>)}
       {cv.experience.length > 0 && (
-        <div>
-          {secHeader('Experience')}
+        <div>{secHeader('Experience')}
           {cv.experience.map((exp, i) => (
             <div key={i} style={{ marginBottom: 14 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
@@ -76,84 +61,307 @@ function IndiaCV({ cv, accent: ac }: { cv: CVData; accent: string }) {
                 <div style={{ fontSize: 10, color: ac, fontWeight: 600, flexShrink: 0, marginLeft: 8 }}>{exp.period}</div>
               </div>
               <div style={{ fontSize: 11, color: '#6b7c93', fontStyle: 'italic', marginBottom: 5 }}>{[exp.company, exp.location, exp.type].filter(Boolean).join('  ·  ')}</div>
-              {exp.bullets.map((b, j) => (
-                <div key={j} style={{ display: 'flex', gap: 7, marginBottom: 3, alignItems: 'flex-start' }}>
-                  <span style={{ color: ac, fontSize: 11, flexShrink: 0, marginTop: 1 }}>•</span>
-                  <span style={{ fontSize: 11, color: '#374151', lineHeight: 1.65 }}>{b}</span>
-                </div>
-              ))}
+              {exp.bullets.map((b, j) => (<div key={j} style={{ display: 'flex', gap: 7, marginBottom: 3, alignItems: 'flex-start' }}><span style={{ color: ac, fontSize: 11, flexShrink: 0, marginTop: 1 }}>•</span><span style={{ fontSize: 11, color: '#374151', lineHeight: 1.65 }}>{b}</span></div>))}
             </div>
           ))}
         </div>
       )}
       {cv.education.length > 0 && (
-        <div>
-          {secHeader('Education')}
-          {cv.education.map((e, i) => (
-            <div key={i} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 7 }}>
-              <div>
-                <div style={{ fontSize: 12, fontWeight: 600, color: navy }}>{e.degree}</div>
-                <div style={{ fontSize: 11, color: '#6b7c93' }}>{e.school}</div>
-              </div>
-              <div style={{ fontSize: 11, color: '#8fa3b8', flexShrink: 0, marginLeft: 8 }}>{e.year}</div>
-            </div>
-          ))}
+        <div>{secHeader('Education')}
+          {cv.education.map((e, i) => (<div key={i} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 7 }}><div><div style={{ fontSize: 12, fontWeight: 600, color: navy }}>{e.degree}</div><div style={{ fontSize: 11, color: '#6b7c93' }}>{e.school}</div></div><div style={{ fontSize: 11, color: '#8fa3b8', flexShrink: 0, marginLeft: 8 }}>{e.year}</div></div>))}
         </div>
       )}
-      {cv.certifications.length > 0 && (
-        <div>
-          {secHeader('Certifications')}
-          {cv.certifications.map((c, i) => (
-            <div key={i} style={{ display: 'flex', gap: 7, marginBottom: 4, alignItems: 'flex-start' }}>
-              <span style={{ color: ac, fontSize: 11, flexShrink: 0 }}>•</span>
-              <span style={{ fontSize: 11, color: '#374151', lineHeight: 1.6 }}>{c}</span>
-            </div>
-          ))}
-        </div>
-      )}
-      {cv.languages.length > 0 && (
-        <div>
-          {secHeader('Languages')}
-          <div style={{ fontSize: 11.5, color: '#374151' }}>
-            {cv.languages.map((l, i) => {
-              const lv = l.level >= 90 ? 'Native' : l.level >= 75 ? 'Fluent' : l.level >= 55 ? 'Proficient' : 'Basic'
-              return <span key={i}>{l.name} <span style={{ color: '#8fa3b8' }}>({lv})</span>{i < cv.languages.length - 1 ? '  ·  ' : ''}</span>
-            })}
-          </div>
-        </div>
-      )}
+      {cv.certifications.length > 0 && (<div>{secHeader('Certifications')}{cv.certifications.map((c, i) => (<div key={i} style={{ display: 'flex', gap: 7, marginBottom: 4, alignItems: 'flex-start' }}><span style={{ color: ac, fontSize: 11, flexShrink: 0 }}>•</span><span style={{ fontSize: 11, color: '#374151', lineHeight: 1.6 }}>{c}</span></div>))}</div>)}
+      {cv.languages.length > 0 && (<div>{secHeader('Languages')}<div style={{ fontSize: 11.5, color: '#374151' }}>{cv.languages.map((l, i) => { const lv = l.level >= 90 ? 'Native' : l.level >= 75 ? 'Fluent' : l.level >= 55 ? 'Proficient' : 'Basic'; return <span key={i}>{l.name} <span style={{ color: '#8fa3b8' }}>({lv})</span>{i < cv.languages.length - 1 ? '  ·  ' : ''}</span> })}</div></div>)}
     </div>
   )
 }
+
+// ── Template 2: Modern (gradient header, chip skills, visual) ─────────────
+function ModernCV({ cv, ac }: { cv: CVData; ac: string }) {
+  const navy = '#0d2137'
+  const sec = (title: string) => (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10, marginTop: 22 }}>
+      <div style={{ width: 3, height: 14, background: ac, borderRadius: 2, flexShrink: 0 }} />
+      <span style={{ fontSize: 10, fontWeight: 700, color: navy, letterSpacing: 1.3, textTransform: 'uppercase' as const }}>{title}</span>
+    </div>
+  )
+  return (
+    <div style={{ fontFamily: "'DM Sans', sans-serif", background: '#fff', minHeight: 900 }}>
+      {/* Hero header */}
+      <div style={{ background: `linear-gradient(135deg, ${ac} 0%, ${ac}bb 100%)`, padding: '40px 48px 32px', position: 'relative', overflow: 'hidden' }}>
+        <div style={{ position: 'absolute', right: -50, top: -50, width: 220, height: 220, borderRadius: '50%', background: 'rgba(255,255,255,0.07)', pointerEvents: 'none' }} />
+        <div style={{ position: 'absolute', right: 80, bottom: -70, width: 160, height: 160, borderRadius: '50%', background: 'rgba(255,255,255,0.04)', pointerEvents: 'none' }} />
+        <div style={{ position: 'relative' }}>
+          <div style={{ fontSize: 32, fontWeight: 800, color: '#fff', letterSpacing: -0.5, lineHeight: 1.1 }}>{cv.name}</div>
+          <div style={{ fontSize: 14, fontWeight: 600, color: 'rgba(255,255,255,0.88)', marginTop: 6 }}>{cv.title}</div>
+          {cv.tagline && <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.65)', marginTop: 5, fontStyle: 'italic' }}>{cv.tagline}</div>}
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 20, marginTop: 16 }}>
+            {[cv.email, cv.phone, cv.location, cv.linkedin].filter(Boolean).map((c, i) => (
+              <span key={i} style={{ fontSize: 11, color: 'rgba(255,255,255,0.82)' }}>{c}</span>
+            ))}
+          </div>
+        </div>
+      </div>
+      {/* Stats bar */}
+      {cv.stats?.length > 0 && (
+        <div style={{ background: navy, padding: '14px 48px', display: 'flex', gap: 32, flexWrap: 'wrap' }}>
+          {cv.stats.map((s, i) => (
+            <div key={i} style={{ textAlign: 'center' }}>
+              <div style={{ fontSize: 18, fontWeight: 800, color: ac, lineHeight: 1 }}>{s.value}</div>
+              <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.5)', marginTop: 2 }}>{s.label}</div>
+            </div>
+          ))}
+        </div>
+      )}
+      {/* Body */}
+      <div style={{ padding: '4px 48px 40px' }}>
+        {cv.summary && (<div>{sec('Professional Summary')}<div style={{ fontSize: 11.5, color: '#374151', lineHeight: 1.8 }}>{cv.summary}</div></div>)}
+        {cv.skills.length > 0 && (
+          <div>{sec('Core Skills')}
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+              {cv.skills.map((s, i) => (<span key={i} style={{ fontSize: 10.5, padding: '3px 10px', background: `${ac}12`, color: navy, border: `1px solid ${ac}30`, borderRadius: 12, fontWeight: 600 }}>{s.name}</span>))}
+            </div>
+          </div>
+        )}
+        {cv.tools.length > 0 && (
+          <div>{sec('Tech Stack')}
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+              {cv.tools.map((t, i) => (<span key={i} style={{ fontSize: 10, padding: '3px 9px', background: 'rgba(0,0,0,0.04)', color: '#374151', border: '1px solid rgba(0,0,0,0.08)', borderRadius: 10 }}>{t}</span>))}
+            </div>
+          </div>
+        )}
+        {cv.experience.length > 0 && (
+          <div>{sec('Experience')}
+            {cv.experience.map((exp, i) => (
+              <div key={i} style={{ marginBottom: 16 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: navy }}>{exp.role}</div>
+                  <div style={{ fontSize: 10, color: ac, fontWeight: 600, flexShrink: 0, marginLeft: 8, background: `${ac}15`, padding: '2px 8px', borderRadius: 10 }}>{exp.period}</div>
+                </div>
+                <div style={{ fontSize: 11, color: '#6b7c93', fontStyle: 'italic', marginBottom: 5 }}>{[exp.company, exp.location, exp.type].filter(Boolean).join(' · ')}</div>
+                {exp.bullets.map((b, j) => (<div key={j} style={{ display: 'flex', gap: 7, marginBottom: 3, alignItems: 'flex-start' }}><span style={{ color: ac, fontSize: 11, flexShrink: 0, marginTop: 1 }}>▸</span><span style={{ fontSize: 11, color: '#374151', lineHeight: 1.65 }}>{b}</span></div>))}
+              </div>
+            ))}
+          </div>
+        )}
+        {cv.education.length > 0 && (
+          <div>{sec('Education')}
+            {cv.education.map((e, i) => (<div key={i} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}><div><div style={{ fontSize: 12, fontWeight: 600, color: navy }}>{e.degree}</div><div style={{ fontSize: 11, color: '#6b7c93' }}>{e.school}</div></div><div style={{ fontSize: 11, color: '#8fa3b8', flexShrink: 0, marginLeft: 8 }}>{e.year}</div></div>))}
+          </div>
+        )}
+        {cv.certifications.length > 0 && (<div>{sec('Certifications')}{cv.certifications.map((c, i) => (<div key={i} style={{ fontSize: 11, color: '#374151', marginBottom: 4 }}>• {c}</div>))}</div>)}
+        {cv.languages.length > 0 && (<div>{sec('Languages')}<div style={{ fontSize: 11.5, color: '#374151' }}>{cv.languages.map((l, i) => { const lv = l.level >= 90 ? 'Native' : l.level >= 75 ? 'Fluent' : l.level >= 55 ? 'Proficient' : 'Basic'; return <span key={i}>{l.name} <span style={{ color: '#8fa3b8' }}>({lv})</span>{i < cv.languages.length - 1 ? '  ·  ' : ''}</span> })}</div></div>)}
+      </div>
+    </div>
+  )
+}
+
+// ── Template 3: Executive (dark sidebar + right content) ──────────────────
+function ExecutiveCV({ cv, ac }: { cv: CVData; ac: string }) {
+  const navy = '#0d2137'
+  const initials = cv.name.split(' ').map(n => n[0] ?? '').join('').slice(0, 2).toUpperCase()
+  const lvLabel = (l: number) => l >= 90 ? 'Native' : l >= 75 ? 'Fluent' : l >= 55 ? 'Proficient' : 'Basic'
+  const secR = (title: string) => (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10, marginTop: 20 }}>
+      <span style={{ fontSize: 10, fontWeight: 700, color: navy, letterSpacing: 1.3, textTransform: 'uppercase' as const }}>{title}</span>
+      <div style={{ flex: 1, height: 1.5, background: ac + '50' }} />
+    </div>
+  )
+  return (
+    <div style={{ fontFamily: "'DM Sans', sans-serif", background: '#fff', display: 'flex', minHeight: 900 }}>
+      {/* Left sidebar */}
+      <div style={{ width: 210, flexShrink: 0, background: navy, padding: '32px 18px 32px 20px', display: 'flex', flexDirection: 'column', gap: 20 }}>
+        {/* Avatar initials */}
+        <div style={{ textAlign: 'center' }}>
+          <div style={{ width: 68, height: 68, borderRadius: '50%', background: ac, display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 10px', fontSize: 24, fontWeight: 800, color: '#fff' }}>{initials}</div>
+          <div style={{ fontSize: 13, fontWeight: 700, color: '#fff', lineHeight: 1.3 }}>{cv.name}</div>
+          <div style={{ fontSize: 9.5, color: ac, fontWeight: 600, marginTop: 4, lineHeight: 1.4 }}>{cv.title}</div>
+        </div>
+        {/* Contact */}
+        {[cv.email, cv.phone, cv.location, cv.linkedin].filter(Boolean).length > 0 && (
+          <div>
+            <div style={{ fontSize: 8.5, fontWeight: 700, color: ac, letterSpacing: 1.5, textTransform: 'uppercase' as const, marginBottom: 8, borderBottom: `1px solid rgba(255,255,255,0.08)`, paddingBottom: 5 }}>Contact</div>
+            {[cv.email, cv.phone, cv.location, cv.linkedin].filter(Boolean).map((c, i) => (
+              <div key={i} style={{ fontSize: 9, color: 'rgba(255,255,255,0.7)', marginBottom: 5, lineHeight: 1.5, wordBreak: 'break-word' as const }}>{c}</div>
+            ))}
+          </div>
+        )}
+        {/* Skills */}
+        {cv.skills.length > 0 && (
+          <div>
+            <div style={{ fontSize: 8.5, fontWeight: 700, color: ac, letterSpacing: 1.5, textTransform: 'uppercase' as const, marginBottom: 8, borderBottom: `1px solid rgba(255,255,255,0.08)`, paddingBottom: 5 }}>Skills</div>
+            {cv.skills.slice(0, 8).map((s, i) => (
+              <div key={i} style={{ marginBottom: 7 }}>
+                <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.8)', marginBottom: 3 }}>{s.name}</div>
+                <div style={{ height: 3, background: 'rgba(255,255,255,0.1)', borderRadius: 2 }}>
+                  <div style={{ width: `${s.level}%`, height: '100%', background: ac, borderRadius: 2 }} />
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+        {/* Tools */}
+        {cv.tools.length > 0 && (
+          <div>
+            <div style={{ fontSize: 8.5, fontWeight: 700, color: ac, letterSpacing: 1.5, textTransform: 'uppercase' as const, marginBottom: 8, borderBottom: `1px solid rgba(255,255,255,0.08)`, paddingBottom: 5 }}>Tools</div>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
+              {cv.tools.slice(0, 14).map((t, i) => (<span key={i} style={{ fontSize: 8, padding: '2px 6px', background: 'rgba(255,255,255,0.07)', color: 'rgba(255,255,255,0.7)', borderRadius: 8, border: '1px solid rgba(255,255,255,0.1)' }}>{t}</span>))}
+            </div>
+          </div>
+        )}
+        {/* Languages */}
+        {cv.languages.length > 0 && (
+          <div>
+            <div style={{ fontSize: 8.5, fontWeight: 700, color: ac, letterSpacing: 1.5, textTransform: 'uppercase' as const, marginBottom: 8, borderBottom: `1px solid rgba(255,255,255,0.08)`, paddingBottom: 5 }}>Languages</div>
+            {cv.languages.map((l, i) => (<div key={i} style={{ fontSize: 9, color: 'rgba(255,255,255,0.7)', marginBottom: 4 }}>{l.name} <span style={{ color: ac }}>({lvLabel(l.level)})</span></div>))}
+          </div>
+        )}
+        {/* Certifications */}
+        {cv.certifications.length > 0 && (
+          <div>
+            <div style={{ fontSize: 8.5, fontWeight: 700, color: ac, letterSpacing: 1.5, textTransform: 'uppercase' as const, marginBottom: 8, borderBottom: `1px solid rgba(255,255,255,0.08)`, paddingBottom: 5 }}>Certifications</div>
+            {cv.certifications.map((c, i) => (<div key={i} style={{ fontSize: 8.5, color: 'rgba(255,255,255,0.65)', marginBottom: 4, lineHeight: 1.4 }}>• {c}</div>))}
+          </div>
+        )}
+      </div>
+      {/* Right main */}
+      <div style={{ flex: 1, padding: '32px 32px 32px 28px' }}>
+        {cv.summary && (
+          <div>
+            {secR('Profile')}
+            <div style={{ fontSize: 11.5, color: '#374151', lineHeight: 1.8 }}>{cv.summary}</div>
+          </div>
+        )}
+        {cv.stats?.length > 0 && (
+          <div style={{ display: 'flex', gap: 12, marginTop: 16, flexWrap: 'wrap' }}>
+            {cv.stats.map((s, i) => (<div key={i} style={{ textAlign: 'center', padding: '8px 14px', background: `${ac}10`, border: `1px solid ${ac}28`, borderRadius: 8 }}><div style={{ fontSize: 17, fontWeight: 800, color: ac, lineHeight: 1 }}>{s.value}</div><div style={{ fontSize: 9, color: '#6b7c93', marginTop: 3 }}>{s.label}</div></div>))}
+          </div>
+        )}
+        {cv.experience.length > 0 && (
+          <div>
+            {secR('Experience')}
+            {cv.experience.map((exp, i) => (
+              <div key={i} style={{ marginBottom: 16, paddingLeft: 10, borderLeft: `2px solid ${ac}35` }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: navy }}>{exp.role}</div>
+                  <div style={{ fontSize: 9.5, color: '#fff', fontWeight: 600, flexShrink: 0, marginLeft: 8, background: ac, padding: '2px 8px', borderRadius: 10 }}>{exp.period}</div>
+                </div>
+                <div style={{ fontSize: 10.5, color: '#6b7c93', fontStyle: 'italic', marginBottom: 5 }}>{[exp.company, exp.location, exp.type].filter(Boolean).join(' · ')}</div>
+                {exp.bullets.map((b, j) => (<div key={j} style={{ display: 'flex', gap: 7, marginBottom: 3, alignItems: 'flex-start' }}><span style={{ color: ac, fontSize: 10, flexShrink: 0, marginTop: 2 }}>▸</span><span style={{ fontSize: 11, color: '#374151', lineHeight: 1.65 }}>{b}</span></div>))}
+              </div>
+            ))}
+          </div>
+        )}
+        {cv.education.length > 0 && (
+          <div>
+            {secR('Education')}
+            {cv.education.map((e, i) => (<div key={i} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}><div><div style={{ fontSize: 12, fontWeight: 600, color: navy }}>{e.degree}</div><div style={{ fontSize: 11, color: '#6b7c93' }}>{e.school}</div></div><div style={{ fontSize: 10.5, color: '#8fa3b8', flexShrink: 0, marginLeft: 8 }}>{e.year}</div></div>))}
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
+// ── Mobile scale wrapper ───────────────────────────────────────────────────
+// Shrinks the CV visually to fit the container on small screens.
+// Uses transform:scale (not zoom) so html2canvas captures the full-res DOM.
+function CVScaleWrapper({ scale, children }: { scale: number; children: React.ReactNode }) {
+  const innerRef = useRef<HTMLDivElement>(null)
+  const [outerH, setOuterH] = useState<number | undefined>(undefined)
+
+  useLayoutEffect(() => {
+    if (!innerRef.current || scale >= 1) { setOuterH(undefined); return }
+    const measure = () => {
+      if (innerRef.current) {
+        const h = innerRef.current.offsetHeight
+        setOuterH(prev => (prev === h * scale ? prev : h * scale))
+      }
+    }
+    measure()
+    const obs = new ResizeObserver(measure)
+    obs.observe(innerRef.current)
+    return () => obs.disconnect()
+  }, [scale])
+
+  if (scale >= 1) return <>{children}</>
+
+  return (
+    <div style={{ width: 740 * scale, height: outerH, overflow: 'hidden', flexShrink: 0 }}>
+      <div ref={innerRef} style={{ width: 740, transformOrigin: 'top left', transform: `scale(${scale})` }}>
+        {children}
+      </div>
+    </div>
+  )
+}
+
 export default function IndiaCVBuilderPage() {
   const router = useRouter()
   const fileInputRef = useRef<HTMLInputElement>(null)
-  const previewRef = useRef<HTMLDivElement>(null)
+  const previewRef   = useRef<HTMLDivElement>(null)
+  const previewAreaRef = useRef<HTMLDivElement>(null)
 
-  const [cvText, setCvText] = useState('')
-  const [cvFileName, setCvFileName] = useState('')
-  const [fileLoading, setFileLoading] = useState(false)
-  const [job, setJob] = useState<{ job_title: string; employer_name: string; job_description?: string } | null>(null)
-  const [jobLabel, setJobLabel] = useState('')
-  const [template, setTemplate] = useState<Template>('clean')
-  const [tone, setTone] = useState<Tone>('professional')
-  const [pages, setPages] = useState<Pages>('1')
+  const [cvText,        setCvText]        = useState('')
+  const [cvFileName,    setCvFileName]    = useState('')
+  const [fileLoading,   setFileLoading]   = useState(false)
+  const [job,           setJob]           = useState<{ job_title: string; employer_name: string; job_description?: string } | null>(null)
+  const [jobLabel,      setJobLabel]      = useState('')
+  const [template,      setTemplate]      = useState<Template>('clean')
+  const [tone,          setTone]          = useState<Tone>('professional')
+  const [pages,         setPages]         = useState<Pages>('1')
   const lang: Lang = 'EN'
-  const [cvData, setCvData] = useState<CVData | null>(null)
-  const [rawCv, setRawCv] = useState('')
-  const [loading, setLoading] = useState(false)
-  const [openSections, setOpenSections] = useState<Record<string, boolean>>({ template: false, style: false })
-  const [feedback, setFeedback] = useState('')
+  const [cvData,        setCvData]        = useState<CVData | null>(null)
+  const [rawCv,         setRawCv]         = useState('')
+  const [loading,       setLoading]       = useState(false)
+  const [openSections,  setOpenSections]  = useState<Record<string, boolean>>({ template: false, style: false })
+  const [feedback,      setFeedback]      = useState('')
   const [applyingFeedback, setApplyingFeedback] = useState(false)
-  const [downloading, setDownloading] = useState<'pdf' | 'docx' | null>(null)
-  const [mobOpen, setMobOpen] = useState(false)
-  const [atsFromScan, setAtsFromScan] = useState(false)
+  const [downloading,   setDownloading]   = useState<'pdf' | 'docx' | null>(null)
+  const [mobOpen,       setMobOpen]       = useState(false)
+  const [atsFromScan,   setAtsFromScan]   = useState(false)
   const [atsSuggestions, setAtsSuggestions] = useState<{ missing_keywords: string[]; quick_fixes: string[]; format_issues?: string[]; section_gaps?: string[] } | null>(null)
   const [editingContact, setEditingContact] = useState(false)
-  const [contactDraft, setContactDraft] = useState({ name: '', email: '', phone: '', location: '', linkedin: '' })
+  const [contactDraft,  setContactDraft]  = useState({ name: '', email: '', phone: '', location: '', linkedin: '' })
+  const [mobileScale,   setMobileScale]   = useState(1)
+
   const { credits, setCredits, needsCrossMarket, crossMarketAmount } = useCredits()
   const CV_COST = CREDIT_COST.tailorCv
   const [crossWarnPending, setCrossWarnPending] = useState<(() => void) | null>(null)
+
+  // ── Calculate mobile scale ──
+  useEffect(() => {
+    function calc() {
+      if (!previewAreaRef.current) return
+      const available = previewAreaRef.current.offsetWidth - 32 // 16px each side
+      setMobileScale(Math.min(1, available / 740))
+    }
+    calc()
+    window.addEventListener('resize', calc)
+    return () => window.removeEventListener('resize', calc)
+  }, [])
+
+  // ── Restore session ──
+  useEffect(() => {
+    const sjs  = sessionStorage.getItem(SS.sjsCvText) || ''
+    const cvt  = sessionStorage.getItem(SS.cvText) || ''
+    const lnt  = sessionStorage.getItem(SS.linkedinText) || ''
+    const cv   = sjs || cvt || lnt
+    if (lnt && !sjs && !cvt) setCvFileName('LinkedIn Profile')
+    const jobRaw    = sessionStorage.getItem(SS.inSelectedJob) || sessionStorage.getItem(SS.cvbJob)
+    const savedRole = sessionStorage.getItem(SS.sjsTargetRole) || ''
+    setCvText(cv)
+    if (jobRaw) { try { const p = JSON.parse(jobRaw); setJob(p); setJobLabel(`${p.employer_name} - ${p.job_title}`) } catch { } }
+    else if (savedRole) setJobLabel(savedRole)
+    const saved     = sessionStorage.getItem(SS.cvbTailored)
+    const savedData = sessionStorage.getItem(SS.cvbData)
+    if (saved) setRawCv(saved)
+    if (savedData) { try { setCvData(JSON.parse(savedData)) } catch { } }
+    const atsRaw = sessionStorage.getItem(SS.atsSuggestions)
+    if (atsRaw) {
+      try { const s = JSON.parse(atsRaw); setAtsSuggestions(s); setTemplate('clean'); setAtsFromScan(true) } catch { }
+    }
+  }, [])
 
   async function handleCvFile(file: File) {
     setCvFileName(file.name); setCvText(''); setFileLoading(true)
@@ -164,7 +372,7 @@ export default function IndiaCVBuilderPage() {
     } else {
       const form = new FormData(); form.append('file', file)
       try {
-        const res = await fetch(API.extractPdf, { method: 'POST', body: form })
+        const res  = await fetch(API.extractPdf, { method: 'POST', body: form })
         const data = await res.json()
         if (data.text) { setCvText(data.text); sessionStorage.setItem(SS.cvText, data.text) }
         else { alert(data.error || 'Could not read file.'); setCvFileName('') }
@@ -175,36 +383,11 @@ export default function IndiaCVBuilderPage() {
 
   function toggleSection(id: string) { setOpenSections(prev => ({ ...prev, [id]: !prev[id] })) }
 
-  useEffect(() => {
-    const sjs = sessionStorage.getItem(SS.sjsCvText) || ''
-    const cvt = sessionStorage.getItem(SS.cvText) || ''
-    const lnt = sessionStorage.getItem(SS.linkedinText) || ''
-    const cv = sjs || cvt || lnt
-    if (lnt && !sjs && !cvt) setCvFileName('LinkedIn Profile')
-    const jobRaw = sessionStorage.getItem(SS.inSelectedJob) || sessionStorage.getItem(SS.cvbJob)
-    const savedRole = sessionStorage.getItem(SS.sjsTargetRole) || ''
-    setCvText(cv)
-    if (jobRaw) { try { const p = JSON.parse(jobRaw); setJob(p); setJobLabel(`${p.employer_name} - ${p.job_title}`) } catch { } }
-    else if (savedRole) setJobLabel(savedRole)
-    const saved = sessionStorage.getItem(SS.cvbTailored)
-    const savedData = sessionStorage.getItem(SS.cvbData)
-    if (saved) setRawCv(saved)
-    if (savedData) { try { setCvData(JSON.parse(savedData)) } catch { } }
-    const atsRaw = sessionStorage.getItem(SS.atsSuggestions)
-    if (atsRaw) {
-      try {
-        const s = JSON.parse(atsRaw)
-        setAtsSuggestions(s)
-        setTemplate('clean')
-        setAtsFromScan(true)
-      } catch {}
-    }
-  }, [])
-
   async function generate() {
     if (!cvText.trim()) return
     if (credits !== null && credits < CV_COST) { alert(`You need ${CV_COST} credit to build a CV.`); return }
-    setLoading(true); setCvData(null); setRawCv('')
+    setLoading(true); setCvData(null); setRawCv(''); setMobOpen(false)
+
     const systemPrompt = `You are an elite CV designer. Extract and structure CV information into JSON for visual rendering.
 Return ONLY valid JSON - no markdown, no backticks, no preamble.
 Schema: {"name":"","title":"","tagline":"","email":"","phone":"","location":"","linkedin":"","summary":"","stats":[{"value":"","label":""}],"skills":[{"name":"","level":90}],"experience":[{"role":"","company":"","period":"","location":"","type":"","bullets":[""]}],"education":[{"degree":"","school":"","year":""}],"certifications":[""],"languages":[{"name":"","level":90}],"tools":[""],"highlights":[""]}
@@ -217,16 +400,17 @@ Rules:
 - tone: ${tone}, language: ${lang}, pages: ${pages}
 ${job ? `- Tailor for: ${job.job_title} at ${job.employer_name}` : ''}
 ${job?.job_description ? `- Job context: ${job.job_description.slice(0, 800)}` : ''}
-${atsSuggestions?.missing_keywords?.length ? `- ATS PRIORITY: Naturally incorporate these missing keywords into skills, bullets, and summary: ${atsSuggestions.missing_keywords.join(', ')}` : ''}
-${atsSuggestions?.quick_fixes?.length ? `- ATS QUICK FIXES to apply:\n${atsSuggestions.quick_fixes.map((f: string) => `  * ${f}`).join('\n')}` : ''}
+${atsSuggestions?.missing_keywords?.length ? `- ATS PRIORITY: Naturally incorporate these missing keywords: ${atsSuggestions.missing_keywords.join(', ')}` : ''}
+${atsSuggestions?.quick_fixes?.length ? `- ATS QUICK FIXES:\n${atsSuggestions.quick_fixes.map((f: string) => `  * ${f}`).join('\n')}` : ''}
 ${atsSuggestions?.format_issues?.length ? `- ATS FORMAT ISSUES to fix: ${atsSuggestions.format_issues.join('; ')}` : ''}
 ${atsSuggestions?.section_gaps?.length ? `- ATS SECTION GAPS to address: ${atsSuggestions.section_gaps.join('; ')}` : ''}`
+
     try {
-      const res = await fetch(API.tailorCv, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ cvText, job, template, tone, pages, lang, systemPrompt, returnJson: true, market: MARKET.in }) })
+      const res  = await fetch(API.tailorCv, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ cvText, job, template, tone, pages, lang, systemPrompt, returnJson: true, market: MARKET.in }) })
       if (res.status === 402) { const d = await res.json(); if (typeof d.credits === 'number') setCredits(d.credits); setLoading(false); alert('Not enough credits.'); return }
       const data = await res.json()
       if (typeof data.creditsRemaining === 'number') setCredits(data.creditsRemaining)
-      const raw = data.cv || data.enhanced || data.result || ''
+      const raw  = data.cv || data.enhanced || data.result || ''
       setRawCv(raw); sessionStorage.setItem(SS.cvbTailored, raw)
       try { const parsed: CVData = JSON.parse(raw.replace(/```json|```/g, '').trim()); setCvData(parsed); sessionStorage.setItem(SS.cvbData, JSON.stringify(parsed)) } catch { setCvData(null) }
     } catch { setRawCv('Failed to generate.') }
@@ -234,24 +418,18 @@ ${atsSuggestions?.section_gaps?.length ? `- ATS SECTION GAPS to address: ${atsSu
   }
 
   function handleGenerate() {
-    if (needsCrossMarket(CV_COST, MARKET.in)) {
-      setCrossWarnPending(() => generate)
-    } else {
-      generate()
-    }
+    if (needsCrossMarket(CV_COST, MARKET.in)) { setCrossWarnPending(() => generate) } else { generate() }
   }
 
   async function applyFeedback() {
     if (!feedback.trim() || !rawCv) return
     setApplyingFeedback(true)
     try {
-      const atsContext = atsSuggestions?.missing_keywords?.length
-        ? ` Also ensure these ATS keywords are present: ${atsSuggestions.missing_keywords.join(', ')}.`
-        : ''
-      const res = await fetch(API.tailorCv, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ cvText, job, template, tone, pages, lang, systemPrompt: `Apply the feedback and return updated JSON matching the same schema. Return ONLY valid JSON.${atsContext}`, returnJson: true, feedback, currentCv: rawCv, market: MARKET.in }) })
+      const atsCtx = atsSuggestions?.missing_keywords?.length ? ` Ensure these ATS keywords are present: ${atsSuggestions.missing_keywords.join(', ')}.` : ''
+      const res = await fetch(API.tailorCv, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ cvText, job, template, tone, pages, lang, systemPrompt: `Apply the feedback and return updated JSON matching the same schema. Return ONLY valid JSON.${atsCtx}`, returnJson: true, feedback, currentCv: rawCv, market: MARKET.in }) })
       if (res.status === 402) { alert('Not enough credits.'); setApplyingFeedback(false); return }
       const data = await res.json()
-      const raw = data.cv || ''
+      const raw  = data.cv || ''
       setRawCv(raw); sessionStorage.setItem(SS.cvbTailored, raw)
       try { const parsed: CVData = JSON.parse(raw.replace(/```json|```/g, '').trim()); setCvData(parsed); sessionStorage.setItem(SS.cvbData, JSON.stringify(parsed)) } catch { }
       setFeedback('')
@@ -263,22 +441,16 @@ ${atsSuggestions?.section_gaps?.length ? `- ATS SECTION GAPS to address: ${atsSu
     if (!cvData || !previewRef.current) return
     setDownloading('pdf')
     try {
-      const [{ default: html2canvas }, { default: jsPDF }] = await Promise.all([
-        import('html2canvas'),
-        import('jspdf'),
-      ])
-      const canvas = await html2canvas(previewRef.current, {
-        scale: 2, useCORS: true, logging: false, backgroundColor: '#ffffff',
-      })
-      const pdf = new jsPDF({ unit: 'mm', format: 'a4', orientation: 'portrait' })
+      const [{ default: html2canvas }, { default: jsPDF }] = await Promise.all([import('html2canvas'), import('jspdf')])
+      const canvas = await html2canvas(previewRef.current, { scale: 2, useCORS: true, logging: false, backgroundColor: '#ffffff' })
+      const pdf  = new jsPDF({ unit: 'mm', format: 'a4', orientation: 'portrait' })
       const pdfW = pdf.internal.pageSize.getWidth()
       const pdfH = pdf.internal.pageSize.getHeight()
-      const imgW = canvas.width
-      const imgH = canvas.height
+      const imgW = canvas.width, imgH = canvas.height
       const pageHeightPx = Math.floor(imgW * (pdfH / pdfW))
-      let yOffset = 0; let firstPage = true
+      let yOffset = 0, firstPage = true
       while (yOffset < imgH) {
-        const sliceH = Math.min(pageHeightPx, imgH - yOffset)
+        const sliceH  = Math.min(pageHeightPx, imgH - yOffset)
         const pageCanvas = document.createElement('canvas')
         pageCanvas.width = imgW; pageCanvas.height = sliceH
         const ctx = pageCanvas.getContext('2d')!
@@ -298,33 +470,32 @@ ${atsSuggestions?.section_gaps?.length ? `- ATS SECTION GAPS to address: ${atsSu
     setDownloading('docx')
     try {
       const { Document, Packer, Paragraph, TextRun, BorderStyle } = await import('docx')
-      const teal = '00A58A', navy = '0d2137', grey = '6b7c93'
-      const sectionTitle = (text: string) => new Paragraph({ children: [new TextRun({ text: text.toUpperCase(), bold: true, size: 18, color: navy, font: 'Calibri' })], spacing: { before: 240, after: 80 }, border: { bottom: { style: BorderStyle.SINGLE, size: 6, color: 'dde4ee' } } })
+      const teal = '00A58A', navyH = '0d2137', greyH = '6b7c93'
+      const sectionTitle = (text: string) => new Paragraph({ children: [new TextRun({ text: text.toUpperCase(), bold: true, size: 18, color: navyH, font: 'Calibri' })], spacing: { before: 240, after: 80 }, border: { bottom: { style: BorderStyle.SINGLE, size: 6, color: 'dde4ee' } } })
       const bullet = (text: string) => new Paragraph({ children: [new TextRun({ text: '+ ', color: teal, bold: true, size: 18, font: 'Calibri' }), new TextRun({ text, size: 18, color: '374151', font: 'Calibri' })], spacing: { before: 40, after: 40 }, indent: { left: 200 } })
       const children: any[] = []
-      children.push(new Paragraph({ children: [new TextRun({ text: cvData.name, bold: true, size: 48, color: navy, font: 'Calibri' })], spacing: { after: 60 } }))
+      children.push(new Paragraph({ children: [new TextRun({ text: cvData.name, bold: true, size: 48, color: navyH, font: 'Calibri' })], spacing: { after: 60 } }))
       children.push(new Paragraph({ children: [new TextRun({ text: cvData.title, bold: true, size: 22, color: teal, font: 'Calibri' })], spacing: { after: 60 } }))
       const contact = [cvData.email, cvData.phone, cvData.location, cvData.linkedin].filter(Boolean)
-      if (contact.length) children.push(new Paragraph({ children: [new TextRun({ text: contact.join('  |  '), size: 18, color: grey, font: 'Calibri' })], spacing: { after: 120 } }))
-      if (cvData.stats?.length) children.push(new Paragraph({ children: cvData.stats.flatMap((s: { value: string; label: string }, i: number) => [new TextRun({ text: s.value, bold: true, size: 28, color: navy, font: 'Calibri' }), new TextRun({ text: ` ${s.label}`, size: 16, color: grey, font: 'Calibri' }), ...(i < cvData.stats.length - 1 ? [new TextRun({ text: '   |   ', size: 16, color: 'cccccc', font: 'Calibri' })] : [])]), spacing: { after: 160 } }))
+      if (contact.length) children.push(new Paragraph({ children: [new TextRun({ text: contact.join('  |  '), size: 18, color: greyH, font: 'Calibri' })], spacing: { after: 120 } }))
       if (cvData.summary) { children.push(sectionTitle('Professional Summary')); children.push(new Paragraph({ children: [new TextRun({ text: cvData.summary, size: 18, color: '374151', font: 'Calibri' })], spacing: { after: 120 } })) }
-      if (cvData.skills?.length) { children.push(sectionTitle('Core Skills')); children.push(new Paragraph({ children: [new TextRun({ text: cvData.skills.map((s: { name: string; level: number }) => `${s.name} (${s.level}%)`).join('  .  '), size: 18, color: '374151', font: 'Calibri' })], spacing: { after: 120 } })) }
+      if (cvData.skills?.length) { children.push(sectionTitle('Core Skills')); children.push(new Paragraph({ children: [new TextRun({ text: cvData.skills.map((s: { name: string }) => s.name).join('  .  '), size: 18, color: '374151', font: 'Calibri' })], spacing: { after: 120 } })) }
       if (cvData.tools?.length) { children.push(sectionTitle('Tech Stack')); children.push(new Paragraph({ children: [new TextRun({ text: cvData.tools.join('  .  '), size: 18, color: '185FA5', font: 'Calibri' })], spacing: { after: 120 } })) }
       if (cvData.experience?.length) {
         children.push(sectionTitle('Professional Experience'))
         cvData.experience.forEach((exp: { role: string; company: string; period: string; location: string; type: string; bullets: string[] }) => {
-          children.push(new Paragraph({ children: [new TextRun({ text: exp.role, bold: true, size: 22, color: navy, font: 'Calibri' }), new TextRun({ text: `  -  ${exp.period}`, size: 18, color: teal, font: 'Calibri' })], spacing: { before: 160, after: 40 } }))
-          children.push(new Paragraph({ children: [new TextRun({ text: [exp.company, exp.location, exp.type].filter(Boolean).join('  .  '), size: 18, color: grey, italics: true, font: 'Calibri' })], spacing: { after: 60 } }))
+          children.push(new Paragraph({ children: [new TextRun({ text: exp.role, bold: true, size: 22, color: navyH, font: 'Calibri' }), new TextRun({ text: `  -  ${exp.period}`, size: 18, color: teal, font: 'Calibri' })], spacing: { before: 160, after: 40 } }))
+          children.push(new Paragraph({ children: [new TextRun({ text: [exp.company, exp.location, exp.type].filter(Boolean).join('  .  '), size: 18, color: greyH, italics: true, font: 'Calibri' })], spacing: { after: 60 } }))
           exp.bullets?.forEach((b: string) => children.push(bullet(b)))
           children.push(new Paragraph({ children: [], spacing: { after: 80 } }))
         })
       }
-      if (cvData.education?.length) { children.push(sectionTitle('Education')); cvData.education.forEach((e: { degree: string; school: string; year: string }) => children.push(new Paragraph({ children: [new TextRun({ text: e.degree, bold: true, size: 20, color: navy, font: 'Calibri' }), new TextRun({ text: `  -  ${e.school}  (${e.year})`, size: 18, color: grey, font: 'Calibri' })], spacing: { after: 80 } }))) }
+      if (cvData.education?.length) { children.push(sectionTitle('Education')); cvData.education.forEach((e: { degree: string; school: string; year: string }) => children.push(new Paragraph({ children: [new TextRun({ text: e.degree, bold: true, size: 20, color: navyH, font: 'Calibri' }), new TextRun({ text: `  -  ${e.school}  (${e.year})`, size: 18, color: greyH, font: 'Calibri' })], spacing: { after: 80 } }))) }
       if (cvData.certifications?.length) { children.push(sectionTitle('Certifications')); cvData.certifications.forEach((c: string) => children.push(new Paragraph({ children: [new TextRun({ text: '* ', color: teal, bold: true, size: 18, font: 'Calibri' }), new TextRun({ text: c, size: 18, color: '374151', font: 'Calibri' })], spacing: { after: 60 } }))) }
-      if (cvData.languages?.length) { children.push(sectionTitle('Languages')); children.push(new Paragraph({ children: cvData.languages.flatMap((l: { name: string; level: number }, i: number) => { const level = l.level >= 90 ? 'Native' : l.level >= 75 ? 'Fluent' : l.level >= 55 ? 'Proficient' : 'Basic'; return [new TextRun({ text: l.name, bold: true, size: 18, color: navy, font: 'Calibri' }), new TextRun({ text: ` (${level})`, size: 18, color: grey, font: 'Calibri' }), ...(i < cvData.languages.length - 1 ? [new TextRun({ text: '   .   ', size: 18, color: 'cccccc', font: 'Calibri' })] : [])] }), spacing: { after: 80 } })) }
+      if (cvData.languages?.length) { children.push(sectionTitle('Languages')); children.push(new Paragraph({ children: cvData.languages.flatMap((l: { name: string; level: number }, i: number) => { const level = l.level >= 90 ? 'Native' : l.level >= 75 ? 'Fluent' : l.level >= 55 ? 'Proficient' : 'Basic'; return [new TextRun({ text: l.name, bold: true, size: 18, color: navyH, font: 'Calibri' }), new TextRun({ text: ` (${level})`, size: 18, color: greyH, font: 'Calibri' }), ...(i < cvData.languages.length - 1 ? [new TextRun({ text: '   .   ', size: 18, color: 'cccccc', font: 'Calibri' })] : [])] }), spacing: { after: 80 } })) }
       const docx = new Document({ sections: [{ properties: { page: { margin: { top: 900, right: 900, bottom: 900, left: 900 } } }, children }] })
       const blob = await Packer.toBlob(docx)
-      const url = URL.createObjectURL(blob)
+      const url  = URL.createObjectURL(blob)
       const a = document.createElement('a'); a.href = url; a.download = `CV_${(job?.employer_name || cvData.name || 'JobLens').replace(/[^a-zA-Z0-9]/g, '_')}.docx`; a.click(); URL.revokeObjectURL(url)
     } catch (err) { console.error('DOCX error:', err); alert('DOCX generation failed.') }
     setDownloading(null)
@@ -344,13 +515,7 @@ ${atsSuggestions?.section_gaps?.length ? `- ATS SECTION GAPS to address: ${atsSu
       if (cvData.summary) lines.push('\nSUMMARY', cvData.summary)
       if (cvData.skills?.length) lines.push('\nSKILLS', cvData.skills.map((s: { name: string }) => s.name).join(', '))
       if (cvData.tools?.length) lines.push('\nTECH STACK', cvData.tools.join(', '))
-      if (cvData.experience?.length) {
-        lines.push('\nEXPERIENCE')
-        cvData.experience.forEach((exp: { role: string; company: string; period: string; bullets: string[] }) => {
-          lines.push(`${exp.role} at ${exp.company} (${exp.period})`)
-          exp.bullets?.forEach((b: string) => lines.push(`• ${b}`))
-        })
-      }
+      if (cvData.experience?.length) { lines.push('\nEXPERIENCE'); cvData.experience.forEach((exp: { role: string; company: string; period: string; bullets: string[] }) => { lines.push(`${exp.role} at ${exp.company} (${exp.period})`); exp.bullets?.forEach((b: string) => lines.push(`• ${b}`)) }) }
       if (cvData.education?.length) { lines.push('\nEDUCATION'); cvData.education.forEach((e: { degree: string; school: string; year: string }) => lines.push(`${e.degree} - ${e.school} (${e.year})`)) }
       if (cvData.certifications?.length) { lines.push('\nCERTIFICATIONS'); cvData.certifications.forEach((c: string) => lines.push(`• ${c}`)) }
       if (cvData.languages?.length) { lines.push('\nLANGUAGES'); lines.push(cvData.languages.map((l: { name: string }) => l.name).join(', ')) }
@@ -360,56 +525,119 @@ ${atsSuggestions?.section_gaps?.length ? `- ATS SECTION GAPS to address: ${atsSu
     router.push('/in/career-scan')
   }
 
-  const templates: { id: Template; label: string; accent: string; desc: string; ats: string; atsHigh: boolean }[] = [
-    { id: 'clean',   label: 'Clean',   accent: '#1a5fa0', desc: 'Single column · Blue accents',    ats: 'ATS: High ✓', atsHigh: true },
-    { id: 'saffron', label: 'Saffron', accent: '#FF9933', desc: 'Single column · Saffron accents', ats: 'ATS: High ✓', atsHigh: true },
-    { id: 'classic', label: 'Classic', accent: '#1a1a1a', desc: 'Single column · Black & white',   ats: 'ATS: High ✓', atsHigh: true },
+  // ── Template definitions ──
+  const templates: { id: Template; label: string; ac: string; desc: string; ats: string; atsColor: string; preview: React.ReactNode }[] = [
+    {
+      id: 'clean', label: 'Clean', ac: '#1a5fa0', desc: 'Single column · Blue', ats: 'ATS: High ✓', atsColor: '#1D9E75',
+      preview: (
+        <div style={{ padding: '5px 4px', display: 'flex', flexDirection: 'column', gap: 2 }}>
+          <div style={{ height: 5, background: 'rgba(255,255,255,0.6)', borderRadius: 1, width: '70%' }} />
+          <div style={{ height: 2, background: '#1a5fa080', borderRadius: 1, width: '40%', marginBottom: 2 }} />
+          <div style={{ height: 0.5, background: 'rgba(255,255,255,0.2)', marginBottom: 2 }} />
+          {[90,70,85,60,95,75,80,65].map((w, i) => (<div key={i} style={{ height: 1.5, background: 'rgba(255,255,255,0.12)', borderRadius: 1, width: `${w}%` }} />))}
+        </div>
+      ),
+    },
+    {
+      id: 'saffron', label: 'Saffron', ac: '#FF9933', desc: 'Single column · Orange', ats: 'ATS: High ✓', atsColor: '#1D9E75',
+      preview: (
+        <div style={{ padding: '5px 4px', display: 'flex', flexDirection: 'column', gap: 2 }}>
+          <div style={{ height: 5, background: 'rgba(255,255,255,0.6)', borderRadius: 1, width: '70%' }} />
+          <div style={{ height: 2, background: '#FF993380', borderRadius: 1, width: '40%', marginBottom: 2 }} />
+          <div style={{ height: 0.5, background: 'rgba(255,255,255,0.2)', marginBottom: 2 }} />
+          {[90,70,85,60,95,75,80,65].map((w, i) => (<div key={i} style={{ height: 1.5, background: 'rgba(255,255,255,0.12)', borderRadius: 1, width: `${w}%` }} />))}
+        </div>
+      ),
+    },
+    {
+      id: 'classic', label: 'Classic', ac: '#1a1a1a', desc: 'Single column · B&W', ats: 'ATS: High ✓', atsColor: '#1D9E75',
+      preview: (
+        <div style={{ padding: '5px 4px', display: 'flex', flexDirection: 'column', gap: 2 }}>
+          <div style={{ height: 5, background: 'rgba(255,255,255,0.6)', borderRadius: 1, width: '70%' }} />
+          <div style={{ height: 2, background: 'rgba(255,255,255,0.3)', borderRadius: 1, width: '40%', marginBottom: 2 }} />
+          <div style={{ height: 0.5, background: 'rgba(255,255,255,0.2)', marginBottom: 2 }} />
+          {[90,70,85,60,95,75,80,65].map((w, i) => (<div key={i} style={{ height: 1.5, background: 'rgba(255,255,255,0.12)', borderRadius: 1, width: `${w}%` }} />))}
+        </div>
+      ),
+    },
+    {
+      id: 'modern', label: 'Modern', ac: '#0050b3', desc: 'Gradient header · Print-ready', ats: 'ATS: Medium ◐', atsColor: '#f59e0b',
+      preview: (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
+          <div style={{ height: 14, background: 'linear-gradient(135deg,#0050b3,#0050b380)', borderRadius: '3px 3px 0 0', padding: '2px 4px', display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 1 }}>
+            <div style={{ height: 3, background: 'rgba(255,255,255,0.8)', borderRadius: 1, width: '60%' }} />
+            <div style={{ height: 1.5, background: 'rgba(255,255,255,0.4)', borderRadius: 1, width: '40%' }} />
+          </div>
+          <div style={{ padding: '3px 4px', display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+            {[85,65,90,70,95,75,80].map((w, i) => (<div key={i} style={{ height: 1.5, background: 'rgba(255,255,255,0.12)', borderRadius: 1, width: `${w}%` }} />))}
+          </div>
+        </div>
+      ),
+    },
+    {
+      id: 'executive', label: 'Executive', ac: '#FF9933', desc: 'Sidebar layout · Premium', ats: 'ATS: Low ⚠', atsColor: '#ef4444',
+      preview: (
+        <div style={{ display: 'flex', height: '100%', gap: 0 }}>
+          <div style={{ width: 14, background: 'rgba(13,33,55,0.9)', padding: '4px 2px', display: 'flex', flexDirection: 'column', gap: 1.5, borderRadius: '3px 0 0 3px' }}>
+            <div style={{ width: 10, height: 10, borderRadius: '50%', background: '#FF993360', margin: '0 auto 2px' }} />
+            {[80,65,75,55,80,65].map((w, i) => (<div key={i} style={{ height: 1.5, background: 'rgba(255,255,255,0.15)', borderRadius: 1, width: `${w}%` }} />))}
+          </div>
+          <div style={{ flex: 1, padding: '4px 3px', display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+            <div style={{ height: 4, background: 'rgba(255,255,255,0.5)', borderRadius: 1, width: '70%', marginBottom: 2 }} />
+            {[100,80,90,65,100,75,85,60].map((w, i) => (<div key={i} style={{ height: 1.5, background: 'rgba(255,255,255,0.1)', borderRadius: 1, width: `${w}%` }} />))}
+          </div>
+        </div>
+      ),
+    },
   ]
+
   const tones: { id: Tone; label: string; desc: string }[] = [
     { id: 'professional', label: 'Professional', desc: 'Polished & credible' },
-    { id: 'concise', label: 'Concise', desc: 'Sharp & efficient' },
-    { id: 'detailed', label: 'Detailed', desc: 'Thorough & expansive' },
+    { id: 'concise',      label: 'Concise',      desc: 'Sharp & efficient'  },
+    { id: 'detailed',     label: 'Detailed',      desc: 'Thorough & expansive' },
   ]
+
   function renderCV() {
     if (!cvData) return null
-    const acc = templates.find(t => t.id === template)?.accent || '#1a5fa0'
-    return <IndiaCV cv={cvData} accent={acc} />
+    const t = templates.find(t => t.id === template)!
+    if (template === 'modern')    return <ModernCV    cv={cvData} ac={t.ac} />
+    if (template === 'executive') return <ExecutiveCV cv={cvData} ac={t.ac} />
+    return <IndiaCV cv={cvData} ac={t.ac} />
   }
+
+  const canGenerate = !loading && !!cvText.trim() && (credits === null || credits >= CV_COST)
+  const curTpl = templates.find(t => t.id === template)!
 
   return (
     <div style={{ minHeight: '100vh', background: '#0F1923', fontFamily: "'DM Sans', system-ui, sans-serif" }}>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=Outfit:wght@300;400;600;700&display=swap');
-        @keyframes spin { to { transform: rotate(360deg) } }
-        @keyframes fadeUp { from { opacity:0; transform:translateY(10px); } to { opacity:1; transform:translateY(0); } }
+        @keyframes spin    { to { transform: rotate(360deg) } }
+        @keyframes fadeUp  { from { opacity:0; transform:translateY(10px) } to { opacity:1; transform:none } }
         @keyframes shimmer { 0%{background-position:-200% 0} 100%{background-position:200% 0} }
-        .cvb-gen:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 8px 28px rgba(0,0,0,0.4) !important; }
+        .cvb-gen:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 8px 28px rgba(0,0,0,.4) !important; }
         .cvb-action:hover { background: rgba(255,255,255,0.1) !important; }
-        .shimmer { background: linear-gradient(90deg, rgba(255,255,255,0.04) 25%, rgba(255,255,255,0.09) 50%, rgba(255,255,255,0.04) 75%); background-size:200% 100%; animation: shimmer 1.5s infinite; border-radius:4px; }
+        .shimmer { background: linear-gradient(90deg, rgba(255,255,255,.04) 25%, rgba(255,255,255,.09) 50%, rgba(255,255,255,.04) 75%); background-size:200% 100%; animation: shimmer 1.5s infinite; border-radius:4px; }
         .cv-preview { animation: fadeUp 0.35s ease; }
-        .jl-dsb { display: flex !important; }
-        .jl-mob { display: none !important; }
+        .jl-dsb  { display: flex !important; }
+        .jl-mob  { display: none !important; }
         .jl-mbtn { display: none !important; }
         @media (max-width: 768px) {
-          .jl-dsb { display: none !important; }
-          .jl-mob { display: flex !important; }
+          .jl-dsb  { display: none !important; }
+          .jl-mob  { display: flex !important; }
           .jl-mbtn { display: block !important; }
         }
       `}</style>
 
       {crossWarnPending && (
-        <CrossMarketModal
-          cost={CV_COST}
-          market={MARKET.in}
-          crossAmount={crossMarketAmount(CV_COST, MARKET.in)}
+        <CrossMarketModal cost={CV_COST} market={MARKET.in} crossAmount={crossMarketAmount(CV_COST, MARKET.in)}
           onConfirm={() => { const fn = crossWarnPending; setCrossWarnPending(null); fn() }}
-          onCancel={() => setCrossWarnPending(null)}
-        />
+          onCancel={() => setCrossWarnPending(null)} />
       )}
 
       <div style={{ display: 'flex', height: 'calc(100vh - 52px)' }}>
 
-        {/* LEFT PANEL */}
+        {/* ── LEFT PANEL ── */}
         <div className="jl-dsb" style={{ width: 288, flexShrink: 0, background: 'linear-gradient(180deg, #152233 0%, #0e1a28 100%)', borderRight: '1px solid rgba(255,255,255,0.08)', flexDirection: 'column' }}>
           <div style={{ padding: '20px 20px 16px', borderBottom: '1px solid rgba(255,255,255,0.08)', flexShrink: 0 }}>
             <button onClick={() => router.push('/in/career-scan')} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.4)', fontSize: 11, cursor: 'pointer', fontFamily: 'inherit', padding: 0, marginBottom: 14, display: 'flex', alignItems: 'center', gap: 4 }}>{'<'}- Back to ATS Score</button>
@@ -420,7 +648,8 @@ ${atsSuggestions?.section_gaps?.length ? `- ATS SECTION GAPS to address: ${atsSu
             {!cvText ? (
               <div onClick={() => fileInputRef.current?.click()} onDragOver={e => e.preventDefault()} onDrop={e => { e.preventDefault(); e.dataTransfer.files?.[0] && handleCvFile(e.dataTransfer.files[0]) }}
                 style={{ marginTop: 12, padding: '16px 12px', border: '1.5px dashed rgba(255,255,255,0.18)', borderRadius: 9, cursor: 'pointer', textAlign: 'center' }}>
-                {fileLoading ? <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}><div style={{ width: 10, height: 10, borderRadius: '50%', border: '2px solid rgba(255,255,255,0.15)', borderTopColor: accent, animation: 'spin 0.7s linear infinite' }} />Reading...</div>
+                {fileLoading
+                  ? <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}><div style={{ width: 10, height: 10, borderRadius: '50%', border: '2px solid rgba(255,255,255,0.15)', borderTopColor: accent, animation: 'spin 0.7s linear infinite' }} />Reading...</div>
                   : <><div style={{ fontSize: 20, marginBottom: 6 }}>📄</div><div style={{ fontSize: 12, fontWeight: 600, color: 'rgba(255,255,255,0.7)' }}>Upload your CV</div><div style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)', marginTop: 3 }}>PDF · DOCX · TXT</div></>}
               </div>
             ) : (
@@ -432,6 +661,7 @@ ${atsSuggestions?.section_gaps?.length ? `- ATS SECTION GAPS to address: ${atsSu
           </div>
 
           <div style={{ flex: 1, overflowY: 'auto' }}>
+            {/* Template accordion */}
             <div style={{ borderBottom: '1px solid rgba(255,255,255,0.07)' }}>
               <button onClick={() => toggleSection('template')} style={{ width: '100%', padding: '13px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
@@ -439,66 +669,38 @@ ${atsSuggestions?.section_gaps?.length ? `- ATS SECTION GAPS to address: ${atsSu
                     <span style={{ fontSize: 9, fontWeight: 700, color: openSections.template ? accent : 'rgba(255,255,255,0.4)', fontFamily: 'monospace' }}>01</span>
                   </div>
                   <span style={{ fontSize: 13, fontWeight: 600, color: openSections.template ? '#fff' : 'rgba(255,255,255,0.55)' }}>Template</span>
-                  <span style={{ fontSize: 10, color: accent, fontWeight: 600 }}>{templates.find(t => t.id === template)?.label}</span>
+                  <span style={{ fontSize: 10, color: accent, fontWeight: 600 }}>{curTpl.label}</span>
                 </div>
                 <span style={{ fontSize: 14, color: 'rgba(255,255,255,0.3)', transform: openSections.template ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s', display: 'inline-block' }}>v</span>
               </button>
               {openSections.template && (
                 <div style={{ padding: '4px 16px 16px', display: 'flex', flexDirection: 'column', gap: 7 }}>
-                  {atsFromScan && (
-                    <div style={{ padding: '7px 10px', background: 'rgba(29,158,117,0.12)', border: '1px solid rgba(29,158,117,0.3)', borderRadius: 8, fontSize: 11, color: '#1D9E75', lineHeight: 1.4, marginBottom: 4 }}>
-                      Template selected for best ATS compatibility
-                    </div>
-                  )}
+                  {atsFromScan && (<div style={{ padding: '7px 10px', background: 'rgba(29,158,117,0.12)', border: '1px solid rgba(29,158,117,0.3)', borderRadius: 8, fontSize: 11, color: '#1D9E75', lineHeight: 1.4, marginBottom: 4 }}>Template selected for best ATS compatibility</div>)}
                   {atsSuggestions && (
                     <div style={{ padding: '10px 12px', background: 'rgba(255,153,51,0.08)', border: '1px solid rgba(255,153,51,0.25)', borderRadius: 8, marginBottom: 4 }}>
                       <div style={{ fontSize: 10, fontWeight: 700, color: accent, letterSpacing: 0.5, textTransform: 'uppercase', marginBottom: 6 }}>ATS Inputs Active</div>
-                      {atsSuggestions.missing_keywords?.length > 0 && (
-                        <div style={{ marginBottom: 6 }}>
-                          <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.4)', fontWeight: 600, marginBottom: 4 }}>KEYWORDS TO ADD</div>
-                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
-                            {atsSuggestions.missing_keywords.slice(0, 8).map((kw: string, i: number) => (
-                              <span key={i} style={{ fontSize: 9, padding: '2px 7px', borderRadius: 10, background: 'rgba(255,153,51,0.15)', color: accent, border: '1px solid rgba(255,153,51,0.3)', fontWeight: 600 }}>{kw}</span>
-                            ))}
-                            {atsSuggestions.missing_keywords.length > 8 && <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.3)' }}>+{atsSuggestions.missing_keywords.length - 8} more</span>}
-                          </div>
-                        </div>
-                      )}
-                      {atsSuggestions.quick_fixes?.length > 0 && (
-                        <div>
-                          <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.4)', fontWeight: 600, marginBottom: 4 }}>FIXES APPLIED</div>
-                          {atsSuggestions.quick_fixes.slice(0, 3).map((fix: string, i: number) => (
-                            <div key={i} style={{ fontSize: 9, color: 'rgba(255,255,255,0.5)', marginBottom: 2, lineHeight: 1.4 }}>• {fix}</div>
-                          ))}
-                          {atsSuggestions.quick_fixes.length > 3 && <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.25)' }}>+{atsSuggestions.quick_fixes.length - 3} more fixes</div>}
-                        </div>
-                      )}
+                      {atsSuggestions.missing_keywords?.length > 0 && (<div style={{ marginBottom: 6 }}><div style={{ fontSize: 9, color: 'rgba(255,255,255,0.4)', fontWeight: 600, marginBottom: 4 }}>KEYWORDS TO ADD</div><div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>{atsSuggestions.missing_keywords.slice(0, 8).map((kw: string, i: number) => (<span key={i} style={{ fontSize: 9, padding: '2px 7px', borderRadius: 10, background: 'rgba(255,153,51,0.15)', color: accent, border: '1px solid rgba(255,153,51,0.3)', fontWeight: 600 }}>{kw}</span>))}{atsSuggestions.missing_keywords.length > 8 && <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.3)' }}>+{atsSuggestions.missing_keywords.length - 8} more</span>}</div></div>)}
                     </div>
                   )}
                   {templates.map(t => (
-                    <div key={t.id} onClick={() => setTemplate(t.id)} style={{ padding: '10px 12px', borderRadius: 9, border: `1px solid ${template === t.id ? t.accent : 'rgba(255,255,255,0.09)'}`, background: template === t.id ? t.accent + '14' : 'rgba(255,255,255,0.04)', cursor: 'pointer', transition: 'all 0.15s', display: 'flex', alignItems: 'center', gap: 10 }}>
-                      <div style={{ width: 38, height: 48, borderRadius: 4, background: '#1a2535', flexShrink: 0, overflow: 'hidden', border: `1px solid ${template === t.id ? t.accent + '60' : 'rgba(255,255,255,0.07)'}` }}>
-                        <div style={{ padding: '5px 4px', display: 'flex', flexDirection: 'column', gap: 2 }}>
-                          <div style={{ height: 5, background: 'rgba(255,255,255,0.6)', borderRadius: 1, width: '70%' }} />
-                          <div style={{ height: 2, background: t.accent + '80', borderRadius: 1, width: '40%', marginBottom: 2 }} />
-                          <div style={{ height: 0.5, background: 'rgba(255,255,255,0.2)', marginBottom: 2 }} />
-                          {[90,70,85,60,95,75,80,65].map((w, i) => (
-                            <div key={i} style={{ height: 1.5, background: 'rgba(255,255,255,0.12)', borderRadius: 1, width: `${w}%` }} />
-                          ))}
-                        </div>
+                    <div key={t.id} onClick={() => setTemplate(t.id)} style={{ padding: '10px 12px', borderRadius: 9, border: `1px solid ${template === t.id ? t.ac : 'rgba(255,255,255,0.09)'}`, background: template === t.id ? t.ac + '14' : 'rgba(255,255,255,0.04)', cursor: 'pointer', transition: 'all 0.15s', display: 'flex', alignItems: 'center', gap: 10 }}>
+                      {/* Template thumbnail */}
+                      <div style={{ width: 38, height: 48, borderRadius: 4, background: '#1a2535', flexShrink: 0, overflow: 'hidden', border: `1px solid ${template === t.id ? t.ac + '60' : 'rgba(255,255,255,0.07)'}` }}>
+                        {t.preview}
                       </div>
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <div style={{ fontSize: 12, fontWeight: 600, color: template === t.id ? '#fff' : 'rgba(255,255,255,0.65)', marginBottom: 2 }}>{t.label}</div>
                         <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)', lineHeight: 1.3 }}>{t.desc}</div>
-                        <div style={{ fontSize: 9, fontWeight: 700, color: t.atsHigh ? '#1D9E75' : '#E05C97', marginTop: 3, letterSpacing: 0.3 }}>{t.ats}</div>
+                        <div style={{ fontSize: 9, fontWeight: 700, color: t.atsColor, marginTop: 3, letterSpacing: 0.3 }}>{t.ats}</div>
                       </div>
-                      <div style={{ width: 14, height: 14, borderRadius: '50%', border: `2px solid ${template === t.id ? t.accent : 'rgba(255,255,255,0.15)'}`, background: template === t.id ? t.accent : 'transparent', flexShrink: 0 }} />
+                      <div style={{ width: 14, height: 14, borderRadius: '50%', border: `2px solid ${template === t.id ? t.ac : 'rgba(255,255,255,0.15)'}`, background: template === t.id ? t.ac : 'transparent', flexShrink: 0 }} />
                     </div>
                   ))}
                 </div>
               )}
             </div>
 
+            {/* Style accordion */}
             <div style={{ borderBottom: '1px solid rgba(255,255,255,0.07)' }}>
               <button onClick={() => toggleSection('style')} style={{ width: '100%', padding: '13px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
@@ -533,52 +735,72 @@ ${atsSuggestions?.section_gaps?.length ? `- ATS SECTION GAPS to address: ${atsSu
             </div>
           </div>
 
+          {/* Generate button */}
           <div style={{ padding: '14px 16px', borderTop: '1px solid rgba(255,255,255,0.08)', flexShrink: 0 }}>
             {credits !== null && credits <= LOW_CREDIT_WARN && <div style={{ background: 'rgba(245,158,11,0.15)', border: '1px solid rgba(245,158,11,0.4)', borderRadius: 8, padding: '7px 10px', fontSize: 11, color: '#fcd34d', marginBottom: 8, lineHeight: 1.5 }}>{credits === 0 ? 'No credits left. Top up on Account page.' : `${credits} credit${credits === 1 ? '' : 's'} remaining.`}</div>}
-            <button className="cvb-gen" onClick={handleGenerate} disabled={loading || !cvText.trim() || (credits !== null && credits < CV_COST)}
-              style={{ width: '100%', padding: '12px 0', borderRadius: 10, border: 'none', background: loading || !cvText.trim() || (credits !== null && credits < CV_COST) ? 'rgba(255,255,255,0.08)' : `linear-gradient(135deg, ${accent}, #e67300)`, color: loading || !cvText.trim() || (credits !== null && credits < CV_COST) ? 'rgba(255,255,255,0.25)' : '#042C53', fontFamily: "'Outfit', sans-serif", fontSize: 13, fontWeight: 700, cursor: loading || !cvText.trim() || (credits !== null && credits < CV_COST) ? 'not-allowed' : 'pointer', transition: 'all 0.2s', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
-              {loading ? <><div style={{ width: 14, height: 14, borderRadius: '50%', border: '2px solid rgba(255,255,255,0.15)', borderTopColor: 'rgba(255,255,255,0.6)', animation: 'spin 0.7s linear infinite' }} />Generating...</> : credits !== null && credits < CV_COST ? `Need ${CV_COST} credit — you have ${credits}` : cvData ? `Regenerate CV (${CV_COST} credit)` : `Generate CV (${CV_COST} credit)`}
+            <button className="cvb-gen" onClick={handleGenerate} disabled={!canGenerate}
+              style={{ width: '100%', padding: '12px 0', borderRadius: 10, border: 'none', background: canGenerate ? `linear-gradient(135deg, ${accent}, #e67300)` : 'rgba(255,255,255,0.08)', color: canGenerate ? '#042C53' : 'rgba(255,255,255,0.25)', fontFamily: "'Outfit', sans-serif", fontSize: 13, fontWeight: 700, cursor: canGenerate ? 'pointer' : 'not-allowed', transition: 'all 0.2s', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+              {loading ? <><div style={{ width: 14, height: 14, borderRadius: '50%', border: '2px solid rgba(255,255,255,0.15)', borderTopColor: 'rgba(255,255,255,0.6)', animation: 'spin 0.7s linear infinite' }} />Generating...</>
+                : credits !== null && credits < CV_COST ? `Need ${CV_COST} credit — you have ${credits}`
+                : cvData ? `Regenerate CV (${CV_COST} credit)` : `Generate CV (${CV_COST} credit)`}
             </button>
           </div>
         </div>
 
-        {/* RIGHT PREVIEW */}
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', background: '#141E2B', overflow: 'hidden' }}>
-          <div className="jl-mbtn" style={{ padding: '10px 16px', background: '#152233', borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
-            <button onClick={() => setMobOpen(o => !o)} style={{ background: '#1a2d45', color: 'rgba(255,255,255,0.8)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 8, padding: '8px 16px', fontSize: 13, cursor: 'pointer', fontFamily: 'inherit' }}>{mobOpen ? 'Close Settings' : 'CV Settings'}</button>
+        {/* ── RIGHT PREVIEW PANEL ── */}
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', background: '#141E2B', minWidth: 0 }}>
+
+          {/* Mobile toggle button */}
+          <div className="jl-mbtn" style={{ padding: '10px 16px', background: '#152233', borderBottom: '1px solid rgba(255,255,255,0.1)', flexShrink: 0 }}>
+            <button onClick={() => setMobOpen(o => !o)} style={{ background: '#1a2d45', color: 'rgba(255,255,255,0.8)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 8, padding: '8px 16px', fontSize: 13, cursor: 'pointer', fontFamily: 'inherit' }}>{mobOpen ? '✕ Close Settings' : '⚙ CV Settings'}</button>
           </div>
+
+          {/* Mobile settings panel */}
           {mobOpen && (
-            <div className="jl-mob" style={{ background: 'linear-gradient(180deg, #152233 0%, #0e1a28 100%)', borderBottom: '1px solid rgba(255,255,255,0.1)', flexDirection: 'column', overflowY: 'auto', maxHeight: '70vh', padding: '16px', gap: 14 }}>
+            <div className="jl-mob" style={{ background: 'linear-gradient(180deg, #152233 0%, #0e1a28 100%)', borderBottom: '1px solid rgba(255,255,255,0.1)', flexDirection: 'column', overflowY: 'auto', maxHeight: '65vh', padding: '16px', gap: 14, flexShrink: 0 }}>
               {!cvText && <div onClick={() => fileInputRef.current?.click()} style={{ padding: '14px 12px', border: '1.5px dashed rgba(255,255,255,0.18)', borderRadius: 9, cursor: 'pointer', textAlign: 'center' }}><div style={{ fontSize: 18, marginBottom: 4 }}>📄</div><div style={{ fontSize: 12, fontWeight: 600, color: 'rgba(255,255,255,0.7)' }}>{fileLoading ? 'Reading...' : 'Upload your CV'}</div><div style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)', marginTop: 2 }}>PDF · DOCX · TXT</div></div>}
               {cvText && cvFileName && <div style={{ padding: '7px 10px', background: 'rgba(29,158,117,0.12)', border: '1px solid rgba(29,158,117,0.3)', borderRadius: 8, fontSize: 10, color: 'rgba(255,255,255,0.7)' }}>✓ {cvFileName}</div>}
-              <div><div style={{ fontSize: 10, fontWeight: 600, color: 'rgba(255,255,255,0.4)', letterSpacing: 0.5, textTransform: 'uppercase', marginBottom: 8 }}>Template</div><div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>{templates.map(t => <button key={t.id} onClick={() => setTemplate(t.id)} style={{ padding: '9px 12px', borderRadius: 8, border: `1px solid ${template === t.id ? t.accent : 'rgba(255,255,255,0.1)'}`, background: template === t.id ? t.accent + '20' : 'rgba(255,255,255,0.04)', color: template === t.id ? '#fff' : 'rgba(255,255,255,0.55)', fontSize: 12, fontWeight: template === t.id ? 700 : 400, cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left' }}>{t.label} <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)', fontWeight: 400 }}>{t.desc}</span></button>)}</div></div>
+              <div>
+                <div style={{ fontSize: 10, fontWeight: 600, color: 'rgba(255,255,255,0.4)', letterSpacing: 0.5, textTransform: 'uppercase', marginBottom: 8 }}>Template</div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+                  {templates.map(t => (
+                    <button key={t.id} onClick={() => setTemplate(t.id)} style={{ padding: '9px 12px', borderRadius: 8, border: `1px solid ${template === t.id ? t.ac : 'rgba(255,255,255,0.1)'}`, background: template === t.id ? t.ac + '20' : 'rgba(255,255,255,0.04)', color: template === t.id ? '#fff' : 'rgba(255,255,255,0.55)', fontSize: 12, fontWeight: template === t.id ? 700 : 400, cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <span>{t.label} <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)', fontWeight: 400 }}>{t.desc}</span></span>
+                      <span style={{ fontSize: 9, fontWeight: 700, color: t.atsColor }}>{t.ats}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
               <div>
                 <div style={{ fontSize: 10, fontWeight: 600, color: 'rgba(255,255,255,0.4)', letterSpacing: 0.5, textTransform: 'uppercase', marginBottom: 8 }}>Pages</div>
                 <div style={{ display: 'flex', gap: 6 }}>{(['1', '2'] as Pages[]).map(p => <button key={p} onClick={() => setPages(p)} style={{ flex: 1, padding: '8px 0', borderRadius: 8, border: `1px solid ${pages === p ? accent : 'rgba(255,255,255,0.1)'}`, background: pages === p ? accent + '20' : 'rgba(255,255,255,0.04)', color: pages === p ? '#fff' : 'rgba(255,255,255,0.45)', fontSize: 11, fontWeight: pages === p ? 700 : 400, cursor: 'pointer', fontFamily: 'inherit' }}>{p}p</button>)}</div>
               </div>
-              <button className="cvb-gen" onClick={() => { handleGenerate(); setMobOpen(false) }} disabled={loading || !cvText.trim() || (credits !== null && credits < CV_COST)}
-                style={{ width: '100%', padding: '12px 0', borderRadius: 10, border: 'none', background: loading || !cvText.trim() || (credits !== null && credits < CV_COST) ? 'rgba(255,255,255,0.08)' : `linear-gradient(135deg, ${accent}, #e67300)`, color: loading || !cvText.trim() || (credits !== null && credits < CV_COST) ? 'rgba(255,255,255,0.25)' : '#042C53', fontFamily: "'Outfit', sans-serif", fontSize: 13, fontWeight: 700, cursor: loading || !cvText.trim() || (credits !== null && credits < CV_COST) ? 'not-allowed' : 'pointer' }}>
-                {loading ? 'Generating...' : credits !== null && credits < CV_COST ? `Need ${CV_COST} credit` : cvData ? `Regenerate CV (${CV_COST} credit)` : `Generate CV (${CV_COST} credit)`}
+              <button className="cvb-gen" onClick={() => { handleGenerate() }} disabled={!canGenerate}
+                style={{ width: '100%', padding: '12px 0', borderRadius: 10, border: 'none', background: canGenerate ? `linear-gradient(135deg, ${accent}, #e67300)` : 'rgba(255,255,255,0.08)', color: canGenerate ? '#042C53' : 'rgba(255,255,255,0.25)', fontFamily: "'Outfit', sans-serif", fontSize: 13, fontWeight: 700, cursor: canGenerate ? 'pointer' : 'not-allowed' }}>
+                {loading ? 'Generating...' : credits !== null && credits < CV_COST ? `Need ${CV_COST} credit` : cvData ? `Regenerate (${CV_COST} credit)` : `Generate CV (${CV_COST} credit)`}
               </button>
             </div>
           )}
 
-          <div style={{ padding: '12px 24px', borderBottom: '1px solid rgba(255,255,255,0.08)', background: '#152233', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 }}>
+          {/* Toolbar */}
+          <div style={{ padding: '12px 20px', borderBottom: '1px solid rgba(255,255,255,0.08)', background: '#152233', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0, gap: 10, flexWrap: 'wrap' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
               <span style={{ fontSize: 12, fontWeight: 600, color: cvData ? accent : 'rgba(255,255,255,0.25)' }}>{cvData ? 'CV Ready' : 'Preview'}</span>
-              {cvData && <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.2)', padding: '2px 8px', background: 'rgba(255,255,255,0.04)', borderRadius: 20, border: '1px solid rgba(255,255,255,0.06)' }}>{templates.find(t => t.id === template)?.label} | {lang} | {pages}p</span>}
+              {cvData && <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.2)', padding: '2px 8px', background: 'rgba(255,255,255,0.04)', borderRadius: 20, border: '1px solid rgba(255,255,255,0.06)' }}>{curTpl.label} | {lang} | {pages}p</span>}
             </div>
             {cvData && (
-              <div style={{ display: 'flex', gap: 6 }}>
+              <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
                 <button className="cvb-action" onClick={downloadPDF} disabled={downloading === 'pdf'} style={{ padding: '7px 14px', borderRadius: 7, border: '1px solid rgba(255,255,255,0.1)', background: 'rgba(255,255,255,0.04)', color: downloading === 'pdf' ? accent : 'rgba(255,255,255,0.55)', fontSize: 11, cursor: downloading === 'pdf' ? 'wait' : 'pointer', fontFamily: 'inherit', transition: 'all 0.15s' }}>{downloading === 'pdf' ? 'Building...' : 'PDF'}</button>
                 <button className="cvb-action" onClick={downloadDOCX} disabled={downloading === 'docx'} style={{ padding: '7px 14px', borderRadius: 7, border: '1px solid rgba(255,255,255,0.1)', background: 'rgba(255,255,255,0.04)', color: downloading === 'docx' ? accent : 'rgba(255,255,255,0.55)', fontSize: 11, cursor: downloading === 'docx' ? 'wait' : 'pointer', fontFamily: 'inherit', transition: 'all 0.15s' }}>{downloading === 'docx' ? 'Building...' : 'Word'}</button>
                 <button className="cvb-action" onClick={goToAtsCheck} style={{ padding: '7px 14px', borderRadius: 7, border: `1px solid ${accent}60`, background: accent + '14', color: accent, fontSize: 11, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', transition: 'all 0.15s' }}>ATS Check</button>
-                <button onClick={goToCoverLetter} style={{ padding: '7px 16px', borderRadius: 7, border: 'none', background: accent, color: '#042C53', fontSize: 11, fontWeight: 700, cursor: 'pointer', fontFamily: "'Outfit', sans-serif" }}>Cover Letter {'->'}</button>
+                <button onClick={goToCoverLetter} style={{ padding: '7px 16px', borderRadius: 7, border: 'none', background: accent, color: '#042C53', fontSize: 11, fontWeight: 700, cursor: 'pointer', fontFamily: "'Outfit', sans-serif" }}>Cover Letter →</button>
               </div>
             )}
           </div>
 
-          <div style={{ flex: 1, overflowY: 'auto', padding: '32px 40px', display: 'flex', justifyContent: 'center' }}>
+          {/* Preview area */}
+          <div ref={previewAreaRef} style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden', WebkitOverflowScrolling: 'touch', padding: '28px 20px', display: 'flex', justifyContent: 'center' }}>
+
             {loading && (
               <div style={{ width: '100%', maxWidth: 740 }}>
                 <div style={{ background: '#1C2A3A', borderRadius: 14, overflow: 'hidden', boxShadow: '0 24px 64px rgba(0,0,0,0.5)' }}>
@@ -603,43 +825,44 @@ ${atsSuggestions?.section_gaps?.length ? `- ATS SECTION GAPS to address: ${atsSu
 
             {!loading && !cvData && (
               <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', flex: 1, gap: 20 }}>
-                <div style={{ width: 300, opacity: 0.5, position: 'relative' }}>
+                <div style={{ width: 260, opacity: 0.5 }}>
                   <div style={{ background: '#1C2A3A', borderRadius: 12, overflow: 'hidden', boxShadow: '0 20px 50px rgba(0,0,0,0.4)' }}>
-                    <div style={{ display: 'flex', height: 320 }}>
-                      <div style={{ width: 90, background: `${accent}15`, padding: '20px 12px', display: 'flex', flexDirection: 'column', gap: 8 }}>
-                        <div style={{ width: 44, height: 44, borderRadius: '50%', background: accent + '30', margin: '0 auto 8px' }} />
-                        {[80,65,75,55,80,65,70,55].map((w,i) => <div key={i} style={{ height: 4, background: 'rgba(255,255,255,0.07)', borderRadius: 2, width: `${w}%` }} />)}
+                    <div style={{ display: 'flex', height: 300 }}>
+                      <div style={{ width: 80, background: `${accent}15`, padding: '18px 10px', display: 'flex', flexDirection: 'column', gap: 7 }}>
+                        <div style={{ width: 40, height: 40, borderRadius: '50%', background: accent + '30', margin: '0 auto 6px' }} />
+                        {[80,65,75,55,80,65,70].map((w,i) => <div key={i} style={{ height: 3, background: 'rgba(255,255,255,0.07)', borderRadius: 2, width: `${w}%` }} />)}
                       </div>
-                      <div style={{ flex: 1, padding: '20px 16px', display: 'flex', flexDirection: 'column', gap: 8 }}>
-                        <div style={{ height: 12, background: 'rgba(255,255,255,0.12)', borderRadius: 3, width: '60%' }} />
-                        <div style={{ height: 6, background: accent + '40', borderRadius: 2, width: '40%', marginBottom: 8 }} />
-                        {[100,80,90,65,100,75,85,60,95,70].map((w,i) => <div key={i} style={{ height: 5, background: 'rgba(255,255,255,0.06)', borderRadius: 2, width: `${w}%` }} />)}
+                      <div style={{ flex: 1, padding: '18px 14px', display: 'flex', flexDirection: 'column', gap: 7 }}>
+                        <div style={{ height: 11, background: 'rgba(255,255,255,0.12)', borderRadius: 3, width: '60%' }} />
+                        <div style={{ height: 5, background: accent + '40', borderRadius: 2, width: '40%', marginBottom: 7 }} />
+                        {[100,80,90,65,100,75,85,60,95].map((w,i) => <div key={i} style={{ height: 4, background: 'rgba(255,255,255,0.06)', borderRadius: 2, width: `${w}%` }} />)}
                       </div>
                     </div>
                   </div>
-                  <div style={{ position: 'absolute', bottom: -12, left: '50%', transform: 'translateX(-50%)', width: 160, height: 30, background: accent, borderRadius: '50%', filter: 'blur(24px)', opacity: 0.2 }} />
                 </div>
                 <div style={{ textAlign: 'center' }}>
                   <div style={{ fontSize: 17, fontWeight: 600, color: 'rgba(255,255,255,0.5)', fontFamily: "'Outfit', sans-serif", marginBottom: 8 }}>{cvText ? 'Ready to design' : 'No CV uploaded'}</div>
-                  <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.2)', lineHeight: 1.7 }}>{cvText ? 'Choose your template and click Generate CV' : 'Upload your CV using the panel on the left'}</div>
-                  {cvText && <button onClick={handleGenerate} className="cvb-gen" disabled={credits !== null && credits < CV_COST} style={{ marginTop: 20, padding: '11px 28px', borderRadius: 10, border: 'none', background: credits !== null && credits < CV_COST ? 'rgba(255,255,255,0.1)' : accent, color: credits !== null && credits < CV_COST ? 'rgba(255,255,255,0.3)' : '#0a1520', fontFamily: "'Outfit', sans-serif", fontSize: 13, fontWeight: 700, cursor: credits !== null && credits < CV_COST ? 'not-allowed' : 'pointer' }}>{credits !== null && credits < CV_COST ? `Need ${CV_COST} credit` : 'Generate CV'}</button>}
+                  <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.2)', lineHeight: 1.7 }}>{cvText ? `Choose a template and click Generate CV\n${curTpl.label}: ${curTpl.ats}` : 'Upload your CV using the panel on the left'}</div>
+                  {cvText && <button onClick={handleGenerate} className="cvb-gen" disabled={!canGenerate} style={{ marginTop: 20, padding: '11px 28px', borderRadius: 10, border: 'none', background: canGenerate ? accent : 'rgba(255,255,255,0.1)', color: canGenerate ? '#0a1520' : 'rgba(255,255,255,0.3)', fontFamily: "'Outfit', sans-serif", fontSize: 13, fontWeight: 700, cursor: canGenerate ? 'pointer' : 'not-allowed' }}>Generate CV</button>}
                 </div>
               </div>
             )}
 
             {!loading && cvData && (
-              <div className="cv-preview" style={{ width: '100%', maxWidth: 740 }}>
-                <div ref={previewRef} style={{ borderRadius: 14, overflow: 'hidden', boxShadow: '0 32px 80px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,0.05)' }}>
-                  {renderCV()}
-                </div>
-                {/* Free contact info editor */}
+              <div className="cv-preview" style={{ width: '100%', maxWidth: mobileScale < 1 ? 740 * mobileScale : 740 }}>
+                {/* CV preview — scaled on mobile to fit screen width */}
+                <CVScaleWrapper scale={mobileScale}>
+                  <div ref={previewRef} style={{ borderRadius: 14, overflow: 'hidden', boxShadow: '0 32px 80px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,0.05)' }}>
+                    {renderCV()}
+                  </div>
+                </CVScaleWrapper>
+
+                {/* Contact editor */}
                 <div style={{ marginTop: 20, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 10, padding: '14px 16px' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: editingContact ? 12 : 0 }}>
                     <div style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.4)', letterSpacing: 0.5, textTransform: 'uppercase' as const }}>Contact Info</div>
-                    <button onClick={() => {
-                      if (!editingContact) setContactDraft({ name: cvData?.name || '', email: cvData?.email || '', phone: cvData?.phone || '', location: cvData?.location || '', linkedin: cvData?.linkedin || '' })
-                      setEditingContact(e => !e)
-                    }} style={{ fontSize: 11, padding: '3px 10px', borderRadius: 6, border: `1px solid ${accent}50`, background: 'transparent', color: accent, cursor: 'pointer', fontFamily: 'inherit' }}>
+                    <button onClick={() => { if (!editingContact) setContactDraft({ name: cvData?.name || '', email: cvData?.email || '', phone: cvData?.phone || '', location: cvData?.location || '', linkedin: cvData?.linkedin || '' }); setEditingContact(e => !e) }}
+                      style={{ fontSize: 11, padding: '3px 10px', borderRadius: 6, border: `1px solid ${accent}50`, background: 'transparent', color: accent, cursor: 'pointer', fontFamily: 'inherit' }}>
                       {editingContact ? 'Cancel' : 'Edit — free'}
                     </button>
                   </div>
@@ -652,19 +875,15 @@ ${atsSuggestions?.section_gaps?.length ? `- ATS SECTION GAPS to address: ${atsSu
                             style={{ width: '100%', padding: '7px 10px', borderRadius: 6, border: '1px solid rgba(255,255,255,0.12)', background: 'rgba(255,255,255,0.06)', color: '#E6F1FB', fontSize: 12, fontFamily: 'inherit', outline: 'none', boxSizing: 'border-box' as const }} />
                         </div>
                       ))}
-                      <button onClick={() => {
-                        if (!cvData) return
-                        const updated = { ...cvData, ...contactDraft }
-                        setCvData(updated)
-                        sessionStorage.setItem(SS.cvbData, JSON.stringify(updated))
-                        setEditingContact(false)
-                      }} style={{ padding: '8px 0', borderRadius: 7, border: 'none', background: accent, color: '#042C53', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: "'Outfit',sans-serif" }}>
+                      <button onClick={() => { if (!cvData) return; const updated = { ...cvData, ...contactDraft }; setCvData(updated); sessionStorage.setItem(SS.cvbData, JSON.stringify(updated)); setEditingContact(false) }}
+                        style={{ padding: '8px 0', borderRadius: 7, border: 'none', background: accent, color: '#042C53', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: "'Outfit',sans-serif" }}>
                         Save contact info
                       </button>
                     </div>
                   )}
                 </div>
 
+                {/* Feedback */}
                 <div style={{ marginTop: 12, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 10, padding: '14px 16px' }}>
                   <div style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.4)', letterSpacing: 0.5, textTransform: 'uppercase' as const, marginBottom: 8 }}>Request changes</div>
                   <textarea value={feedback} onChange={e => setFeedback(e.target.value)} placeholder="e.g. Make the summary shorter, highlight technical skills more…" rows={2}
@@ -674,11 +893,13 @@ ${atsSuggestions?.section_gaps?.length ? `- ATS SECTION GAPS to address: ${atsSu
                     {applyingFeedback ? 'Applying…' : 'Apply changes — 1 credit'}
                   </button>
                 </div>
-                <div style={{ display: 'flex', gap: 10, marginTop: 20, justifyContent: 'center', flexWrap: 'wrap', paddingBottom: 32 }}>
+
+                {/* Bottom actions */}
+                <div style={{ display: 'flex', gap: 10, marginTop: 20, justifyContent: 'center', flexWrap: 'wrap', paddingBottom: 40 }}>
                   <button onClick={downloadPDF} disabled={downloading === 'pdf'} style={{ padding: '10px 22px', borderRadius: 9, border: '1px solid rgba(255,255,255,0.1)', background: 'rgba(255,255,255,0.05)', color: downloading === 'pdf' ? accent : 'rgba(255,255,255,0.7)', fontSize: 12, fontWeight: 600, cursor: downloading === 'pdf' ? 'wait' : 'pointer', fontFamily: "'Outfit', sans-serif" }}>{downloading === 'pdf' ? 'Building PDF...' : 'Download PDF'}</button>
                   <button onClick={downloadDOCX} disabled={downloading === 'docx'} style={{ padding: '10px 22px', borderRadius: 9, border: '1px solid rgba(255,255,255,0.1)', background: 'rgba(255,255,255,0.05)', color: downloading === 'docx' ? accent : 'rgba(255,255,255,0.7)', fontSize: 12, fontWeight: 600, cursor: downloading === 'docx' ? 'wait' : 'pointer', fontFamily: "'Outfit', sans-serif" }}>{downloading === 'docx' ? 'Building Word...' : 'Download Word'}</button>
                   <button onClick={goToAtsCheck} style={{ padding: '10px 22px', borderRadius: 9, border: `1px solid ${accent}50`, background: accent + '15', color: accent, fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: "'Outfit', sans-serif" }}>Check ATS Score</button>
-                  <button onClick={goToCoverLetter} style={{ padding: '10px 26px', borderRadius: 9, border: 'none', background: accent, color: '#042C53', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: "'Outfit', sans-serif", boxShadow: `0 6px 20px ${accent}40` }}>Write Cover Letter {'->'}</button>
+                  <button onClick={goToCoverLetter} style={{ padding: '10px 26px', borderRadius: 9, border: 'none', background: accent, color: '#042C53', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: "'Outfit', sans-serif", boxShadow: `0 6px 20px ${accent}40` }}>Write Cover Letter →</button>
                 </div>
               </div>
             )}
