@@ -157,106 +157,181 @@ function ModernCV({ cv, ac }: { cv: CVData; ac: string }) {
   )
 }
 
-// ── Template 3: Executive (dark sidebar + right content) ──────────────────
-function ExecutiveCV({ cv, ac }: { cv: CVData; ac: string }) {
-  const navy = '#0d2137'
-  const initials = cv.name.split(' ').map(n => n[0] ?? '').join('').slice(0, 2).toUpperCase()
+// ── Template 3: Executive (redesigned — premium sidebar, optional photo) ─────
+function ExecutiveCV({ cv, ac, photo }: { cv: CVData; ac: string; photo?: string }) {
+  const navy = '#0f1e32'
   const lvLabel = (l: number) => l >= 90 ? 'Native' : l >= 75 ? 'Fluent' : l >= 55 ? 'Proficient' : 'Basic'
+  const initials = cv.name.split(' ').map((n: string) => n[0] ?? '').join('').slice(0, 2).toUpperCase()
+
+  const sideLabel = (title: string) => (
+    <div style={{ fontSize: 7.5, fontWeight: 700, color: ac, letterSpacing: 2, textTransform: 'uppercase' as const, marginBottom: 8, marginTop: 18, borderBottom: '1px solid rgba(255,255,255,0.07)', paddingBottom: 5 }}>
+      {title}
+    </div>
+  )
   const secR = (title: string) => (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10, marginTop: 20 }}>
-      <span style={{ fontSize: 10, fontWeight: 700, color: navy, letterSpacing: 1.3, textTransform: 'uppercase' as const }}>{title}</span>
-      <div style={{ flex: 1, height: 1.5, background: ac + '50' }} />
+    <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10, marginTop: 22 }}>
+      <div style={{ width: 3, height: 16, background: ac, borderRadius: 2, flexShrink: 0 }} />
+      <span style={{ fontSize: 9.5, fontWeight: 700, color: navy, letterSpacing: 1.8, textTransform: 'uppercase' as const }}>{title}</span>
     </div>
   )
   return (
     <div style={{ fontFamily: "'DM Sans', sans-serif", background: '#fff', display: 'flex', minHeight: 900 }}>
-      {/* Left sidebar */}
-      <div style={{ width: 210, flexShrink: 0, background: navy, padding: '32px 18px 32px 20px', display: 'flex', flexDirection: 'column', gap: 20 }}>
-        {/* Avatar initials */}
-        <div style={{ textAlign: 'center' }}>
-          <div style={{ width: 68, height: 68, borderRadius: '50%', background: ac, display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 10px', fontSize: 24, fontWeight: 800, color: '#fff' }}>{initials}</div>
-          <div style={{ fontSize: 13, fontWeight: 700, color: '#fff', lineHeight: 1.3 }}>{cv.name}</div>
-          <div style={{ fontSize: 9.5, color: ac, fontWeight: 600, marginTop: 4, lineHeight: 1.4 }}>{cv.title}</div>
-        </div>
-        {/* Contact */}
-        {[cv.email, cv.phone, cv.location, cv.linkedin].filter(Boolean).length > 0 && (
-          <div>
-            <div style={{ fontSize: 8.5, fontWeight: 700, color: ac, letterSpacing: 1.5, textTransform: 'uppercase' as const, marginBottom: 8, borderBottom: `1px solid rgba(255,255,255,0.08)`, paddingBottom: 5 }}>Contact</div>
-            {[cv.email, cv.phone, cv.location, cv.linkedin].filter(Boolean).map((c, i) => (
-              <div key={i} style={{ fontSize: 9, color: 'rgba(255,255,255,0.7)', marginBottom: 5, lineHeight: 1.5, wordBreak: 'break-word' as const }}>{c}</div>
-            ))}
+
+      {/* ── Left sidebar ── */}
+      <div style={{ width: 208, flexShrink: 0, background: navy, display: 'flex', flexDirection: 'column' }}>
+        {/* Top accent bar */}
+        <div style={{ height: 4, background: `linear-gradient(90deg, ${ac}, ${ac}70)`, flexShrink: 0 }} />
+
+        <div style={{ padding: '26px 18px 32px', flex: 1, display: 'flex', flexDirection: 'column' }}>
+          {/* Photo / initials avatar */}
+          <div style={{ textAlign: 'center', marginBottom: 18 }}>
+            {photo ? (
+              <img src={photo} alt={cv.name}
+                style={{ width: 84, height: 84, borderRadius: '50%', objectFit: 'cover', border: `2.5px solid ${ac}`, display: 'block', margin: '0 auto 12px' }} />
+            ) : (
+              <div style={{ width: 84, height: 84, borderRadius: '50%', background: `linear-gradient(145deg, ${ac}25, ${ac}08)`, border: `2px solid ${ac}45`, display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 12px', fontSize: 28, fontWeight: 800, color: ac, letterSpacing: -1 }}>
+                {initials}
+              </div>
+            )}
+            <div style={{ fontSize: 14, fontWeight: 700, color: '#fff', lineHeight: 1.25, marginBottom: 5 }}>{cv.name}</div>
+            <div style={{ fontSize: 8.5, fontWeight: 600, color: ac, letterSpacing: 1.8, textTransform: 'uppercase' as const, lineHeight: 1.5 }}>{cv.title}</div>
           </div>
-        )}
-        {/* Skills */}
-        {cv.skills.length > 0 && (
-          <div>
-            <div style={{ fontSize: 8.5, fontWeight: 700, color: ac, letterSpacing: 1.5, textTransform: 'uppercase' as const, marginBottom: 8, borderBottom: `1px solid rgba(255,255,255,0.08)`, paddingBottom: 5 }}>Skills</div>
-            {cv.skills.slice(0, 8).map((s, i) => (
-              <div key={i} style={{ marginBottom: 7 }}>
-                <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.8)', marginBottom: 3 }}>{s.name}</div>
-                <div style={{ height: 3, background: 'rgba(255,255,255,0.1)', borderRadius: 2 }}>
-                  <div style={{ width: `${s.level}%`, height: '100%', background: ac, borderRadius: 2 }} />
+
+          <div style={{ height: 1, background: 'rgba(255,255,255,0.07)', marginBottom: 2 }} />
+
+          {/* Contact */}
+          {[cv.email, cv.phone, cv.location, cv.linkedin].filter(Boolean).length > 0 && (
+            <div>
+              {sideLabel('Contact')}
+              {[cv.email, cv.phone, cv.location, cv.linkedin].filter(Boolean).map((c, i) => (
+                <div key={i} style={{ fontSize: 9, color: 'rgba(255,255,255,0.62)', marginBottom: 6, lineHeight: 1.55, wordBreak: 'break-word' as const, display: 'flex', alignItems: 'flex-start', gap: 5 }}>
+                  <span style={{ color: ac, fontSize: 7, flexShrink: 0, marginTop: 3 }}>◆</span>{c}
                 </div>
+              ))}
+            </div>
+          )}
+
+          {/* Expertise */}
+          {cv.skills.length > 0 && (
+            <div>
+              {sideLabel('Expertise')}
+              {cv.skills.slice(0, 9).map((s, i) => (
+                <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 5 }}>
+                  <div style={{ width: 5, height: 5, borderRadius: '50%', background: ac, flexShrink: 0, opacity: Math.max(0.45, s.level / 100) }} />
+                  <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.72)', lineHeight: 1.4 }}>{s.name}</span>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Tools */}
+          {cv.tools.length > 0 && (
+            <div>
+              {sideLabel('Tools & Tech')}
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 3 }}>
+                {cv.tools.slice(0, 16).map((t, i) => (
+                  <span key={i} style={{ fontSize: 7.5, padding: '2px 6px', background: 'rgba(255,255,255,0.05)', color: 'rgba(255,255,255,0.58)', borderRadius: 6, border: '1px solid rgba(255,255,255,0.09)' }}>{t}</span>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Languages */}
+          {cv.languages.length > 0 && (
+            <div>
+              {sideLabel('Languages')}
+              {cv.languages.map((l, i) => (
+                <div key={i} style={{ fontSize: 9, color: 'rgba(255,255,255,0.68)', marginBottom: 5, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span>{l.name}</span>
+                  <span style={{ fontSize: 8, color: ac, fontWeight: 600 }}>{lvLabel(l.level)}</span>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Certifications */}
+          {cv.certifications.length > 0 && (
+            <div>
+              {sideLabel('Certifications')}
+              {cv.certifications.map((c, i) => (
+                <div key={i} style={{ fontSize: 8.5, color: 'rgba(255,255,255,0.58)', marginBottom: 5, lineHeight: 1.5, display: 'flex', gap: 5, alignItems: 'flex-start' }}>
+                  <span style={{ color: ac, fontSize: 8, flexShrink: 0, marginTop: 1 }}>✦</span>{c}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Bottom accent strip */}
+        <div style={{ height: 3, background: `${ac}28`, flexShrink: 0 }} />
+      </div>
+
+      {/* ── Right main content ── */}
+      <div style={{ flex: 1, padding: '30px 34px 40px 28px', display: 'flex', flexDirection: 'column' }}>
+
+        {/* Key metrics */}
+        {cv.stats?.length > 0 && (
+          <div style={{ display: 'flex', gap: 10, marginBottom: 4, flexWrap: 'wrap' }}>
+            {cv.stats.map((s, i) => (
+              <div key={i} style={{ textAlign: 'center', padding: '8px 14px', background: `${ac}09`, border: `1px solid ${ac}22`, borderRadius: 8, minWidth: 58 }}>
+                <div style={{ fontSize: 19, fontWeight: 800, color: ac, lineHeight: 1 }}>{s.value}</div>
+                <div style={{ fontSize: 8, color: '#94a3b8', marginTop: 3, textTransform: 'uppercase' as const, letterSpacing: 0.6 }}>{s.label}</div>
               </div>
             ))}
           </div>
         )}
-        {/* Tools */}
-        {cv.tools.length > 0 && (
+
+        {/* Executive Profile / Summary */}
+        {cv.summary && (
           <div>
-            <div style={{ fontSize: 8.5, fontWeight: 700, color: ac, letterSpacing: 1.5, textTransform: 'uppercase' as const, marginBottom: 8, borderBottom: `1px solid rgba(255,255,255,0.08)`, paddingBottom: 5 }}>Tools</div>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
-              {cv.tools.slice(0, 14).map((t, i) => (<span key={i} style={{ fontSize: 8, padding: '2px 6px', background: 'rgba(255,255,255,0.07)', color: 'rgba(255,255,255,0.7)', borderRadius: 8, border: '1px solid rgba(255,255,255,0.1)' }}>{t}</span>))}
+            {secR('Executive Profile')}
+            <div style={{ fontSize: 11.5, color: '#3d4f63', lineHeight: 1.85, borderLeft: `3px solid ${ac}28`, paddingLeft: 12 }}>
+              {cv.summary}
             </div>
           </div>
         )}
-        {/* Languages */}
-        {cv.languages.length > 0 && (
-          <div>
-            <div style={{ fontSize: 8.5, fontWeight: 700, color: ac, letterSpacing: 1.5, textTransform: 'uppercase' as const, marginBottom: 8, borderBottom: `1px solid rgba(255,255,255,0.08)`, paddingBottom: 5 }}>Languages</div>
-            {cv.languages.map((l, i) => (<div key={i} style={{ fontSize: 9, color: 'rgba(255,255,255,0.7)', marginBottom: 4 }}>{l.name} <span style={{ color: ac }}>({lvLabel(l.level)})</span></div>))}
-          </div>
-        )}
-        {/* Certifications */}
-        {cv.certifications.length > 0 && (
-          <div>
-            <div style={{ fontSize: 8.5, fontWeight: 700, color: ac, letterSpacing: 1.5, textTransform: 'uppercase' as const, marginBottom: 8, borderBottom: `1px solid rgba(255,255,255,0.08)`, paddingBottom: 5 }}>Certifications</div>
-            {cv.certifications.map((c, i) => (<div key={i} style={{ fontSize: 8.5, color: 'rgba(255,255,255,0.65)', marginBottom: 4, lineHeight: 1.4 }}>• {c}</div>))}
-          </div>
-        )}
-      </div>
-      {/* Right main */}
-      <div style={{ flex: 1, padding: '32px 32px 32px 28px' }}>
-        {cv.summary && (
-          <div>
-            {secR('Profile')}
-            <div style={{ fontSize: 11.5, color: '#374151', lineHeight: 1.8 }}>{cv.summary}</div>
-          </div>
-        )}
-        {cv.stats?.length > 0 && (
-          <div style={{ display: 'flex', gap: 12, marginTop: 16, flexWrap: 'wrap' }}>
-            {cv.stats.map((s, i) => (<div key={i} style={{ textAlign: 'center', padding: '8px 14px', background: `${ac}10`, border: `1px solid ${ac}28`, borderRadius: 8 }}><div style={{ fontSize: 17, fontWeight: 800, color: ac, lineHeight: 1 }}>{s.value}</div><div style={{ fontSize: 9, color: '#6b7c93', marginTop: 3 }}>{s.label}</div></div>))}
-          </div>
-        )}
+
+        {/* Career History */}
         {cv.experience.length > 0 && (
           <div>
-            {secR('Experience')}
+            {secR('Career History')}
             {cv.experience.map((exp, i) => (
-              <div key={i} style={{ marginBottom: 16, paddingLeft: 10, borderLeft: `2px solid ${ac}35` }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                  <div style={{ fontSize: 13, fontWeight: 700, color: navy }}>{exp.role}</div>
-                  <div style={{ fontSize: 9.5, color: '#fff', fontWeight: 600, flexShrink: 0, marginLeft: 8, background: ac, padding: '2px 8px', borderRadius: 10 }}>{exp.period}</div>
+              <div key={i} style={{ marginBottom: 18 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 2 }}>
+                  <div style={{ fontSize: 12.5, fontWeight: 700, color: navy }}>{exp.role}</div>
+                  <div style={{ fontSize: 9, color: ac, fontWeight: 600, flexShrink: 0, marginLeft: 8, background: `${ac}12`, border: `1px solid ${ac}28`, padding: '2px 8px', borderRadius: 9, whiteSpace: 'nowrap' as const }}>{exp.period}</div>
                 </div>
-                <div style={{ fontSize: 10.5, color: '#6b7c93', fontStyle: 'italic', marginBottom: 5 }}>{[exp.company, exp.location, exp.type].filter(Boolean).join(' · ')}</div>
-                {exp.bullets.map((b, j) => (<div key={j} style={{ display: 'flex', gap: 7, marginBottom: 3, alignItems: 'flex-start' }}><span style={{ color: ac, fontSize: 10, flexShrink: 0, marginTop: 2 }}>▸</span><span style={{ fontSize: 11, color: '#374151', lineHeight: 1.65 }}>{b}</span></div>))}
+                <div style={{ fontSize: 10.5, color: '#64748b', marginBottom: 6 }}>
+                  <span style={{ fontWeight: 600 }}>{exp.company}</span>
+                  {exp.location ? ` · ${exp.location}` : ''}
+                  {exp.type ? ` · ${exp.type}` : ''}
+                </div>
+                <div style={{ paddingLeft: 10, borderLeft: `2px solid ${ac}28` }}>
+                  {exp.bullets.map((b, j) => (
+                    <div key={j} style={{ display: 'flex', gap: 7, marginBottom: 4, alignItems: 'flex-start' }}>
+                      <span style={{ color: ac, fontSize: 9, flexShrink: 0, marginTop: 3 }}>▸</span>
+                      <span style={{ fontSize: 11, color: '#374151', lineHeight: 1.65 }}>{b}</span>
+                    </div>
+                  ))}
+                </div>
               </div>
             ))}
           </div>
         )}
+
+        {/* Education */}
         {cv.education.length > 0 && (
           <div>
             {secR('Education')}
-            {cv.education.map((e, i) => (<div key={i} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}><div><div style={{ fontSize: 12, fontWeight: 600, color: navy }}>{e.degree}</div><div style={{ fontSize: 11, color: '#6b7c93' }}>{e.school}</div></div><div style={{ fontSize: 10.5, color: '#8fa3b8', flexShrink: 0, marginLeft: 8 }}>{e.year}</div></div>))}
+            {cv.education.map((e, i) => (
+              <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 10, paddingBottom: 10, borderBottom: i < cv.education.length - 1 ? '1px solid #f1f5f9' : 'none' }}>
+                <div>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: navy }}>{e.degree}</div>
+                  <div style={{ fontSize: 10.5, color: '#64748b', marginTop: 2 }}>{e.school}</div>
+                </div>
+                <div style={{ fontSize: 10, color: '#94a3b8', flexShrink: 0, marginLeft: 12, fontWeight: 600 }}>{e.year}</div>
+              </div>
+            ))}
           </div>
         )}
       </div>
@@ -298,8 +373,9 @@ function CVScaleWrapper({ scale, children }: { scale: number; children: React.Re
 
 export default function IndiaCVBuilderPage() {
   const router = useRouter()
-  const fileInputRef = useRef<HTMLInputElement>(null)
-  const previewRef   = useRef<HTMLDivElement>(null)
+  const fileInputRef  = useRef<HTMLInputElement>(null)
+  const photoInputRef = useRef<HTMLInputElement>(null)
+  const previewRef    = useRef<HTMLDivElement>(null)
   const previewAreaRef = useRef<HTMLDivElement>(null)
 
   const [cvText,        setCvText]        = useState('')
@@ -324,6 +400,7 @@ export default function IndiaCVBuilderPage() {
   const [editingContact, setEditingContact] = useState(false)
   const [contactDraft,  setContactDraft]  = useState({ name: '', email: '', phone: '', location: '', linkedin: '' })
   const [mobileScale,   setMobileScale]   = useState(1)
+  const [photoUrl,      setPhotoUrl]      = useState('')
 
   const { credits, setCredits, needsCrossMarket, crossMarketAmount } = useCredits()
   const CV_COST = CREDIT_COST.tailorCv
@@ -379,6 +456,12 @@ export default function IndiaCVBuilderPage() {
       } catch { alert('Failed to read file.'); setCvFileName('') }
       setFileLoading(false)
     }
+  }
+
+  function handlePhotoFile(file: File) {
+    const r = new FileReader()
+    r.onload = e => { const url = (e.target?.result as string) ?? ''; if (url) setPhotoUrl(url) }
+    r.readAsDataURL(file)
   }
 
   function toggleSection(id: string) { setOpenSections(prev => ({ ...prev, [id]: !prev[id] })) }
@@ -601,7 +684,7 @@ ${atsSuggestions?.section_gaps?.length ? `- ATS SECTION GAPS to address: ${atsSu
     if (!cvData) return null
     const t = templates.find(t => t.id === template)!
     if (template === 'modern')    return <ModernCV    cv={cvData} ac={t.ac} />
-    if (template === 'executive') return <ExecutiveCV cv={cvData} ac={t.ac} />
+    if (template === 'executive') return <ExecutiveCV cv={cvData} ac={t.ac} photo={photoUrl || undefined} />
     return <IndiaCV cv={cvData} ac={t.ac} />
   }
 
@@ -658,6 +741,29 @@ ${atsSuggestions?.section_gaps?.length ? `- ATS SECTION GAPS to address: ${atsSu
                 <button onClick={() => { setCvText(''); setCvFileName(''); if (fileInputRef.current) fileInputRef.current.value = '' }} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.35)', cursor: 'pointer', fontSize: 16, padding: 0, flexShrink: 0 }}>×</button>
               </div>
             )}
+          </div>
+
+          {/* ── Photo upload (used in Executive template) ── */}
+          <div style={{ padding: '12px 20px 14px', borderBottom: '1px solid rgba(255,255,255,0.07)' }}>
+            <div style={{ fontSize: 9, fontWeight: 700, color: 'rgba(255,255,255,0.28)', letterSpacing: 1.2, textTransform: 'uppercase' as const, marginBottom: 10 }}>
+              Profile Photo <span style={{ fontWeight: 400, color: 'rgba(255,255,255,0.18)' }}>· Executive</span>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+              {photoUrl ? (
+                <img src={photoUrl} alt="Profile" style={{ width: 42, height: 42, borderRadius: '50%', objectFit: 'cover', border: `2px solid ${accent}55`, flexShrink: 0 }} />
+              ) : (
+                <div onClick={() => photoInputRef.current?.click()} style={{ width: 42, height: 42, borderRadius: '50%', background: 'rgba(255,255,255,0.04)', border: '1.5px dashed rgba(255,255,255,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, cursor: 'pointer', fontSize: 18 }}>📷</div>
+              )}
+              <div style={{ flex: 1 }}>
+                <button onClick={() => photoInputRef.current?.click()} style={{ fontSize: 12, fontWeight: 600, color: photoUrl ? accent : 'rgba(255,255,255,0.4)', background: 'none', border: 'none', cursor: 'pointer', padding: 0, fontFamily: 'inherit', display: 'block' }}>
+                  {photoUrl ? 'Change photo' : 'Upload photo'}
+                </button>
+                {photoUrl && (
+                  <button onClick={() => setPhotoUrl('')} style={{ fontSize: 10, color: 'rgba(255,255,255,0.25)', background: 'none', border: 'none', cursor: 'pointer', padding: 0, marginTop: 3, fontFamily: 'inherit' }}>Remove</button>
+                )}
+              </div>
+            </div>
+            <input ref={photoInputRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={e => e.target.files?.[0] && handlePhotoFile(e.target.files[0])} />
           </div>
 
           <div style={{ flex: 1, overflowY: 'auto' }}>
@@ -760,6 +866,20 @@ ${atsSuggestions?.section_gaps?.length ? `- ATS SECTION GAPS to address: ${atsSu
             <div className="jl-mob" style={{ background: 'linear-gradient(180deg, #152233 0%, #0e1a28 100%)', borderBottom: '1px solid rgba(255,255,255,0.1)', flexDirection: 'column', overflowY: 'auto', maxHeight: '65vh', padding: '16px', gap: 14, flexShrink: 0 }}>
               {!cvText && <div onClick={() => fileInputRef.current?.click()} style={{ padding: '14px 12px', border: '1.5px dashed rgba(255,255,255,0.18)', borderRadius: 9, cursor: 'pointer', textAlign: 'center' }}><div style={{ fontSize: 18, marginBottom: 4 }}>📄</div><div style={{ fontSize: 12, fontWeight: 600, color: 'rgba(255,255,255,0.7)' }}>{fileLoading ? 'Reading...' : 'Upload your CV'}</div><div style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)', marginTop: 2 }}>PDF · DOCX · TXT</div></div>}
               {cvText && cvFileName && <div style={{ padding: '7px 10px', background: 'rgba(29,158,117,0.12)', border: '1px solid rgba(29,158,117,0.3)', borderRadius: 8, fontSize: 10, color: 'rgba(255,255,255,0.7)' }}>✓ {cvFileName}</div>}
+              {/* Mobile photo upload */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 10px', background: 'rgba(255,255,255,0.04)', borderRadius: 8, border: '1px solid rgba(255,255,255,0.08)' }}>
+                {photoUrl ? (
+                  <img src={photoUrl} alt="Profile" style={{ width: 36, height: 36, borderRadius: '50%', objectFit: 'cover', border: `2px solid ${accent}55`, flexShrink: 0 }} />
+                ) : (
+                  <div style={{ width: 36, height: 36, borderRadius: '50%', background: 'rgba(255,255,255,0.05)', border: '1.5px dashed rgba(255,255,255,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontSize: 16 }}>📷</div>
+                )}
+                <div style={{ flex: 1 }}>
+                  <button onClick={() => photoInputRef.current?.click()} style={{ fontSize: 11, fontWeight: 600, color: photoUrl ? accent : 'rgba(255,255,255,0.4)', background: 'none', border: 'none', cursor: 'pointer', padding: 0, fontFamily: 'inherit' }}>
+                    {photoUrl ? 'Change photo' : 'Photo (Executive)'}
+                  </button>
+                  {photoUrl && <button onClick={() => setPhotoUrl('')} style={{ fontSize: 9, color: 'rgba(255,255,255,0.25)', background: 'none', border: 'none', cursor: 'pointer', padding: 0, marginLeft: 10, fontFamily: 'inherit' }}>Remove</button>}
+                </div>
+              </div>
               <div>
                 <div style={{ fontSize: 10, fontWeight: 600, color: 'rgba(255,255,255,0.4)', letterSpacing: 0.5, textTransform: 'uppercase', marginBottom: 8 }}>Template</div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
