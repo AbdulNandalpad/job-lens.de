@@ -94,9 +94,9 @@ Return ONLY valid JSON (no markdown):
     const OFFICIAL_LINKS = [
       { label: 'Make it in Germany (official portal)', url: 'https://www.make-it-in-germany.com/en/' },
       { label: 'EU Blue Card Germany', url: 'https://www.make-it-in-germany.com/en/visa-residence/types/eu-blue-card' },
-      { label: 'Chancenkarte (Opportunity Card)', url: 'https://www.make-it-in-germany.com/en/visa-residence/types/opportunity-card' },
+      { label: 'Chancenkarte (Opportunity Card)', url: 'https://www.make-it-in-germany.com/en/visa-residence/opportunity-card/job-search' },
       { label: 'Fachkräfteeinwanderungsgesetz overview', url: 'https://www.make-it-in-germany.com/en/visa-residence/skilled-immigration-act' },
-      { label: 'Qualification recognition (Anerkennung)', url: 'https://www.anerkennung-in-deutschland.de/en/interest/start' },
+      { label: 'Qualification recognition (Anerkennung)', url: 'https://www.anerkennung-in-deutschland.de/html/en/index.php' },
       { label: 'Anabin database (degree recognition)', url: 'https://anabin.kmk.org/anabin.html' },
       { label: 'BAMF — Federal Office for Migration', url: 'https://www.bamf.de/EN/Themen/MigrationAufenthalt/migrationaufenthalt-node.html' },
       { label: 'German embassy visa applications', url: 'https://www.auswaertiges-amt.de/en/visa-service' },

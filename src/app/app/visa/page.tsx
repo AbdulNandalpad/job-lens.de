@@ -562,7 +562,7 @@ export default function VisaPage() {
                       Relevant authority: <strong>{result.recognitionBody}</strong>
                     </div>
                   )}
-                  <a href="https://www.anerkennung-in-deutschland.de/en/interest/start" target="_blank" rel="noopener noreferrer" className="v-link" style={{ display: 'inline-block', marginTop: 8, fontSize: 12 }}>
+                  <a href="https://www.anerkennung-in-deutschland.de/html/en/index.php" target="_blank" rel="noopener noreferrer" className="v-link" style={{ display: 'inline-block', marginTop: 8, fontSize: 12 }}>
                     → Check recognition on anerkennung-in-deutschland.de ↗
                   </a>
                 </div>
