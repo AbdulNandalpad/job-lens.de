@@ -38,7 +38,9 @@ export async function GET(_req: NextRequest) {
     .single()
 
   if (!profile) {
-    await admin.from('profiles').insert({ id: user.id, email: user.email, full_name: user.user_metadata?.full_name, avatar_url: user.user_metadata?.avatar_url, credits: 5, eu_credits: 0, in_credits: 0 })
+    // Profile should have been created by the auth callback with fraud checks.
+    // If missing here, create a shell with 0 credits — admin can top up if legitimate.
+    await admin.from('profiles').insert({ id: user.id, email: user.email, full_name: user.user_metadata?.full_name, avatar_url: user.user_metadata?.avatar_url, credits: 0, eu_credits: 0, in_credits: 0 })
   }
 
   const { data: events } = await admin
