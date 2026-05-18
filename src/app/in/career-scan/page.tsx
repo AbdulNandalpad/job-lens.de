@@ -28,6 +28,8 @@ interface ATSResult {
   rewrite_suggestions: { original: string; improved: string }[]
   ats_verdict: string
   top_missing_keyword: string
+  domain_mismatch: boolean
+  mismatch_message: string
   creditsRemaining: number
 }
 
@@ -282,7 +284,24 @@ export default function IndiaCareerScanPage() {
               {result && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
 
-                  {/* Score overview card */}
+                  {/* Domain mismatch — shown instead of normal results */}
+                  {result.domain_mismatch && (
+                    <div style={{ background: '#fff', borderRadius: 14, border: `2px solid ${red}`, boxShadow: '0 2px 12px rgba(226,75,74,0.12)', overflow: 'hidden' }}>
+                      <div style={{ background: red, padding: '18px 24px', display: 'flex', alignItems: 'center', gap: 14 }}>
+                        <span style={{ fontSize: 28 }}>🚫</span>
+                        <div>
+                          <div style={{ fontFamily: "'Outfit',sans-serif", fontSize: 16, fontWeight: 800, color: '#fff' }}>Wrong domain — this CV doesn&apos;t match this role</div>
+                          <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.75)', marginTop: 2 }}>ATS Score: {result.ats_score} / 100</div>
+                        </div>
+                      </div>
+                      <div style={{ padding: '20px 24px' }}>
+                        <p style={{ fontSize: 14, color: '#374151', lineHeight: 1.7, margin: 0 }}>{result.mismatch_message}</p>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Score overview card — hidden when domain mismatch */}
+                  {!result.domain_mismatch && (<>
                   <div style={{ background: '#fff', borderRadius: 14, padding: 24, border: '1px solid #edf1f6', boxShadow: '0 2px 12px rgba(4,44,83,0.06)' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 20, flexWrap: 'wrap', gap: 12 }}>
                       <div>
@@ -442,6 +461,7 @@ export default function IndiaCareerScanPage() {
                       </div>
                     )}
                   </div>
+                </>)}
                 </div>
               )}
             </div>

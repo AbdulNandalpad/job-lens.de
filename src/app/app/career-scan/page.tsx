@@ -33,6 +33,8 @@ interface ScanResult {
   ai_vulnerability_reason: string
   career_path_steps: { timeframe: string; focus: string; actions: string[] }[]
   roast_lines: string[]
+  domain_mismatch: boolean
+  mismatch_message: string
   creditsRemaining?: number
 }
 
@@ -365,8 +367,28 @@ export default function CareerScanPage() {
         </div>
       )}
 
-      {/* Header + mode toggle */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+      {/* Domain mismatch — replaces all analysis panels */}
+      {result.domain_mismatch && (
+        <div style={{ borderRadius: 14, border: `2px solid ${c.danger}`, boxShadow: '0 2px 16px rgba(226,75,74,0.12)', overflow: 'hidden' }}>
+          <div style={{ background: c.danger, padding: '18px 24px', display: 'flex', alignItems: 'center', gap: 14 }}>
+            <span style={{ fontSize: 28 }}>🚫</span>
+            <div>
+              <div style={{ fontFamily: f.heading, fontSize: 16, fontWeight: 800, color: '#fff' }}>
+                {lang === 'DE' ? 'Falsches Berufsfeld — dieser Lebenslauf passt nicht zur Stelle' : 'Wrong domain — this CV doesn\'t match this role'}
+              </div>
+              <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.75)', marginTop: 2 }}>
+                {lang === 'DE' ? `Profil-Score: ${result.score} / 100` : `Profile score: ${result.score} / 100`}
+              </div>
+            </div>
+          </div>
+          <div style={{ padding: '20px 24px', background: '#fff' }}>
+            <p style={{ fontSize: 14, color: '#374151', lineHeight: 1.7, margin: 0 }}>{result.mismatch_message}</p>
+          </div>
+        </div>
+      )}
+
+      {/* Header + mode toggle — hidden when domain mismatch */}
+      {!result.domain_mismatch && <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div>
           <div style={{ fontFamily: f.heading, fontSize: 18, fontWeight: 700, color: c.primary }}>{cs.results.title}</div>
           <div style={{ fontSize: 12, color: c.textMuted, marginTop: 2 }}>{result.headline}</div>
@@ -378,8 +400,9 @@ export default function CareerScanPage() {
             </button>
           ))}
         </div>
-      </div>
+      </div>}
 
+      {!result.domain_mismatch && (<>
       {/* INSIGHTS */}
       {mode === 'insights' && (
         <>
@@ -598,6 +621,7 @@ export default function CareerScanPage() {
           </div>
         </div>
       )}
+      </>)}
     </div>
   )
 

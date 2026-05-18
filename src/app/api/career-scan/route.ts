@@ -25,7 +25,17 @@ CONSISTENT SCORING RUBRIC (apply this exactly):
 
 AI VULNERABILITY SCORING (0 = fully automation-proof, 100 = fully automatable today):
 - High risk: pattern-matching, data entry, report generation, templated writing, basic analysis
-- Low risk: physical presence, creative judgment, political navigation, stakeholder empathy, complex negotiation`
+- Low risk: physical presence, creative judgment, political navigation, stakeholder empathy, complex negotiation
+
+DOMAIN MISMATCH — CHECK THIS FIRST, before any scoring:
+Determine whether the CV's professional domain and the target role's domain are fundamentally incompatible — not a skills gap, but entirely different fields (e.g. SAP consultant CV for a Sitecore developer role, nurse CV for a data science role, accountant CV for a software engineering role, marketing manager CV for a DevOps position).
+
+If the domains are fundamentally incompatible:
+- Set "domain_mismatch": true
+- Write a blunt, direct "mismatch_message" — name exactly what domain the CV is in, name the domain the role requires, state plainly that no amount of keyword editing will fix this, and say what real-world experience they would need before applying. Do NOT soften the message with tips, encouragement, or workarounds.
+- Still return valid JSON with all fields, but scores should be 2–8 and other text fields can be minimal.
+
+If domains are the same or reasonably compatible, set "domain_mismatch": false and "mismatch_message": "".`
 
 function buildPrompt(cvText: string, role: string, market: string): string {
   const salaryUnit = market === 'Switzerland' ? 'CHF' : 'EUR'
@@ -67,7 +77,9 @@ Return ONLY valid JSON matching this schema exactly:
     "<real visible gap — no assumptions>",
     "<strength vs poor positioning>",
     "<AI impact on this profile in 2-3 years>"
-  ]
+  ],
+  "domain_mismatch": <true|false>,
+  "mismatch_message": "<blunt explanation if domain_mismatch is true, else empty string>"
 }`
 }
 
@@ -141,6 +153,8 @@ export async function POST(req: NextRequest) {
       ai_vulnerability_reason: (data.ai_vulnerability_reason as string) ?? '',
       career_path_steps: Array.isArray(data.career_path_steps) ? data.career_path_steps : [],
       roast_lines: Array.isArray(data.roast_lines) ? data.roast_lines : [],
+      domain_mismatch: data.domain_mismatch === true,
+      mismatch_message: (data.mismatch_message as string) ?? '',
       creditsRemaining: credits.remaining,
     }
 

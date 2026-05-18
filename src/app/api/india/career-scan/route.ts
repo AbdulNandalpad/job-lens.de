@@ -15,6 +15,16 @@ ABSOLUTE RULES:
 4. format_issues: Only real detected problems. Empty array if none.
 5. Scores reflect actual evidence — never inflate.
 
+DOMAIN MISMATCH — CHECK THIS FIRST, before any scoring:
+Determine whether the CV's professional domain and the JD's required domain are fundamentally incompatible — not a skills gap, but entirely different fields (e.g. SAP CX consultant CV for a Sitecore developer role, accountant CV for a software engineering role, nurse CV for a data science role).
+
+If the domains are fundamentally incompatible:
+- Set "domain_mismatch": true
+- Write a blunt, direct "mismatch_message" — name exactly what domain the CV is in, name the domain the JD requires, state plainly that no ATS keyword fix can bridge this gap, and say what real-world experience they would need before applying. Do NOT soften the message with tips, encouragement, or workarounds.
+- Still return valid JSON with all fields, but all scores should be 2–8 and other text fields can be minimal.
+
+If domains are the same or reasonably compatible, set "domain_mismatch": false and "mismatch_message": "".
+
 SCORING RUBRIC:
 - keyword_score (0-100): JD keywords found in CV / total JD keywords * 100
 - format_score (0-100): Start 100. Deduct: tables (-20), multi-column (-15), graphics (-20), missing email/phone (-15), special characters in section headers (-5), no LinkedIn (-5)
@@ -52,7 +62,9 @@ Return ONLY valid JSON matching this exact schema:
     {"original": "<exact bullet>", "improved": "<improved version>"}
   ],
   "ats_verdict": "<2 sentences: which ATS systems would likely pass or reject this CV and why>",
-  "top_missing_keyword": "<single most impactful missing keyword>"
+  "top_missing_keyword": "<single most impactful missing keyword>",
+  "domain_mismatch": <true|false>,
+  "mismatch_message": "<blunt explanation if domain_mismatch is true, else empty string>"
 }`
 }
 
@@ -123,6 +135,8 @@ export async function POST(req: NextRequest) {
       rewrite_suggestions: Array.isArray(data.rewrite_suggestions) ? data.rewrite_suggestions : [],
       ats_verdict: (data.ats_verdict as string) ?? '',
       top_missing_keyword: (data.top_missing_keyword as string) ?? '',
+      domain_mismatch: data.domain_mismatch === true,
+      mismatch_message: (data.mismatch_message as string) ?? '',
       creditsRemaining: credits.remaining,
     }
 
