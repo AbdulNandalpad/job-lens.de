@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import Navbar from '../components/Navbar'
 
 const SS_KEY = 'jl_visa_result'
@@ -195,6 +196,7 @@ ${result.documents?.length ? `<h2>📁 Document Checklist</h2>${result.documents
 
 // ── Main ─────────────────────────────────────────────────────────────────────
 export default function VisaPage() {
+  const router = useRouter()
   const [step,   setStep]   = useState<1 | 2 | 3>(1)
   const [form,   setForm]   = useState<FormData>(EMPTY_FORM)
   const [result, setResult] = useState<VisaResult | null>(null)
@@ -591,10 +593,24 @@ export default function VisaPage() {
                 </div>
               )}
 
+              {/* Job search CTA — always show, points to Job-Lens not external portals */}
+              <div style={{ ...cardStyle, background: `linear-gradient(135deg, ${blue}0f, #e8f3ff)`, border: `1px solid ${blue}30` }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
+                  <div>
+                    <div style={{ fontSize: 14, fontWeight: 700, color: navy, fontFamily: "'Outfit',sans-serif", marginBottom: 4 }}>🔍 Ready to find a job in Germany?</div>
+                    <div style={{ fontSize: 12, color: '#6b7c93' }}>Search live DACH job listings directly on Job-Lens — no third-party portals needed.</div>
+                  </div>
+                  <button onClick={() => router.push('/app/jobs')}
+                    style={{ padding: '10px 22px', borderRadius: 9, border: 'none', background: blue, color: '#fff', fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: "'Outfit',sans-serif", whiteSpace: 'nowrap' as const, flexShrink: 0 }}>
+                    Search DACH Jobs →
+                  </button>
+                </div>
+              </div>
+
               {/* Useful links */}
               {result.usefulLinks?.length > 0 && (
                 <div style={cardStyle}>
-                  <div style={{ fontSize: 14, fontWeight: 700, color: navy, marginBottom: 12, fontFamily: "'Outfit',sans-serif" }}>🔗 Official resources</div>
+                  <div style={{ fontSize: 14, fontWeight: 700, color: navy, marginBottom: 12, fontFamily: "'Outfit',sans-serif" }}>🔗 Official German immigration resources</div>
                   <div className="v-grid2" style={{ gap: 8 }}>
                     {result.usefulLinks.map(link => (
                       <a key={link.url} href={link.url} target="_blank" rel="noopener noreferrer"

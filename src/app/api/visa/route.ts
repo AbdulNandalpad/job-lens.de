@@ -75,9 +75,7 @@ Return ONLY valid JSON (no markdown):
     { "category": "<category name>", "items": ["<document>"] }
   ],
   "urgentWarnings": ["<any blockers or time-sensitive issues>"],
-  "usefulLinks": [
-    { "label": "<link label>", "url": "<official URL>" }
-  ],
+  "usefulLinks": [],
   "summary": "<3-4 sentence personalised summary of their situation and best path>"
 }`
 
@@ -90,6 +88,21 @@ Return ONLY valid JSON (no markdown):
     const raw = (message.content[0] as { text: string }).text.trim()
     const jsonStr = raw.replace(/^```(?:json)?\n?/, '').replace(/\n?```$/, '')
     const result = JSON.parse(jsonStr)
+
+    // Always override usefulLinks with verified official German immigration resources.
+    // Never trust Claude to generate URLs — they can be hallucinated or outdated.
+    const OFFICIAL_LINKS = [
+      { label: 'Make it in Germany (official portal)', url: 'https://www.make-it-in-germany.com/en/' },
+      { label: 'EU Blue Card Germany', url: 'https://www.make-it-in-germany.com/en/visa-residence/types/eu-blue-card' },
+      { label: 'Chancenkarte (Opportunity Card)', url: 'https://www.make-it-in-germany.com/en/visa-residence/types/opportunity-card' },
+      { label: 'Fachkräfteeinwanderungsgesetz overview', url: 'https://www.make-it-in-germany.com/en/visa-residence/skilled-immigration-act' },
+      { label: 'Qualification recognition (Anerkennung)', url: 'https://www.anerkennung-in-deutschland.de/en/interest/start' },
+      { label: 'Anabin database (degree recognition)', url: 'https://anabin.kmk.org/anabin.html' },
+      { label: 'BAMF — Federal Office for Migration', url: 'https://www.bamf.de/EN/Themen/MigrationAufenthalt/migrationaufenthalt-node.html' },
+      { label: 'German embassy visa applications', url: 'https://www.auswaertiges-amt.de/en/visa-service' },
+    ]
+    result.usefulLinks = OFFICIAL_LINKS
+
     return NextResponse.json({ ...result, creditsRemaining: credits.remaining })
   } catch (err) {
     console.error('Visa check error:', err)
