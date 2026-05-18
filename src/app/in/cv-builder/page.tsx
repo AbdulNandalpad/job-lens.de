@@ -8,7 +8,7 @@ import { CREDIT_COST, LOW_CREDIT_WARN, MARKET, SS, API } from '@/lib/constants'
 
 const accent = '#FF9933'
 
-type Template = 'clean' | 'saffron' | 'classic' | 'modern' | 'executive'
+type Template = 'clean' | 'saffron' | 'classic' | 'modern' | 'executive' | 'executive2'
 type Tone = 'professional' | 'concise' | 'detailed'
 type Pages = '1' | '2'
 type Lang = 'EN'
@@ -330,6 +330,212 @@ function ExecutiveCV({ cv, ac, photo }: { cv: CVData; ac: string; photo?: string
                   <div style={{ fontSize: 10.5, color: '#64748b', marginTop: 2 }}>{e.school}</div>
                 </div>
                 <div style={{ fontSize: 10, color: '#94a3b8', flexShrink: 0, marginLeft: 12, fontWeight: 600 }}>{e.year}</div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
+// ── Template 4: Executive V2 (DACH-style — wide sidebar, timeline, photo) ───
+function ExecutiveV2CV({ cv, ac, photo }: { cv: CVData; ac: string; photo?: string }) {
+  const navy = '#0d2137'
+  const initials = cv.name.split(' ').map((n: string) => n[0] ?? '').join('').slice(0, 2).toUpperCase()
+
+  const sideSection = (title: string) => (
+    <div style={{ fontSize: 9, fontWeight: 700, color: 'rgba(255,255,255,0.4)', letterSpacing: 1.2, textTransform: 'uppercase' as const, marginBottom: 10 }}>{title}</div>
+  )
+  const secHeader = (title: string) => (
+    <div style={{ fontSize: 10, fontWeight: 700, color: navy, letterSpacing: 1.5, textTransform: 'uppercase' as const, marginBottom: 14, display: 'flex', alignItems: 'center', gap: 8 }}>
+      <span>{title}</span>
+      <div style={{ flex: 1, height: 1, background: '#edf1f6' }} />
+    </div>
+  )
+
+  return (
+    <div style={{ display: 'flex', minHeight: 900, fontFamily: "'DM Sans', sans-serif", background: '#fff' }}>
+
+      {/* ── Dark sidebar ── */}
+      <div style={{ width: 240, background: 'linear-gradient(170deg, #0d2137 0%, #1e1208 100%)', flexShrink: 0, padding: '36px 22px', display: 'flex', flexDirection: 'column', gap: 24 }}>
+
+        {/* Photo / initials */}
+        <div style={{ textAlign: 'center', paddingBottom: 22, borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
+          {photo ? (
+            <img src={photo} alt={cv.name}
+              style={{ width: 76, height: 76, borderRadius: '50%', objectFit: 'cover', border: `2.5px solid ${ac}`, display: 'block', margin: '0 auto 14px' }} />
+          ) : (
+            <div style={{ width: 76, height: 76, borderRadius: '50%', background: `linear-gradient(135deg, ${ac}, ${ac}88)`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 26, fontWeight: 700, color: '#fff', margin: '0 auto 14px', letterSpacing: 1 }}>
+              {initials}
+            </div>
+          )}
+          <div style={{ fontSize: 14, fontWeight: 700, color: '#fff', letterSpacing: 0.3, marginBottom: 4 }}>{cv.name}</div>
+          <div style={{ fontSize: 10, color: ac, fontWeight: 700, letterSpacing: 1.5, textTransform: 'uppercase' as const, lineHeight: 1.5 }}>{cv.title}</div>
+        </div>
+
+        {/* Contact */}
+        <div>
+          {sideSection('Contact')}
+          {[
+            { icon: '@',  val: cv.email    },
+            { icon: 'T',  val: cv.phone    },
+            { icon: 'L',  val: cv.location },
+            { icon: 'in', val: cv.linkedin },
+          ].filter(r => r.val).map((r, i) => (
+            <div key={i} style={{ display: 'flex', gap: 8, marginBottom: 7, alignItems: 'flex-start' }}>
+              <span style={{ fontSize: 9, fontWeight: 700, color: ac, width: 14, flexShrink: 0, marginTop: 1 }}>{r.icon}</span>
+              <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.65)', lineHeight: 1.5, wordBreak: 'break-all' as const }}>{r.val}</span>
+            </div>
+          ))}
+        </div>
+
+        {/* Skills with progress bars + % */}
+        {cv.skills.length > 0 && (
+          <div>
+            {sideSection('Skills')}
+            {cv.skills.slice(0, 10).map((s, i) => (
+              <div key={i} style={{ marginBottom: 8 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 3 }}>
+                  <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.75)' }}>{s.name}</span>
+                  <span style={{ fontSize: 9, color: ac, fontWeight: 700 }}>{s.level}%</span>
+                </div>
+                <div style={{ height: 3, background: 'rgba(255,255,255,0.1)', borderRadius: 2 }}>
+                  <div style={{ height: '100%', width: `${s.level}%`, background: `linear-gradient(90deg, ${ac}, ${ac}88)`, borderRadius: 2 }} />
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Languages — 5-dot indicators */}
+        {cv.languages.length > 0 && (
+          <div>
+            {sideSection('Languages')}
+            {cv.languages.map((l, i) => (
+              <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.75)' }}>{l.name}</span>
+                <div style={{ display: 'flex', gap: 3 }}>
+                  {[1,2,3,4,5].map(d => (
+                    <div key={d} style={{ width: 6, height: 6, borderRadius: '50%', background: d <= Math.round(l.level / 20) ? ac : 'rgba(255,255,255,0.15)' }} />
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Certifications */}
+        {cv.certifications.length > 0 && (
+          <div>
+            {sideSection('Certifications')}
+            {cv.certifications.map((c, i) => (
+              <div key={i} style={{ display: 'flex', gap: 6, marginBottom: 6, alignItems: 'flex-start' }}>
+                <span style={{ color: ac, fontSize: 10, marginTop: 1 }}>*</span>
+                <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.65)', lineHeight: 1.5 }}>{c}</span>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Highlights */}
+        {cv.highlights?.length > 0 && (
+          <div>
+            {sideSection('Highlights')}
+            {cv.highlights.map((h, i) => (
+              <div key={i} style={{ display: 'flex', gap: 6, marginBottom: 5, alignItems: 'flex-start' }}>
+                <span style={{ color: ac, fontSize: 9, marginTop: 2 }}>›</span>
+                <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.6)', lineHeight: 1.5 }}>{h}</span>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* ── Main content ── */}
+      <div style={{ flex: 1, padding: '36px 32px' }}>
+
+        {/* Header */}
+        <div style={{ marginBottom: 24, paddingBottom: 20, borderBottom: '2px solid #f0f4f8' }}>
+          <div style={{ fontSize: 32, fontWeight: 700, color: navy, fontFamily: "'Outfit', sans-serif", letterSpacing: -0.5, marginBottom: 4 }}>{cv.name}</div>
+          <div style={{ fontSize: 13, fontWeight: 700, color: ac, letterSpacing: 2, textTransform: 'uppercase' as const, marginBottom: 8 }}>{cv.title}</div>
+          {cv.tagline && <div style={{ fontSize: 11, color: '#6b7c93', letterSpacing: 0.5 }}>{cv.tagline}</div>}
+        </div>
+
+        {/* Stats strip */}
+        {cv.stats?.length > 0 && (
+          <div style={{ display: 'flex', gap: 0, marginBottom: 24, background: '#f8fafc', borderRadius: 12, overflow: 'hidden', border: '1px solid #edf1f6' }}>
+            {cv.stats.map((s, i) => (
+              <div key={i} style={{ flex: 1, padding: '14px 16px', textAlign: 'center', borderRight: i < cv.stats.length - 1 ? '1px solid #edf1f6' : 'none' }}>
+                <div style={{ fontSize: 22, fontWeight: 700, color: navy, fontFamily: "'Outfit', sans-serif" }}>{s.value}</div>
+                <div style={{ fontSize: 10, color: '#8fa3b8', marginTop: 2, letterSpacing: 0.3 }}>{s.label}</div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Executive Summary */}
+        {cv.summary && (
+          <div style={{ marginBottom: 24 }}>
+            {secHeader('Executive Summary')}
+            <div style={{ fontSize: 12, color: '#374151', lineHeight: 1.8 }}>{cv.summary}</div>
+          </div>
+        )}
+
+        {/* Core Stack */}
+        {cv.tools.length > 0 && (
+          <div style={{ marginBottom: 24 }}>
+            {secHeader('Core Stack')}
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+              {cv.tools.map((t, i) => (
+                <span key={i} style={{ fontSize: 10, padding: '4px 10px', borderRadius: 6, background: '#f0f4f8', color: '#374151', border: '1px solid #e2e8f0', fontWeight: 500 }}>{t}</span>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Professional Experience — timeline */}
+        {cv.experience.length > 0 && (
+          <div style={{ marginBottom: 24 }}>
+            {secHeader('Professional Experience')}
+            {cv.experience.map((exp, i) => (
+              <div key={i} style={{ marginBottom: 20, display: 'flex', gap: 14 }}>
+                {/* Timeline dot + line */}
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', paddingTop: 3 }}>
+                  <div style={{ width: 10, height: 10, borderRadius: '50%', background: ac, flexShrink: 0 }} />
+                  {i < cv.experience.length - 1 && <div style={{ width: 1, flex: 1, background: '#e2e8f0', marginTop: 4 }} />}
+                </div>
+                <div style={{ flex: 1, paddingBottom: i < cv.experience.length - 1 ? 16 : 0 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 2 }}>
+                    <div style={{ fontSize: 13, fontWeight: 700, color: navy }}>{exp.role}</div>
+                    <div style={{ fontSize: 10, color: ac, fontWeight: 600, flexShrink: 0, marginLeft: 8 }}>{exp.period}</div>
+                  </div>
+                  <div style={{ fontSize: 11, color: '#6b7c93', marginBottom: 8, fontStyle: 'italic' }}>
+                    {[exp.company, exp.location, exp.type].filter(Boolean).join(' · ')}
+                  </div>
+                  {exp.bullets.map((b, j) => (
+                    <div key={j} style={{ display: 'flex', gap: 6, marginBottom: 4, alignItems: 'flex-start' }}>
+                      <span style={{ color: ac, fontSize: 10, marginTop: 3, flexShrink: 0 }}>+</span>
+                      <span style={{ fontSize: 11, color: '#374151', lineHeight: 1.6 }}>{b}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Education */}
+        {cv.education.length > 0 && (
+          <div>
+            {secHeader('Education')}
+            {cv.education.map((e, i) => (
+              <div key={i} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
+                <div>
+                  <div style={{ fontSize: 12, fontWeight: 600, color: navy }}>{e.degree}</div>
+                  <div style={{ fontSize: 11, color: '#6b7c93' }}>{e.school}</div>
+                </div>
+                <div style={{ fontSize: 11, color: '#8fa3b8' }}>{e.year}</div>
               </div>
             ))}
           </div>
@@ -672,6 +878,35 @@ ${atsSuggestions?.section_gaps?.length ? `- ATS SECTION GAPS to address: ${atsSu
         </div>
       ),
     },
+    {
+      id: 'executive2', label: 'Executive II', ac: '#FF9933', desc: 'Wide sidebar · Timeline · DACH-style', ats: 'ATS: Low ⚠', atsColor: '#ef4444',
+      preview: (
+        <div style={{ display: 'flex', height: '100%', gap: 0 }}>
+          <div style={{ width: 18, background: 'linear-gradient(170deg,rgba(13,33,55,0.95),rgba(30,18,8,0.95))', padding: '4px 2px', display: 'flex', flexDirection: 'column', gap: 2, borderRadius: '3px 0 0 3px' }}>
+            <div style={{ width: 11, height: 11, borderRadius: '50%', background: 'linear-gradient(135deg,#FF9933,#FF993388)', margin: '0 auto 2px' }} />
+            {[85,65,78,55,85].map((w, i) => (
+              <div key={i} style={{ marginBottom: 1 }}>
+                <div style={{ height: 1, background: 'rgba(255,255,255,0.12)', borderRadius: 1, width: `${w}%`, marginBottom: 0.5 }} />
+                <div style={{ height: 1.5, background: 'rgba(255,153,51,0.5)', borderRadius: 1, width: `${Math.round(w * 0.9)}%` }} />
+              </div>
+            ))}
+          </div>
+          <div style={{ flex: 1, padding: '4px 3px', display: 'flex', flexDirection: 'column', gap: 0 }}>
+            <div style={{ height: 5, background: 'rgba(255,255,255,0.55)', borderRadius: 1, width: '65%', marginBottom: 1 }} />
+            <div style={{ height: 2, background: '#FF993355', borderRadius: 1, width: '45%', marginBottom: 3 }} />
+            <div style={{ height: 1, background: '#edf1f620', marginBottom: 2 }} />
+            {[0,1,2,3].map(i => (
+              <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 1.5, marginBottom: 2 }}>
+                <div style={{ width: 3, height: 3, borderRadius: '50%', background: '#FF9933', flexShrink: 0, marginTop: 0.5 }} />
+                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+                  {[70,55].map((w, j) => <div key={j} style={{ height: 1.5, background: 'rgba(255,255,255,0.1)', borderRadius: 1, width: `${w}%` }} />)}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      ),
+    },
   ]
 
   const tones: { id: Tone; label: string; desc: string }[] = [
@@ -683,8 +918,9 @@ ${atsSuggestions?.section_gaps?.length ? `- ATS SECTION GAPS to address: ${atsSu
   function renderCV() {
     if (!cvData) return null
     const t = templates.find(t => t.id === template)!
-    if (template === 'modern')    return <ModernCV    cv={cvData} ac={t.ac} />
-    if (template === 'executive') return <ExecutiveCV cv={cvData} ac={t.ac} photo={photoUrl || undefined} />
+    if (template === 'modern')      return <ModernCV      cv={cvData} ac={t.ac} />
+    if (template === 'executive')   return <ExecutiveCV   cv={cvData} ac={t.ac} photo={photoUrl || undefined} />
+    if (template === 'executive2')  return <ExecutiveV2CV cv={cvData} ac={t.ac} photo={photoUrl || undefined} />
     return <IndiaCV cv={cvData} ac={t.ac} />
   }
 
