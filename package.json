@@ -12,6 +12,8 @@
     "@anthropic-ai/sdk": "^0.95.1",
     "@supabase/ssr": "^0.10.3",
     "@supabase/supabase-js": "^2.105.3",
+    "@vercel/analytics": "^2.0.1",
+    "@vercel/speed-insights": "^2.0.0",
     "axios": "^1.16.0",
     "docx": "^9.6.1",
     "html2canvas": "^1.4.1",
