@@ -46,15 +46,36 @@ function ScoreRing({ value, color, label, size = 80 }: { value: number; color: s
   const dash = (value / 100) * circ
   return (
     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
-      <svg width={size} height={size} style={{ transform: 'rotate(-90deg)' }}>
-        <circle cx={size/2} cy={size/2} r={r} fill="none" stroke="rgba(255,255,255,0.15)" strokeWidth="6" />
-        <circle cx={size/2} cy={size/2} r={r} fill="none" stroke={color} strokeWidth="6"
-          strokeDasharray={`${dash} ${circ}`} strokeLinecap="round"
-          style={{ transition: 'stroke-dasharray 1s ease' }} />
-      </svg>
-      <div style={{ marginTop: -size - 4, height: size, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', zIndex: 1 }}>
-        <div style={{ fontFamily: f.heading, fontSize: size === 80 ? 22 : 18, fontWeight: 700, color: '#fff', lineHeight: 1 }}>{value}</div>
-        <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.7)', marginTop: 2, textAlign: 'center', maxWidth: size - 16 }}>{label}</div>
+      {/* position:relative wrapper so the label text is absolutely centred over the SVG on all screen sizes */}
+      <div style={{ position: 'relative', width: size, height: size }}>
+        <svg width={size} height={size} style={{ transform: 'rotate(-90deg)', display: 'block' }}>
+          <circle cx={size/2} cy={size/2} r={r} fill="none" stroke="rgba(255,255,255,0.15)" strokeWidth="6" />
+          <circle cx={size/2} cy={size/2} r={r} fill="none" stroke={color} strokeWidth="6"
+            strokeDasharray={`${dash} ${circ}`} strokeLinecap="round"
+            style={{ transition: 'stroke-dasharray 1s ease' }} />
+        </svg>
+        <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div style={{ fontFamily: f.heading, fontSize: size >= 80 ? 22 : 18, fontWeight: 700, color: '#fff', lineHeight: 1 }}>{value}</div>
+        </div>
+      </div>
+      <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.7)', textAlign: 'center', maxWidth: size + 8 }}>{label}</div>
+    </div>
+  )
+}
+
+/** Accordion wrapper — toggle button is hidden on desktop; visible on mobile so sections can be collapsed. */
+function MobileSection({ title, icon, defaultOpen = false, children }: {
+  title: string; icon: string; defaultOpen?: boolean; children: React.ReactNode
+}) {
+  const [open, setOpen] = useState(defaultOpen)
+  return (
+    <div className="jl-mob-acc">
+      <button className="jl-mob-acc-btn" onClick={() => setOpen(o => !o)}>
+        <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}><span>{icon}</span><span>{title}</span></span>
+        <span style={{ fontSize: 10, transform: open ? 'rotate(180deg)' : 'none', display: 'inline-block', transition: 'transform 0.2s' }}>▼</span>
+      </button>
+      <div className={open ? 'jl-mob-acc-body' : 'jl-mob-acc-body jl-mob-acc-closed'}>
+        {children}
       </div>
     </div>
   )
@@ -430,98 +451,98 @@ export default function CareerScanPage() {
           </div>
 
           {/* Strengths + Gaps */}
-          <div className="jl-cs-grid">
-            <div style={{ background: c.successLight, border: `1px solid ${c.successBorder}`, borderRadius: 14, padding: 16 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
-                <div style={{ width: 28, height: 28, borderRadius: 8, background: c.success, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, color: '#fff' }}>&#10003;</div>
-                <div style={{ fontSize: 12, fontWeight: 700, color: '#0F6E56' }}>{cs.results.strengths}</div>
-              </div>
-              {result.strengths.map((s, i) => (
-                <div key={i} style={{ fontSize: 11, color: c.text, padding: '6px 10px', background: 'rgba(29,158,117,0.08)', borderRadius: 8, marginBottom: 5, lineHeight: 1.5, borderLeft: `3px solid ${c.success}` }}>
-                  {s}
+          <MobileSection title={cs.results.strengths + ' & ' + cs.results.gaps} icon="✦" defaultOpen={true}>
+            <div className="jl-cs-grid">
+              <div style={{ background: c.successLight, border: `1px solid ${c.successBorder}`, borderRadius: 14, padding: 16 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+                  <div style={{ width: 28, height: 28, borderRadius: 8, background: c.success, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, color: '#fff' }}>&#10003;</div>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: '#0F6E56' }}>{cs.results.strengths}</div>
                 </div>
-              ))}
-            </div>
-            <div style={{ background: c.warningLight, border: `1px solid ${c.warningBorder}`, borderRadius: 14, padding: 16 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
-                <div style={{ width: 28, height: 28, borderRadius: 8, background: '#F59E0B', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, color: '#fff', fontWeight: 700 }}>!</div>
-                <div style={{ fontSize: 12, fontWeight: 700, color: '#92400e' }}>{cs.results.gaps}</div>
+                {result.strengths.map((s, i) => (
+                  <div key={i} style={{ fontSize: 11, color: c.text, padding: '6px 10px', background: 'rgba(29,158,117,0.08)', borderRadius: 8, marginBottom: 5, lineHeight: 1.5, borderLeft: `3px solid ${c.success}` }}>
+                    {s}
+                  </div>
+                ))}
               </div>
-              {result.gaps.map((gap, i) => (
-                <div key={i} style={{ fontSize: 11, color: c.text, padding: '6px 10px', background: 'rgba(245,158,11,0.08)', borderRadius: 8, marginBottom: 5, lineHeight: 1.5, borderLeft: '3px solid #F59E0B' }}>
-                  {gap}
+              <div style={{ background: c.warningLight, border: `1px solid ${c.warningBorder}`, borderRadius: 14, padding: 16 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+                  <div style={{ width: 28, height: 28, borderRadius: 8, background: '#F59E0B', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, color: '#fff', fontWeight: 700 }}>!</div>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: '#92400e' }}>{cs.results.gaps}</div>
                 </div>
-              ))}
+                {result.gaps.map((gap, i) => (
+                  <div key={i} style={{ fontSize: 11, color: c.text, padding: '6px 10px', background: 'rgba(245,158,11,0.08)', borderRadius: 8, marginBottom: 5, lineHeight: 1.5, borderLeft: '3px solid #F59E0B' }}>
+                    {gap}
+                  </div>
+                ))}
+              </div>
             </div>
-          </div>
+          </MobileSection>
 
           {/* Best-fit roles */}
-          <div style={{ background: c.bgCard, border: `1px solid ${c.border}`, borderRadius: 14, padding: 16 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
-              <div style={{ width: 28, height: 28, borderRadius: 8, background: c.primaryLight, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14 }}>&#127919;</div>
-              <div style={{ fontSize: 12, fontWeight: 700, color: c.primary }}>{cs.results.bestFitRoles}</div>
+          <MobileSection title={cs.results.bestFitRoles} icon="🎯" defaultOpen={true}>
+            <div style={{ background: c.bgCard, border: `1px solid ${c.border}`, borderRadius: 14, padding: 16 }}>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                {result.role_suggestions.map(r => (
+                  <Link key={r} href={`/app/jobs?q=${encodeURIComponent(r)}`} style={{ display: 'inline-flex', alignItems: 'center', fontSize: 12, padding: '6px 14px', borderRadius: 20, background: c.primaryLight, color: c.navy, border: `1px solid ${c.accentLight}`, textDecoration: 'none', fontWeight: 600, transition: 'all 0.15s' }}>
+                    {r} &rarr;
+                  </Link>
+                ))}
+              </div>
             </div>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-              {result.role_suggestions.map(r => (
-                <Link key={r} href={`/app/jobs?q=${encodeURIComponent(r)}`} style={{ display: 'inline-flex', alignItems: 'center', fontSize: 12, padding: '6px 14px', borderRadius: 20, background: c.primaryLight, color: c.navy, border: `1px solid ${c.accentLight}`, textDecoration: 'none', fontWeight: 600, transition: 'all 0.15s' }}>
-                  {r} &rarr;
-                </Link>
-              ))}
-            </div>
-          </div>
+          </MobileSection>
 
           {/* Quick wins */}
-          <div style={{ background: c.bgCard, border: `1px solid ${c.border}`, borderRadius: 14, padding: 16 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
-              <div style={{ width: 28, height: 28, borderRadius: 8, background: c.warningLight, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14 }}>&#9889;</div>
-              <div style={{ fontSize: 12, fontWeight: 700, color: c.primary }}>{cs.results.quickWins}</div>
+          <MobileSection title={cs.results.quickWins} icon="⚡" defaultOpen={true}>
+            <div style={{ background: c.bgCard, border: `1px solid ${c.border}`, borderRadius: 14, padding: 16 }}>
+              {result.quick_wins.map((w, i) => (
+                <div key={i} style={{ fontSize: 11, color: c.text, padding: '7px 10px', background: c.bgSubtle, borderRadius: 8, marginBottom: 6, lineHeight: 1.55, display: 'flex', gap: 8, alignItems: 'flex-start' }}>
+                  <span style={{ color: c.accent, fontWeight: 700, flexShrink: 0 }}>{i + 1}.</span>
+                  {w}
+                </div>
+              ))}
+              {result.top_keyword && (
+                <div style={{ fontSize: 11, color: c.textMuted, borderTop: `1px solid ${c.border}`, paddingTop: 10, marginTop: 6 }}>
+                  {cs.results.keywordHint(result.top_keyword)}
+                </div>
+              )}
             </div>
-            {result.quick_wins.map((w, i) => (
-              <div key={i} style={{ fontSize: 11, color: c.text, padding: '7px 10px', background: c.bgSubtle, borderRadius: 8, marginBottom: 6, lineHeight: 1.55, display: 'flex', gap: 8, alignItems: 'flex-start' }}>
-                <span style={{ color: c.accent, fontWeight: 700, flexShrink: 0 }}>{i + 1}.</span>
-                {w}
-              </div>
-            ))}
-            {result.top_keyword && (
-              <div style={{ fontSize: 11, color: c.textMuted, borderTop: `1px solid ${c.border}`, paddingTop: 10, marginTop: 6 }}>
-                {cs.results.keywordHint(result.top_keyword)}
-              </div>
-            )}
-          </div>
+          </MobileSection>
 
           {/* AI Era Vulnerability */}
           {result.ai_vulnerability_reason && (
-            <div style={{ background: '#1a0a2e', border: '1px solid rgba(109,40,217,0.4)', borderRadius: 14, padding: 16, position: 'relative', overflow: 'hidden' }}>
-              <div style={{ position: 'absolute', top: -20, right: -20, width: 80, height: 80, borderRadius: '50%', background: 'rgba(109,40,217,0.15)' }} />
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
-                <div style={{ width: 28, height: 28, borderRadius: 8, background: 'rgba(109,40,217,0.25)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14 }}>⚡</div>
-                <div>
-                  <div style={{ fontSize: 12, fontWeight: 700, color: '#c4b5fd' }}>{cs.results.aiEraRisk}</div>
-                  <div style={{ fontSize: 10, color: 'rgba(196,181,253,0.6)' }}>{cs.results.aiEraRiskSub}</div>
-                </div>
-                <div style={{ marginLeft: 'auto', textAlign: 'right' }}>
-                  <div style={{ fontFamily: f.heading, fontSize: 20, fontWeight: 700, color: result.ai_vulnerability >= 70 ? '#f87171' : result.ai_vulnerability >= 40 ? '#fbbf24' : '#4ade80' }}>
-                    {result.ai_vulnerability}%
+            <MobileSection title={cs.results.aiEraRisk} icon="🤖" defaultOpen={false}>
+              <div style={{ background: '#1a0a2e', border: '1px solid rgba(109,40,217,0.4)', borderRadius: 14, padding: 16, position: 'relative', overflow: 'hidden' }}>
+                <div style={{ position: 'absolute', top: -20, right: -20, width: 80, height: 80, borderRadius: '50%', background: 'rgba(109,40,217,0.15)' }} />
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
+                  <div style={{ width: 28, height: 28, borderRadius: 8, background: 'rgba(109,40,217,0.25)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14 }}>⚡</div>
+                  <div>
+                    <div style={{ fontSize: 12, fontWeight: 700, color: '#c4b5fd' }}>{cs.results.aiEraRisk}</div>
+                    <div style={{ fontSize: 10, color: 'rgba(196,181,253,0.6)' }}>{cs.results.aiEraRiskSub}</div>
                   </div>
-                  <div style={{ fontSize: 10, fontWeight: 700, color: result.ai_vulnerability >= 70 ? '#f87171' : result.ai_vulnerability >= 40 ? '#fbbf24' : '#4ade80' }}>
-                    {result.ai_vulnerability_label}
+                  <div style={{ marginLeft: 'auto', textAlign: 'right' }}>
+                    <div style={{ fontFamily: f.heading, fontSize: 20, fontWeight: 700, color: result.ai_vulnerability >= 70 ? '#f87171' : result.ai_vulnerability >= 40 ? '#fbbf24' : '#4ade80' }}>
+                      {result.ai_vulnerability}%
+                    </div>
+                    <div style={{ fontSize: 10, fontWeight: 700, color: result.ai_vulnerability >= 70 ? '#f87171' : result.ai_vulnerability >= 40 ? '#fbbf24' : '#4ade80' }}>
+                      {result.ai_vulnerability_label}
+                    </div>
                   </div>
                 </div>
+                <div style={{ height: 6, background: 'rgba(255,255,255,0.1)', borderRadius: 3, marginBottom: 12, overflow: 'hidden' }}>
+                  <div style={{ height: '100%', width: `${result.ai_vulnerability}%`, background: result.ai_vulnerability >= 70 ? 'linear-gradient(90deg, #f87171, #ef4444)' : result.ai_vulnerability >= 40 ? 'linear-gradient(90deg, #fbbf24, #f59e0b)' : 'linear-gradient(90deg, #4ade80, #22c55e)', borderRadius: 3, transition: 'width 1s ease' }} />
+                </div>
+                <div style={{ fontSize: 12, color: 'rgba(196,181,253,0.85)', lineHeight: 1.65 }}>{result.ai_vulnerability_reason}</div>
               </div>
-              {/* Vulnerability bar */}
-              <div style={{ height: 6, background: 'rgba(255,255,255,0.1)', borderRadius: 3, marginBottom: 12, overflow: 'hidden' }}>
-                <div style={{ height: '100%', width: `${result.ai_vulnerability}%`, background: result.ai_vulnerability >= 70 ? 'linear-gradient(90deg, #f87171, #ef4444)' : result.ai_vulnerability >= 40 ? 'linear-gradient(90deg, #fbbf24, #f59e0b)' : 'linear-gradient(90deg, #4ade80, #22c55e)', borderRadius: 3, transition: 'width 1s ease' }} />
-              </div>
-              <div style={{ fontSize: 12, color: 'rgba(196,181,253,0.85)', lineHeight: 1.65 }}>{result.ai_vulnerability_reason}</div>
-            </div>
+            </MobileSection>
           )}
 
           {/* Market insight */}
           {result.market_insight && (
-            <div style={{ background: `linear-gradient(135deg, ${c.primary}, #073d6e)`, borderRadius: 14, padding: 16 }}>
-              <div style={{ fontSize: 11, fontWeight: 700, color: c.accentLight, letterSpacing: 0.5, textTransform: 'uppercase' as const, marginBottom: 8 }}>{cs.results.marketInsight}</div>
-              <div style={{ fontSize: 13, color: c.primaryLight, lineHeight: 1.65 }}>{result.market_insight}</div>
-            </div>
+            <MobileSection title={cs.results.marketInsight} icon="📈" defaultOpen={false}>
+              <div style={{ background: `linear-gradient(135deg, ${c.primary}, #073d6e)`, borderRadius: 14, padding: 16 }}>
+                <div style={{ fontSize: 13, color: c.primaryLight, lineHeight: 1.65 }}>{result.market_insight}</div>
+              </div>
+            </MobileSection>
           )}
 
           <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
@@ -645,7 +666,23 @@ export default function CareerScanPage() {
         .jl-cs-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
         @media (max-width: 600px) { .jl-cs-grid { grid-template-columns: 1fr !important; } }
         .jl-score-rings { display: flex; justify-content: space-around; align-items: center; flex-wrap: wrap; gap: 16px; }
-        @media (max-width: 480px) { .jl-score-rings { gap: 10px; } }
+        @media (max-width: 480px) { .jl-score-rings { gap: 8px; } }
+
+        /* Mobile accordion — toggle button hidden on desktop, visible on mobile */
+        .jl-mob-acc-btn { display: none !important; }
+        .jl-mob-acc-body { display: block; }
+        @media (max-width: 768px) {
+          .jl-mob-acc { margin-bottom: 0; }
+          .jl-mob-acc-btn {
+            display: flex !important;
+            width: 100%; align-items: center; justify-content: space-between;
+            padding: 11px 14px; border: none; border-radius: 10px;
+            background: rgba(255,255,255,0.07); cursor: pointer;
+            font-size: 12px; font-weight: 700; color: rgba(255,255,255,0.9);
+            font-family: 'Outfit',sans-serif; text-align: left; margin-bottom: 6px;
+          }
+          .jl-mob-acc-body.jl-mob-acc-closed { display: none !important; }
+        }
       `}</style>
       <Navbar />
 

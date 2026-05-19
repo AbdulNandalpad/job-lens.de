@@ -35,12 +35,12 @@ SCORING RUBRIC:
 function buildPrompt(cvText: string, jdText: string): string {
   return `CV TEXT:
 ---
-${cvText.slice(0, 6000)}
+${cvText.slice(0, 12000)}
 ---
 
 JOB DESCRIPTION:
 ---
-${jdText.slice(0, 2000)}
+${jdText.slice(0, 3000)}
 ---
 
 Return ONLY valid JSON matching this exact schema:
@@ -101,6 +101,7 @@ export async function POST(req: NextRequest) {
     const message = await anthropic.messages.create({
       model: 'claude-sonnet-4-6',
       max_tokens: 3000,
+      temperature: 0,   // deterministic — prevents hallucinated keyword matches
       system: SYSTEM_PROMPT,
       messages: [{ role: 'user', content: buildPrompt(cvText, jdText) }],
     })

@@ -60,6 +60,24 @@ function scoreColor(s: number) {
   return s >= 75 ? green : s >= 50 ? orange : red
 }
 
+/** Collapsible section for mobile — invisible chrome on desktop */
+function AtsSection({ title, defaultOpen = true, children }: {
+  title: string; defaultOpen?: boolean; children: React.ReactNode
+}) {
+  const [open, setOpen] = useState(defaultOpen)
+  return (
+    <div>
+      <button className="ats-acc-btn" onClick={() => setOpen(o => !o)}>
+        <span>{title}</span>
+        <span style={{ fontSize: 10, display: 'inline-block', transform: open ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }}>▼</span>
+      </button>
+      <div className={open ? 'ats-acc-body' : 'ats-acc-body ats-acc-closed'}>
+        {children}
+      </div>
+    </div>
+  )
+}
+
 function readinessBadge(r: string) {
   const map: Record<string, { bg: string; color: string }> = {
     'ATS Ready': { bg: 'rgba(29,158,117,0.12)', color: green },
@@ -177,8 +195,31 @@ export default function IndiaCareerScanPage() {
     <>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=Outfit:wght@400;600;700&display=swap');
+        @keyframes spin { to { transform: rotate(360deg); } }
         .ats-grid { display: grid; grid-template-columns: 420px 1fr; gap: 24px; }
         @media (max-width: 900px) { .ats-grid { grid-template-columns: 1fr; } }
+
+        /* Sub-score rings: 1 row on desktop, 2×2 grid on mobile */
+        .ats-rings { display: flex; gap: 16px; flex-wrap: wrap; }
+        @media (max-width: 600px) {
+          .ats-rings { display: grid !important; grid-template-columns: 1fr 1fr; gap: 12px; justify-items: center; }
+        }
+
+        /* Mobile accordion for tab content sections */
+        .ats-acc-btn { display: none !important; }
+        .ats-acc-body { display: block; }
+        @media (max-width: 900px) {
+          .ats-acc-btn {
+            display: flex !important; width: 100%;
+            align-items: center; justify-content: space-between;
+            padding: 11px 14px; border: none; border-radius: 10px;
+            background: #f0f4f8; cursor: pointer;
+            font-size: 13px; font-weight: 700; color: #042C53;
+            font-family: 'Outfit',sans-serif; text-align: left;
+            margin-bottom: 8px; border: 1px solid #dce4ef;
+          }
+          .ats-acc-body.ats-acc-closed { display: none !important; }
+        }
       `}</style>
 
       {crossWarnPending && (
@@ -341,11 +382,11 @@ export default function IndiaCareerScanPage() {
                           </div>
                         )}
                       </div>
-                      <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap' }}>
-                        <ScoreRing score={result.keyword_score} size={80} label="Keywords" color={scoreColor(result.keyword_score)} />
-                        <ScoreRing score={result.format_score} size={80} label="Format" color={scoreColor(result.format_score)} />
-                        <ScoreRing score={result.section_score} size={80} label="Sections" color={scoreColor(result.section_score)} />
-                        <ScoreRing score={result.impact_score} size={80} label="Impact" color={scoreColor(result.impact_score)} />
+                      <div className="ats-rings">
+                        <ScoreRing score={result.keyword_score} size={76} label="Keywords" color={scoreColor(result.keyword_score)} />
+                        <ScoreRing score={result.format_score} size={76} label="Format" color={scoreColor(result.format_score)} />
+                        <ScoreRing score={result.section_score} size={76} label="Sections" color={scoreColor(result.section_score)} />
+                        <ScoreRing score={result.impact_score} size={76} label="Impact" color={scoreColor(result.impact_score)} />
                       </div>
                     </div>
                     <div style={{ padding: '12px 16px', background: '#fafbfd', borderRadius: 8, fontSize: 13, color: '#374151', lineHeight: 1.5 }}>
@@ -390,38 +431,40 @@ export default function IndiaCareerScanPage() {
                   <div style={{ background: '#fff', borderRadius: 14, padding: 24, border: '1px solid #edf1f6', boxShadow: '0 2px 12px rgba(4,44,83,0.06)' }}>
 
                     {tab === 'overview' && (
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
                         {result.format_issues.length > 0 && (
-                          <div>
-                            <div style={{ fontSize: 13, fontWeight: 700, color: navy, marginBottom: 10, fontFamily: "'Outfit',sans-serif" }}>Format Issues</div>
-                            {result.format_issues.map((issue, i) => (
-                              <div key={i} style={{ display: 'flex', gap: 10, alignItems: 'flex-start', marginBottom: 8 }}>
-                                <span style={{ color: red, fontSize: 14, flexShrink: 0, marginTop: 1 }}>!</span>
-                                <span style={{ fontSize: 13, color: '#374151' }}>{issue}</span>
-                              </div>
-                            ))}
-                          </div>
+                          <AtsSection title={`Format Issues (${result.format_issues.length})`} defaultOpen={true}>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                              {result.format_issues.map((issue, i) => (
+                                <div key={i} style={{ display: 'flex', gap: 10, alignItems: 'flex-start', padding: '8px 10px', background: 'rgba(226,75,74,0.05)', borderRadius: 8, borderLeft: `3px solid ${red}` }}>
+                                  <span style={{ color: red, fontSize: 14, flexShrink: 0 }}>!</span>
+                                  <span style={{ fontSize: 13, color: '#374151' }}>{issue}</span>
+                                </div>
+                              ))}
+                            </div>
+                          </AtsSection>
                         )}
                         {result.section_gaps.length > 0 && (
-                          <div>
-                            <div style={{ fontSize: 13, fontWeight: 700, color: navy, marginBottom: 10, fontFamily: "'Outfit',sans-serif" }}>Section Gaps</div>
-                            {result.section_gaps.map((gap, i) => (
-                              <div key={i} style={{ display: 'flex', gap: 10, alignItems: 'flex-start', marginBottom: 8 }}>
-                                <span style={{ color: orange, fontSize: 14, flexShrink: 0, marginTop: 1 }}>~</span>
-                                <span style={{ fontSize: 13, color: '#374151' }}>{gap}</span>
-                              </div>
-                            ))}
-                          </div>
+                          <AtsSection title={`Section Gaps (${result.section_gaps.length})`} defaultOpen={true}>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                              {result.section_gaps.map((gap, i) => (
+                                <div key={i} style={{ display: 'flex', gap: 10, alignItems: 'flex-start', padding: '8px 10px', background: 'rgba(255,153,51,0.06)', borderRadius: 8, borderLeft: `3px solid ${orange}` }}>
+                                  <span style={{ color: orange, fontSize: 14, flexShrink: 0 }}>~</span>
+                                  <span style={{ fontSize: 13, color: '#374151' }}>{gap}</span>
+                                </div>
+                              ))}
+                            </div>
+                          </AtsSection>
                         )}
                         {result.ats_verdict && (
-                          <div style={{ padding: '14px 16px', background: 'rgba(4,44,83,0.04)', borderRadius: 10, border: '1px solid #edf1f6' }}>
-                            <div style={{ fontSize: 12, fontWeight: 700, color: navy, marginBottom: 6, fontFamily: "'Outfit',sans-serif" }}>ATS Verdict</div>
-                            <p style={{ fontSize: 13, color: '#374151', lineHeight: 1.6, margin: 0 }}>{result.ats_verdict}</p>
-                          </div>
+                          <AtsSection title="ATS Verdict" defaultOpen={true}>
+                            <div style={{ padding: '14px 16px', background: 'rgba(4,44,83,0.04)', borderRadius: 10, border: '1px solid #edf1f6' }}>
+                              <p style={{ fontSize: 13, color: '#374151', lineHeight: 1.6, margin: 0 }}>{result.ats_verdict}</p>
+                            </div>
+                          </AtsSection>
                         )}
                         {result.rewrite_suggestions.length > 0 && (
-                          <div>
-                            <div style={{ fontSize: 13, fontWeight: 700, color: navy, marginBottom: 10, fontFamily: "'Outfit',sans-serif" }}>Bullet Rewrites</div>
+                          <AtsSection title={`Bullet Rewrites (${result.rewrite_suggestions.length})`} defaultOpen={false}>
                             {result.rewrite_suggestions.map((s, i) => (
                               <div key={i} style={{ marginBottom: 14, padding: 14, borderRadius: 10, background: '#fafbfd', border: '1px solid #edf1f6' }}>
                                 <div style={{ fontSize: 11, color: red, fontWeight: 700, marginBottom: 4 }}>BEFORE</div>
@@ -430,46 +473,36 @@ export default function IndiaCareerScanPage() {
                                 <div style={{ fontSize: 12, color: '#1a2332' }}>{s.improved}</div>
                               </div>
                             ))}
-                          </div>
+                          </AtsSection>
                         )}
                       </div>
                     )}
 
                     {tab === 'keywords' && (
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
                         {result.missing_keywords.length > 0 && (
-                          <div>
-                            <div style={{ fontSize: 13, fontWeight: 700, color: navy, marginBottom: 10, fontFamily: "'Outfit',sans-serif" }}>
-                              Missing Keywords <span style={{ fontSize: 11, color: red, fontWeight: 400 }}>({result.missing_keywords.length} — add these to your CV)</span>
-                            </div>
-                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                          <AtsSection title={`Missing Keywords — ${result.missing_keywords.length} to add`} defaultOpen={true}>
+                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, paddingBottom: 4 }}>
                               {result.missing_keywords.map((kw, i) => (
                                 <span key={i} style={{ padding: '5px 12px', borderRadius: 20, background: 'rgba(226,75,74,0.1)', border: '1px solid rgba(226,75,74,0.25)', fontSize: 12, color: red, fontWeight: 500 }}>{kw}</span>
                               ))}
                             </div>
-                          </div>
+                          </AtsSection>
                         )}
                         {result.matched_keywords.length > 0 && (
-                          <div>
-                            <div style={{ fontSize: 13, fontWeight: 700, color: navy, marginBottom: 10, fontFamily: "'Outfit',sans-serif" }}>
-                              Matched Keywords <span style={{ fontSize: 11, color: green, fontWeight: 400 }}>({result.matched_keywords.length} found)</span>
-                            </div>
-                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                          <AtsSection title={`Matched Keywords — ${result.matched_keywords.length} found`} defaultOpen={true}>
+                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, paddingBottom: 4 }}>
                               {result.matched_keywords.map((kw, i) => (
                                 <span key={i} style={{ padding: '5px 12px', borderRadius: 20, background: 'rgba(29,158,117,0.1)', border: '1px solid rgba(29,158,117,0.25)', fontSize: 12, color: green, fontWeight: 500 }}>{kw}</span>
                               ))}
                             </div>
-                          </div>
+                          </AtsSection>
                         )}
                       </div>
                     )}
 
                     {tab === 'fixes' && (
-                      <div>
-                        <div style={{ fontSize: 13, fontWeight: 700, color: navy, marginBottom: 14, fontFamily: "'Outfit',sans-serif" }}>
-                          Top 5 Quick Fixes
-                          <span style={{ fontSize: 11, color: '#9aafbc', fontWeight: 400, marginLeft: 8 }}>Do these before applying</span>
-                        </div>
+                      <AtsSection title="Top Quick Fixes — do these before applying" defaultOpen={true}>
                         {result.quick_fixes.map((fix, i) => (
                           <div key={i} style={{ display: 'flex', gap: 14, alignItems: 'flex-start', marginBottom: 14, padding: '12px 14px', borderRadius: 10, background: i === 0 ? 'rgba(255,153,51,0.06)' : '#fafbfd', border: `1px solid ${i === 0 ? 'rgba(255,153,51,0.2)' : '#edf1f6'}` }}>
                             <div style={{ width: 24, height: 24, borderRadius: '50%', background: i === 0 ? orange : '#edf1f6', color: i === 0 ? '#fff' : '#6b7c93', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 800, flexShrink: 0 }}>
@@ -478,7 +511,7 @@ export default function IndiaCareerScanPage() {
                             <span style={{ fontSize: 13, color: '#374151', lineHeight: 1.5 }}>{fix}</span>
                           </div>
                         ))}
-                      </div>
+                      </AtsSection>
                     )}
                   </div>
                 </>)}

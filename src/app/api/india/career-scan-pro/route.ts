@@ -28,9 +28,9 @@ AI VULNERABILITY SCORING (0 = fully automation-proof, 100 = fully automatable to
 - Low risk: physical presence, creative judgment, stakeholder empathy, complex negotiation, AI engineering itself`
 
 function buildPrompt(cvText: string, role: string): string {
-  return `CV TEXT — read every word; do not reference anything not present here:
+  return `CV TEXT — read every word carefully; do not reference anything not explicitly present in this text:
 ---
-${cvText.slice(0, 7000)}
+${cvText.slice(0, 15000)}
 ---
 
 Target role: "${role}"
@@ -98,6 +98,7 @@ export async function POST(req: NextRequest) {
     const message = await anthropic.messages.create({
       model: 'claude-sonnet-4-6',
       max_tokens: 4096,
+      temperature: 0,   // deterministic — prevents score drift and hallucinated evidence
       system: SYSTEM_PROMPT,
       messages: [{ role: 'user', content: buildPrompt(cvText, role || 'the target role') }],
     })
