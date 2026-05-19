@@ -16,14 +16,10 @@ export async function POST(req: NextRequest) {
     CVPdfDocument, { cv, ac: ac || '#378ADD', photo }
   ) as React.ReactElement<DocumentProps>
 
-  // @react-pdf types wrongly declare toBuffer() as ReadableStream; at runtime it is a Node.js Buffer.
-  // Collect via toStream() to stay type-safe and avoid the mistyped overload.
-  const stream = pdf(element).toStream()
-  const chunks: Buffer[] = []
-  for await (const chunk of stream as unknown as AsyncIterable<Buffer>) {
-    chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk))
-  }
-  const uint8 = Buffer.concat(chunks)
+  // toBuffer() is mistyped as ReadableStream in @react-pdf types.
+  // toBlob() is correctly typed and returns a real Blob in Node 18+.
+  const blob = await pdf(element).toBlob()
+  const uint8 = new Uint8Array(await blob.arrayBuffer())
 
   const safeName = (cv.name || 'JobLens').replace(/[^a-zA-Z0-9]/g, '_')
 
