@@ -876,46 +876,24 @@ ${job?.job_description ? `- Job context: ${job.job_description.slice(0, 800)}` :
   const [downloading, setDownloading] = useState<'pdf' | 'docx' | null>(null)
 
   async function downloadPDF() {
-    if (!cvData || !previewRef.current) return
+    if (!cvData) return
     setDownloading('pdf')
     try {
-      const [{ default: html2canvas }, { default: jsPDF }] = await Promise.all([
-        import('html2canvas'),
-        import('jspdf'),
+      // Use @react-pdf/renderer — pure PDF layout, no canvas capture, no page-slice overlap
+      const [{ pdf }, { CVPdfDocument }] = await Promise.all([
+        import('@react-pdf/renderer'),
+        import('@/lib/CVPdf'),
       ])
-
-      const canvas = await html2canvas(previewRef.current, {
-        scale: 2,
-        useCORS: true,
-        logging: false,
-        backgroundColor: '#ffffff',
-      })
-
-      const pdf = new jsPDF({ unit: 'mm', format: 'a4', orientation: 'portrait' })
-      const pdfW = pdf.internal.pageSize.getWidth()
-      const pdfH = pdf.internal.pageSize.getHeight()
-      const imgW = canvas.width
-      const imgH = canvas.height
-      const pageHeightPx = Math.floor(imgW * (pdfH / pdfW))
-
-      let yOffset = 0
-      let firstPage = true
-      while (yOffset < imgH) {
-        const sliceH = Math.min(pageHeightPx, imgH - yOffset)
-        const pageCanvas = document.createElement('canvas')
-        pageCanvas.width = imgW
-        pageCanvas.height = sliceH
-        const ctx = pageCanvas.getContext('2d')!
-        ctx.drawImage(canvas, 0, -yOffset)
-        const imgData = pageCanvas.toDataURL('image/jpeg', 0.97)
-        if (!firstPage) pdf.addPage()
-        pdf.addImage(imgData, 'JPEG', 0, 0, pdfW, sliceH * (pdfW / imgW))
-        yOffset += sliceH
-        firstPage = false
-      }
-
-      const filename = `CV_${(job?.employer_name || cvData.name || 'JobLens').replace(/[^a-zA-Z0-9]/g, '_')}.pdf`
-      pdf.save(filename)
+      const React = (await import('react')).default
+      const blob = await pdf(
+        React.createElement(CVPdfDocument, { cv: cvData, ac: currentAccent })
+      ).toBlob()
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `CV_${(job?.employer_name || cvData.name || 'JobLens').replace(/[^a-zA-Z0-9]/g, '_')}.pdf`
+      a.click()
+      URL.revokeObjectURL(url)
     } catch (err) {
       console.error('PDF error:', err)
       alert('PDF generation failed. Please try again.')
