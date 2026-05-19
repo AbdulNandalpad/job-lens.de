@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import React from 'react'
-import { pdf } from '@react-pdf/renderer'
+import { pdf, DocumentProps } from '@react-pdf/renderer'
 import { CVPdfDocument } from '@/lib/CVPdf'
 import { createServerSupabase } from '@/lib/supabase-server'
 
@@ -12,9 +12,11 @@ export async function POST(req: NextRequest) {
   const { cv, ac, photo } = await req.json()
   if (!cv) return NextResponse.json({ error: 'cv required' }, { status: 400 })
 
-  const buffer = await pdf(
-    React.createElement(CVPdfDocument, { cv, ac: ac || '#378ADD', photo })
-  ).toBuffer()
+  const element = React.createElement(
+    CVPdfDocument, { cv, ac: ac || '#378ADD', photo }
+  ) as React.ReactElement<DocumentProps>
+
+  const buffer = await pdf(element).toBuffer()
 
   const safeName = (cv.name || 'JobLens').replace(/[^a-zA-Z0-9]/g, '_')
 
