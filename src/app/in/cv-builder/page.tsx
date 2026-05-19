@@ -730,16 +730,14 @@ ${atsSuggestions?.section_gaps?.length ? `- ATS SECTION GAPS to address: ${atsSu
     if (!cvData) return
     setDownloading('pdf')
     try {
-      // Use @react-pdf/renderer — pure PDF layout, no canvas capture, no page-slice overlap
-      const [{ pdf }, { CVPdfDocument }] = await Promise.all([
-        import('@react-pdf/renderer'),
-        import('@/lib/CVPdf'),
-      ])
-      const React = (await import('react')).default
       const ac = templates.find(t => t.id === template)?.ac ?? accent
-      const blob = await pdf(
-        React.createElement(CVPdfDocument, { cv: cvData, ac, photo: photoUrl || undefined })
-      ).toBlob()
+      const res = await fetch('/api/cv/pdf', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ cv: cvData, ac, photo: photoUrl || undefined }),
+      })
+      if (!res.ok) throw new Error('PDF generation failed')
+      const blob = await res.blob()
       const url = URL.createObjectURL(blob)
       const a = document.createElement('a')
       a.href = url

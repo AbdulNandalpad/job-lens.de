@@ -879,15 +879,13 @@ ${job?.job_description ? `- Job context: ${job.job_description.slice(0, 800)}` :
     if (!cvData) return
     setDownloading('pdf')
     try {
-      // Use @react-pdf/renderer — pure PDF layout, no canvas capture, no page-slice overlap
-      const [{ pdf }, { CVPdfDocument }] = await Promise.all([
-        import('@react-pdf/renderer'),
-        import('@/lib/CVPdf'),
-      ])
-      const React = (await import('react')).default
-      const blob = await pdf(
-        React.createElement(CVPdfDocument, { cv: cvData, ac: currentAccent })
-      ).toBlob()
+      const res = await fetch('/api/cv/pdf', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ cv: cvData, ac: currentAccent }),
+      })
+      if (!res.ok) throw new Error('PDF generation failed')
+      const blob = await res.blob()
       const url = URL.createObjectURL(blob)
       const a = document.createElement('a')
       a.href = url
