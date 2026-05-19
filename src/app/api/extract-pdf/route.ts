@@ -1,13 +1,25 @@
 import { NextRequest, NextResponse } from 'next/server'
 import mammoth from 'mammoth'
+import { createServerSupabase } from '@/lib/supabase-server'
+
+const MAX_FILE_BYTES = 10 * 1024 * 1024 // 10 MB
 
 export async function POST(req: NextRequest) {
+  // Auth required — this route calls the Anthropic API for PDF extraction
+  const supabase = await createServerSupabase()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
   try {
     const formData = await req.formData()
     const file = formData.get('file') as File
 
     if (!file) {
       return NextResponse.json({ error: 'No file provided' }, { status: 400 })
+    }
+
+    if (file.size > MAX_FILE_BYTES) {
+      return NextResponse.json({ error: 'File too large. Maximum size is 10 MB.' }, { status: 413 })
     }
 
     const name = file.name.toLowerCase()

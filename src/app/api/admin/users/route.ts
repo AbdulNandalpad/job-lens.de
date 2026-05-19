@@ -82,7 +82,13 @@ export async function PATCH(req: NextRequest) {
   // Build only the fields being changed
   const patch: Record<string, unknown> = {}
   if (status !== undefined) patch.status = status
-  if (credits !== undefined) patch.credits = Number(credits)
+  if (credits !== undefined) {
+    const n = Number(credits)
+    if (!isFinite(n) || n < 0 || n > 10000) {
+      return NextResponse.json({ error: 'credits must be between 0 and 10000' }, { status: 400 })
+    }
+    patch.credits = Math.floor(n)
+  }
 
   // Upsert: provide all required profile fields so new rows are valid
   const { error } = await admin.from('profiles').upsert(

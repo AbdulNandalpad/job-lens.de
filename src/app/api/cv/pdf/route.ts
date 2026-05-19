@@ -12,6 +12,12 @@ export async function POST(req: NextRequest) {
   const { cv, ac, photo } = await req.json()
   if (!cv) return NextResponse.json({ error: 'cv required' }, { status: 400 })
 
+  // Guard against oversized photo payloads (base64 ~1.33× raw bytes; 2 MB raw ≈ 2.7 MB base64)
+  const MAX_PHOTO_B64 = 3 * 1024 * 1024 // 3 MB base64 string length
+  if (photo && typeof photo === 'string' && photo.length > MAX_PHOTO_B64) {
+    return NextResponse.json({ error: 'Photo too large. Please use an image under 2 MB.' }, { status: 413 })
+  }
+
   const element = React.createElement(
     CVPdfDocument, { cv, ac: ac || '#378ADD', photo }
   ) as React.ReactElement<DocumentProps>

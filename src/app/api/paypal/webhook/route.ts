@@ -20,7 +20,7 @@ export async function POST(req: NextRequest) {
     const txnId         = params.get('txn_id') ?? ''
     const payerEmail    = params.get('payer_email') ?? ''
 
-    // Verify IPN with PayPal
+    // Verify IPN with PayPal before trusting any payload field
     const verifyUrl = process.env.PAYPAL_SANDBOX === 'true'
       ? 'https://ipnpb.sandbox.paypal.com/cgi-bin/webscr'
       : 'https://ipnpb.paypal.com/cgi-bin/webscr'
@@ -46,6 +46,13 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: false }, { status: 400 })
     }
 
+    // Validate userId is a plausible UUID to guard against payload injection
+    const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+    if (!UUID_RE.test(userId)) {
+      console.warn('[paypal] Invalid userId format:', userId)
+      return NextResponse.json({ ok: false }, { status: 400 })
+    }
+
     const normalised = parseFloat(grossAmount).toFixed(2)
     const creditsToAdd = CREDIT_PACKS[normalised]
 
@@ -56,9 +63,32 @@ export async function POST(req: NextRequest) {
 
     const admin = createAdminSupabase()
 
-    // Get current eu_credits
-    const { data: profile } = await admin.from('profiles').select('eu_credits').eq('id', userId).single()
-    const current = profile?.eu_credits ?? 0
+    // Idempotency: skip if this txn_id was already processed (PayPal retries IPN delivery)
+    if (txnId) {
+      const { count } = await admin
+        .from('purchase_events')
+        .select('*', { count: 'exact', head: true })
+        .eq('paypal_txn_id', txnId)
+
+      if ((count ?? 0) > 0) {
+        console.warn(`[paypal] txn_id ${txnId} already processed — skipping duplicate`)
+        return NextResponse.json({ ok: true, skipped: true })
+      }
+    }
+
+    // Verify the user actually exists before adding credits
+    const { data: profile } = await admin
+      .from('profiles')
+      .select('eu_credits')
+      .eq('id', userId)
+      .single()
+
+    if (!profile) {
+      console.warn('[paypal] No profile found for userId:', userId)
+      return NextResponse.json({ ok: false }, { status: 400 })
+    }
+
+    const current = profile.eu_credits ?? 0
 
     // Add credits to eu_credits pool (PayPal is EU-only)
     await admin.from('profiles').upsert({
@@ -67,7 +97,7 @@ export async function POST(req: NextRequest) {
       paypal_payer_email: payerEmail || undefined,
     })
 
-    // Record purchase for audit (table may not exist yet — fail silently)
+    // Record purchase for audit
     try {
       await admin.from('purchase_events').insert({
         user_id: userId,

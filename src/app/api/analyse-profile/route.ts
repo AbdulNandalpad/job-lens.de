@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import Anthropic from '@anthropic-ai/sdk'
+import { createServerSupabase } from '@/lib/supabase-server'
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
 
@@ -15,6 +16,11 @@ const FALLBACK = {
 }
 
 export async function POST(req: NextRequest) {
+  // Auth required — this route calls the Anthropic API
+  const supabase = await createServerSupabase()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
   let targetRole = ''
   try {
     const body = await req.json()

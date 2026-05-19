@@ -1,12 +1,24 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { createServerSupabase } from '@/lib/supabase-server'
+
+// Allowlist of Adzuna-supported country codes we expose
+const ALLOWED_COUNTRIES = new Set(['de', 'at', 'ch', 'gb', 'in', 'us', 'au', 'ca', 'fr', 'nl', 'pl', 'sg', 'nz', 'za', 'br', 'ru'])
 
 export async function GET(req: NextRequest) {
+  // Auth required — protects Adzuna API quota from anonymous abuse
+  const supabase = await createServerSupabase()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
   const { searchParams } = new URL(req.url)
   const q = searchParams.get('q') || ''
   const location = searchParams.get('location') || ''
-  const country = searchParams.get('country') || 'de'
+  const countryRaw = searchParams.get('country') || 'de'
   const maxDaysOld = searchParams.get('max_days_old') || ''
   const page = searchParams.get('page') || '1'
+
+  // Validate country against allowlist to prevent unintended Adzuna endpoint usage
+  const country = ALLOWED_COUNTRIES.has(countryRaw.toLowerCase()) ? countryRaw.toLowerCase() : 'de'
 
   const appId = process.env.ADZUNA_APP_ID!
   const appKey = process.env.ADZUNA_APP_KEY!
@@ -25,16 +37,11 @@ export async function GET(req: NextRequest) {
 
     const url = `https://api.adzuna.com/v1/api/jobs/${country}/search/${page}?${params}`
 
-    console.log('Adzuna URL:', url)
-
     const res = await fetch(url, {
       headers: { 'Content-Type': 'application/json' },
     })
 
     const data = await res.json()
-
-    console.log('Adzuna status:', res.status)
-    console.log('Adzuna count:', data.results?.length ?? 0)
 
     if (!res.ok) {
       return NextResponse.json({ error: data.exception || 'Adzuna error' }, { status: res.status })
