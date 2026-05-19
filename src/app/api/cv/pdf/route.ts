@@ -16,11 +16,13 @@ export async function POST(req: NextRequest) {
     CVPdfDocument, { cv, ac: ac || '#378ADD', photo }
   ) as React.ReactElement<DocumentProps>
 
-  const buffer = await pdf(element).toBuffer()
+  // toBuffer() returns a Node.js Buffer; convert to Uint8Array for NextResponse BodyInit
+  const rawBuffer = await pdf(element).toBuffer()
+  const uint8 = new Uint8Array(rawBuffer)
 
   const safeName = (cv.name || 'JobLens').replace(/[^a-zA-Z0-9]/g, '_')
 
-  return new NextResponse(buffer, {
+  return new NextResponse(uint8, {
     headers: {
       'Content-Type': 'application/pdf',
       'Content-Disposition': `attachment; filename="CV_${safeName}.pdf"`,
