@@ -46,17 +46,24 @@ const EMPTY_CV: CVData = {
 }
 
 function normalizeCv(data: Partial<CVData>): CVData {
+  const sa = <T,>(v: unknown): T[] => Array.isArray(v) ? v as T[] : []
   return {
     ...EMPTY_CV,
     ...data,
-    stats:          Array.isArray(data.stats)          ? data.stats          : [],
-    skills:         Array.isArray(data.skills)         ? data.skills         : [],
-    experience:     Array.isArray(data.experience)     ? data.experience     : [],
-    education:      Array.isArray(data.education)      ? data.education      : [],
-    certifications: Array.isArray(data.certifications) ? data.certifications : [],
-    languages:      Array.isArray(data.languages)      ? data.languages      : [],
-    tools:          Array.isArray(data.tools)          ? data.tools          : [],
-    highlights:     Array.isArray(data.highlights)     ? data.highlights     : [],
+    name:           typeof data.name    === 'string' ? data.name    : '',
+    title:          typeof data.title   === 'string' ? data.title   : '',
+    summary:        typeof data.summary === 'string' ? data.summary : '',
+    stats:          sa(data.stats),
+    skills:         sa(data.skills),
+    certifications: sa(data.certifications),
+    languages:      sa(data.languages),
+    tools:          sa(data.tools),
+    highlights:     sa(data.highlights),
+    education:      sa(data.education),
+    experience:     sa(data.experience).map((raw) => {
+      const e = raw as Partial<CVData['experience'][0]>
+      return { role: '', company: '', period: '', location: '', type: '', ...e, bullets: Array.isArray(e?.bullets) ? e.bullets! : [] }
+    }),
   }
 }
 
@@ -159,7 +166,7 @@ function ExecutiveTemplate({ cv, photo }: { cv: CVData; photo?: string }) {
       </div>
 
       {/* Main content */}
-      <div style={{ flex: 1, padding: '36px 32px' }}>
+      <div style={{ flex: 1, padding: '36px 32px', minWidth: 0, overflow: 'hidden' }}>
         {/* Header */}
         <div style={{ marginBottom: 24, paddingBottom: 20, borderBottom: '2px solid #f0f4f8' }}>
           <div style={{ fontSize: 32, fontWeight: 700, color: '#0d2137', fontFamily: "'Outfit', sans-serif", letterSpacing: -0.5, marginBottom: 4 }}>{cv.name}</div>
@@ -226,7 +233,7 @@ function ExecutiveTemplate({ cv, photo }: { cv: CVData; photo?: string }) {
                   <div style={{ fontSize: 11, color: '#6b7c93', marginBottom: 8, fontStyle: 'italic' }}>
                     {[exp.company, exp.location, exp.type].filter(Boolean).join(' . ')}
                   </div>
-                  {exp.bullets.map((b, j) => (
+                  {(exp.bullets ?? []).map((b, j) => (
                     <div key={j} style={{ display: 'flex', gap: 6, marginBottom: 4, alignItems: 'flex-start' }}>
                       <span style={{ color: '#00C9A7', fontSize: 10, marginTop: 3, flexShrink: 0 }}>+</span>
                       <span style={{ fontSize: 11, color: '#374151', lineHeight: 1.6 }}>{b}</span>
@@ -363,7 +370,7 @@ function ModernTemplate({ cv }: { cv: CVData }) {
         </div>
 
         {/* Right main */}
-        <div style={{ flex: 1, padding: '28px 28px' }}>
+        <div style={{ flex: 1, padding: '28px 28px', minWidth: 0, overflow: 'hidden' }}>
           {cv.summary && (
             <div style={{ marginBottom: 22 }}>
               <div style={{ fontSize: 9, fontWeight: 700, color: '#042C53', letterSpacing: 1.5, textTransform: 'uppercase', marginBottom: 8, display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -401,7 +408,7 @@ function ModernTemplate({ cv }: { cv: CVData }) {
                   <div style={{ fontSize: 11, color: '#6b7c93', marginBottom: 6, fontStyle: 'italic' }}>
                     {[exp.company, exp.location, exp.type].filter(Boolean).join(' . ')}
                   </div>
-                  {exp.bullets.map((b, j) => (
+                  {(exp.bullets ?? []).map((b, j) => (
                     <div key={j} style={{ display: 'flex', gap: 6, marginBottom: 3 }}>
                       <span style={{ color: '#1D9E75', fontSize: 10, marginTop: 3, flexShrink: 0 }}>+</span>
                       <span style={{ fontSize: 11, color: '#374151', lineHeight: 1.6 }}>{b}</span>
@@ -463,7 +470,7 @@ function MinimalTemplate({ cv }: { cv: CVData }) {
                     <div style={{ fontSize: 10, color: '#8fa3b8' }}>{exp.period}</div>
                   </div>
                   <div style={{ fontSize: 11, color: '#6b7c93', marginBottom: 8 }}>{[exp.company, exp.location].filter(Boolean).join(', ')}</div>
-                  {exp.bullets.map((b, j) => (
+                  {(exp.bullets ?? []).map((b, j) => (
                     <div key={j} style={{ display: 'flex', gap: 8, marginBottom: 3 }}>
                       <span style={{ color: '#1a2332', fontSize: 10 }}>-</span>
                       <span style={{ fontSize: 11, color: '#374151', lineHeight: 1.7, fontWeight: 300 }}>{b}</span>
@@ -617,7 +624,7 @@ function TechnicalTemplate({ cv }: { cv: CVData }) {
         </div>
 
         {/* Right main */}
-        <div style={{ flex: 1, padding: '32px 28px' }}>
+        <div style={{ flex: 1, padding: '32px 28px', minWidth: 0, overflow: 'hidden' }}>
           {/* Stats */}
           {cv.stats.length > 0 && (
             <div style={{ display: 'flex', gap: 12, marginBottom: 24, flexWrap: 'wrap' }}>
@@ -666,7 +673,7 @@ function TechnicalTemplate({ cv }: { cv: CVData }) {
                     {exp.location && <><span>.</span><span>{exp.location}</span></>}
                     {exp.type && <span style={{ padding: '1px 6px', background: '#f0f4f8', borderRadius: 3, fontSize: 9 }}>{exp.type}</span>}
                   </div>
-                  {exp.bullets.map((b, j) => (
+                  {(exp.bullets ?? []).map((b, j) => (
                     <div key={j} style={{ display: 'flex', gap: 6, marginBottom: 3 }}>
                       <span style={{ color: '#6C8EF5', fontSize: 11, marginTop: 2, flexShrink: 0 }}>+</span>
                       <span style={{ fontSize: 11, color: '#374151', lineHeight: 1.6 }}>{b}</span>
@@ -963,11 +970,17 @@ ${confirmedSkills.length > 0 ? `- User confirmed they also have these skills (in
 
       // Render into an offscreen container — absolute avoids mobile viewport-relative positioning bugs
       const offscreen = document.createElement('div')
-      offscreen.style.cssText = 'position:absolute;left:-9999px;top:0;width:740px;min-width:740px;background:#fff;'
+      offscreen.style.cssText = 'position:absolute;left:-9999px;top:0;width:740px;min-width:740px;max-width:740px;background:#fff;'
       const clone = previewRef.current.cloneNode(true) as HTMLElement
-      clone.style.borderRadius = '0'
-      clone.style.overflow = 'visible'
-      clone.style.boxShadow = 'none'
+      // Strip visual chrome; pin to 740px so content can't escape and get clipped
+      clone.style.cssText = 'width:740px;max-width:740px;box-sizing:border-box;overflow:visible;border-radius:0;box-shadow:none;'
+      // Also constrain the template root element inside the wrapper
+      const tplRoot = clone.firstElementChild as HTMLElement | null
+      if (tplRoot) {
+        tplRoot.style.width = '740px'
+        tplRoot.style.maxWidth = '740px'
+        tplRoot.style.boxSizing = 'border-box'
+      }
       offscreen.appendChild(clone)
       document.body.appendChild(offscreen)
 

@@ -61,7 +61,7 @@ function IndiaCV({ cv, ac }: { cv: CVData; ac: string }) {
                 <div style={{ fontSize: 10, color: ac, fontWeight: 600, flexShrink: 0, marginLeft: 8 }}>{exp.period}</div>
               </div>
               <div style={{ fontSize: 11, color: '#6b7c93', fontStyle: 'italic', marginBottom: 5 }}>{[exp.company, exp.location, exp.type].filter(Boolean).join('  ·  ')}</div>
-              {exp.bullets.map((b, j) => (<div key={j} style={{ display: 'flex', gap: 7, marginBottom: 3, alignItems: 'flex-start' }}><span style={{ color: ac, fontSize: 11, flexShrink: 0, marginTop: 1 }}>•</span><span style={{ fontSize: 11, color: '#374151', lineHeight: 1.65 }}>{b}</span></div>))}
+              {(exp.bullets ?? []).map((b, j) => (<div key={j} style={{ display: 'flex', gap: 7, marginBottom: 3, alignItems: 'flex-start' }}><span style={{ color: ac, fontSize: 11, flexShrink: 0, marginTop: 1 }}>•</span><span style={{ fontSize: 11, color: '#374151', lineHeight: 1.65, wordBreak: 'break-word' as const }}>{b}</span></div>))}
             </div>
           ))}
         </div>
@@ -307,10 +307,10 @@ function ExecutiveCV({ cv, ac, photo }: { cv: CVData; ac: string; photo?: string
                   {exp.type ? ` · ${exp.type}` : ''}
                 </div>
                 <div style={{ paddingLeft: 10, borderLeft: `2px solid ${ac}28` }}>
-                  {exp.bullets.map((b, j) => (
+                  {(exp.bullets ?? []).map((b, j) => (
                     <div key={j} style={{ display: 'flex', gap: 7, marginBottom: 4, alignItems: 'flex-start' }}>
                       <span style={{ color: ac, fontSize: 9, flexShrink: 0, marginTop: 3 }}>▸</span>
-                      <span style={{ fontSize: 11, color: '#374151', lineHeight: 1.65 }}>{b}</span>
+                      <span style={{ fontSize: 11, color: '#374151', lineHeight: 1.65, wordBreak: 'break-word' as const }}>{b}</span>
                     </div>
                   ))}
                 </div>
@@ -513,10 +513,10 @@ function ExecutiveV2CV({ cv, ac, photo }: { cv: CVData; ac: string; photo?: stri
                   <div style={{ fontSize: 11, color: '#6b7c93', marginBottom: 8, fontStyle: 'italic' }}>
                     {[exp.company, exp.location, exp.type].filter(Boolean).join(' · ')}
                   </div>
-                  {exp.bullets.map((b, j) => (
+                  {(exp.bullets ?? []).map((b, j) => (
                     <div key={j} style={{ display: 'flex', gap: 6, marginBottom: 4, alignItems: 'flex-start' }}>
                       <span style={{ color: ac, fontSize: 10, marginTop: 3, flexShrink: 0 }}>+</span>
-                      <span style={{ fontSize: 11, color: '#374151', lineHeight: 1.6 }}>{b}</span>
+                      <span style={{ fontSize: 11, color: '#374151', lineHeight: 1.6, wordBreak: 'break-word' as const }}>{b}</span>
                     </div>
                   ))}
                 </div>
@@ -578,17 +578,24 @@ function CVScaleWrapper({ scale, children }: { scale: number; children: React.Re
 }
 
 function normalizeCv(data: Partial<CVData>): CVData {
+  const sa = <T,>(v: unknown): T[] => Array.isArray(v) ? v as T[] : []
   return {
-    name: '', title: '', tagline: '', email: '', phone: '', location: '', linkedin: '', summary: '',
+    tagline: '', email: '', phone: '', location: '', linkedin: '',
     ...data,
-    stats:          Array.isArray(data.stats)          ? data.stats          : [],
-    skills:         Array.isArray(data.skills)         ? data.skills         : [],
-    experience:     Array.isArray(data.experience)     ? data.experience     : [],
-    education:      Array.isArray(data.education)      ? data.education      : [],
-    certifications: Array.isArray(data.certifications) ? data.certifications : [],
-    languages:      Array.isArray(data.languages)      ? data.languages      : [],
-    tools:          Array.isArray(data.tools)          ? data.tools          : [],
-    highlights:     Array.isArray(data.highlights)     ? data.highlights     : [],
+    name:           typeof data.name    === 'string' ? data.name    : '',
+    title:          typeof data.title   === 'string' ? data.title   : '',
+    summary:        typeof data.summary === 'string' ? data.summary : '',
+    stats:          sa(data.stats),
+    skills:         sa(data.skills),
+    certifications: sa(data.certifications),
+    languages:      sa(data.languages),
+    tools:          sa(data.tools),
+    highlights:     sa(data.highlights),
+    education:      sa(data.education),
+    experience:     sa(data.experience).map((raw) => {
+      const e = raw as Partial<CVData['experience'][0]>
+      return { role: '', company: '', period: '', location: '', type: '', ...e, bullets: Array.isArray(e?.bullets) ? e.bullets! : [] }
+    }),
   }
 }
 
@@ -776,11 +783,16 @@ ${atsSuggestions?.section_gaps?.length ? `- ATS SECTION GAPS to address: ${atsSu
 
       // Render into offscreen container — absolute avoids mobile viewport-relative positioning bugs
       const offscreen = document.createElement('div')
-      offscreen.style.cssText = 'position:absolute;left:-9999px;top:0;width:740px;min-width:740px;background:#fff;'
+      offscreen.style.cssText = 'position:absolute;left:-9999px;top:0;width:740px;min-width:740px;max-width:740px;background:#fff;'
       const clone = previewRef.current.cloneNode(true) as HTMLElement
-      clone.style.borderRadius = '0'
-      clone.style.overflow = 'visible'
-      clone.style.boxShadow = 'none'
+      // Strip visual chrome; pin to 740px so content can't escape and get clipped
+      clone.style.cssText = 'width:740px;max-width:740px;box-sizing:border-box;overflow:visible;border-radius:0;box-shadow:none;'
+      const tplRoot = clone.firstElementChild as HTMLElement | null
+      if (tplRoot) {
+        tplRoot.style.width = '740px'
+        tplRoot.style.maxWidth = '740px'
+        tplRoot.style.boxSizing = 'border-box'
+      }
       offscreen.appendChild(clone)
       document.body.appendChild(offscreen)
 
