@@ -763,7 +763,7 @@ ${atsSuggestions?.section_gaps?.length ? `- ATS SECTION GAPS to address: ${atsSu
 
       // Render into offscreen container — absolute avoids mobile viewport-relative positioning bugs
       const offscreen = document.createElement('div')
-      offscreen.style.cssText = 'position:absolute;left:-9999px;top:0;width:740px;min-width:740px;background:#fff;visibility:hidden;'
+      offscreen.style.cssText = 'position:absolute;left:-9999px;top:0;width:740px;min-width:740px;background:#fff;'
       const clone = previewRef.current.cloneNode(true) as HTMLElement
       clone.style.borderRadius = '0'
       clone.style.overflow = 'visible'
