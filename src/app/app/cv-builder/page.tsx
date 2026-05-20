@@ -45,6 +45,21 @@ const EMPTY_CV: CVData = {
   certifications: [], languages: [], tools: [], highlights: []
 }
 
+function normalizeCv(data: Partial<CVData>): CVData {
+  return {
+    ...EMPTY_CV,
+    ...data,
+    stats:          Array.isArray(data.stats)          ? data.stats          : [],
+    skills:         Array.isArray(data.skills)         ? data.skills         : [],
+    experience:     Array.isArray(data.experience)     ? data.experience     : [],
+    education:      Array.isArray(data.education)      ? data.education      : [],
+    certifications: Array.isArray(data.certifications) ? data.certifications : [],
+    languages:      Array.isArray(data.languages)      ? data.languages      : [],
+    tools:          Array.isArray(data.tools)          ? data.tools          : [],
+    highlights:     Array.isArray(data.highlights)     ? data.highlights     : [],
+  }
+}
+
 // -- TEMPLATE RENDERERS ------------------------------------------------------
 
 function ExecutiveTemplate({ cv, photo }: { cv: CVData; photo?: string }) {
@@ -793,7 +808,7 @@ export default function CVBuilderPage() {
     const saved = sessionStorage.getItem(SS.cvbTailored)
     const savedData = sessionStorage.getItem(SS.cvbData)
     if (saved) setRawCv(saved)
-    if (savedData) { try { setCvData(JSON.parse(savedData)) } catch { } }
+    if (savedData) { try { setCvData(normalizeCv(JSON.parse(savedData))) } catch { } }
   }, [])
 
   useEffect(() => {
@@ -868,7 +883,7 @@ ${confirmedSkills.length > 0 ? `- User confirmed they also have these skills (in
       setRawCv(raw)
       sessionStorage.setItem(SS.cvbTailored, raw)
       try {
-        const parsed: CVData = JSON.parse(raw.replace(/```json|```/g, '').trim())
+        const parsed = normalizeCv(JSON.parse(raw.replace(/```json|```/g, '').trim()))
         setCvData(parsed)
         sessionStorage.setItem(SS.cvbData, JSON.stringify(parsed))
       } catch { setCvData(null) }
@@ -926,7 +941,7 @@ ${confirmedSkills.length > 0 ? `- User confirmed they also have these skills (in
       sessionStorage.setItem(SS.cvbTailored, raw)
       try {
         const clean = raw.replace(/```json|```/g, '').trim()
-        const parsed: CVData = JSON.parse(clean)
+        const parsed = normalizeCv(JSON.parse(clean))
         setCvData(parsed)
         sessionStorage.setItem(SS.cvbData, JSON.stringify(parsed))
       } catch { /* keep existing */ }
