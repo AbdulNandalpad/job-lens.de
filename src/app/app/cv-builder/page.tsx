@@ -927,12 +927,32 @@ ${job?.job_description ? `- Job context: ${job.job_description.slice(0, 800)}` :
         import('html2canvas'),
         import('jspdf'),
       ])
-      const canvas = await html2canvas(previewRef.current, {
+
+      const el = previewRef.current
+
+      // Scroll preview area to top so html2canvas captures from the beginning
+      const area = previewAreaRef.current
+      const savedScroll = area?.scrollTop ?? 0
+      if (area) area.scrollTop = 0
+
+      // Lift overflow:hidden so full CV height is captured (not clipped by border-radius wrapper)
+      const prevOverflow = el.style.overflow
+      el.style.overflow = 'visible'
+
+      const canvas = await html2canvas(el, {
         scale: 2,
         useCORS: true,
         backgroundColor: '#ffffff',
         logging: false,
+        scrollX: 0,
+        scrollY: 0,
+        width: el.scrollWidth,
+        height: el.scrollHeight,
       })
+
+      el.style.overflow = prevOverflow
+      if (area) area.scrollTop = savedScroll
+
       const imgData = canvas.toDataURL('image/jpeg', 0.95)
       const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' })
       const A4_W = 210
