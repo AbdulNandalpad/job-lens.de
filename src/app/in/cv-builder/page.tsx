@@ -792,10 +792,9 @@ ${atsSuggestions?.section_gaps?.length ? `- ATS SECTION GAPS to address: ${atsSu
       const A4_H = 297
       const imgH = (canvas.height * A4_W) / canvas.width
 
-      if (pages === '1') {
-        pdf.addImage(imgData, 'JPEG', 0, 0, A4_W, A4_H)
-      } else {
-        pdf.addImage(imgData, 'JPEG', 0, 0, A4_W, imgH)
+      // Render at natural aspect ratio — never distort by forcing A4_H
+      pdf.addImage(imgData, 'JPEG', 0, 0, A4_W, imgH)
+      if (pages !== '1') {
         let position = -A4_H
         while (imgH + position > 0) {
           pdf.addPage()

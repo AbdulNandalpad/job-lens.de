@@ -979,12 +979,9 @@ ${confirmedSkills.length > 0 ? `- User confirmed they also have these skills (in
       const A4_H = 297
       const imgH = (canvas.height * A4_W) / canvas.width
 
-      if (pages === '1') {
-        // Scale entire content to fit exactly one A4 page — no cuts
-        pdf.addImage(imgData, 'JPEG', 0, 0, A4_W, A4_H)
-      } else {
-        // Tile image across pages at natural scale
-        pdf.addImage(imgData, 'JPEG', 0, 0, A4_W, imgH)
+      // Render at natural aspect ratio — never distort by forcing A4_H
+      pdf.addImage(imgData, 'JPEG', 0, 0, A4_W, imgH)
+      if (pages !== '1') {
         let position = -A4_H
         while (imgH + position > 0) {
           pdf.addPage()
