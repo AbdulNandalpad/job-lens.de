@@ -11,7 +11,6 @@ const accent = '#FF9933'
 
 type Template = 'clean' | 'saffron' | 'classic' | 'modern' | 'executive' | 'executive2'
 type Tone = 'professional' | 'concise' | 'detailed'
-type Pages = '1' | '2'
 type Lang = 'EN'
 
 interface CVData {
@@ -592,7 +591,6 @@ export default function IndiaCVBuilderPage() {
   const [jobLabel,      setJobLabel]      = useState('')
   const [template,      setTemplate]      = useState<Template>('clean')
   const [tone,          setTone]          = useState<Tone>('professional')
-  const [pages,         setPages]         = useState<Pages>('1')
   const lang: Lang = 'EN'
   const [cvData,        setCvData]        = useState<CVData | null>(null)
   const [rawCv,         setRawCv]         = useState('')
@@ -690,7 +688,7 @@ Rules:
 - experience: include EVERY role, do not skip any
 - bullets: 2-4 achievement-focused per role, action verbs
 - tools: 10-20 specific technologies
-- tone: ${tone}, language: ${lang}, pages: ${pages}
+- tone: ${tone}, language: ${lang}
 ${job ? `- Tailor for: ${job.job_title} at ${job.employer_name}` : ''}
 ${job?.job_description ? `- Job context: ${job.job_description.slice(0, 800)}` : ''}
 ${confirmedSkills.length > 0 ? `- User confirmed they also have these skills (include them): ${confirmedSkills.join(', ')}` : ''}
@@ -700,7 +698,7 @@ ${atsSuggestions?.format_issues?.length ? `- ATS FORMAT ISSUES to fix: ${atsSugg
 ${atsSuggestions?.section_gaps?.length ? `- ATS SECTION GAPS to address: ${atsSuggestions.section_gaps.join('; ')}` : ''}`
 
     try {
-      const res  = await fetch(API.tailorCv, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ cvText, job, template, tone, pages, lang, systemPrompt, returnJson: true, market: MARKET.in }) })
+      const res  = await fetch(API.tailorCv, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ cvText, job, template, tone, lang, systemPrompt, returnJson: true, market: MARKET.in }) })
       if (res.status === 402) { const d = await res.json(); if (typeof d.credits === 'number') setCredits(d.credits); setLoading(false); alert('Not enough credits.'); return }
       const data = await res.json()
       if (typeof data.creditsRemaining === 'number') setCredits(data.creditsRemaining)
@@ -741,7 +739,7 @@ ${atsSuggestions?.section_gaps?.length ? `- ATS SECTION GAPS to address: ${atsSu
     setApplyingFeedback(true)
     try {
       const atsCtx = atsSuggestions?.missing_keywords?.length ? ` Ensure these ATS keywords are present: ${atsSuggestions.missing_keywords.join(', ')}.` : ''
-      const res = await fetch(API.tailorCv, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ cvText, job, template, tone, pages, lang, systemPrompt: `Apply the feedback and return updated JSON matching the same schema. Return ONLY valid JSON.${atsCtx}`, returnJson: true, feedback, currentCv: rawCv, market: MARKET.in }) })
+      const res = await fetch(API.tailorCv, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ cvText, job, template, tone, lang, systemPrompt: `Apply the feedback and return updated JSON matching the same schema. Return ONLY valid JSON.${atsCtx}`, returnJson: true, feedback, currentCv: rawCv, market: MARKET.in }) })
       if (res.status === 402) { alert('Not enough credits.'); setApplyingFeedback(false); return }
       const data = await res.json()
       const raw  = data.cv || ''
@@ -1118,12 +1116,6 @@ ${atsSuggestions?.section_gaps?.length ? `- ATS SECTION GAPS to address: ${atsSu
                       ))}
                     </div>
                   </div>
-                  <div>
-                    <div style={{ fontSize: 10, fontWeight: 600, color: 'rgba(255,255,255,0.4)', letterSpacing: 0.5, textTransform: 'uppercase', marginBottom: 8 }}>Length</div>
-                    <div style={{ display: 'flex', gap: 6 }}>
-                      {(['1', '2'] as Pages[]).map(p => <button key={p} onClick={() => setPages(p)} style={{ flex: 1, padding: '8px 0', borderRadius: 8, border: `1px solid ${pages === p ? accent : 'rgba(255,255,255,0.1)'}`, background: pages === p ? accent + '20' : 'rgba(255,255,255,0.04)', color: pages === p ? '#fff' : 'rgba(255,255,255,0.45)', fontSize: 12, fontWeight: pages === p ? 700 : 400, cursor: 'pointer', fontFamily: 'inherit', transition: 'all 0.15s' }}>{p === '1' ? '1 Page' : '2 Pages'}</button>)}
-                    </div>
-                  </div>
                 </div>
               )}
             </div>
@@ -1179,10 +1171,6 @@ ${atsSuggestions?.section_gaps?.length ? `- ATS SECTION GAPS to address: ${atsSu
                   ))}
                 </div>
               </div>
-              <div>
-                <div style={{ fontSize: 10, fontWeight: 600, color: 'rgba(255,255,255,0.4)', letterSpacing: 0.5, textTransform: 'uppercase', marginBottom: 8 }}>Pages</div>
-                <div style={{ display: 'flex', gap: 6 }}>{(['1', '2'] as Pages[]).map(p => <button key={p} onClick={() => setPages(p)} style={{ flex: 1, padding: '8px 0', borderRadius: 8, border: `1px solid ${pages === p ? accent : 'rgba(255,255,255,0.1)'}`, background: pages === p ? accent + '20' : 'rgba(255,255,255,0.04)', color: pages === p ? '#fff' : 'rgba(255,255,255,0.45)', fontSize: 11, fontWeight: pages === p ? 700 : 400, cursor: 'pointer', fontFamily: 'inherit' }}>{p}p</button>)}</div>
-              </div>
               <button className="cvb-gen" onClick={() => { handleGenerate() }} disabled={!canGenerate}
                 style={{ width: '100%', padding: '12px 0', borderRadius: 10, border: 'none', background: canGenerate ? `linear-gradient(135deg, ${accent}, #e67300)` : 'rgba(255,255,255,0.08)', color: canGenerate ? '#042C53' : 'rgba(255,255,255,0.25)', fontFamily: "'Outfit', sans-serif", fontSize: 13, fontWeight: 700, cursor: canGenerate ? 'pointer' : 'not-allowed' }}>
                 {loading ? 'Generating...' : credits !== null && credits < CV_COST ? `Need ${CV_COST} credit` : cvData ? `Regenerate (${CV_COST} credit)` : `Generate CV (${CV_COST} credit)`}
@@ -1194,7 +1182,7 @@ ${atsSuggestions?.section_gaps?.length ? `- ATS SECTION GAPS to address: ${atsSu
           <div style={{ padding: '12px 20px', borderBottom: '1px solid rgba(255,255,255,0.08)', background: '#152233', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0, gap: 10, flexWrap: 'wrap' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
               <span style={{ fontSize: 12, fontWeight: 600, color: cvData ? accent : 'rgba(255,255,255,0.25)' }}>{cvData ? 'CV Ready' : 'Preview'}</span>
-              {cvData && <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.2)', padding: '2px 8px', background: 'rgba(255,255,255,0.04)', borderRadius: 20, border: '1px solid rgba(255,255,255,0.06)' }}>{curTpl.label} | {lang} | {pages}p</span>}
+              {cvData && <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.2)', padding: '2px 8px', background: 'rgba(255,255,255,0.04)', borderRadius: 20, border: '1px solid rgba(255,255,255,0.06)' }}>{curTpl.label} | {lang}</span>}
             </div>
             {cvData && (
               <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>

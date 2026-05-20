@@ -11,7 +11,6 @@ import { CREDIT_COST, LOW_CREDIT_WARN, MARKET, SS, API } from '@/lib/constants'
 
 type Template = 'executive' | 'modern' | 'minimal' | 'technical'
 type Tone = 'professional' | 'concise' | 'detailed'
-type Pages = '1' | '2'
 type Lang = 'EN' | 'DE'
 
 interface CVData {
@@ -718,7 +717,6 @@ export default function CVBuilderPage() {
   const [jobLabel, setJobLabel] = useState('')
   const [template, setTemplate] = useState<Template>('executive')
   const [tone, setTone] = useState<Tone>('professional')
-  const [pages, setPages] = useState<Pages>('1')
   const [lang, setLang] = useState<Lang>('EN')
   const [cvData, setCvData] = useState<CVData | null>(null)
   const [rawCv, setRawCv] = useState('')
@@ -852,7 +850,7 @@ Rules:
 - experience bullets: 2-4 achievement-focused bullets per role, start with action verbs
 - tools: 10-20 specific technologies/platforms mentioned in the CV
 - highlights: 4-6 punchy career highlights
-- tone: ${tone}, output language: ${lang}, target pages: ${pages}
+- tone: ${tone}, output language: ${lang}
 ${job ? `- Tailor for this role: ${job.job_title} at ${job.employer_name}` : ''}
 ${job?.job_description ? `- Job description context: ${job.job_description.slice(0, 1000)}` : ''}
 ${confirmedSkills.length > 0 ? `- User confirmed they also have these skills (include them): ${confirmedSkills.join(', ')}` : ''}`
@@ -861,7 +859,7 @@ ${confirmedSkills.length > 0 ? `- User confirmed they also have these skills (in
       const res = await fetch(API.tailorCv, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ cvText, job, template, tone, pages, lang, systemPrompt, returnJson: true }),
+        body: JSON.stringify({ cvText, job, template, tone, lang, systemPrompt, returnJson: true }),
       })
       if (res.status === 402) { const d = await res.json(); if (typeof d.credits === 'number') setCredits(d.credits); setLoading(false); alert('Not enough credits. Please top up on the Account page.'); return }
       const data = await res.json()
@@ -919,7 +917,7 @@ ${confirmedSkills.length > 0 ? `- User confirmed they also have these skills (in
       const res = await fetch(API.tailorCv, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ cvText, job, template, tone, pages, lang, systemPrompt, returnJson: true, feedback, currentCv: rawCv }),
+        body: JSON.stringify({ cvText, job, template, tone, lang, systemPrompt, returnJson: true, feedback, currentCv: rawCv }),
       })
       if (res.status === 402) { alert('Not enough credits to apply changes.'); setApplyingFeedback(false); return }
       const data = await res.json()
@@ -1427,18 +1425,6 @@ ${confirmedSkills.length > 0 ? `- User confirmed they also have these skills (in
                     </div>
                   </div>
 
-                  {/* Length */}
-                  <div>
-                    <div style={{ fontSize: 10, fontWeight: 600, color: 'rgba(255,255,255,0.4)', letterSpacing: 0.5, textTransform: 'uppercase', marginBottom: 8 }}>{t.cvBuilder.sidebar.pagesLabel}</div>
-                    <div style={{ display: 'flex', gap: 6 }}>
-                      {(['1', '2'] as Pages[]).map(p => (
-                        <button key={p} onClick={() => setPages(p)}
-                          style={{ flex: 1, padding: '8px 0', borderRadius: 8, border: `1px solid ${pages === p ? currentAccent : 'rgba(255,255,255,0.1)'}`, background: pages === p ? currentAccent + '20' : 'rgba(255,255,255,0.04)', color: pages === p ? '#fff' : 'rgba(255,255,255,0.45)', fontSize: 12, fontWeight: pages === p ? 700 : 400, cursor: 'pointer', fontFamily: 'inherit', transition: 'all 0.15s' }}>
-                          {p === '1' ? '1 Page' : '2 Pages'}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
                 </div>
               )}
             </div>
@@ -1474,7 +1460,7 @@ ${confirmedSkills.length > 0 ? `- User confirmed they also have these skills (in
               </span>
               {cvData && (
                 <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.2)', padding: '2px 8px', background: 'rgba(255,255,255,0.04)', borderRadius: 20, border: '1px solid rgba(255,255,255,0.06)' }}>
-                  {templates.find(t => t.id === template)?.label} | {lang} | {pages}p
+                  {templates.find(t => t.id === template)?.label} | {lang}
                 </span>
               )}
             </div>
