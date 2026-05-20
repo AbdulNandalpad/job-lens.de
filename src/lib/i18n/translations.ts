@@ -353,6 +353,8 @@ export const translations = {
         resetBtn: 'Alles zurücksetzen',
         noCredits: 'Keine Credits mehr. Im Konto aufladen.',
         lowCredits: (n: number) => `${n} Credit${n === 1 ? '' : 's'} verbleibend.`,
+        settings: 'Lebenslauf-Einstellungen',
+        closeSettings: 'Einstellungen schließen',
       },
     },
     common: {
@@ -721,6 +723,8 @@ export const translations = {
         resetBtn: 'Reset Everything',
         noCredits: 'No credits left. Top up on Account page.',
         lowCredits: (n: number) => `${n} credit${n === 1 ? '' : 's'} remaining.`,
+        settings: 'CV Builder Settings',
+        closeSettings: 'Close Settings',
       },
     },
     common: {

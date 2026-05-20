@@ -1344,7 +1344,7 @@ ${job?.job_description ? `- Job context: ${job.job_description.slice(0, 800)}` :
           {/* Mobile sidebar toggle */}
           <div className="jl-mbtn" style={{ padding: '10px 16px', background: '#152233', borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
             <button onClick={() => setMobOpen(o => !o)} style={{ background: '#1a2d45', color: 'rgba(255,255,255,0.8)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 8, padding: '8px 16px', fontSize: 13, cursor: 'pointer', fontFamily: 'inherit' }}>
-              {mobOpen ? t.coverLetter.sidebar.closeSettings : t.coverLetter.sidebar.settings}
+              {mobOpen ? t.cvBuilder.sidebar.closeSettings : t.cvBuilder.sidebar.settings}
             </button>
           </div>
           {mobOpen && (
