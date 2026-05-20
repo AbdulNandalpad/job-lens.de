@@ -920,22 +920,36 @@ ${job?.job_description ? `- Job context: ${job.job_description.slice(0, 800)}` :
   const [downloading, setDownloading] = useState<'pdf' | 'docx' | null>(null)
 
   async function downloadPDF() {
-    if (!cvData) return
+    if (!cvData || !previewRef.current) return
     setDownloading('pdf')
     try {
-      const res = await fetch('/api/cv/pdf', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ cv: cvData, ac: currentAccent, template }),
+      const [{ default: html2canvas }, { default: jsPDF }] = await Promise.all([
+        import('html2canvas'),
+        import('jspdf'),
+      ])
+      const canvas = await html2canvas(previewRef.current, {
+        scale: 2,
+        useCORS: true,
+        backgroundColor: '#ffffff',
+        logging: false,
       })
-      if (!res.ok) throw new Error('PDF generation failed')
-      const blob = await res.blob()
-      const url = URL.createObjectURL(blob)
-      const a = document.createElement('a')
-      a.href = url
-      a.download = `CV_${(job?.employer_name || cvData.name || 'JobLens').replace(/[^a-zA-Z0-9]/g, '_')}.pdf`
-      a.click()
-      URL.revokeObjectURL(url)
+      const imgData = canvas.toDataURL('image/jpeg', 0.95)
+      const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' })
+      const A4_W = 210
+      const A4_H = 297
+      const imgH = (canvas.height * A4_W) / canvas.width
+      let position = 0
+      let remaining = imgH
+      pdf.addImage(imgData, 'JPEG', 0, 0, A4_W, imgH)
+      remaining -= A4_H
+      while (remaining > 0) {
+        position -= A4_H
+        pdf.addPage()
+        pdf.addImage(imgData, 'JPEG', 0, position, A4_W, imgH)
+        remaining -= A4_H
+      }
+      const name = (job?.employer_name || cvData.name || 'JobLens').replace(/[^a-zA-Z0-9]/g, '_')
+      pdf.save(`CV_${name}.pdf`)
     } catch (err) {
       console.error('PDF error:', err)
       alert('PDF generation failed. Please try again.')
