@@ -735,30 +735,29 @@ ${atsSuggestions?.section_gaps?.length ? `- ATS SECTION GAPS to address: ${atsSu
         import('jspdf'),
       ])
 
-      const el = previewRef.current
+      // Render into offscreen container — no scroll, no clipping, no transform
+      const offscreen = document.createElement('div')
+      offscreen.style.cssText = 'position:fixed;left:-9999px;top:0;width:740px;background:#fff;z-index:-1;'
+      const clone = previewRef.current.cloneNode(true) as HTMLElement
+      clone.style.borderRadius = '0'
+      clone.style.overflow = 'visible'
+      clone.style.boxShadow = 'none'
+      offscreen.appendChild(clone)
+      document.body.appendChild(offscreen)
 
-      // Scroll preview area to top so html2canvas captures from the beginning
-      const area = previewAreaRef.current
-      const savedScroll = area?.scrollTop ?? 0
-      if (area) area.scrollTop = 0
+      await new Promise(r => setTimeout(r, 120))
 
-      // Lift overflow:hidden so full CV height is captured (not clipped by border-radius wrapper)
-      const prevOverflow = el.style.overflow
-      el.style.overflow = 'visible'
-
-      const canvas = await html2canvas(el, {
+      const canvas = await html2canvas(offscreen, {
         scale: 2,
         useCORS: true,
         backgroundColor: '#ffffff',
         logging: false,
-        scrollX: 0,
-        scrollY: 0,
-        width: el.scrollWidth,
-        height: el.scrollHeight,
+        width: 740,
+        height: offscreen.scrollHeight,
+        windowWidth: 740,
       })
 
-      el.style.overflow = prevOverflow
-      if (area) area.scrollTop = savedScroll
+      document.body.removeChild(offscreen)
 
       const imgData = canvas.toDataURL('image/jpeg', 0.95)
       const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' })

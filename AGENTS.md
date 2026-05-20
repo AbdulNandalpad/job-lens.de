@@ -103,6 +103,7 @@ Only these routes exist under `src/app/api/`:
 | `/api/jobs` | GET | Adzuna job search | DACH only | free |
 | `/api/auto-apply/analyze` | POST | Auto apply form analysis | eu | 3 |
 | `/api/user/profile` | GET | Fetch credits + usage log | both | free |
+| `/api/cv/skill-gap` | POST | Compare CV text vs JD, return matching/missing skills | both | free |
 | `/api/paypal/webhook` | POST | PayPal IPN → top up eu_credits | — | — |
 
 Do not call any other `/api/*` path. Do not invent new routes without creating the file.

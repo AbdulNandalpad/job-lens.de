@@ -6,6 +6,7 @@ import Navbar from '../components/Navbar'
 import { useCredits } from '@/lib/useCredits'
 import { useLanguage } from '@/lib/i18n'
 import CrossMarketModal from '@/components/CrossMarketModal'
+import SkillGapModal from '@/components/SkillGapModal'
 import { CREDIT_COST, LOW_CREDIT_WARN, MARKET, SS, API } from '@/lib/constants'
 
 type Template = 'executive' | 'modern' | 'minimal' | 'technical'
@@ -723,6 +724,9 @@ export default function CVBuilderPage() {
   const CV_COST = CREDIT_COST.tailorCv
   const [crossWarnPending, setCrossWarnPending] = useState<(() => void) | null>(null)
   const [mobOpen, setMobOpen] = useState(false)
+  const [skillGapOpen, setSkillGapOpen] = useState(false)
+  const [skillGapData, setSkillGapData] = useState<{ matching: string[]; missing: string[] } | null>(null)
+  const [skillGapLoading, setSkillGapLoading] = useState(false)
   const [editingContact, setEditingContact] = useState(false)
   const [contactDraft, setContactDraft] = useState({ name: '', email: '', phone: '', location: '', linkedin: '' })
 
@@ -793,70 +797,59 @@ export default function CVBuilderPage() {
     return () => window.removeEventListener('resize', calc)
   }, [])
 
-  async function generate() {
+  async function generate(confirmedSkills: string[] = []) {
     if (!cvText.trim()) return
     if (credits !== null && credits < CV_COST) { alert(`You need ${CV_COST} credit to build a CV. Please top up on the Account page.`); return }
     setLoading(true); setCvData(null); setRawCv('')
 
-    const systemPrompt = `You are an elite CV designer and career consultant. Your job is to extract, enhance and structure CV information into a rich JSON object for visual rendering.
+    const systemPrompt = `You are an elite CV designer and career consultant. Extract, enhance and structure CV information into a rich JSON object for visual rendering.
 
-Return ONLY valid JSON - no markdown, no backticks, no preamble. 
+SOURCE TYPE HINTS — apply these parsing rules:
+- If the text looks like a LinkedIn export (has sections like "Experience", "Education", "Skills", "Licenses & Certifications", "Languages"): parse each section carefully. LinkedIn exports often have garbled line breaks — reconstruct full sentences.
+- If it looks like a Word/PDF CV: extract all sections including any custom sections.
+- In all cases: NEVER skip any role, education entry, or certification. Extract EVERYTHING.
 
-The JSON must follow this exact schema:
+Return ONLY valid JSON — no markdown, no backticks, no preamble.
+
+Schema:
 {
   "name": "Full Name",
   "title": "Job Title / Professional Headline",
-  "tagline": "Brief role descriptor line (optional)",
+  "tagline": "Brief role descriptor (optional)",
   "email": "email",
   "phone": "phone",
   "location": "City, Country",
   "linkedin": "linkedin url or handle",
   "summary": "3-4 sentence professional summary, polished and compelling",
-  "stats": [{"value": "15+", "label": "Years Experience"}, ...],
-  "skills": [{"name": "Skill Name", "level": 90}, ...],
-  "experience": [{
-    "role": "Job Title",
-    "company": "Company Name",
-    "period": "MMM YYYY - MMM YYYY",
-    "location": "City, Country",
-    "type": "Full-time / Remote / etc",
-    "bullets": ["Achievement or responsibility..."]
-  }],
+  "stats": [{"value": "15+", "label": "Years Experience"}],
+  "skills": [{"name": "Skill Name", "level": 90}],
+  "experience": [{"role": "Job Title", "company": "Company", "period": "MMM YYYY - MMM YYYY", "location": "City, Country", "type": "Full-time", "bullets": ["Achievement..."]}],
   "education": [{"degree": "...", "school": "...", "year": "YYYY"}],
   "certifications": ["Full cert name"],
   "languages": [{"name": "Language", "level": 90}],
-  "tools": ["Tool1", "Tool2", ...],
-  "highlights": ["Short highlight bullet", ...]
+  "tools": ["Tool1", "Tool2"],
+  "highlights": ["Short punchy highlight"]
 }
 
 Rules:
-- CONTACT FIELDS (email, phone, location, linkedin): copy these EXACTLY character-for-character from the CV text. NEVER invent, guess, or generate a contact field. If you cannot find a field in the CV text, return an empty string "".
-- stats: 3-5 impressive metrics (years exp, projects, certifications, industries etc)
-- skills: up to 12, each with a percentage level 60-99 — include all major skills from the CV
-- languages: level is percentage (native=98, fluent=85, good=65, basic=45)
-- experience: include EVERY role listed in the CV — do not skip or merge any positions
-- experience bullets: 2-4 strong achievement-focused bullets per role, start with action verbs
-- tools: flat list of 10-20 specific technologies/tools/platforms — extract all mentioned
-- highlights: 4-6 short punchy career highlights
-- IMPORTANT: extract all information from the full CV — do not omit roles, certifications, or education
-- tone: ${tone}, language: ${lang}, pages target: ${pages}
-${job ? `- Tailor specifically for this role: ${job.job_title} at ${job.employer_name}` : ''}
-${job?.job_description ? `- Job context: ${job.job_description.slice(0, 800)}` : ''}`
+- CONTACT FIELDS: copy email, phone, location, linkedin EXACTLY from the source. Never invent them. Empty string if not found.
+- stats: 3-5 impressive metrics
+- skills: up to 12, percentage level 60-99
+- languages: native=98, fluent=85, proficient=65, basic=45
+- experience: include EVERY role — do not skip or merge positions
+- experience bullets: 2-4 achievement-focused bullets per role, start with action verbs
+- tools: 10-20 specific technologies/platforms mentioned in the CV
+- highlights: 4-6 punchy career highlights
+- tone: ${tone}, output language: ${lang}, target pages: ${pages}
+${job ? `- Tailor for this role: ${job.job_title} at ${job.employer_name}` : ''}
+${job?.job_description ? `- Job description context: ${job.job_description.slice(0, 1000)}` : ''}
+${confirmedSkills.length > 0 ? `- User confirmed they also have these skills (include them): ${confirmedSkills.join(', ')}` : ''}`
 
     try {
       const res = await fetch(API.tailorCv, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          cvText,
-          job,
-          template,
-          tone,
-          pages,
-          lang,
-          systemPrompt,
-          returnJson: true,
-        }),
+        body: JSON.stringify({ cvText, job, template, tone, pages, lang, systemPrompt, returnJson: true }),
       })
       if (res.status === 402) { const d = await res.json(); if (typeof d.credits === 'number') setCredits(d.credits); setLoading(false); alert('Not enough credits. Please top up on the Account page.'); return }
       const data = await res.json()
@@ -864,28 +857,43 @@ ${job?.job_description ? `- Job context: ${job.job_description.slice(0, 800)}` :
       const raw = data.cv || data.enhanced || data.result || ''
       setRawCv(raw)
       sessionStorage.setItem(SS.cvbTailored, raw)
-
-      // Try to parse as JSON for visual render
       try {
-        const clean = raw.replace(/```json|```/g, '').trim()
-        const parsed: CVData = JSON.parse(clean)
+        const parsed: CVData = JSON.parse(raw.replace(/```json|```/g, '').trim())
         setCvData(parsed)
         sessionStorage.setItem(SS.cvbData, JSON.stringify(parsed))
-      } catch {
-        // Fallback: show raw text
-        setCvData(null)
-      }
+      } catch { setCvData(null) }
     } catch {
       setRawCv('Failed to generate. Please try again.')
     }
     setLoading(false)
   }
 
+  async function runSkillGapThenGenerate() {
+    if (job?.job_description && cvText) {
+      setSkillGapLoading(true)
+      try {
+        const res = await fetch('/api/cv/skill-gap', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ cvText, jobDescription: job.job_description }),
+        })
+        const data = await res.json()
+        setSkillGapLoading(false)
+        if (data.missing?.length > 0) {
+          setSkillGapData(data)
+          setSkillGapOpen(true)
+          return
+        }
+      } catch { setSkillGapLoading(false) }
+    }
+    generate([])
+  }
+
   function handleGenerate() {
     if (needsCrossMarket(CV_COST, MARKET.eu)) {
-      setCrossWarnPending(() => generate)
+      setCrossWarnPending(() => runSkillGapThenGenerate)
     } else {
-      generate()
+      runSkillGapThenGenerate()
     }
   }
 
@@ -928,30 +936,30 @@ ${job?.job_description ? `- Job context: ${job.job_description.slice(0, 800)}` :
         import('jspdf'),
       ])
 
-      const el = previewRef.current
+      // Render into an offscreen container — no scroll, no clipping, no transform
+      const offscreen = document.createElement('div')
+      offscreen.style.cssText = 'position:fixed;left:-9999px;top:0;width:740px;background:#fff;z-index:-1;'
+      const clone = previewRef.current.cloneNode(true) as HTMLElement
+      clone.style.borderRadius = '0'
+      clone.style.overflow = 'visible'
+      clone.style.boxShadow = 'none'
+      offscreen.appendChild(clone)
+      document.body.appendChild(offscreen)
 
-      // Scroll preview area to top so html2canvas captures from the beginning
-      const area = previewAreaRef.current
-      const savedScroll = area?.scrollTop ?? 0
-      if (area) area.scrollTop = 0
+      // Allow fonts/images to settle
+      await new Promise(r => setTimeout(r, 120))
 
-      // Lift overflow:hidden so full CV height is captured (not clipped by border-radius wrapper)
-      const prevOverflow = el.style.overflow
-      el.style.overflow = 'visible'
-
-      const canvas = await html2canvas(el, {
+      const canvas = await html2canvas(offscreen, {
         scale: 2,
         useCORS: true,
         backgroundColor: '#ffffff',
         logging: false,
-        scrollX: 0,
-        scrollY: 0,
-        width: el.scrollWidth,
-        height: el.scrollHeight,
+        width: 740,
+        height: offscreen.scrollHeight,
+        windowWidth: 740,
       })
 
-      el.style.overflow = prevOverflow
-      if (area) area.scrollTop = savedScroll
+      document.body.removeChild(offscreen)
 
       const imgData = canvas.toDataURL('image/jpeg', 0.95)
       const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' })
@@ -1195,13 +1203,16 @@ ${job?.job_description ? `- Job context: ${job.job_description.slice(0, 800)}` :
         .cvb-action:hover { background: rgba(255,255,255,0.1) !important; }
         .shimmer { background: linear-gradient(90deg, rgba(255,255,255,0.04) 25%, rgba(255,255,255,0.09) 50%, rgba(255,255,255,0.04) 75%); background-size:200% 100%; animation: shimmer 1.5s infinite; border-radius:4px; }
         .cv-preview { animation: fadeUp 0.35s ease; }
-        .jl-dsb { display: flex !important; }
-        .jl-mob { display: none !important; }
-        .jl-mbtn { display: none !important; }
+        .cvb-layout { display: flex; height: calc(100vh - 52px); }
+        .cvb-sidebar { width: 300px; flex-shrink: 0; background: linear-gradient(180deg,#152233 0%,#0e1a28 100%); border-right: 1px solid rgba(255,255,255,0.08); display: flex; flex-direction: column; overflow-y: auto; }
+        .cvb-preview-area { flex: 1; overflow-y: auto; min-width: 0; }
+        .cvb-mob-settings { display: none; }
         @media (max-width: 768px) {
-          .jl-dsb { display: none !important; }
-          .jl-mob { display: flex !important; }
-          .jl-mbtn { display: block !important; }
+          .cvb-layout { flex-direction: column; height: auto; min-height: calc(100vh - 52px); }
+          .cvb-sidebar { width: 100%; border-right: none; border-bottom: 1px solid rgba(255,255,255,0.08); overflow-y: visible; flex-shrink: 0; }
+          .cvb-preview-area { overflow-y: visible; }
+          .cvb-mob-settings { display: block; }
+          .cvb-mob-hide { display: none; }
         }
       `}</style>
 
@@ -1217,10 +1228,10 @@ ${job?.job_description ? `- Job context: ${job.job_description.slice(0, 800)}` :
         />
       )}
 
-      <div style={{ display: 'flex', height: 'calc(100vh - 52px)' }}>
+      <div className="cvb-layout">
 
         {/* -- LEFT STUDIO PANEL -- */}
-        <div className="jl-dsb" style={{ width: 288, flexShrink: 0, background: 'linear-gradient(180deg, #152233 0%, #0e1a28 100%)', borderRight: '1px solid rgba(255,255,255,0.08)', flexDirection: 'column' }}>
+        <div className="cvb-sidebar">
 
           {/* Header */}
           <div style={{ padding: '20px 20px 16px', borderBottom: '1px solid rgba(255,255,255,0.08)', flexShrink: 0 }}>
@@ -1417,85 +1428,13 @@ ${job?.job_description ? `- Job context: ${job.job_description.slice(0, 800)}` :
         </div>
 
         {/* -- RIGHT PREVIEW -- */}
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', background: '#141E2B', overflow: 'hidden' }}>
-
-          {/* Mobile sidebar toggle */}
-          <div className="jl-mbtn" style={{ padding: '10px 16px', background: '#152233', borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
-            <button onClick={() => setMobOpen(o => !o)} style={{ background: '#1a2d45', color: 'rgba(255,255,255,0.8)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 8, padding: '8px 16px', fontSize: 13, cursor: 'pointer', fontFamily: 'inherit' }}>
-              {mobOpen ? t.cvBuilder.sidebar.closeSettings : t.cvBuilder.sidebar.settings}
-            </button>
-          </div>
-          {mobOpen && (
-            <div className="jl-mob" style={{ background: 'linear-gradient(180deg, #152233 0%, #0e1a28 100%)', borderBottom: '1px solid rgba(255,255,255,0.1)', flexDirection: 'column', overflowY: 'auto', maxHeight: '70vh', padding: '16px', gap: 14 }}>
-              {/* CV upload (mobile) */}
-              {!cvText && (
-                <div onClick={() => { fileInputRef.current?.click(); }}
-                  style={{ padding: '14px 12px', border: '1.5px dashed rgba(255,255,255,0.18)', borderRadius: 9, cursor: 'pointer', textAlign: 'center' }}>
-                  <div style={{ fontSize: 18, marginBottom: 4 }}>📄</div>
-                  <div style={{ fontSize: 12, fontWeight: 600, color: 'rgba(255,255,255,0.7)' }}>{fileLoading ? t.coverLetter.sidebar.reading : t.cvBuilder.sidebar.cvLabel}</div>
-                  <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)', marginTop: 2 }}>PDF · DOCX · TXT</div>
-                </div>
-              )}
-              {cvText && cvFileName && (
-                <div style={{ padding: '7px 10px', background: 'rgba(29,158,117,0.12)', border: '1px solid rgba(29,158,117,0.3)', borderRadius: 8, fontSize: 10, color: 'rgba(255,255,255,0.7)' }}>
-                  ✓ {cvFileName}
-                </div>
-              )}
-              {/* Template */}
-              <div>
-                <div style={{ fontSize: 10, fontWeight: 600, color: 'rgba(255,255,255,0.4)', letterSpacing: 0.5, textTransform: 'uppercase', marginBottom: 8 }}>{t.cvBuilder.sidebar.templateLabel}</div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
-                  {templates.map(t => (
-                    <button key={t.id} onClick={() => setTemplate(t.id)}
-                      style={{ padding: '9px 12px', borderRadius: 8, border: `1px solid ${template === t.id ? t.accent : 'rgba(255,255,255,0.1)'}`, background: template === t.id ? t.accent + '20' : 'rgba(255,255,255,0.04)', color: template === t.id ? '#fff' : 'rgba(255,255,255,0.55)', fontSize: 12, fontWeight: template === t.id ? 700 : 400, cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left' }}>
-                      {t.label} <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)', fontWeight: 400 }}>{t.desc}</span>
-                    </button>
-                  ))}
-                </div>
-              </div>
-              {/* Language + Pages */}
-              <div style={{ display: 'flex', gap: 12 }}>
-                <div style={{ flex: 1 }}>
-                  <div style={{ fontSize: 10, fontWeight: 600, color: 'rgba(255,255,255,0.4)', letterSpacing: 0.5, textTransform: 'uppercase', marginBottom: 8 }}>{t.cvBuilder.sidebar.languageLabel}</div>
-                  <div style={{ display: 'flex', gap: 6 }}>
-                    {(['EN', 'DE'] as Lang[]).map(l => (
-                      <button key={l} onClick={() => setLang(l)}
-                        style={{ flex: 1, padding: '8px 0', borderRadius: 8, border: `1px solid ${lang === l ? currentAccent : 'rgba(255,255,255,0.1)'}`, background: lang === l ? currentAccent + '20' : 'rgba(255,255,255,0.04)', color: lang === l ? '#fff' : 'rgba(255,255,255,0.45)', fontSize: 11, fontWeight: lang === l ? 700 : 400, cursor: 'pointer', fontFamily: 'inherit' }}>
-                        {l}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-                <div style={{ flex: 1 }}>
-                  <div style={{ fontSize: 10, fontWeight: 600, color: 'rgba(255,255,255,0.4)', letterSpacing: 0.5, textTransform: 'uppercase', marginBottom: 8 }}>{t.cvBuilder.sidebar.pagesLabel}</div>
-                  <div style={{ display: 'flex', gap: 6 }}>
-                    {(['1', '2'] as Pages[]).map(p => (
-                      <button key={p} onClick={() => setPages(p)}
-                        style={{ flex: 1, padding: '8px 0', borderRadius: 8, border: `1px solid ${pages === p ? currentAccent : 'rgba(255,255,255,0.1)'}`, background: pages === p ? currentAccent + '20' : 'rgba(255,255,255,0.04)', color: pages === p ? '#fff' : 'rgba(255,255,255,0.45)', fontSize: 11, fontWeight: pages === p ? 700 : 400, cursor: 'pointer', fontFamily: 'inherit' }}>
-                        {p}p
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              </div>
-              {/* Generate */}
-              {credits !== null && credits <= LOW_CREDIT_WARN && (
-                <div style={{ background: 'rgba(245,158,11,0.15)', border: '1px solid rgba(245,158,11,0.4)', borderRadius: 8, padding: '7px 10px', fontSize: 11, color: '#fcd34d', lineHeight: 1.5 }}>
-                  {credits === 0 ? t.cvBuilder.sidebar.noCredits : t.cvBuilder.sidebar.lowCredits(credits!)}
-                </div>
-              )}
-              <button className="cvb-gen" onClick={() => { handleGenerate(); setMobOpen(false) }} disabled={loading || !cvText.trim() || (credits !== null && credits < CV_COST)}
-                style={{ width: '100%', padding: '12px 0', borderRadius: 10, border: 'none', background: loading || !cvText.trim() || (credits !== null && credits < CV_COST) ? 'rgba(255,255,255,0.08)' : `linear-gradient(135deg, ${currentAccent}, ${currentAccent}BB)`, color: loading || !cvText.trim() || (credits !== null && credits < CV_COST) ? 'rgba(255,255,255,0.25)' : '#042C53', fontFamily: "'Outfit', sans-serif", fontSize: 13, fontWeight: 700, cursor: loading || !cvText.trim() || (credits !== null && credits < CV_COST) ? 'not-allowed' : 'pointer' }}>
-                {loading ? t.coverLetter.sidebar.writing : credits !== null && credits < CV_COST ? t.coverLetter.sidebar.needCredits(CV_COST, credits) : cvData ? t.cvBuilder.sidebar.regenerateBtn(CV_COST) : t.cvBuilder.sidebar.generateBtn(CV_COST)}
-              </button>
-            </div>
-          )}
+        <div className="cvb-preview-area" style={{ display: 'flex', flexDirection: 'column', background: '#141E2B' }}>
 
           {/* Action bar */}
-          <div style={{ padding: '12px 24px', borderBottom: '1px solid rgba(255,255,255,0.08)', background: '#152233', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 }}>
+          <div style={{ padding: '10px 20px', borderBottom: '1px solid rgba(255,255,255,0.08)', background: '#152233', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0, flexWrap: 'wrap', gap: 8 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
               <span style={{ fontSize: 12, fontWeight: 600, color: cvData ? currentAccent : 'rgba(255,255,255,0.25)' }}>
-                {cvData ? (lang === 'DE' ? 'Lebenslauf bereit' : 'CV Ready') : (lang === 'DE' ? 'Vorschau' : 'Preview')}
+                {skillGapLoading ? (lang === 'DE' ? 'Analysiere Stelle...' : 'Checking job match…') : cvData ? (lang === 'DE' ? 'Lebenslauf bereit' : 'CV Ready') : (lang === 'DE' ? 'Vorschau' : 'Preview')}
               </span>
               {cvData && (
                 <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.2)', padding: '2px 8px', background: 'rgba(255,255,255,0.04)', borderRadius: 20, border: '1px solid rgba(255,255,255,0.06)' }}>
@@ -1506,23 +1445,19 @@ ${job?.job_description ? `- Job context: ${job.job_description.slice(0, 800)}` :
             {cvData && (
               <div style={{ display: 'flex', gap: 6 }}>
                 <button className="cvb-action" onClick={downloadPDF} disabled={downloading === 'pdf'}
-                  style={{ padding: '7px 14px', borderRadius: 7, border: '1px solid rgba(255,255,255,0.1)', background: 'rgba(255,255,255,0.04)', color: downloading === 'pdf' ? currentAccent : 'rgba(255,255,255,0.55)', fontSize: 11, cursor: downloading === 'pdf' ? 'wait' : 'pointer', fontFamily: 'inherit', transition: 'all 0.15s' }}>
-                  {downloading === 'pdf' ? t.coverLetter.preview.buildingPdf : t.coverLetter.preview.pdf}
-                </button>
-                <button className="cvb-action" onClick={downloadDOCX} disabled={downloading === 'docx'}
-                  style={{ padding: '7px 14px', borderRadius: 7, border: '1px solid rgba(255,255,255,0.1)', background: 'rgba(255,255,255,0.04)', color: downloading === 'docx' ? currentAccent : 'rgba(255,255,255,0.55)', fontSize: 11, cursor: downloading === 'docx' ? 'wait' : 'pointer', fontFamily: 'inherit', transition: 'all 0.15s' }}>
-                  {downloading === 'docx' ? t.coverLetter.preview.buildingWord : t.coverLetter.preview.word}
+                  style={{ padding: '7px 16px', borderRadius: 7, border: '1px solid rgba(255,255,255,0.1)', background: 'rgba(255,255,255,0.04)', color: downloading === 'pdf' ? currentAccent : 'rgba(255,255,255,0.55)', fontSize: 11, cursor: downloading === 'pdf' ? 'wait' : 'pointer', fontFamily: 'inherit', transition: 'all 0.15s' }}>
+                  {downloading === 'pdf' ? (lang === 'DE' ? 'Wird erstellt...' : 'Building PDF…') : 'PDF'}
                 </button>
                 <button onClick={goToCoverLetter}
                   style={{ padding: '7px 16px', borderRadius: 7, border: 'none', background: currentAccent, color: '#042C53', fontSize: 11, fontWeight: 700, cursor: 'pointer', fontFamily: "'Outfit', sans-serif", transition: 'all 0.15s' }}>
-                  {t.navbar.coverLetter} {'->'}
+                  {t.navbar.coverLetter} →
                 </button>
               </div>
             )}
           </div>
 
           {/* Preview canvas */}
-          <div ref={previewAreaRef} style={{ flex: 1, overflowY: 'auto', padding: '32px 40px', display: 'flex', justifyContent: 'center' }}>
+          <div ref={previewAreaRef} style={{ flex: 1, overflowY: 'auto', padding: '28px 24px', display: 'flex', justifyContent: 'center' }}>
 
             {/* Loading skeleton */}
             {loading && (
@@ -1647,18 +1582,14 @@ ${job?.job_description ? `- Job context: ${job.job_description.slice(0, 800)}` :
                 </div>
 
                 {/* Footer actions */}
-                <div style={{ display: 'flex', gap: 10, marginTop: 20, justifyContent: 'center', flexWrap: 'wrap', paddingBottom: 32 }}>
+                <div style={{ display: 'flex', gap: 10, marginTop: 20, justifyContent: 'center', flexWrap: 'wrap' as const, paddingBottom: 40 }}>
                   <button onClick={downloadPDF} disabled={downloading === 'pdf'}
-                    style={{ padding: '10px 22px', borderRadius: 9, border: '1px solid rgba(255,255,255,0.1)', background: 'rgba(255,255,255,0.05)', color: downloading === 'pdf' ? currentAccent : 'rgba(255,255,255,0.7)', fontSize: 12, fontWeight: 600, cursor: downloading === 'pdf' ? 'wait' : 'pointer', fontFamily: "'Outfit', sans-serif" }}>
-                    {downloading === 'pdf' ? t.coverLetter.preview.buildingPdf : t.coverLetter.preview.downloadPdf}
-                  </button>
-                  <button onClick={downloadDOCX} disabled={downloading === 'docx'}
-                    style={{ padding: '10px 22px', borderRadius: 9, border: '1px solid rgba(255,255,255,0.1)', background: 'rgba(255,255,255,0.05)', color: downloading === 'docx' ? currentAccent : 'rgba(255,255,255,0.7)', fontSize: 12, fontWeight: 600, cursor: downloading === 'docx' ? 'wait' : 'pointer', fontFamily: "'Outfit', sans-serif" }}>
-                    {downloading === 'docx' ? t.coverLetter.preview.buildingWord : t.coverLetter.preview.downloadWord}
+                    style={{ padding: '11px 28px', borderRadius: 9, border: '1px solid rgba(255,255,255,0.12)', background: 'rgba(255,255,255,0.05)', color: downloading === 'pdf' ? currentAccent : 'rgba(255,255,255,0.75)', fontSize: 13, fontWeight: 600, cursor: downloading === 'pdf' ? 'wait' : 'pointer', fontFamily: "'Outfit', sans-serif" }}>
+                    {downloading === 'pdf' ? (lang === 'DE' ? 'Wird erstellt...' : 'Building PDF…') : (lang === 'DE' ? 'PDF herunterladen' : 'Download PDF')}
                   </button>
                   <button onClick={goToCoverLetter}
-                    style={{ padding: '10px 26px', borderRadius: 9, border: 'none', background: currentAccent, color: '#042C53', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: "'Outfit', sans-serif", boxShadow: `0 6px 20px ${currentAccent}40` }}>
-                    {t.navbar.coverLetter} {'->'}
+                    style={{ padding: '11px 28px', borderRadius: 9, border: 'none', background: currentAccent, color: '#042C53', fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: "'Outfit', sans-serif", boxShadow: `0 6px 20px ${currentAccent}40` }}>
+                    {t.navbar.coverLetter} →
                   </button>
                 </div>
               </div>
@@ -1666,6 +1597,17 @@ ${job?.job_description ? `- Job context: ${job.job_description.slice(0, 800)}` :
           </div>
         </div>
       </div>
+
+      {/* Skill Gap Modal */}
+      {skillGapOpen && skillGapData && (
+        <SkillGapModal
+          matching={skillGapData.matching}
+          missing={skillGapData.missing}
+          accent={currentAccent}
+          onConfirm={(confirmed) => { setSkillGapOpen(false); setSkillGapData(null); generate(confirmed) }}
+          onSkip={() => { setSkillGapOpen(false); setSkillGapData(null); generate([]) }}
+        />
+      )}
     </div>
   )
 }
