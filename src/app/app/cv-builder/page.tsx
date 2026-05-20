@@ -1,6 +1,6 @@
 ﻿'use client'
 
-import React, { useState, useEffect, useRef } from 'react'
+import React, { useState, useEffect, useLayoutEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import Navbar from '../components/Navbar'
 import { useCredits } from '@/lib/useCredits'
@@ -663,13 +663,46 @@ function TechnicalTemplate({ cv }: { cv: CVData }) {
   )
 }
 
+// -- SCALE WRAPPER (mobile preview) ------------------------------------------
+
+function CVScaleWrapper({ scale, children }: { scale: number; children: React.ReactNode }) {
+  const innerRef = useRef<HTMLDivElement>(null)
+  const [outerH, setOuterH] = useState<number | undefined>(undefined)
+
+  useLayoutEffect(() => {
+    if (!innerRef.current || scale >= 1) { setOuterH(undefined); return }
+    const measure = () => {
+      if (innerRef.current) {
+        const h = innerRef.current.offsetHeight
+        setOuterH(prev => (prev === h * scale ? prev : h * scale))
+      }
+    }
+    measure()
+    const obs = new ResizeObserver(measure)
+    obs.observe(innerRef.current)
+    return () => obs.disconnect()
+  }, [scale])
+
+  if (scale >= 1) return <>{children}</>
+
+  return (
+    <div style={{ width: 740 * scale, height: outerH, overflow: 'hidden', flexShrink: 0 }}>
+      <div ref={innerRef} style={{ width: 740, transformOrigin: 'top left', transform: `scale(${scale})` }}>
+        {children}
+      </div>
+    </div>
+  )
+}
+
 // -- MAIN PAGE ----------------------------------------------------------------
 
 export default function CVBuilderPage() {
   const router = useRouter()
   const { t } = useLanguage()
   const previewRef = useRef<HTMLDivElement>(null)
+  const previewAreaRef = useRef<HTMLDivElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const [mobileScale, setMobileScale] = useState(1)
 
   const [cvText, setCvText] = useState('')
   const [cvFileName, setCvFileName] = useState('')
@@ -747,6 +780,17 @@ export default function CVBuilderPage() {
     const savedData = sessionStorage.getItem(SS.cvbData)
     if (saved) setRawCv(saved)
     if (savedData) { try { setCvData(JSON.parse(savedData)) } catch { } }
+  }, [])
+
+  useEffect(() => {
+    function calc() {
+      if (!previewAreaRef.current) return
+      const available = previewAreaRef.current.offsetWidth - 80
+      setMobileScale(Math.min(1, available / 740))
+    }
+    calc()
+    window.addEventListener('resize', calc)
+    return () => window.removeEventListener('resize', calc)
   }, [])
 
   async function generate() {
@@ -882,7 +926,7 @@ ${job?.job_description ? `- Job context: ${job.job_description.slice(0, 800)}` :
       const res = await fetch('/api/cv/pdf', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ cv: cvData, ac: currentAccent }),
+        body: JSON.stringify({ cv: cvData, ac: currentAccent, template }),
       })
       if (!res.ok) throw new Error('PDF generation failed')
       const blob = await res.blob()
@@ -1444,7 +1488,7 @@ ${job?.job_description ? `- Job context: ${job.job_description.slice(0, 800)}` :
           </div>
 
           {/* Preview canvas */}
-          <div style={{ flex: 1, overflowY: 'auto', padding: '32px 40px', display: 'flex', justifyContent: 'center' }}>
+          <div ref={previewAreaRef} style={{ flex: 1, overflowY: 'auto', padding: '32px 40px', display: 'flex', justifyContent: 'center' }}>
 
             {/* Loading skeleton */}
             {loading && (
@@ -1510,10 +1554,12 @@ ${job?.job_description ? `- Job context: ${job.job_description.slice(0, 800)}` :
 
             {/* Rendered CV */}
             {!loading && cvData && (
-              <div className="cv-preview" style={{ width: '100%', maxWidth: 740 }}>
-                <div ref={previewRef} style={{ borderRadius: 14, overflow: 'hidden', boxShadow: '0 32px 80px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,0.05)' }}>
-                  {renderCV()}
-                </div>
+              <div className="cv-preview" style={{ width: '100%', maxWidth: mobileScale < 1 ? 740 * mobileScale : 740 }}>
+                <CVScaleWrapper scale={mobileScale}>
+                  <div ref={previewRef} style={{ borderRadius: 14, overflow: 'hidden', boxShadow: '0 32px 80px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,0.05)' }}>
+                    {renderCV()}
+                  </div>
+                </CVScaleWrapper>
 
                 {/* Free contact info editor */}
                 <div style={{ marginTop: 20, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 10, padding: '14px 16px' }}>

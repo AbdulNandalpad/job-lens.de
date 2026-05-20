@@ -9,7 +9,7 @@ export async function POST(req: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const { cv, ac, photo } = await req.json()
+  const { cv, ac, template, photo } = await req.json()
   if (!cv) return NextResponse.json({ error: 'cv required' }, { status: 400 })
 
   // Guard against oversized photo payloads (base64 ~1.33× raw bytes; 2 MB raw ≈ 2.7 MB base64)
@@ -19,7 +19,7 @@ export async function POST(req: NextRequest) {
   }
 
   const element = React.createElement(
-    CVPdfDocument, { cv, ac: ac || '#378ADD', photo }
+    CVPdfDocument, { cv, ac: ac || '#378ADD', template: template || 'minimal', photo }
   ) as React.ReactElement<DocumentProps>
 
   // toBuffer() is mistyped as ReadableStream in @react-pdf types.

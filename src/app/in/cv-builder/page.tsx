@@ -734,7 +734,7 @@ ${atsSuggestions?.section_gaps?.length ? `- ATS SECTION GAPS to address: ${atsSu
       const res = await fetch('/api/cv/pdf', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ cv: cvData, ac, photo: photoUrl || undefined }),
+        body: JSON.stringify({ cv: cvData, ac, template, photo: photoUrl || undefined }),
       })
       if (!res.ok) throw new Error('PDF generation failed')
       const blob = await res.blob()

@@ -1,7 +1,8 @@
 /**
- * CVPdf — @react-pdf/renderer document for India CV builder.
+ * CVPdf — @react-pdf/renderer document for Job-Lens CV builder.
  * Pure PDF layout: no canvas, no DOM capture, no page-slice overlap.
- * Renders from structured CVData — works for all visual templates.
+ * template param: 'executive'|'technical'|'executive2' → two-column sidebar layout
+ * all others → single-column clean layout
  */
 import { Document, Page, Text, View, StyleSheet, Image } from '@react-pdf/renderer'
 
@@ -80,7 +81,184 @@ function SecHeader({ title }: { title: string }) {
   )
 }
 
-export function CVPdfDocument({ cv, ac, photo }: { cv: CVData; ac: string; photo?: string }) {
+const TWO_COL_TEMPLATES = ['executive', 'technical', 'executive2']
+
+function CVPdfTwoColumn({ cv, ac, photo }: { cv: CVData; ac: string; photo?: string }) {
+  const lvLabel = (l: number) =>
+    l >= 90 ? 'Native' : l >= 75 ? 'Fluent' : l >= 55 ? 'Proficient' : 'Basic'
+
+  const sidebarBg = '#0d2137'
+  const sidebarText = 'rgba(255,255,255,0.75)'
+  const sidebarMuted = 'rgba(255,255,255,0.4)'
+
+  const contact = [cv.email, cv.phone, cv.location, cv.linkedin].filter(Boolean)
+
+  return (
+    <Document>
+      <Page size="A4" style={{ fontFamily: 'Helvetica', backgroundColor: '#ffffff', flexDirection: 'row', minHeight: '100%' }}>
+
+        {/* ── Left sidebar ── */}
+        <View style={{ width: 185, backgroundColor: sidebarBg, padding: 28, flexDirection: 'column', gap: 20 }}>
+
+          {/* Photo */}
+          {photo && (
+            <View style={{ alignItems: 'center', marginBottom: 6 }}>
+              <Image src={photo} style={{ width: 60, height: 60, borderRadius: 30 }} />
+            </View>
+          )}
+          {/* Name + title */}
+          <View style={{ paddingBottom: 14, borderBottomWidth: 0.5, borderBottomColor: 'rgba(255,255,255,0.12)' }}>
+            <Text style={{ fontSize: 14, fontFamily: 'Helvetica-Bold', color: '#ffffff', marginBottom: 4 }}>{cv.name}</Text>
+            <Text style={{ fontSize: 8.5, color: ac, fontFamily: 'Helvetica-Bold', letterSpacing: 0.8, textTransform: 'uppercase' }}>{cv.title}</Text>
+          </View>
+
+          {/* Contact */}
+          {contact.length > 0 && (
+            <View>
+              <Text style={{ fontSize: 7.5, fontFamily: 'Helvetica-Bold', color: sidebarMuted, letterSpacing: 1, textTransform: 'uppercase', marginBottom: 8 }}>Contact</Text>
+              {contact.map((c, i) => (
+                <Text key={i} style={{ fontSize: 8.5, color: sidebarText, marginBottom: 5, lineHeight: 1.4 }}>{c}</Text>
+              ))}
+            </View>
+          )}
+
+          {/* Skills */}
+          {cv.skills?.length > 0 && (
+            <View>
+              <Text style={{ fontSize: 7.5, fontFamily: 'Helvetica-Bold', color: sidebarMuted, letterSpacing: 1, textTransform: 'uppercase', marginBottom: 8 }}>Skills</Text>
+              {cv.skills.map((sk, i) => (
+                <View key={i} style={{ marginBottom: 6 }}>
+                  <Text style={{ fontSize: 8.5, color: sidebarText, marginBottom: 2 }}>{sk.name}</Text>
+                  <View style={{ height: 3, backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: 2 }}>
+                    <View style={{ height: 3, width: `${sk.level}%`, backgroundColor: ac, borderRadius: 2 }} />
+                  </View>
+                </View>
+              ))}
+            </View>
+          )}
+
+          {/* Languages */}
+          {cv.languages?.length > 0 && (
+            <View>
+              <Text style={{ fontSize: 7.5, fontFamily: 'Helvetica-Bold', color: sidebarMuted, letterSpacing: 1, textTransform: 'uppercase', marginBottom: 8 }}>Languages</Text>
+              {cv.languages.map((l, i) => (
+                <Text key={i} style={{ fontSize: 8.5, color: sidebarText, marginBottom: 4 }}>{l.name} — {lvLabel(l.level)}</Text>
+              ))}
+            </View>
+          )}
+
+          {/* Tools */}
+          {cv.tools?.length > 0 && (
+            <View>
+              <Text style={{ fontSize: 7.5, fontFamily: 'Helvetica-Bold', color: sidebarMuted, letterSpacing: 1, textTransform: 'uppercase', marginBottom: 8 }}>Tech Stack</Text>
+              <Text style={{ fontSize: 8.5, color: sidebarText, lineHeight: 1.6 }}>{cv.tools.join('  ·  ')}</Text>
+            </View>
+          )}
+
+        </View>
+
+        {/* ── Right main content ── */}
+        <View style={{ flex: 1, padding: 28, flexDirection: 'column' }}>
+
+          {/* Summary */}
+          {cv.summary && (
+            <View style={{ marginBottom: 16 }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 6 }}>
+                <Text style={{ fontSize: 8, fontFamily: 'Helvetica-Bold', color: navy, textTransform: 'uppercase', letterSpacing: 1 }}>Profile</Text>
+                <View style={{ flex: 1, height: 0.5, backgroundColor: '#d1dae6', marginLeft: 8 }} />
+              </View>
+              <Text style={{ fontSize: 9.5, color: '#374151', lineHeight: 1.6 }}>{cv.summary}</Text>
+            </View>
+          )}
+
+          {/* Stats */}
+          {cv.stats?.length > 0 && (
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginBottom: 16 }}>
+              {cv.stats.map((st, i) => (
+                <View key={i} style={{ paddingHorizontal: 10, paddingVertical: 5, backgroundColor: '#f8fafc', borderRadius: 4 }}>
+                  <Text style={{ fontSize: 13, fontFamily: 'Helvetica-Bold', color: ac }}>{st.value}</Text>
+                  <Text style={{ fontSize: 7.5, color: grey }}>{st.label}</Text>
+                </View>
+              ))}
+            </View>
+          )}
+
+          {/* Experience */}
+          {cv.experience?.length > 0 && (
+            <View style={{ marginBottom: 16 }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
+                <Text style={{ fontSize: 8, fontFamily: 'Helvetica-Bold', color: navy, textTransform: 'uppercase', letterSpacing: 1 }}>Experience</Text>
+                <View style={{ flex: 1, height: 0.5, backgroundColor: '#d1dae6', marginLeft: 8 }} />
+              </View>
+              {cv.experience.map((exp, i) => (
+                <View key={i} style={{ marginBottom: 12 }} wrap={false}>
+                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 1 }}>
+                    <Text style={{ fontSize: 10.5, fontFamily: 'Helvetica-Bold', color: navy }}>{exp.role}</Text>
+                    <Text style={{ fontSize: 8.5, fontFamily: 'Helvetica-Bold', color: ac }}>{exp.period}</Text>
+                  </View>
+                  <Text style={{ fontSize: 8.5, fontFamily: 'Helvetica-Oblique', color: grey, marginBottom: 4 }}>
+                    {[exp.company, exp.location, exp.type].filter(Boolean).join('  ·  ')}
+                  </Text>
+                  {exp.bullets.map((b, j) => (
+                    <View key={j} style={{ flexDirection: 'row', marginBottom: 2 }}>
+                      <Text style={{ fontSize: 9, color: ac, width: 10 }}>•</Text>
+                      <Text style={{ flex: 1, fontSize: 9, color: '#374151', lineHeight: 1.5 }}>{b}</Text>
+                    </View>
+                  ))}
+                </View>
+              ))}
+            </View>
+          )}
+
+          {/* Education */}
+          {cv.education?.length > 0 && (
+            <View style={{ marginBottom: 16 }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
+                <Text style={{ fontSize: 8, fontFamily: 'Helvetica-Bold', color: navy, textTransform: 'uppercase', letterSpacing: 1 }}>Education</Text>
+                <View style={{ flex: 1, height: 0.5, backgroundColor: '#d1dae6', marginLeft: 8 }} />
+              </View>
+              {cv.education.map((e, i) => (
+                <View key={i} style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 7 }}>
+                  <View>
+                    <Text style={{ fontSize: 10, fontFamily: 'Helvetica-Bold', color: navy }}>{e.degree}</Text>
+                    <Text style={{ fontSize: 9, color: grey }}>{e.school}</Text>
+                  </View>
+                  <Text style={{ fontSize: 9, color: light }}>{e.year}</Text>
+                </View>
+              ))}
+            </View>
+          )}
+
+          {/* Certifications */}
+          {cv.certifications?.length > 0 && (
+            <View>
+              <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
+                <Text style={{ fontSize: 8, fontFamily: 'Helvetica-Bold', color: navy, textTransform: 'uppercase', letterSpacing: 1 }}>Certifications</Text>
+                <View style={{ flex: 1, height: 0.5, backgroundColor: '#d1dae6', marginLeft: 8 }} />
+              </View>
+              {cv.certifications.map((c, i) => (
+                <View key={i} style={{ flexDirection: 'row', marginBottom: 3 }}>
+                  <Text style={{ fontSize: 9, color: ac, width: 10 }}>•</Text>
+                  <Text style={{ flex: 1, fontSize: 9, color: '#374151' }}>{c}</Text>
+                </View>
+              ))}
+            </View>
+          )}
+
+        </View>
+      </Page>
+    </Document>
+  )
+}
+
+export function CVPdfDocument({ cv, ac, template, photo }: { cv: CVData; ac: string; template?: string; photo?: string }) {
+  if (template && TWO_COL_TEMPLATES.includes(template)) {
+    return <CVPdfTwoColumn cv={cv} ac={ac} photo={photo} />
+  }
+  return <CVPdfSingleColumn cv={cv} ac={ac} photo={photo} />
+}
+
+function CVPdfSingleColumn({ cv, ac, photo }: { cv: CVData; ac: string; photo?: string }) {
   const lvLabel = (l: number) =>
     l >= 90 ? 'Native' : l >= 75 ? 'Fluent' : l >= 55 ? 'Proficient' : 'Basic'
 
