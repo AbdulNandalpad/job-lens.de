@@ -138,7 +138,7 @@ const doc = new Document({
       new Paragraph({
         children: [
           new TextRun({ text: 'Author: ', bold: true, size: 20 }),
-          new TextRun({ text: 'Abdul Nandalpad', size: 20 }),
+          new TextRun({ text: 'Munira Nandalpad', size: 20 }),
         ],
         alignment: AlignmentType.CENTER,
         spacing: { after: 80 },

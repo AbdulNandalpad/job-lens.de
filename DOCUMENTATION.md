@@ -2,7 +2,7 @@
 
 **Version:** 1.0  
 **Last updated:** 2026-05-19  
-**Author:** Abdul Nandalpad  
+**Author:** Munira Nandalpad  
 **Stack:** Next.js 16, Supabase, Anthropic Claude, Vercel
 
 ---

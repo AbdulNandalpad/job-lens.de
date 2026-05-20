@@ -142,7 +142,7 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY
 ANTHROPIC_API_KEY
 ADZUNA_APP_ID
 ADZUNA_APP_KEY
-ADMIN_EMAILS=sap.rashid@gmail.com,Abdul.nandalpad@servicesphere.de
+ADMIN_EMAILS=sap.rashid@gmail.com,munira.nandalpad@servicesphere.de
 NEXT_PUBLIC_PAYPAL_EMAIL=sap.rashid@gmail.com
 PAYPAL_SANDBOX=false
 NEXT_PUBLIC_APP_URL=https://job-lens.de

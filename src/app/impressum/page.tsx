@@ -41,7 +41,7 @@ export default function ImpressumPage() {
           <section>
             <h2 style={{ fontFamily: f.heading, fontSize: 16, fontWeight: 700, color: c.primary, marginBottom: 12 }}>Anbieter</h2>
             <p style={{ margin: 0 }}>
-              <strong>Abdul Rasheed Nandalpad</strong><br />
+              <strong>Munira Nandalpad</strong><br />
               Brühlstr 15<br />
               71034 Böblingen<br />
               Deutschland
@@ -51,7 +51,7 @@ export default function ImpressumPage() {
           <section>
             <h2 style={{ fontFamily: f.heading, fontSize: 16, fontWeight: 700, color: c.primary, marginBottom: 12 }}>Kontakt</h2>
             <p style={{ margin: 0 }}>
-              E-Mail: <a href="mailto:abdul.nandalpad@servicesphere.de" style={{ color: c.accent }}>abdul.nandalpad@servicesphere.de</a><br />
+              E-Mail: <a href="mailto:munira.nandalpad@servicesphere.de" style={{ color: c.accent }}>munira.nandalpad@servicesphere.de</a><br />
               Telefon: +49 151 41412851<br />
               Web: <a href="https://job-lens.de" style={{ color: c.accent }}>https://job-lens.de</a>
             </p>
@@ -67,7 +67,7 @@ export default function ImpressumPage() {
           <section>
             <h2 style={{ fontFamily: f.heading, fontSize: 16, fontWeight: 700, color: c.primary, marginBottom: 12 }}>Verantwortlich für den Inhalt nach § 55 Abs. 2 RStV</h2>
             <p style={{ margin: 0 }}>
-              Abdul Rasheed Nandalpad<br />
+              Munira Nandalpad<br />
               Brühlstr 15, 71034 Böblingen
             </p>
           </section>
