@@ -72,13 +72,10 @@ export default function IndiaTrackerPage() {
         .tr-mob-card { display: none; }
         .tr-desktop-table { display: block; }
         @media (max-width: 768px) {
-          .tr-stats  { grid-template-columns: repeat(3, 1fr); gap: 10px; }
+          .tr-stats  { grid-template-columns: repeat(2, 1fr); gap: 10px; }
           .tr-form   { grid-template-columns: 1fr; }
-          .tr-mob-card { display: block; }
+          .tr-mob-card { display: flex; flex-direction: column; gap: 10px; }
           .tr-desktop-table { display: none; }
-        }
-        @media (max-width: 480px) {
-          .tr-stats  { grid-template-columns: 1fr; }
         }
       `}</style>
 
@@ -160,7 +157,7 @@ export default function IndiaTrackerPage() {
             </div>
 
             {/* Mobile cards */}
-            <div className="tr-mob-card" style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            <div className="tr-mob-card">
               {apps.map(a => (
                 <div key={a.id} style={{ background: '#fff', border: '1px solid #edf1f6', borderRadius: 12, padding: '14px 16px' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8 }}>

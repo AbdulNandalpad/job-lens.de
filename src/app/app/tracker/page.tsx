@@ -82,19 +82,31 @@ export default function TrackerPage() {
 
   return (
     <div style={{ minHeight: '100vh', background: c.bg, fontFamily: f.body }}>
-      <style>{`@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=Outfit:wght@400;600;700&display=swap');`}</style>
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=Outfit:wght@400;600;700&display=swap');
+        .tr-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 24px; }
+        .tr-form  { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; margin-bottom: 14px; }
+        .tr-desktop-table { display: block; }
+        .tr-mob-card { display: none; }
+        @media (max-width: 768px) {
+          .tr-stats { grid-template-columns: repeat(2, 1fr); gap: 10px; }
+          .tr-form  { grid-template-columns: 1fr; }
+          .tr-desktop-table { display: none; }
+          .tr-mob-card { display: flex; flex-direction: column; gap: 10px; }
+        }
+      `}</style>
       <Navbar />
 
-      <div style={{ maxWidth: 1200, margin: '0 auto', padding: '24px 20px' }}>
+      <div style={{ maxWidth: 1200, margin: '0 auto', padding: '24px 16px' }}>
 
         {/* Header */}
-        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 24 }}>
+        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 24, gap: 12, flexWrap: 'wrap' as const }}>
           <div style={{ paddingLeft: 14, borderLeft: `3px solid ${c.accent}` }}>
             <div style={{ fontSize: 22, fontWeight: 700, color: c.primary, fontFamily: f.heading }}>{t.tracker.title}</div>
             <div style={{ fontSize: 13, color: c.textMuted, marginTop: 3 }}>{t.tracker.subtitle}</div>
           </div>
           <button onClick={() => setShowAdd(p => !p)}
-            style={{ padding: '9px 20px', borderRadius: 8, background: g.primaryBtn, color: '#fff', border: 'none', cursor: 'pointer', fontFamily: f.heading, fontSize: 13, fontWeight: 700 }}>
+            style={{ padding: '9px 20px', borderRadius: 8, background: g.primaryBtn, color: '#fff', border: 'none', cursor: 'pointer', fontFamily: f.heading, fontSize: 13, fontWeight: 700, flexShrink: 0 }}>
             {t.tracker.addManually}
           </button>
         </div>
@@ -103,7 +115,7 @@ export default function TrackerPage() {
         {showAdd && (
           <div style={{ background: c.bgCard, border: `1px solid ${c.border}`, borderRadius: 14, padding: 20, marginBottom: 20 }}>
             <div style={{ fontSize: 14, fontWeight: 700, color: c.primary, marginBottom: 14, fontFamily: f.heading }}>{t.tracker.logNew}</div>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12, marginBottom: 14 }}>
+            <div className="tr-form">
               <input placeholder={t.tracker.jobTitlePlaceholder} value={form.role} onChange={e => setForm(p => ({ ...p, role: e.target.value }))} style={inputStyle} />
               <input placeholder={t.tracker.companyPlaceholder} value={form.company} onChange={e => setForm(p => ({ ...p, company: e.target.value }))} style={inputStyle} />
               <input placeholder={t.tracker.notesPlaceholder} value={form.notes} onChange={e => setForm(p => ({ ...p, notes: e.target.value }))} style={inputStyle} />
@@ -116,11 +128,11 @@ export default function TrackerPage() {
         )}
 
         {/* Stat cards */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 14, marginBottom: 24 }}>
+        <div className="tr-stats">
           {stats.map(s => (
-            <div key={s.label} style={{ background: c.bgCard, border: `1px solid ${c.border}`, borderRadius: 14, padding: '20px 24px', borderTop: `3px solid ${s.accent}` }}>
-              <div style={{ fontSize: 32, fontWeight: 700, color: s.accent, fontFamily: f.heading, lineHeight: 1 }}>{s.value}</div>
-              <div style={{ fontSize: 13, color: c.textMuted, marginTop: 6 }}>{s.label}</div>
+            <div key={s.label} style={{ background: c.bgCard, border: `1px solid ${c.border}`, borderRadius: 14, padding: '18px 20px', borderTop: `3px solid ${s.accent}` }}>
+              <div style={{ fontSize: 30, fontWeight: 700, color: s.accent, fontFamily: f.heading, lineHeight: 1 }}>{s.value}</div>
+              <div style={{ fontSize: 12, color: c.textMuted, marginTop: 6 }}>{s.label}</div>
             </div>
           ))}
         </div>
@@ -130,37 +142,63 @@ export default function TrackerPage() {
           <div style={{ background: c.bgCard, border: `1px solid ${c.border}`, borderRadius: 14, padding: '60px 20px', textAlign: 'center' }}>
             <div style={{ fontSize: 32, marginBottom: 16 }}>&#128196;</div>
             <div style={{ fontSize: 15, fontWeight: 600, color: c.primary, marginBottom: 8, fontFamily: f.heading }}>{t.tracker.empty.title}</div>
-            <div style={{ fontSize: 13, color: c.textMuted, marginBottom: 24 }}>
-              {t.tracker.empty.desc}
-            </div>
+            <div style={{ fontSize: 13, color: c.textMuted, marginBottom: 24 }}>{t.tracker.empty.desc}</div>
             <button onClick={() => router.push('/app/smart-apply')}
               style={{ padding: '10px 24px', borderRadius: 8, background: g.primaryBtn, color: '#fff', border: 'none', cursor: 'pointer', fontFamily: f.heading, fontSize: 13, fontWeight: 700 }}>
               {t.tracker.empty.cta}
             </button>
           </div>
         ) : (
-          <div style={{ background: c.bgCard, border: `1px solid ${c.border}`, borderRadius: 14, overflow: 'hidden' }}>
-            <div style={{ display: 'grid', gridTemplateColumns: '2fr 1.5fr 1fr 2fr 1fr 40px', padding: '10px 20px', borderBottom: `1px solid ${c.border}`, background: c.bgSubtle }}>
-              {[t.tracker.columns.role, t.tracker.columns.company, t.tracker.columns.date, t.tracker.columns.notes, t.tracker.columns.source, ''].map(h => (
-                <div key={h} style={{ fontSize: 11, fontWeight: 700, color: c.textFaint, letterSpacing: 0.5, textTransform: 'uppercase' as const }}>{h}</div>
+          <>
+            {/* Desktop table */}
+            <div className="tr-desktop-table" style={{ background: c.bgCard, border: `1px solid ${c.border}`, borderRadius: 14, overflow: 'hidden' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '2fr 1.5fr 1fr 2fr 1fr 40px', padding: '10px 20px', borderBottom: `1px solid ${c.border}`, background: c.bgSubtle }}>
+                {[t.tracker.columns.role, t.tracker.columns.company, t.tracker.columns.date, t.tracker.columns.notes, t.tracker.columns.source, ''].map(h => (
+                  <div key={h} style={{ fontSize: 11, fontWeight: 700, color: c.textFaint, letterSpacing: 0.5, textTransform: 'uppercase' as const }}>{h}</div>
+                ))}
+              </div>
+              {apps.map((a, i) => (
+                <div key={a.id} style={{ display: 'grid', gridTemplateColumns: '2fr 1.5fr 1fr 2fr 1fr 40px', padding: '14px 20px', borderBottom: i < apps.length - 1 ? `1px solid #f5f7fa` : 'none', alignItems: 'center' }}>
+                  <div style={{ fontSize: 13, fontWeight: 600, color: c.text }}>{a.role}</div>
+                  <div style={{ fontSize: 13, color: c.textMuted }}>{a.company}</div>
+                  <div style={{ fontSize: 13, color: c.textMuted }}>{a.date}</div>
+                  <div style={{ fontSize: 13, color: a.notes ? c.textMuted : c.border }}>{a.notes || '--'}</div>
+                  <div>{sourceBadge(a.source)}</div>
+                  <button onClick={() => remove(a.id)}
+                    style={{ background: 'none', border: 'none', cursor: 'pointer', color: c.border, fontSize: 16, padding: 4, borderRadius: 4, lineHeight: 1 }}
+                    onMouseEnter={e => (e.currentTarget.style.color = c.danger)}
+                    onMouseLeave={e => (e.currentTarget.style.color = c.border)}>
+                    &times;
+                  </button>
+                </div>
               ))}
             </div>
-            {apps.map((a, i) => (
-              <div key={a.id} style={{ display: 'grid', gridTemplateColumns: '2fr 1.5fr 1fr 2fr 1fr 40px', padding: '14px 20px', borderBottom: i < apps.length - 1 ? `1px solid #f5f7fa` : 'none', alignItems: 'center' }}>
-                <div style={{ fontSize: 13, fontWeight: 600, color: c.text }}>{a.role}</div>
-                <div style={{ fontSize: 13, color: c.textMuted }}>{a.company}</div>
-                <div style={{ fontSize: 13, color: c.textMuted }}>{a.date}</div>
-                <div style={{ fontSize: 13, color: a.notes ? c.textMuted : c.border }}>{a.notes || '--'}</div>
-                <div>{sourceBadge(a.source)}</div>
-                <button onClick={() => remove(a.id)}
-                  style={{ background: 'none', border: 'none', cursor: 'pointer', color: c.border, fontSize: 16, padding: 4, borderRadius: 4, lineHeight: 1 }}
-                  onMouseEnter={e => (e.currentTarget.style.color = c.danger)}
-                  onMouseLeave={e => (e.currentTarget.style.color = c.border)}>
-                  &times;
-                </button>
-              </div>
-            ))}
-          </div>
+
+            {/* Mobile cards */}
+            <div className="tr-mob-card">
+              {apps.map(a => (
+                <div key={a.id} style={{ background: c.bgCard, border: `1px solid ${c.border}`, borderRadius: 12, padding: '14px 16px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8 }}>
+                    <div>
+                      <div style={{ fontSize: 14, fontWeight: 700, color: c.text }}>{a.role}</div>
+                      <div style={{ fontSize: 13, color: c.textMuted, marginTop: 2 }}>{a.company}</div>
+                    </div>
+                    <button onClick={() => remove(a.id)}
+                      style={{ background: 'none', border: 'none', cursor: 'pointer', color: c.border, fontSize: 18, padding: 4, borderRadius: 4, flexShrink: 0, lineHeight: 1 }}
+                      onMouseEnter={e => (e.currentTarget.style.color = c.danger)}
+                      onMouseLeave={e => (e.currentTarget.style.color = c.border)}>
+                      &times;
+                    </button>
+                  </div>
+                  <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' as const }}>
+                    <span style={{ fontSize: 11, color: c.textFaint }}>{a.date}</span>
+                    {sourceBadge(a.source)}
+                    {a.notes && <span style={{ fontSize: 11, color: c.textMuted }}>{a.notes}</span>}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </>
         )}
 
       </div>
