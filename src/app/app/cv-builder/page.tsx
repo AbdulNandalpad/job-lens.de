@@ -979,15 +979,13 @@ ${confirmedSkills.length > 0 ? `- User confirmed they also have these skills (in
       const A4_H = 297
       const imgH = (canvas.height * A4_W) / canvas.width
 
-      // Render at natural aspect ratio — never distort by forcing A4_H
+      // Tile all generated content at natural aspect ratio
       pdf.addImage(imgData, 'JPEG', 0, 0, A4_W, imgH)
-      if (pages !== '1') {
-        let position = -A4_H
-        while (imgH + position > 0) {
-          pdf.addPage()
-          pdf.addImage(imgData, 'JPEG', 0, position, A4_W, imgH)
-          position -= A4_H
-        }
+      let position = -A4_H
+      while (imgH + position > 0) {
+        pdf.addPage()
+        pdf.addImage(imgData, 'JPEG', 0, position, A4_W, imgH)
+        position -= A4_H
       }
       const name = (job?.employer_name || cvData.name || 'JobLens').replace(/[^a-zA-Z0-9]/g, '_')
       pdf.save(`CV_${name}.pdf`)
