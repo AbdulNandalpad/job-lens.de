@@ -131,21 +131,11 @@ export default function NavbarIndia() {
           {isLoggedIn ? (
             <>
               {/* New session button */}
-              <div className="jl-clear-btn" style={{ position: 'relative' }}>
+              <div className="jl-clear-btn">
                 <button onClick={() => setConfirmClear(true)}
                   style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '5px 12px', borderRadius: 8, background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.18)', cursor: 'pointer' }}>
                   <span style={{ fontSize: 12, color: '#fff', fontFamily: f.body, fontWeight: 600 }}>+ New session</span>
                 </button>
-                {confirmClear && (
-                  <div style={{ position: 'absolute', top: '100%', right: 0, marginTop: 8, background: '#0d2137', border: '1px solid rgba(255,255,255,0.15)', borderRadius: 10, padding: '14px 16px', zIndex: 300, minWidth: 220, boxShadow: '0 8px 32px rgba(0,0,0,0.4)' }}>
-                    <div style={{ fontSize: 12, color: '#E6F1FB', fontWeight: 600, marginBottom: 4 }}>Clear all session data?</div>
-                    <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)', marginBottom: 12, lineHeight: 1.5 }}>Removes your CV, job selections, scan results and cover letter.</div>
-                    <div style={{ display: 'flex', gap: 8 }}>
-                      <button onClick={clearSession} style={{ flex: 1, padding: '7px 0', borderRadius: 7, border: 'none', background: '#FF9933', color: '#042C53', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>Clear</button>
-                      <button onClick={() => setConfirmClear(false)} style={{ flex: 1, padding: '7px 0', borderRadius: 7, border: '1px solid rgba(255,255,255,0.15)', background: 'transparent', color: 'rgba(255,255,255,0.6)', fontSize: 12, cursor: 'pointer', fontFamily: 'inherit' }}>Cancel</button>
-                    </div>
-                  </div>
-                )}
               </div>
 
               {/* User avatar + logout dropdown */}
@@ -185,6 +175,22 @@ export default function NavbarIndia() {
           </button>
         </div>
       </div>
+
+      {/* New session confirmation — fixed overlay, works on mobile and desktop */}
+      {confirmClear && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', zIndex: 500, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}
+          onClick={() => setConfirmClear(false)}>
+          <div style={{ background: '#0d2137', border: '1px solid rgba(255,255,255,0.15)', borderRadius: 12, padding: '20px 20px 16px', maxWidth: 280, width: '100%', boxShadow: '0 16px 48px rgba(0,0,0,0.5)' }}
+            onClick={e => e.stopPropagation()}>
+            <div style={{ fontSize: 14, color: '#E6F1FB', fontWeight: 700, marginBottom: 6 }}>Clear all session data?</div>
+            <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)', marginBottom: 16, lineHeight: 1.6 }}>Removes your CV, job selections, scan results and cover letter.</div>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <button onClick={clearSession} style={{ flex: 1, padding: '9px 0', borderRadius: 8, border: 'none', background: '#FF9933', color: '#042C53', fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>Clear</button>
+              <button onClick={() => setConfirmClear(false)} style={{ flex: 1, padding: '9px 0', borderRadius: 8, border: '1px solid rgba(255,255,255,0.15)', background: 'transparent', color: 'rgba(255,255,255,0.6)', fontSize: 13, cursor: 'pointer', fontFamily: 'inherit' }}>Cancel</button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Mobile dropdown */}
       {menuOpen && (

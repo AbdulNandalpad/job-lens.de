@@ -4,6 +4,7 @@ import React, { useState, useEffect, useRef, useLayoutEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useCredits } from '@/lib/useCredits'
 import CrossMarketModal from '@/components/CrossMarketModal'
+import SkillGapModal from '@/components/SkillGapModal'
 import { CREDIT_COST, LOW_CREDIT_WARN, MARKET, SS, API } from '@/lib/constants'
 
 const accent = '#FF9933'
@@ -607,6 +608,9 @@ export default function IndiaCVBuilderPage() {
   const [contactDraft,  setContactDraft]  = useState({ name: '', email: '', phone: '', location: '', linkedin: '' })
   const [mobileScale,   setMobileScale]   = useState(1)
   const [photoUrl,      setPhotoUrl]      = useState('')
+  const [skillGapOpen,  setSkillGapOpen]  = useState(false)
+  const [skillGapData,  setSkillGapData]  = useState<{ matching: string[]; missing: string[] } | null>(null)
+  const [skillGapLoading, setSkillGapLoading] = useState(false)
 
   const { credits, setCredits, needsCrossMarket, crossMarketAmount } = useCredits()
   const CV_COST = CREDIT_COST.tailorCv
@@ -672,7 +676,7 @@ export default function IndiaCVBuilderPage() {
 
   function toggleSection(id: string) { setOpenSections(prev => ({ ...prev, [id]: !prev[id] })) }
 
-  async function generate() {
+  async function generate(confirmedSkills: string[] = []) {
     if (!cvText.trim()) return
     if (credits !== null && credits < CV_COST) { alert(`You need ${CV_COST} credit to build a CV.`); return }
     setLoading(true); setCvData(null); setRawCv(''); setMobOpen(false)
@@ -689,6 +693,7 @@ Rules:
 - tone: ${tone}, language: ${lang}, pages: ${pages}
 ${job ? `- Tailor for: ${job.job_title} at ${job.employer_name}` : ''}
 ${job?.job_description ? `- Job context: ${job.job_description.slice(0, 800)}` : ''}
+${confirmedSkills.length > 0 ? `- User confirmed they also have these skills (include them): ${confirmedSkills.join(', ')}` : ''}
 ${atsSuggestions?.missing_keywords?.length ? `- ATS PRIORITY: Naturally incorporate these missing keywords: ${atsSuggestions.missing_keywords.join(', ')}` : ''}
 ${atsSuggestions?.quick_fixes?.length ? `- ATS QUICK FIXES:\n${atsSuggestions.quick_fixes.map((f: string) => `  * ${f}`).join('\n')}` : ''}
 ${atsSuggestions?.format_issues?.length ? `- ATS FORMAT ISSUES to fix: ${atsSuggestions.format_issues.join('; ')}` : ''}
@@ -706,8 +711,29 @@ ${atsSuggestions?.section_gaps?.length ? `- ATS SECTION GAPS to address: ${atsSu
     setLoading(false)
   }
 
+  async function runSkillGapThenGenerate() {
+    if (job?.job_description && cvText) {
+      setSkillGapLoading(true)
+      try {
+        const res = await fetch('/api/cv/skill-gap', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ cvText, jobDescription: job.job_description }),
+        })
+        const data = await res.json()
+        setSkillGapLoading(false)
+        if (data.missing?.length > 0) {
+          setSkillGapData(data)
+          setSkillGapOpen(true)
+          return
+        }
+      } catch { setSkillGapLoading(false) }
+    }
+    generate([])
+  }
+
   function handleGenerate() {
-    if (needsCrossMarket(CV_COST, MARKET.in)) { setCrossWarnPending(() => generate) } else { generate() }
+    if (needsCrossMarket(CV_COST, MARKET.in)) { setCrossWarnPending(() => runSkillGapThenGenerate) } else { runSkillGapThenGenerate() }
   }
 
   async function applyFeedback() {
@@ -735,9 +761,9 @@ ${atsSuggestions?.section_gaps?.length ? `- ATS SECTION GAPS to address: ${atsSu
         import('jspdf'),
       ])
 
-      // Render into offscreen container — no scroll, no clipping, no transform
+      // Render into offscreen container — absolute avoids mobile viewport-relative positioning bugs
       const offscreen = document.createElement('div')
-      offscreen.style.cssText = 'position:fixed;left:-9999px;top:0;width:740px;background:#fff;z-index:-1;'
+      offscreen.style.cssText = 'position:absolute;left:-9999px;top:0;width:740px;min-width:740px;background:#fff;visibility:hidden;'
       const clone = previewRef.current.cloneNode(true) as HTMLElement
       clone.style.borderRadius = '0'
       clone.style.overflow = 'visible'
@@ -745,7 +771,8 @@ ${atsSuggestions?.section_gaps?.length ? `- ATS SECTION GAPS to address: ${atsSu
       offscreen.appendChild(clone)
       document.body.appendChild(offscreen)
 
-      await new Promise(r => setTimeout(r, 120))
+      // Allow fonts and images to settle (longer on mobile)
+      await new Promise(r => setTimeout(r, 300))
 
       const canvas = await html2canvas(offscreen, {
         scale: 2,
@@ -764,15 +791,17 @@ ${atsSuggestions?.section_gaps?.length ? `- ATS SECTION GAPS to address: ${atsSu
       const A4_W = 210
       const A4_H = 297
       const imgH = (canvas.height * A4_W) / canvas.width
-      let position = 0
-      let remaining = imgH
-      pdf.addImage(imgData, 'JPEG', 0, 0, A4_W, imgH)
-      remaining -= A4_H
-      while (remaining > 0) {
-        position -= A4_H
-        pdf.addPage()
-        pdf.addImage(imgData, 'JPEG', 0, position, A4_W, imgH)
-        remaining -= A4_H
+
+      if (pages === '1') {
+        pdf.addImage(imgData, 'JPEG', 0, 0, A4_W, A4_H)
+      } else {
+        pdf.addImage(imgData, 'JPEG', 0, 0, A4_W, imgH)
+        let position = -A4_H
+        while (imgH + position > 0) {
+          pdf.addPage()
+          pdf.addImage(imgData, 'JPEG', 0, position, A4_W, imgH)
+          position -= A4_H
+        }
       }
       const name = (cvData.name || 'JobLens').replace(/[^a-zA-Z0-9]/g, '_')
       pdf.save(`CV_${name}.pdf`)
@@ -1288,6 +1317,17 @@ ${atsSuggestions?.section_gaps?.length ? `- ATS SECTION GAPS to address: ${atsSu
           </div>
         </div>
       </div>
+
+      {skillGapOpen && skillGapData && (
+        <SkillGapModal
+          matching={skillGapData.matching}
+          missing={skillGapData.missing}
+          accent={accent}
+          onConfirm={(confirmed) => { setSkillGapOpen(false); setSkillGapData(null); generate(confirmed) }}
+          onSkip={() => { setSkillGapOpen(false); setSkillGapData(null); generate([]) }}
+          onCareerScan={() => { setSkillGapOpen(false); setSkillGapData(null); router.push('/in/career-scan') }}
+        />
+      )}
     </div>
   )
 }

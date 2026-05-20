@@ -48,16 +48,20 @@ const EMPTY_CV: CVData = {
 
 // -- TEMPLATE RENDERERS ------------------------------------------------------
 
-function ExecutiveTemplate({ cv }: { cv: CVData }) {
+function ExecutiveTemplate({ cv, photo }: { cv: CVData; photo?: string }) {
   return (
     <div style={{ display: 'flex', minHeight: 900, fontFamily: "'DM Sans', sans-serif", background: '#fff' }}>
       {/* Dark sidebar */}
       <div style={{ width: 240, background: 'linear-gradient(170deg, #0d2137 0%, #0a3d2e 100%)', flexShrink: 0, padding: '36px 22px', display: 'flex', flexDirection: 'column', gap: 28 }}>
-        {/* Avatar initials */}
+        {/* Avatar / photo */}
         <div style={{ textAlign: 'center', paddingBottom: 24, borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
-          <div style={{ width: 72, height: 72, borderRadius: '50%', background: 'linear-gradient(135deg, #00C9A7, #0a8f72)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 26, fontWeight: 700, color: '#fff', margin: '0 auto 14px', letterSpacing: 1 }}>
-            {cv.name.split(' ').map(n => n[0]).join('').slice(0, 2)}
-          </div>
+          {photo ? (
+            <img src={photo} alt={cv.name} style={{ width: 72, height: 72, borderRadius: '50%', objectFit: 'cover', border: '2.5px solid #00C9A7', display: 'block', margin: '0 auto 14px' }} />
+          ) : (
+            <div style={{ width: 72, height: 72, borderRadius: '50%', background: 'linear-gradient(135deg, #00C9A7, #0a8f72)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 26, fontWeight: 700, color: '#fff', margin: '0 auto 14px', letterSpacing: 1 }}>
+              {cv.name.split(' ').map(n => n[0]).join('').slice(0, 2)}
+            </div>
+          )}
           <div style={{ fontSize: 14, fontWeight: 700, color: '#fff', letterSpacing: 0.3, marginBottom: 4 }}>{cv.name}</div>
           <div style={{ fontSize: 10, color: '#00C9A7', fontWeight: 700, letterSpacing: 1.5, textTransform: 'uppercase', lineHeight: 1.5 }}>{cv.title}</div>
         </div>
@@ -703,7 +707,9 @@ export default function CVBuilderPage() {
   const previewRef = useRef<HTMLDivElement>(null)
   const previewAreaRef = useRef<HTMLDivElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const photoInputRef = useRef<HTMLInputElement>(null)
   const [mobileScale, setMobileScale] = useState(1)
+  const [photoUrl, setPhotoUrl] = useState('')
 
   const [cvText, setCvText] = useState('')
   const [cvFileName, setCvFileName] = useState('')
@@ -729,6 +735,12 @@ export default function CVBuilderPage() {
   const [skillGapLoading, setSkillGapLoading] = useState(false)
   const [editingContact, setEditingContact] = useState(false)
   const [contactDraft, setContactDraft] = useState({ name: '', email: '', phone: '', location: '', linkedin: '' })
+
+  function handlePhotoFile(file: File) {
+    const r = new FileReader()
+    r.onload = e => { const url = (e.target?.result as string) ?? ''; if (url) setPhotoUrl(url) }
+    r.readAsDataURL(file)
+  }
 
   async function handleCvFile(file: File) {
     setCvFileName(file.name)
@@ -936,9 +948,9 @@ ${confirmedSkills.length > 0 ? `- User confirmed they also have these skills (in
         import('jspdf'),
       ])
 
-      // Render into an offscreen container — no scroll, no clipping, no transform
+      // Render into an offscreen container — absolute avoids mobile viewport-relative positioning bugs
       const offscreen = document.createElement('div')
-      offscreen.style.cssText = 'position:fixed;left:-9999px;top:0;width:740px;background:#fff;z-index:-1;'
+      offscreen.style.cssText = 'position:absolute;left:-9999px;top:0;width:740px;min-width:740px;background:#fff;visibility:hidden;'
       const clone = previewRef.current.cloneNode(true) as HTMLElement
       clone.style.borderRadius = '0'
       clone.style.overflow = 'visible'
@@ -946,8 +958,8 @@ ${confirmedSkills.length > 0 ? `- User confirmed they also have these skills (in
       offscreen.appendChild(clone)
       document.body.appendChild(offscreen)
 
-      // Allow fonts/images to settle
-      await new Promise(r => setTimeout(r, 120))
+      // Allow fonts and images to settle (longer on mobile)
+      await new Promise(r => setTimeout(r, 300))
 
       const canvas = await html2canvas(offscreen, {
         scale: 2,
@@ -966,15 +978,19 @@ ${confirmedSkills.length > 0 ? `- User confirmed they also have these skills (in
       const A4_W = 210
       const A4_H = 297
       const imgH = (canvas.height * A4_W) / canvas.width
-      let position = 0
-      let remaining = imgH
-      pdf.addImage(imgData, 'JPEG', 0, 0, A4_W, imgH)
-      remaining -= A4_H
-      while (remaining > 0) {
-        position -= A4_H
-        pdf.addPage()
-        pdf.addImage(imgData, 'JPEG', 0, position, A4_W, imgH)
-        remaining -= A4_H
+
+      if (pages === '1') {
+        // Scale entire content to fit exactly one A4 page — no cuts
+        pdf.addImage(imgData, 'JPEG', 0, 0, A4_W, A4_H)
+      } else {
+        // Tile image across pages at natural scale
+        pdf.addImage(imgData, 'JPEG', 0, 0, A4_W, imgH)
+        let position = -A4_H
+        while (imgH + position > 0) {
+          pdf.addPage()
+          pdf.addImage(imgData, 'JPEG', 0, position, A4_W, imgH)
+          position -= A4_H
+        }
       }
       const name = (job?.employer_name || cvData.name || 'JobLens').replace(/[^a-zA-Z0-9]/g, '_')
       pdf.save(`CV_${name}.pdf`)
@@ -1183,7 +1199,7 @@ ${confirmedSkills.length > 0 ? `- User confirmed they also have these skills (in
 
   function renderCV() {
     if (!cvData) return null
-    if (template === 'executive') return <ExecutiveTemplate cv={cvData} />
+    if (template === 'executive') return <ExecutiveTemplate cv={cvData} photo={photoUrl || undefined} />
     if (template === 'modern') return <ModernTemplate cv={cvData} />
     if (template === 'minimal') return <MinimalTemplate cv={cvData} />
     if (template === 'technical') return <TechnicalTemplate cv={cvData} />
@@ -1277,6 +1293,31 @@ ${confirmedSkills.length > 0 ? `- User confirmed they also have these skills (in
               </div>
             )}
           </div>
+
+          {/* Photo upload — executive template only */}
+          {template === 'executive' && (
+            <div style={{ padding: '12px 20px', borderBottom: '1px solid rgba(255,255,255,0.07)', flexShrink: 0 }}>
+              <div style={{ fontSize: 9, fontWeight: 700, color: 'rgba(255,255,255,0.3)', letterSpacing: 0.8, textTransform: 'uppercase' as const, marginBottom: 8 }}>
+                Profile Photo <span style={{ fontWeight: 400, color: 'rgba(255,255,255,0.18)' }}>· Executive</span>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                {photoUrl ? (
+                  <img src={photoUrl} alt="Profile" style={{ width: 42, height: 42, borderRadius: '50%', objectFit: 'cover', border: `2px solid ${currentAccent}55`, flexShrink: 0 }} />
+                ) : (
+                  <div onClick={() => photoInputRef.current?.click()} style={{ width: 42, height: 42, borderRadius: '50%', background: 'rgba(255,255,255,0.04)', border: '1.5px dashed rgba(255,255,255,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, cursor: 'pointer', fontSize: 18 }}>📷</div>
+                )}
+                <div style={{ flex: 1 }}>
+                  <button onClick={() => photoInputRef.current?.click()} style={{ fontSize: 12, fontWeight: 600, color: photoUrl ? currentAccent : 'rgba(255,255,255,0.4)', background: 'none', border: 'none', cursor: 'pointer', padding: 0, fontFamily: 'inherit', display: 'block' }}>
+                    {photoUrl ? 'Change photo' : 'Upload photo'}
+                  </button>
+                  {photoUrl && (
+                    <button onClick={() => setPhotoUrl('')} style={{ fontSize: 10, color: 'rgba(255,255,255,0.25)', background: 'none', border: 'none', cursor: 'pointer', padding: 0, marginTop: 3, fontFamily: 'inherit' }}>Remove</button>
+                  )}
+                </div>
+              </div>
+              <input ref={photoInputRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={e => e.target.files?.[0] && handlePhotoFile(e.target.files[0])} />
+            </div>
+          )}
 
           {/* Accordion sections - scrollable */}
           <div style={{ flex: 1, overflowY: 'auto' }}>
@@ -1606,6 +1647,7 @@ ${confirmedSkills.length > 0 ? `- User confirmed they also have these skills (in
           accent={currentAccent}
           onConfirm={(confirmed) => { setSkillGapOpen(false); setSkillGapData(null); generate(confirmed) }}
           onSkip={() => { setSkillGapOpen(false); setSkillGapData(null); generate([]) }}
+          onCareerScan={() => { setSkillGapOpen(false); setSkillGapData(null); router.push('/app/career-scan') }}
         />
       )}
     </div>
