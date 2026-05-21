@@ -8,10 +8,13 @@ const { colors: c, gradients: g, fonts: f } = theme
 
 const AGENT_NAME = 'Kira'
 
+interface ActionButton { feature: string; label: string; href: string; reason: string }
+
 interface Message {
   role: 'user' | 'assistant'
   content: string
   status?: string
+  actions?: ActionButton[]
 }
 
 const SUGGESTIONS = [
@@ -22,8 +25,18 @@ const SUGGESTIONS = [
 ]
 
 const STATUS_LABELS: Record<string, string> = {
-  search_jobs: 'Searching live jobs...',
-  score_jobs:  'Scoring your CV match...',
+  search_jobs:    'Searching live jobs...',
+  score_jobs:     'Scoring your CV match...',
+  get_skill_gap:  'Analysing skill gaps...',
+  get_salary_info:'Looking up salary data...',
+}
+
+const FEATURE_ICONS: Record<string, string> = {
+  career_scan:  '🔍',
+  cv_builder:   '📄',
+  cover_letter: '✉️',
+  auto_apply:   '⚡',
+  tracker:      '📋',
 }
 
 function TypingDots() {
@@ -239,7 +252,15 @@ export default function AIWidget() {
               assembled += event.text
               setMessages(prev => {
                 const copy = [...prev]
-                copy[assistantIdx] = { role: 'assistant', content: assembled }
+                copy[assistantIdx] = { ...copy[assistantIdx], role: 'assistant', content: assembled }
+                return copy
+              })
+            } else if (event.action) {
+              setMessages(prev => {
+                const copy = [...prev]
+                const existing = copy[assistantIdx] || { role: 'assistant', content: '' }
+                const actions  = [...(existing.actions || []), event.action as ActionButton]
+                copy[assistantIdx] = { ...existing, actions }
                 return copy
               })
             } else if (event.status) {
@@ -468,20 +489,44 @@ export default function AIWidget() {
                         letterSpacing: '-0.3px',
                       }}>{AGENT_NAME.slice(0, 2)}</div>
                     )}
-                    <div className={msg.role === 'user' ? 'jlaw-msg-user' : 'jlaw-msg-ai'} style={{
-                      maxWidth: '78%', padding: '8px 11px',
-                      color: '#fff', fontSize: 13, lineHeight: 1.55,
-                      fontFamily: f.body,
-                    }}>
-                      {msg.status ? (
-                        <span style={{ color: 'rgba(255,255,255,0.5)', display: 'flex', alignItems: 'center', gap: 6 }}>
-                          <TypingDots /> {STATUS_LABELS[msg.status] || 'Thinking...'}
-                        </span>
-                      ) : msg.role === 'assistant' && i === messages.length - 1 && msg.content === '' ? (
-                        <TypingDots />
-                      ) : (
-                        <span style={{ whiteSpace: 'pre-wrap' }}>{msg.content}</span>
-                      )}
+                    <div style={{ maxWidth: '78%', display: 'flex', flexDirection: 'column', gap: 6 }}>
+                      <div className={msg.role === 'user' ? 'jlaw-msg-user' : 'jlaw-msg-ai'} style={{
+                        padding: '8px 11px',
+                        color: '#fff', fontSize: 13, lineHeight: 1.55,
+                        fontFamily: f.body,
+                      }}>
+                        {msg.status ? (
+                          <span style={{ color: 'rgba(255,255,255,0.5)', display: 'flex', alignItems: 'center', gap: 6 }}>
+                            <TypingDots /> {STATUS_LABELS[msg.status] || 'Thinking...'}
+                          </span>
+                        ) : msg.role === 'assistant' && i === messages.length - 1 && msg.content === '' && !msg.actions?.length ? (
+                          <TypingDots />
+                        ) : (
+                          <span style={{ whiteSpace: 'pre-wrap' }}>{msg.content}</span>
+                        )}
+                      </div>
+                      {msg.actions?.map((a, ai) => (
+                        <a
+                          key={ai}
+                          href={a.href}
+                          style={{
+                            display: 'flex', alignItems: 'center', gap: 8,
+                            padding: '8px 12px', borderRadius: 10, textDecoration: 'none',
+                            background: 'rgba(55,138,221,0.15)',
+                            border: `1px solid rgba(55,138,221,0.35)`,
+                            color: '#fff', fontSize: 12, fontFamily: f.body,
+                            transition: 'background 0.15s',
+                          }}
+                          onMouseEnter={e => (e.currentTarget.style.background = 'rgba(55,138,221,0.28)')}
+                          onMouseLeave={e => (e.currentTarget.style.background = 'rgba(55,138,221,0.15)')}
+                        >
+                          <span style={{ fontSize: 14 }}>{FEATURE_ICONS[a.feature] || '→'}</span>
+                          <div style={{ flex: 1 }}>
+                            <div style={{ fontWeight: 600, color: c.accent }}>{a.label} →</div>
+                            <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: 11, marginTop: 1 }}>{a.reason}</div>
+                          </div>
+                        </a>
+                      ))}
                     </div>
                   </div>
                 ))}
