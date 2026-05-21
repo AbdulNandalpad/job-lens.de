@@ -9,6 +9,7 @@ export const CREDIT_COST = {
   autoApply:       3,  // /api/auto-apply/analyze
   zeugnisDecoder:  1,  // /api/zeugnis — decode Arbeitszeugnis
   visaCheck:       1,  // /api/visa — Fachkräfte eligibility analysis
+  aiChat:          1,  // /api/ai/chat — AI assistant message
 } as const
 
 // ── UI threshold — show low-credit warning when credits fall to or below this
@@ -60,6 +61,9 @@ export const SS = {
   inCareerScanMode:    'jl_in_career_scan_mode', // 'ats' | 'career'
   inCareerScanResult:  'jl_in_career_scan_result',
   inCareerScanRole:    'jl_in_career_scan_role',
+
+  // AI Assistant
+  aiMessages:          'jl_ai_messages',
 } as const
 
 // ── API routes ───────────────────────────────────────────────────────────────
@@ -78,4 +82,5 @@ export const API = {
   autoApplyAnalyze: '/api/auto-apply/analyze',
   userProfile:          '/api/user/profile',
   indiaCareerScanPro:   '/api/india/career-scan-pro',
+  aiChat:               '/api/ai/chat',
 } as const

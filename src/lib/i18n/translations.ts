@@ -1,6 +1,7 @@
 export const translations = {
   DE: {
     navbar: {
+      aiAssistant: 'AI Assistent',
       careerScan: 'Career Scan',
       jobSearch: 'Job-Suche',
       smartApply: 'AI Job Match',
@@ -371,6 +372,7 @@ export const translations = {
 
   EN: {
     navbar: {
+      aiAssistant: 'AI Assistant',
       careerScan: 'Career Scan',
       jobSearch: 'Job Search',
       smartApply: 'AI Job Match',

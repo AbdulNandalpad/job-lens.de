@@ -105,6 +105,7 @@ Only these routes exist under `src/app/api/`:
 | `/api/user/profile` | GET | Fetch credits + usage log | both | free |
 | `/api/cv/skill-gap` | POST | Compare CV text vs JD, return matching/missing skills | both | free |
 | `/api/paypal/webhook` | POST | PayPal IPN → top up eu_credits | — | — |
+| `/api/ai/chat` | POST | AI assistant with tool use (search_jobs + score_jobs) | body.market | 1 |
 
 Do not call any other `/api/*` path. Do not invent new routes without creating the file.
 
