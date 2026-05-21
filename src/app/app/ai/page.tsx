@@ -312,7 +312,7 @@ export default function AIPage() {
               fontSize: 12, color: 'rgba(255,255,255,0.7)',
             }}>
               <span style={{ color: '#fff', fontWeight: 600, fontSize: 16 }}>{credits}</span>
-              <span> available · {CREDIT_COST.aiChat} per message</span>
+              <span> available</span>
             </div>
           </div>
 
@@ -440,7 +440,7 @@ export default function AIPage() {
                 </button>
               </div>
               <div style={{ marginTop: 8, textAlign: 'center', color: c.textFaint, fontSize: 11 }}>
-                Press Enter to send · Shift+Enter for new line · {CREDIT_COST.aiChat} credit per message
+                Press Enter to send · Shift+Enter for new line
               </div>
             </div>
           </div>

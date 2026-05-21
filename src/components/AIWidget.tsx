@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { theme } from '@/lib/theme'
-import { SS, API, CREDIT_COST } from '@/lib/constants'
+import { SS, API } from '@/lib/constants'
 import { useLanguage } from '@/lib/i18n'
 
 const { colors: c, gradients: g, fonts: f } = theme
@@ -505,10 +505,6 @@ export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
         }),
       })
 
-      if (res.status === 402) {
-        setMessages(prev => { const copy = [...prev]; copy[assistantIdx] = { role: 'assistant', content: "You've run out of credits. Top up your account to continue." }; return copy })
-        setLoading(false); return
-      }
       if (!res.ok || !res.body) throw new Error('Failed')
 
       const reader    = res.body.getReader()
@@ -804,7 +800,7 @@ export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
                   </button>
                 </div>
                 <div style={{ textAlign: 'center', marginTop: 5, color: 'rgba(255,255,255,.2)', fontSize: 10 }}>
-                  {CREDIT_COST.aiChat} credit per message · Enter to send
+                  Enter to send
                 </div>
               </div>
             </>

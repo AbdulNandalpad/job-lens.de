@@ -1,7 +1,7 @@
 import { NextRequest } from 'next/server'
 import Anthropic from '@anthropic-ai/sdk'
-import { createServerSupabase, checkAndDeductCredits } from '@/lib/supabase-server'
-import { CREDIT_COST, MARKET } from '@/lib/constants'
+import { createServerSupabase } from '@/lib/supabase-server'
+import { MARKET } from '@/lib/constants'
 
 const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
 
@@ -273,13 +273,6 @@ export async function POST(req: NextRequest) {
   const market: 'eu' | 'in'    = body.market || MARKET.eu
 
   if (!messages.length) return new Response(JSON.stringify({ error: 'No messages' }), { status: 400 })
-
-  const deduct = await checkAndDeductCredits(user.id, CREDIT_COST.aiChat, 'ai_chat', user.email ?? undefined, market)
-  if (!deduct.ok) {
-    return new Response(JSON.stringify({ error: 'insufficient_credits', remaining: deduct.remaining }), {
-      status: 402, headers: { 'Content-Type': 'application/json' },
-    })
-  }
 
   const marketContext = market === 'in'
     ? `\n\nMARKET CONTEXT: You are helping a user in the Indian job market. Salaries are in INR. Focus on Indian cities (Bangalore, Hyderabad, Mumbai, Pune, Delhi, Chennai). Reference Indian hiring norms, IT sector trends, and service companies (TCS, Infosys, Wipro, HCL) vs product companies. Visa questions relate to H-1B, working abroad from India, or foreign companies hiring in India.

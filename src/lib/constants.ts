@@ -9,7 +9,6 @@ export const CREDIT_COST = {
   autoApply:       3,  // /api/auto-apply/analyze
   zeugnisDecoder:  1,  // /api/zeugnis — decode Arbeitszeugnis
   visaCheck:       1,  // /api/visa — Fachkräfte eligibility analysis
-  aiChat:          1,  // /api/ai/chat — AI assistant message
 } as const
 
 // ── UI threshold — show low-credit warning when credits fall to or below this
