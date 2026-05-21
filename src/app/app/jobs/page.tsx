@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import Navbar from '../components/Navbar'
 import { useLanguage } from '@/lib/i18n'
+import { computeMatch, matchBadgeStyle, type ScoredProfile } from '@/lib/jobMatch'
 
 const blue  = '#378ADD'
 const navy  = '#042C53'
@@ -55,6 +56,8 @@ export default function DACHJobsPage() {
   const [hasMore,   setHasMore]   = useState(false)
   const [usedQuery, setUsedQuery] = useState('')
   const [source,    setSource]    = useState<JobSource>('adzuna')
+  const [careerProfile, setCareerProfile] = useState<ScoredProfile | null>(null)
+  const [matchScores,   setMatchScores]   = useState<Record<string, number>>({})
   const autoSearched = useRef(false)
   const [expandedDescs, setExpandedDescs] = useState<Set<string>>(new Set())
   function toggleDesc(id: string, e: React.MouseEvent) {
@@ -95,6 +98,21 @@ export default function DACHJobsPage() {
   }
 
   const label = (de: string, en: string) => lang === 'DE' ? de : en
+
+  // Fetch career profile once for match scoring
+  useEffect(() => {
+    fetch('/api/profile/career').then(r => r.json())
+      .then(d => { if (d.profile) setCareerProfile(d.profile) })
+      .catch(() => {})
+  }, [])
+
+  // Recompute scores whenever jobs or profile change
+  useEffect(() => {
+    if (!careerProfile || jobs.length === 0) return
+    const scores: Record<string, number> = {}
+    for (const job of jobs) scores[job.job_id] = computeMatch(job, careerProfile)
+    setMatchScores(scores)
+  }, [jobs, careerProfile])
 
   useEffect(() => {
     if (autoSearched.current || typeof window === 'undefined') return
@@ -331,8 +349,17 @@ export default function DACHJobsPage() {
 
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 }}>
                       <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4, flexWrap: 'wrap' }}>
                           <div style={{ fontFamily: "'Outfit',sans-serif", fontSize: 15, fontWeight: 700, color: navy }}>{job.job_title}</div>
+                          {matchScores[job.job_id] !== undefined && (() => {
+                            const s  = matchScores[job.job_id]
+                            const bs = matchBadgeStyle(s)
+                            return (
+                              <span title="Match score based on your career profile" style={{ fontSize: 10, padding: '2px 8px', borderRadius: 20, background: bs.bg, color: bs.color, border: `1px solid ${bs.border}`, fontWeight: 700, flexShrink: 0, cursor: 'default' }}>
+                                {s >= 70 ? '★ ' : ''}{s}% match
+                              </span>
+                            )
+                          })()}
                           {isSelected && <span style={{ fontSize: 9, padding: '2px 7px', borderRadius: 10, background: blue + '20', color: blue, fontWeight: 700, flexShrink: 0 }}>Selected</span>}
                         </div>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8, flexWrap: 'wrap' }}>
