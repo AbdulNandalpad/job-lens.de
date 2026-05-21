@@ -46,6 +46,9 @@ export default function IndiaAccountPage() {
   const [loading, setLoading] = useState(true)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [deleting, setDeleting] = useState(false)
+  const [showDeleteKiraConfirm, setShowDeleteKiraConfirm] = useState(false)
+  const [deletingKiraData, setDeletingKiraData] = useState(false)
+  const [kiraDataDeleted, setKiraDataDeleted] = useState(false)
 
   useEffect(() => {
     fetch('/api/user/profile')
@@ -280,6 +283,42 @@ export default function IndiaAccountPage() {
                     Switch to DACH →
                   </button>
                 </div>
+              </div>
+
+              {/* Kira AI Profile Data */}
+              <div style={{ background: '#fff', border: '1px solid #edf1f6', borderRadius: 16, padding: 20, marginBottom: 16, boxShadow: '0 2px 8px rgba(4,44,83,0.05)' }}>
+                <div style={{ fontFamily: "'Outfit', sans-serif", fontSize: 15, fontWeight: 700, color: navy, marginBottom: 6 }}>Kira AI Profile Data</div>
+                <p style={{ fontSize: 13, color: '#6b7c93', lineHeight: 1.6, margin: '0 0 14px' }}>
+                  Kira stores a structured career profile extracted from your CV — name, title, skills, and target roles — to personalise job searches across sessions. This is covered by India&apos;s DPDP Act 2023.
+                </p>
+                {kiraDataDeleted ? (
+                  <div style={{ fontSize: 13, color: green, fontWeight: 600 }}>✓ AI profile data deleted. Kira will no longer remember you across sessions.</div>
+                ) : !showDeleteKiraConfirm ? (
+                  <button onClick={() => setShowDeleteKiraConfirm(true)}
+                    style={{ padding: '9px 18px', borderRadius: 8, border: '1px solid #dce4ef', background: 'transparent', color: '#6b7c93', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: "'Outfit', sans-serif" }}>
+                    Delete Kira&apos;s memory of me
+                  </button>
+                ) : (
+                  <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+                    <span style={{ fontSize: 12, color: red }}>This removes your saved career profile. Cannot be undone.</span>
+                    <button onClick={async () => {
+                      setDeletingKiraData(true)
+                      await fetch('/api/profile/career', { method: 'DELETE' })
+                      ;['jl_cv_text', 'jl_scan_result', 'jl_ai_messages'].forEach(k => sessionStorage.removeItem(k))
+                      localStorage.removeItem('jl_cv_consent')
+                      setDeletingKiraData(false)
+                      setShowDeleteKiraConfirm(false)
+                      setKiraDataDeleted(true)
+                    }} disabled={deletingKiraData}
+                      style={{ padding: '9px 18px', borderRadius: 8, border: 'none', background: red, color: '#fff', fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: "'Outfit', sans-serif" }}>
+                      {deletingKiraData ? 'Deleting...' : 'Yes, delete it'}
+                    </button>
+                    <button onClick={() => setShowDeleteKiraConfirm(false)}
+                      style={{ padding: '9px 16px', borderRadius: 8, border: '1px solid #dce4ef', background: 'transparent', color: '#6b7c93', fontSize: 13, cursor: 'pointer', fontFamily: "'Outfit', sans-serif" }}>
+                      Cancel
+                    </button>
+                  </div>
+                )}
               </div>
 
               {/* Sign out / delete */}

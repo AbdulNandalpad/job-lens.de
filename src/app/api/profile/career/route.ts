@@ -92,3 +92,17 @@ ${cvText.slice(0, 5000)}`,
     return new Response('Extraction failed', { status: 500 })
   }
 }
+
+// DELETE — wipe career_data for the logged-in user (GDPR/DPDP "right to erasure")
+export async function DELETE() {
+  const supabase = await createServerSupabase()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return new Response('Unauthorized', { status: 401 })
+
+  await supabase
+    .from('profiles')
+    .update({ career_data: null })
+    .eq('id', user.id)
+
+  return Response.json({ ok: true })
+}

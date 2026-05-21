@@ -8,6 +8,7 @@ import { useLanguage } from '@/lib/i18n'
 const { colors: c, gradients: g, fonts: f } = theme
 
 const AGENT_NAME = 'Kira'
+const LS_CV_CONSENT = 'jl_cv_consent'
 
 const VOICE_GREETING: Record<string, string> = {
   eu_de: "Hey, schön dass du da bist! Ich bin Kira. Ich helfe dir, den perfekten Job zu finden. Was suchst du gerade?",
@@ -148,6 +149,8 @@ export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
   const [cvText, setCvText]       = useState('')
   const [hasCv, setHasCv]         = useState(false)
   const [cvUploading, setCvUploading] = useState(false)
+  const [showConsentModal, setShowConsentModal] = useState(false)
+  const pendingCvFileRef = useRef<File | null>(null)
   const [pulse, setPulse]         = useState(true)
 
   // Voice mode
@@ -581,7 +584,6 @@ export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
       setMessages(prev => [...prev, { role: 'assistant', content: 'Could not read that file. Please try PDF, DOCX, or TXT.' }])
     }
     setCvUploading(false)
-    if (fileInputRef.current) fileInputRef.current.value = ''
   }
 
   function clearChat() { setMessages([]); sessionStorage.removeItem(SS.aiMessages) }
@@ -614,7 +616,17 @@ export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
       `}</style>
 
       <input ref={fileInputRef} type="file" accept=".pdf,.docx,.txt" style={{ display: 'none' }}
-        onChange={e => { const f = e.target.files?.[0]; if (f) handleCvFile(f) }} />
+        onChange={e => {
+          const f = e.target.files?.[0]
+          if (!f) return
+          if (typeof window !== 'undefined' && localStorage.getItem(LS_CV_CONSENT)) {
+            handleCvFile(f)
+          } else {
+            pendingCvFileRef.current = f
+            setShowConsentModal(true)
+          }
+          if (fileInputRef.current) fileInputRef.current.value = ''
+        }} />
 
       {open && (
         <div className="jlaw-panel" style={{
@@ -821,6 +833,51 @@ export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
               </div>
             </>
           )}
+        </div>
+      )}
+
+      {/* ── Consent Modal ── */}
+      {showConsentModal && (
+        <div style={{
+          position: 'fixed', inset: 0, zIndex: 10000,
+          background: 'rgba(0,0,0,.65)', display: 'flex', alignItems: 'center', justifyContent: 'center',
+          padding: '20px',
+        }}>
+          <div style={{
+            background: 'linear-gradient(160deg,#0f1f33 0%,#0a1520 100%)',
+            border: '1px solid rgba(255,255,255,.15)', borderRadius: 18,
+            padding: '28px 24px', maxWidth: 360, width: '100%',
+            boxShadow: '0 24px 64px rgba(0,0,0,.6)',
+          }}>
+            <div style={{ fontSize: 20, marginBottom: 12 }}>🔒</div>
+            <div style={{ color: '#fff', fontSize: 15, fontWeight: 700, fontFamily: f.heading, marginBottom: 10 }}>
+              Before we read your CV
+            </div>
+            <p style={{ color: 'rgba(255,255,255,.65)', fontSize: 13, lineHeight: 1.6, margin: '0 0 10px' }}>
+              Your CV is processed by <strong style={{ color: '#fff' }}>Anthropic Claude AI</strong> to power Kira&apos;s job search and career advice. The extracted profile is stored securely in the EU (Ireland) and linked to your account.
+            </p>
+            <p style={{ color: 'rgba(255,255,255,.65)', fontSize: 13, lineHeight: 1.6, margin: '0 0 18px' }}>
+              We never sell your data. You can delete it anytime from <strong style={{ color: '#fff' }}>Account Settings → AI Profile Data</strong>.
+            </p>
+            <div style={{ display: 'flex', gap: 10 }}>
+              <button
+                onClick={() => {
+                  localStorage.setItem(LS_CV_CONSENT, '1')
+                  setShowConsentModal(false)
+                  const f = pendingCvFileRef.current
+                  pendingCvFileRef.current = null
+                  if (f) handleCvFile(f)
+                }}
+                style={{ flex: 1, padding: '10px 0', borderRadius: 9, border: 'none', background: `linear-gradient(135deg,${c.ai},${c.accent})`, color: '#fff', fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: f.body }}>
+                Accept &amp; Upload
+              </button>
+              <button
+                onClick={() => { setShowConsentModal(false); pendingCvFileRef.current = null }}
+                style={{ flex: 1, padding: '10px 0', borderRadius: 9, border: '1px solid rgba(255,255,255,.15)', background: 'rgba(255,255,255,.06)', color: 'rgba(255,255,255,.6)', fontSize: 13, cursor: 'pointer', fontFamily: f.body }}>
+                Cancel
+              </button>
+            </div>
+          </div>
         </div>
       )}
 
