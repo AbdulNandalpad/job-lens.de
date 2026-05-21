@@ -3,8 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Navbar from '../components/Navbar'
-
-const SS_KEY = 'jl_visa_result'
+import { SS } from '@/lib/constants'
 
 const blue   = '#378ADD'
 const navy   = '#042C53'
@@ -207,7 +206,7 @@ export default function VisaPage() {
   // Restore from session on mount
   useEffect(() => {
     try {
-      const saved = sessionStorage.getItem(SS_KEY)
+      const saved = sessionStorage.getItem(SS.visaResult)
       if (saved) {
         const parsed = JSON.parse(saved) as { result: VisaResult; form: FormData }
         setResult(parsed.result)
@@ -236,7 +235,7 @@ export default function VisaPage() {
       if (!res.ok) { setError(data.error || 'Something went wrong'); setLoading(false); return }
       setResult(data)
       setStep(3)
-      try { sessionStorage.setItem(SS_KEY, JSON.stringify({ result: data, form })) } catch {}
+      try { sessionStorage.setItem(SS.visaResult, JSON.stringify({ result: data, form })) } catch {}
     } catch { setError('Network error. Please try again.') }
     finally { setLoading(false) }
   }
@@ -624,7 +623,7 @@ export default function VisaPage() {
 
               {/* Start again */}
               <div style={{ textAlign: 'center', marginTop: 8 }}>
-                <button onClick={() => { try { sessionStorage.removeItem(SS_KEY) } catch {} setStep(1); setForm(EMPTY_FORM); setResult(null) }}
+                <button onClick={() => { try { sessionStorage.removeItem(SS.visaResult) } catch {} setStep(1); setForm(EMPTY_FORM); setResult(null) }}
                   style={{ fontSize: 12, color: '#9aafbc', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline' }}>
                   Start a new check
                 </button>

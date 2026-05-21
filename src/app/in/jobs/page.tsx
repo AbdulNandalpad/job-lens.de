@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { computeMatch, matchBadgeStyle, type ScoredProfile } from '@/lib/jobMatch'
+import { SS } from '@/lib/constants'
 
 const orange = '#ff9933'
 const navy = '#042C53'
@@ -136,7 +137,7 @@ export default function IndiaJobsPage() {
 
   function selectJob(job: Job) {
     setSelectedJobId(prev => prev === job.job_id ? null : job.job_id)
-    sessionStorage.setItem('jl_in_selected_job', JSON.stringify({
+    sessionStorage.setItem(SS.inSelectedJob, JSON.stringify({
       job_title: job.job_title,
       employer_name: job.employer_name,
       job_description: job.job_description,

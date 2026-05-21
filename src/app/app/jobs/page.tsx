@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import Navbar from '../components/Navbar'
 import { useLanguage } from '@/lib/i18n'
 import { computeMatch, matchBadgeStyle, type ScoredProfile } from '@/lib/jobMatch'
+import { SS } from '@/lib/constants'
 
 const blue  = '#378ADD'
 const navy  = '#042C53'
@@ -182,7 +183,7 @@ export default function DACHJobsPage() {
 
   function selectJob(job: Job) {
     setSelectedJobId(prev => prev === job.job_id ? null : job.job_id)
-    sessionStorage.setItem('jl_cvb_job', JSON.stringify({
+    sessionStorage.setItem(SS.cvbJob, JSON.stringify({
       job_title: job.job_title,
       employer_name: job.employer_name,
       job_description: job.job_description,

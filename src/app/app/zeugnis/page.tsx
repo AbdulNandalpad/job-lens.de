@@ -2,8 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import Navbar from '../components/Navbar'
-
-const SS_KEY = 'jl_zeugnis_result'
+import { SS } from '@/lib/constants'
 
 const blue   = '#378ADD'
 const navy   = '#042C53'
@@ -208,7 +207,7 @@ export default function ZeugnisPage() {
   // Restore from session on mount
   useEffect(() => {
     try {
-      const saved = sessionStorage.getItem(SS_KEY)
+      const saved = sessionStorage.getItem(SS.zeugnisResult)
       if (saved) {
         const parsed = JSON.parse(saved) as { result: ZeugnisResult; form: RequestForm; zeugnisText: string }
         setResult(parsed.result)
@@ -238,7 +237,7 @@ export default function ZeugnisPage() {
       }
       setForm(prefilled)
       // Persist to session
-      try { sessionStorage.setItem(SS_KEY, JSON.stringify({ result: data, form: prefilled, zeugnisText })) } catch {}
+      try { sessionStorage.setItem(SS.zeugnisResult, JSON.stringify({ result: data, form: prefilled, zeugnisText })) } catch {}
     } catch { setError('Network error. Please try again.') }
     finally { setLoading(false) }
   }
