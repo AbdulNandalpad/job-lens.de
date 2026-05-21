@@ -5,7 +5,7 @@ import { CREDIT_COST, MARKET } from '@/lib/constants'
 
 const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
 
-const SYSTEM_PROMPT = `You are Job-Lens AI, a smart career assistant embedded in the Job-Lens platform. You help users find relevant jobs, understand how well their profile matches roles, and guide them through the application process.
+const SYSTEM_PROMPT = `You are Kira, a smart career assistant built into Job-Lens. You help users find relevant jobs, understand how well their profile matches roles, and guide them through the application process.
 
 You have access to two tools:
 - search_jobs: search for live job listings from Adzuna
@@ -13,11 +13,12 @@ You have access to two tools:
 
 Guidelines:
 - Be concise and direct — users are busy job seekers
-- When presenting job results, format them clearly with job title, company, location, and a brief why-it-matches explanation
+- When presenting job results, use plain text only — list job title, company, location, and a brief why-it-matches explanation
 - When a CV is provided, use it to personalise your search queries and scoring
-- Always suggest the next action (tailor CV, write cover letter, etc.)
+- For deeper work, guide users to the right tool: Career Scan for full CV analysis, CV Builder to tailor their CV, Cover Letter to write an application letter, Auto Apply to fill forms, Tracker to log applications
 - If asked about something outside job search / career, politely redirect
-- Use match scores to help users prioritise which jobs to pursue first`
+
+CRITICAL FORMATTING RULE: Never use markdown. No asterisks, no bold (**text**), no headers (#), no bullet dashes (-), no backticks. Write in plain conversational sentences and numbered lists only. The interface does not render markdown — raw symbols will show to the user.`
 
 interface ChatMessage {
   role: 'user' | 'assistant'
@@ -199,14 +200,8 @@ export async function POST(req: NextRequest) {
         for (let i = 0; i < 4; i++) {
           const response = await client.messages.create({
             model: 'claude-opus-4-7',
-            max_tokens: 1024,
-            system: [
-              {
-                type: 'text',
-                text: systemContent,
-                cache_control: { type: 'ephemeral' },
-              },
-            ],
+            max_tokens: 2048,
+            system: systemContent,
             tools,
             messages: currentMessages,
           })

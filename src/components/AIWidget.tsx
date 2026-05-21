@@ -170,26 +170,12 @@ export default function AIWidget() {
     rec.lang = 'en-US'
 
     rec.onstart = () => setListening(true)
-    rec.onend   = () => {
-      setListening(false)
-      // Auto-send if we captured something
-      setInput(prev => {
-        if (prev.trim()) {
-          // small delay so state settles
-          setTimeout(() => {
-            setInput(curr => {
-              if (curr.trim()) sendMessage(curr)
-              return ''
-            })
-          }, 300)
-        }
-        return prev
-      })
-    }
+    rec.onend   = () => setListening(false)
     rec.onerror = () => setListening(false)
     rec.onresult = (e: ISpeechRecognitionEvent) => {
       const transcript = e.results.map(r => r[0].transcript).join('')
       setInput(transcript)
+      inputRef.current?.focus()
     }
 
     recognitionRef.current = rec
