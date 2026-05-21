@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useLanguage } from '@/lib/i18n'
+import CareerIntelPanel from '@/components/CareerIntelPanel'
 
 // ── Design tokens ────────────────────────────────────────────
 const blue    = '#378ADD'
@@ -421,6 +422,9 @@ export default function DACHDashboard() {
 
       {/* ── ANALYTICS BODY ───────────────────────────── */}
       <div className="dash-page" style={{ maxWidth: 1100, margin: '0 auto', padding: '28px 20px 80px' }}>
+
+        {/* ── Career Intelligence Panel ── */}
+        <CareerIntelPanel accentColor={blue} market="eu" />
 
         {/* ── KPI snapshot ── */}
         <div className="kpi-grid" style={{ marginBottom: 28 }}>

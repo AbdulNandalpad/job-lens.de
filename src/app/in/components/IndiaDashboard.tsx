@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import type { MarketSnapshot } from '@/app/api/india/market-snapshot/route'
 import type { NewsArticle } from '@/app/api/india/news-insights/route'
 import type { WorldIndicator } from '@/app/api/india/world-indicators/route'
+import CareerIntelPanel from '@/components/CareerIntelPanel'
 
 // ── Design tokens ───────────────────────────────────────
 const saffron = '#FF9933'
@@ -336,6 +337,9 @@ export default function IndiaDashboard() {
 
       {/* ── ANALYTICS BODY ── */}
       <div className="dash-page" style={{maxWidth:1100,margin:'0 auto',padding:'28px 20px 80px'}}>
+
+        {/* ── Career Intelligence Panel ── */}
+        <CareerIntelPanel accentColor={saffron} market="in" />
 
         {/* ── KPI snapshot ── */}
         <div className="kpi-grid">
