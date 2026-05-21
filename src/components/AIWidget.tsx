@@ -258,14 +258,27 @@ export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
   function speakBrowser(clean: string, onEnd?: () => void, lang?: string) {
     if (!ttsSupported) { onEnd?.(); return }
     window.speechSynthesis.cancel()
+
     const utterance  = new SpeechSynthesisUtterance(clean)
     utterance.lang   = lang || voiceLang
     utterance.rate   = 1.0
     utterance.pitch  = 1.0
     const voice      = pickVoice(lang || voiceLang)
     if (voice) utterance.voice = voice
-    utterance.onend  = () => { if (voiceActiveRef.current) onEnd?.() }
-    utterance.onerror = () => { onEnd?.() }
+
+    // Safety timeout — Chrome mobile can silently stall speechSynthesis
+    const duration   = Math.max(4000, (clean.length / 12) * 1000 + 1500)
+    const safety     = setTimeout(() => { clearInterval(resumeCheck); onEnd?.() }, duration)
+
+    // Chrome bug: synthesis pauses itself — resume every 2s
+    const resumeCheck = setInterval(() => {
+      if (window.speechSynthesis.paused) window.speechSynthesis.resume()
+    }, 2000)
+
+    const done = () => { clearTimeout(safety); clearInterval(resumeCheck) }
+
+    utterance.onend  = () => { done(); if (voiceActiveRef.current) onEnd?.() }
+    utterance.onerror = () => { done(); onEnd?.() }
     window.speechSynthesis.speak(utterance)
   }
 
@@ -280,8 +293,7 @@ export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
     const lang   = langOverride || voiceLang
     const prefix = lang.split('-')[0]
 
-    // Indic languages: browser TTS uses native Google voices (hi-IN, kn-IN, te-IN)
-    // which are far more natural than OpenAI nova trying to speak them
+    // Indic languages: browser native voices (hi-IN, kn-IN, te-IN) are more natural
     if (prefix === 'hi' || prefix === 'kn' || prefix === 'te') {
       speakBrowser(clean, onEnd, lang)
       return
@@ -291,6 +303,11 @@ export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
     window.speechSynthesis?.cancel()
     if (audioRef.current) { audioRef.current.pause(); audioRef.current = null }
 
+    // Safety timeout in case audio events don't fire on mobile
+    const duration = Math.max(4000, (clean.length / 12) * 1000 + 2000)
+    const safety   = setTimeout(() => { audioRef.current = null; onEnd?.() }, duration)
+    const done     = () => clearTimeout(safety)
+
     try {
       const res = await fetch(API.aiTts, {
         method: 'POST',
@@ -298,16 +315,26 @@ export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
         body: JSON.stringify({ text: clean }),
       })
       if (!res.ok) throw new Error('TTS unavailable')
-      if (!voiceActiveRef.current) return
+      if (!voiceActiveRef.current) { done(); return }
 
       const blob  = await res.blob()
       const url   = URL.createObjectURL(blob)
       const audio = new Audio(url)
       audioRef.current = audio
-      audio.onended = () => { URL.revokeObjectURL(url); audioRef.current = null; if (voiceActiveRef.current) onEnd?.() }
-      audio.onerror = () => { URL.revokeObjectURL(url); audioRef.current = null; onEnd?.() }
-      await audio.play()
+
+      audio.onended = () => { done(); URL.revokeObjectURL(url); audioRef.current = null; if (voiceActiveRef.current) onEnd?.() }
+      audio.onerror = () => { done(); URL.revokeObjectURL(url); audioRef.current = null; onEnd?.() }
+
+      // Handle iOS autoplay rejection — fall back to browser TTS
+      const playPromise = audio.play()
+      if (playPromise !== undefined) {
+        playPromise.catch(() => {
+          done(); URL.revokeObjectURL(url); audioRef.current = null
+          speakBrowser(clean, onEnd, lang)
+        })
+      }
     } catch {
+      done()
       speakBrowser(clean, onEnd, lang)
     }
   }
