@@ -65,6 +65,14 @@ export const SS = {
   aiMessages:          'jl_ai_messages',
 } as const
 
+// ── localStorage keys ───────────────────────────────────────────────────────
+// Persistent preferences (not cleared by "New session"). Add new keys here.
+export const LS = {
+  dashWidgetsEu: 'jl_dash_widgets_eu',
+  dashWidgetsIn: 'jl_dash_widgets_in',
+  cvConsent:     'jl_cv_consent',
+} as const
+
 // ── API routes ───────────────────────────────────────────────────────────────
 // All internal API routes. Never hardcode strings in fetch() calls.
 export const API = {

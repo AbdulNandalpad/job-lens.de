@@ -6,6 +6,9 @@ import type { MarketSnapshot } from '@/app/api/india/market-snapshot/route'
 import type { NewsArticle } from '@/app/api/india/news-insights/route'
 import type { WorldIndicator } from '@/app/api/india/world-indicators/route'
 import CareerIntelPanel from '@/components/CareerIntelPanel'
+import { createClient } from '@/lib/supabase'
+import { useDashWidgets } from '@/lib/useDashWidgets'
+import { MARKET } from '@/lib/constants'
 
 // ── Design tokens ───────────────────────────────────────
 const saffron = '#FF9933'
@@ -194,7 +197,17 @@ export default function IndiaDashboard() {
   const [sectorsExpanded, setSectorsExpanded] = useState(false)
   const [salaryExpanded,  setSalaryExpanded]  = useState(false)
   const [aiExpanded,      setAiExpanded]      = useState(false)
+  const [customiseOpen,   setCustomiseOpen]   = useState(false)
   const [hoveredCat, setHoveredCat] = useState<string|null>(null)
+
+  const { widgets, isVisible, toggle, resetDefaults } = useDashWidgets(MARKET.in)
+
+  async function signOut() {
+    const supabase = createClient()
+    await supabase.auth.signOut()
+    router.push('/in')
+    router.refresh()
+  }
 
   useEffect(()=>{
     fetch('/api/user/profile').then(r=>r.json()).then(setProfile).finally(()=>setLoadingP(false))
@@ -330,19 +343,81 @@ export default function IndiaDashboard() {
                 </svg>
                 Go to App
               </button>
+
+              {/* Customise widgets */}
+              <button onClick={()=>setCustomiseOpen(o=>!o)}
+                style={{display:'flex',alignItems:'center',gap:6,padding:'10px 16px',borderRadius:12,border:`1px solid ${customiseOpen?saffron:'rgba(255,255,255,.18)'}`,background:customiseOpen?saffron+'22':'rgba(255,255,255,.06)',color:customiseOpen?saffron:txt2,fontSize:12,fontWeight:600,cursor:'pointer',fontFamily:"'DM Sans',sans-serif",transition:'all .2s'}}>
+                ⚙ Widgets
+              </button>
+
+              {/* Sign Out */}
+              <button onClick={signOut}
+                style={{display:'flex',alignItems:'center',gap:6,padding:'10px 16px',borderRadius:12,border:'1px solid rgba(255,255,255,.12)',background:'rgba(255,255,255,.04)',color:txt3,fontSize:12,fontWeight:600,cursor:'pointer',fontFamily:"'DM Sans',sans-serif",transition:'all .2s'}}>
+                ↩ Sign Out
+              </button>
             </div>
           </div>
         </div>
       </div>
 
+      {/* ── CUSTOMISE STRIP ── */}
+      {customiseOpen && (
+        <div style={{background:'rgba(7,17,31,.96)',borderBottom:`1px solid rgba(255,255,255,.08)`,padding:'16px 28px',backdropFilter:'blur(12px)'}}>
+          <div style={{maxWidth:1100,margin:'0 auto'}}>
+            <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:12,flexWrap:'wrap',gap:8}}>
+              <span style={{fontSize:12,fontWeight:700,color:txt2,letterSpacing:.5,textTransform:'uppercase'}}>Customise Dashboard</span>
+              <button onClick={resetDefaults} style={{fontSize:11,color:txt3,background:'none',border:'1px solid rgba(255,255,255,.1)',borderRadius:6,padding:'4px 10px',cursor:'pointer',fontFamily:"'DM Sans',sans-serif"}}>Reset defaults</button>
+            </div>
+            <div style={{display:'flex',flexWrap:'wrap',gap:8}}>
+              {widgets.map(w=>{
+                const on=isVisible(w.id)
+                return (
+                  <button key={w.id} onClick={()=>toggle(w.id)}
+                    style={{display:'flex',alignItems:'center',gap:6,padding:'7px 14px',borderRadius:20,border:`1px solid ${on?saffron:'rgba(255,255,255,.1)'}`,background:on?saffron+'18':'transparent',color:on?saffron:txt3,fontSize:12,fontWeight:on?700:400,cursor:'pointer',fontFamily:"'DM Sans',sans-serif",transition:'all .15s'}}>
+                    <span>{w.icon}</span>
+                    <span>{w.label}</span>
+                    <span style={{fontSize:10,opacity:.7}}>{on?'✓':'+'}</span>
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* ── ANALYTICS BODY ── */}
       <div className="dash-page" style={{maxWidth:1100,margin:'0 auto',padding:'28px 20px 80px'}}>
 
+        {/* ── Quick Actions ── */}
+        {isVisible('quick_actions') && (
+          <div style={{...cardStyle,marginBottom:20}}>
+            <SectionHeader icon="⚡" title="Quick Actions" sub="Jump straight to your tools"/>
+            <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill, minmax(140px, 1fr))',gap:10}}>
+              {[
+                {label:'ATS Score',        icon:'📋', href:'/in/career-scan'},
+                {label:'Career Analysis',  icon:'🎯', href:'/in/profile-analysis'},
+                {label:'Job Search',       icon:'🔍', href:'/in/jobs'},
+                {label:'CV Builder',       icon:'📄', href:'/in/cv-builder'},
+                {label:'Cover Letter',     icon:'✉️', href:'/in/cover-letter'},
+                {label:'Work Visa 🇩🇪',   icon:'🛂', href:'/in/visa'},
+              ].map(a=>(
+                <button key={a.href} onClick={()=>router.push(a.href)}
+                  style={{display:'flex',alignItems:'center',gap:9,padding:'11px 14px',borderRadius:12,border:`1px solid ${border}`,background:'rgba(255,255,255,.04)',color:txt2,fontSize:12,fontWeight:600,cursor:'pointer',fontFamily:"'DM Sans',sans-serif",transition:'all .15s',textAlign:'left'}}
+                  onMouseEnter={e=>{(e.currentTarget as HTMLButtonElement).style.borderColor=saffron+'60';(e.currentTarget as HTMLButtonElement).style.color='#fff'}}
+                  onMouseLeave={e=>{(e.currentTarget as HTMLButtonElement).style.borderColor=border;(e.currentTarget as HTMLButtonElement).style.color=txt2}}>
+                  <span style={{fontSize:16}}>{a.icon}</span>
+                  <span>{a.label}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
         {/* ── Career Intelligence Panel ── */}
-        <CareerIntelPanel accentColor={saffron} market="in" />
+        {isVisible('career_intel') && <CareerIntelPanel accentColor={saffron} market="in" />}
 
         {/* ── KPI snapshot ── */}
-        <div className="kpi-grid">
+        {isVisible('kpi') && <div className="kpi-grid">
           {[
             {label:'Open Roles',     value:loadingM?null:fmt(totalJobs),                       sub:'across all sectors',      color:saffron, icon:'📋'},
             {label:'Hottest Sector', value:loadingM?null:(topCat?.label??'—'),                 sub:`${fmt(topCat?.count??0)} listings`, color:cyan,    icon:'🔥'},
@@ -361,10 +436,10 @@ export default function IndiaDashboard() {
               <div style={{fontSize:11,color:txt3,marginTop:6}}>{k.sub}</div>
             </div>
           ))}
-        </div>
+        </div>}
 
         {/* ── 1. Rising + Declining Skills ── */}
-        <div style={{marginBottom:20}}>
+        {isVisible('skills') && <div style={{marginBottom:20}}>
           <div className="skills-cols">
             <div style={cardStyle}>
               <SectionHeader icon="🚀" title="Rising Skills" sub="YoY demand growth · India market"/>
@@ -388,10 +463,10 @@ export default function IndiaDashboard() {
               ))}
             </div>
           </div>
-        </div>
+        </div>}
 
         {/* ── 2. Jobs by Sector + Salary Ranges ── */}
-        <div style={{marginBottom:20}}>
+        {isVisible('sectors_salary') && <div style={{marginBottom:20}}>
           <div className="two-col">
             {/* Sector bar chart */}
             <div style={cardStyle}>
@@ -423,10 +498,10 @@ export default function IndiaDashboard() {
               )}
             </div>
           </div>
-        </div>
+        </div>}
 
         {/* ── 3. India Macro Indicators ── */}
-        <div style={{...cardStyle, marginBottom:20}}>
+        {isVisible('macro') && <div style={{...cardStyle, marginBottom:20}}>
           <SectionHeader icon="🌐" title="India Macro Indicators" sub="World Bank · updated annually"/>
           <div className="macro-grid">
             {loadingI?[1,2,3,4].map(i=><Shimmer key={i} h={80} r={12}/>):
@@ -450,10 +525,10 @@ export default function IndiaDashboard() {
               })
             }
           </div>
-        </div>
+        </div>}
 
         {/* ── 4. AI Impact Heat Map ── */}
-        <div style={{...cardStyle, marginBottom:20}}>
+        {isVisible('ai_impact') && <div style={{...cardStyle, marginBottom:20}}>
           {/* Collapsible header */}
           <div onClick={()=>setAiExpanded(p=>!p)} style={{display:'flex',alignItems:'center',justifyContent:'space-between',cursor:'pointer',userSelect:'none'}}>
             <SectionHeader icon="🤖" title="AI Impact by Sector" sub="India 2026 · Green = creating jobs · Red = disrupting roles"/>
@@ -532,10 +607,10 @@ export default function IndiaDashboard() {
               </div>
             </div>
           )}
-        </div>
+        </div>}
 
         {/* ── 5. News & Signals ── */}
-        <div style={cardStyle}>
+        {isVisible('news') && <div style={cardStyle}>
           <SectionHeader icon="📰" title="India Job Market News" sub="Real-time signals · refreshed every 6h"/>
           <div style={{display:'flex',gap:8,flexWrap:'wrap',marginBottom:20}}>
             {NEWS_TABS.map(t=>{
@@ -586,7 +661,7 @@ export default function IndiaDashboard() {
               })}
             </div>
           )}
-        </div>
+        </div>}
 
         {/* Zero credits alert */}
         {!loadingP&&profile?.credits===0&&(

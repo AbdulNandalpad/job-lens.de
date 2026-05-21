@@ -6,6 +6,8 @@ import Navbar from '../components/Navbar'
 import { createClient } from '@/lib/supabase'
 import { theme } from '@/lib/theme'
 import { useLanguage } from '@/lib/i18n'
+import { useDashWidgets } from '@/lib/useDashWidgets'
+import { MARKET } from '@/lib/constants'
 
 const { colors: c, gradients: g, fonts: f } = theme
 
@@ -41,6 +43,8 @@ export default function AccountPage() {
   const [showDeleteKiraConfirm, setShowDeleteKiraConfirm] = useState(false)
   const [deletingKiraData, setDeletingKiraData] = useState(false)
   const [kiraDataDeleted, setKiraDataDeleted] = useState(false)
+
+  const { widgets, isVisible, toggle, resetDefaults } = useDashWidgets(MARKET.eu)
 
   useEffect(() => {
     fetch('/api/user/profile')
@@ -294,6 +298,35 @@ export default function AccountPage() {
                   </button>
                 </div>
               )}
+            </div>
+
+            {/* ── Dashboard Widgets ── */}
+            <div style={{ background: c.bgCard, border: `1px solid ${c.border}`, borderRadius: 16, padding: '20px', marginBottom: 16 }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6, flexWrap: 'wrap', gap: 8 }}>
+                <div style={{ fontFamily: f.heading, fontSize: 15, fontWeight: 700, color: c.primary }}>
+                  {lang === 'DE' ? 'Dashboard-Widgets' : 'Dashboard Widgets'}
+                </div>
+                <button onClick={resetDefaults} style={{ fontSize: 11, color: c.textMuted, background: 'transparent', border: `1px solid ${c.border}`, borderRadius: 6, padding: '4px 10px', cursor: 'pointer', fontFamily: f.body }}>
+                  {lang === 'DE' ? 'Standard' : 'Reset defaults'}
+                </button>
+              </div>
+              <p style={{ fontSize: 12, color: c.textMuted, lineHeight: 1.5, margin: '0 0 14px' }}>
+                {lang === 'DE' ? 'Wähle, welche Widgets auf deinem Dashboard erscheinen.' : 'Choose which widgets appear on your dashboard.'}
+              </p>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                {widgets.map(w => {
+                  const on = isVisible(w.id)
+                  return (
+                    <div key={w.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 14px', borderRadius: 10, border: `1px solid ${c.border}`, background: on ? c.bgSubtle : 'transparent', transition: 'all .15s' }}>
+                      <span style={{ fontSize: 13, color: on ? c.text : c.textMuted, fontWeight: on ? 600 : 400 }}>{w.icon} {w.label}</span>
+                      <button onClick={() => toggle(w.id)}
+                        style={{ width: 42, height: 24, borderRadius: 12, border: 'none', background: on ? c.accent : 'rgba(0,0,0,.12)', cursor: 'pointer', position: 'relative', transition: 'all .2s', flexShrink: 0 }}>
+                        <span style={{ position: 'absolute', top: 3, left: on ? 20 : 3, width: 18, height: 18, borderRadius: '50%', background: '#fff', transition: 'left .2s', boxShadow: '0 1px 3px rgba(0,0,0,.2)', display: 'block' }} />
+                      </button>
+                    </div>
+                  )
+                })}
+              </div>
             </div>
 
             {/* ── Danger Zone ── */}
