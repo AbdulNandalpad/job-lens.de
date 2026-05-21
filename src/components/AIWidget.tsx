@@ -266,31 +266,43 @@ export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
     const lang   = langOverride || voiceLang
     const prefix = lang.split('-')[0]
 
-    // onEnd must fire exactly once — guard against double-calls from
-    // safety timeout + real event both firing
-    let finished = false
-    const finish = () => { if (finished) return; finished = true; onEnd?.() }
-    const estMs  = Math.max(6000, (clean.length / 10) * 1000 + 3000)
-    const safety = setTimeout(finish, estMs)
+    // finish() fires exactly once.
+    // safety is only cleared inside finish() — never in cleanup/catch —
+    // so even if every audio path fails silently, the timer always rescues the loop.
+    let finished  = false
+    let heartbeat = 0 as unknown as ReturnType<typeof setInterval>
+    const estMs   = Math.max(5000, Math.ceil(clean.length / 13) * 1000 + 2000)
+    const safety  = setTimeout(() => finish(), estMs)
+    const finish  = () => {
+      if (finished) return
+      finished = true
+      clearTimeout(safety)
+      clearInterval(heartbeat)
+      onEnd?.()
+    }
 
-    if (prefix === 'hi' || prefix === 'kn' || prefix === 'te') {
-      // Indic: use browser native voices — more natural than OpenAI nova
-      if (!ttsSupported) { clearTimeout(safety); finish(); return }
+    // Helper: speak via browser TTS (used for Indic + EN/DE fallback)
+    const useBrowserTts = () => {
+      if (finished) return
+      if (!ttsSupported) { finish(); return }
       window.speechSynthesis.cancel()
       const utt = new SpeechSynthesisUtterance(clean)
       utt.lang = lang; utt.rate = 1.0; utt.pitch = 1.0
       const v = pickVoice(lang); if (v) utt.voice = v
-      // Chrome mobile pauses speechSynthesis silently — resume it
-      const heartbeat = setInterval(() => {
+      heartbeat = setInterval(() => {
         if (window.speechSynthesis.paused) window.speechSynthesis.resume()
       }, 2000)
-      utt.onend  = () => { clearTimeout(safety); clearInterval(heartbeat); finish() }
-      utt.onerror = () => { clearTimeout(safety); clearInterval(heartbeat); finish() }
+      utt.onend  = finish
+      utt.onerror = finish
       window.speechSynthesis.speak(utt)
-      return
     }
 
-    // English / German: OpenAI nova
+    // Indic languages: native browser voices are more natural
+    if (prefix === 'hi' || prefix === 'kn' || prefix === 'te') {
+      useBrowserTts(); return
+    }
+
+    // English / German: OpenAI nova, with browser TTS fallback
     window.speechSynthesis?.cancel()
     if (audioRef.current) { audioRef.current.pause(); audioRef.current = null }
 
@@ -301,38 +313,25 @@ export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
         body: JSON.stringify({ text: clean }),
       })
       if (!res.ok) throw new Error()
-      if (!voiceActiveRef.current) { clearTimeout(safety); return }
+      if (finished || !voiceActiveRef.current) return
 
       const blob  = await res.blob()
       const url   = URL.createObjectURL(blob)
       const audio = new Audio(url)
       audioRef.current = audio
 
-      const cleanup = () => { clearTimeout(safety); URL.revokeObjectURL(url); audioRef.current = null }
-      audio.onended = () => { cleanup(); finish() }
-      audio.onerror = () => { cleanup(); finish() }
+      audio.onended = () => { URL.revokeObjectURL(url); audioRef.current = null; finish() }
+      audio.onerror = () => { URL.revokeObjectURL(url); audioRef.current = null; finish() }
 
-      // iOS: audio.play() may reject due to autoplay policy
       const p = audio.play()
       if (p) p.catch(() => {
-        cleanup()
-        // Fall back to browser TTS on iOS autoplay block
-        if (!ttsSupported) { finish(); return }
-        window.speechSynthesis.cancel()
-        const utt = new SpeechSynthesisUtterance(clean)
-        utt.lang = lang
-        utt.onend = finish; utt.onerror = finish
-        window.speechSynthesis.speak(utt)
+        // iOS autoplay blocked — safety still running, switch to browser TTS
+        URL.revokeObjectURL(url); audioRef.current = null
+        useBrowserTts()
       })
     } catch {
-      clearTimeout(safety)
-      // Network error — fall back to browser TTS
-      if (!ttsSupported) { finish(); return }
-      window.speechSynthesis.cancel()
-      const utt = new SpeechSynthesisUtterance(clean)
-      utt.lang = lang
-      utt.onend = finish; utt.onerror = finish
-      window.speechSynthesis.speak(utt)
+      // Network/API error — safety still running, switch to browser TTS
+      useBrowserTts()
     }
   }
 
@@ -378,7 +377,11 @@ export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
     }
 
     recognitionRef.current = rec
-    rec.start()
+    try { rec.start() } catch {
+      // SpeechRecognition failed to start (iOS permissions / gesture context)
+      // Retry once after a short delay
+      setTimeout(() => { if (voiceActiveRef.current) startListening(onResult) }, 800)
+    }
   }
 
   // ── Voice mode lifecycle ───────────────────────────────────────────────
