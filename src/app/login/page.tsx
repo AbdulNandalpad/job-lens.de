@@ -2,6 +2,7 @@
 import { Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase'
+import Link from 'next/link'
 
 function LoginForm() {
   const supabase = createClient()
@@ -67,6 +68,12 @@ function LoginForm() {
           By continuing you agree to our Terms of Service.<br/>
           Your data is private and never shared.
         </p>
+
+        <Link href="/" style={{ display: 'block', marginTop: 20, fontSize: 12, color: '#9aafbc', textDecoration: 'none', transition: 'color .15s' }}
+          onMouseOver={e => (e.currentTarget.style.color = '#378ADD')}
+          onMouseOut={e => (e.currentTarget.style.color = '#9aafbc')}>
+          ← Back to Job-Lens
+        </Link>
       </div>
     </div>
   )

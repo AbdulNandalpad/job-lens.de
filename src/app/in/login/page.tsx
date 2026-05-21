@@ -3,6 +3,7 @@
 import { Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase'
+import Link from 'next/link'
 
 const saffron = '#FF9933'
 const dark    = '#07111f'
@@ -116,6 +117,12 @@ function IndiaLoginForm() {
           By continuing you agree to our Terms of Service.<br/>
           Your data is private and never shared.
         </p>
+
+        <Link href="/in" style={{ display:'block', marginTop:20, fontSize:12, color:'rgba(255,255,255,0.3)', textDecoration:'none', transition:'color .15s' }}
+          onMouseOver={e => (e.currentTarget.style.color = 'rgba(255,153,51,0.7)')}
+          onMouseOut={e => (e.currentTarget.style.color = 'rgba(255,255,255,0.3)')}>
+          ← Back to Job-Lens India
+        </Link>
       </div>
     </div>
   )
