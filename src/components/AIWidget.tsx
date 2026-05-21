@@ -76,7 +76,7 @@ declare global {
   }
 }
 
-export default function AIWidget() {
+export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
   const [open, setOpen]           = useState(false)
   const [messages, setMessages]   = useState<Message[]>([])
   const [input, setInput]         = useState('')
@@ -215,7 +215,7 @@ export default function AIWidget() {
         body: JSON.stringify({
           messages: updatedMessages.map(m => ({ role: m.role, content: m.content })),
           cvText,
-          market: 'eu',
+          market,
         }),
       })
 
@@ -335,6 +335,19 @@ export default function AIWidget() {
         .jlaw-input:focus { outline: none; }
         .jlaw-msg-user { background: linear-gradient(135deg, ${c.accent}, ${c.navy}); border-radius: 14px 14px 3px 14px; }
         .jlaw-msg-ai   { background: rgba(255,255,255,0.07); border: 1px solid rgba(255,255,255,0.1); border-radius: 3px 14px 14px 14px; }
+        /* Mobile portrait — wider panel, pushed up */
+        @media (max-width: 480px) {
+          .jlaw-panel { width: calc(100vw - 24px) !important; right: 12px !important; left: 12px !important; }
+        }
+        /* Mobile landscape — full height */
+        @media (max-height: 500px) {
+          .jlaw-panel {
+            top: 8px !important; bottom: 70px !important;
+            height: auto !important;
+            right: 12px !important;
+          }
+          .jlaw-fab { bottom: 12px !important; right: 12px !important; width: 44px !important; height: 44px !important; }
+        }
       `}</style>
 
       {/* Hidden file input */}
@@ -348,7 +361,7 @@ export default function AIWidget() {
 
       {/* Floating panel */}
       {open && (
-        <div style={{
+        <div className="jlaw-panel" style={{
           position: 'fixed', bottom: 80, right: 20, zIndex: 9999,
           width: 368, height: 540,
           background: 'linear-gradient(160deg, #0f1f33 0%, #0a1520 100%)',

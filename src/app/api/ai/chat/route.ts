@@ -117,18 +117,27 @@ interface SkillGapInput    { cv_text: string; job_description: string }
 interface SalaryInfoInput  { role: string; country?: string; seniority?: string }
 interface SuggestAction    { feature: string; reason: string }
 
-const FEATURE_META: Record<string, { label: string; href: string }> = {
-  career_scan:  { label: 'Open Career Scan',   href: '/app/career-scan' },
-  cv_builder:   { label: 'Open CV Builder',    href: '/app/cv-builder' },
-  cover_letter: { label: 'Open Cover Letter',  href: '/app/cover-letter' },
-  auto_apply:   { label: 'Open Auto Apply',    href: '/app/auto-apply' },
-  tracker:      { label: 'Open Tracker',       href: '/app/tracker' },
+const FEATURE_META: Record<'eu' | 'in', Record<string, { label: string; href: string }>> = {
+  eu: {
+    career_scan:  { label: 'Open Career Scan',   href: '/app/career-scan' },
+    cv_builder:   { label: 'Open CV Builder',    href: '/app/cv-builder' },
+    cover_letter: { label: 'Open Cover Letter',  href: '/app/cover-letter' },
+    auto_apply:   { label: 'Open Auto Apply',    href: '/app/auto-apply' },
+    tracker:      { label: 'Open Tracker',       href: '/app/tracker' },
+  },
+  in: {
+    career_scan:  { label: 'Open Career Scan',   href: '/in/career-scan' },
+    cv_builder:   { label: 'Open CV Builder',    href: '/in/cv-builder' },
+    cover_letter: { label: 'Open Cover Letter',  href: '/in/cover-letter' },
+    auto_apply:   { label: 'Open Auto Apply',    href: '/app/auto-apply' },
+    tracker:      { label: 'Open Tracker',       href: '/in/tracker' },
+  },
 }
 
-async function executeSearchJobs(input: SearchJobsInput): Promise<string> {
+async function executeSearchJobs(input: SearchJobsInput, market: 'eu' | 'in' = 'eu'): Promise<string> {
   const appId   = process.env.ADZUNA_APP_ID!
   const appKey  = process.env.ADZUNA_APP_KEY!
-  const country = input.country || 'de'
+  const country = input.country || (market === 'in' ? 'in' : 'de')
   const city    = (input.location || '').split(',')[0].trim()
 
   const params = new URLSearchParams({ app_id: appId, app_key: appKey, results_per_page: '8', what: input.query })
@@ -208,11 +217,11 @@ CV: ${input.cv_text.slice(0, 2000)}`,
   }
 }
 
-async function executeSalaryInfo(input: SalaryInfoInput): Promise<string> {
+async function executeSalaryInfo(input: SalaryInfoInput, market: 'eu' | 'in' = 'eu'): Promise<string> {
   try {
-    const country   = input.country || 'de'
-    const countryName = country === 'at' ? 'Austria' : country === 'ch' ? 'Switzerland' : 'Germany'
-    const currency  = country === 'ch' ? 'CHF' : 'EUR'
+    const country     = input.country || (market === 'in' ? 'in' : 'de')
+    const countryName = country === 'at' ? 'Austria' : country === 'ch' ? 'Switzerland' : country === 'in' ? 'India' : 'Germany'
+    const currency    = country === 'ch' ? 'CHF' : country === 'in' ? 'INR' : 'EUR'
     const res = await client.messages.create({
       model: 'claude-haiku-4-5-20251001',
       max_tokens: 300,
@@ -231,8 +240,8 @@ Return ONLY valid JSON, no markdown:
   }
 }
 
-function executeSuggestAction(input: SuggestAction): string {
-  const meta = FEATURE_META[input.feature]
+function executeSuggestAction(input: SuggestAction, market: 'eu' | 'in'): string {
+  const meta = FEATURE_META[market][input.feature]
   if (!meta) return JSON.stringify({ error: 'Unknown feature' })
   return JSON.stringify({ feature: input.feature, label: meta.label, href: meta.href, reason: input.reason })
 }
@@ -260,9 +269,13 @@ export async function POST(req: NextRequest) {
     })
   }
 
+  const marketContext = market === 'in'
+    ? '\n\nMARKET CONTEXT: You are helping a user in the Indian job market. Salaries are in INR. Focus on Indian cities (Bangalore, Hyderabad, Mumbai, Pune, Delhi, Chennai). Reference Indian hiring norms, IT sector trends, and service companies (TCS, Infosys, Wipro, HCL) vs product companies. Visa questions relate to H-1B, work abroad from India, or foreign companies hiring in India.'
+    : ''
+
   const systemContent = cvText
-    ? `${SYSTEM_PROMPT}\n\n---\nUser CV:\n${cvText.slice(0, 6000)}\n---`
-    : SYSTEM_PROMPT
+    ? `${SYSTEM_PROMPT}${marketContext}\n\n---\nUser CV:\n${cvText.slice(0, 6000)}\n---`
+    : `${SYSTEM_PROMPT}${marketContext}`
 
   const encoder = new TextEncoder()
 
@@ -296,12 +309,12 @@ export async function POST(req: NextRequest) {
               toolBlocks.map(async (tb) => {
                 let result: string
                 switch (tb.name) {
-                  case 'search_jobs':    result = await executeSearchJobs(tb.input as SearchJobsInput); break
-                  case 'score_jobs':     result = await executeScoreJobs(tb.input as ScoreJobsInput);   break
-                  case 'get_skill_gap':  result = await executeSkillGap(tb.input as SkillGapInput);     break
-                  case 'get_salary_info':result = await executeSalaryInfo(tb.input as SalaryInfoInput); break
+                  case 'search_jobs':    result = await executeSearchJobs(tb.input as SearchJobsInput, market); break
+                  case 'score_jobs':     result = await executeScoreJobs(tb.input as ScoreJobsInput);           break
+                  case 'get_skill_gap':  result = await executeSkillGap(tb.input as SkillGapInput);             break
+                  case 'get_salary_info':result = await executeSalaryInfo(tb.input as SalaryInfoInput, market); break
                   case 'suggest_action': {
-                    result = executeSuggestAction(tb.input as SuggestAction)
+                    result = executeSuggestAction(tb.input as SuggestAction, market)
                     // Emit the action immediately so widget can render the button
                     try { send({ action: JSON.parse(result) }) } catch { /* ignore */ }
                     break
