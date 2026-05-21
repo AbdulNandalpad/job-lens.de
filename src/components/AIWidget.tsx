@@ -263,7 +263,7 @@ export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
       const res = await fetch(API.aiTts, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text: clean }),
+        body: JSON.stringify({ text: clean, lang: langOverride || voiceLang }),
       })
 
       if (!res.ok) throw new Error('TTS API unavailable')
