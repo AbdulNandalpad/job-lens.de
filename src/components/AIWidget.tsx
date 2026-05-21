@@ -9,10 +9,10 @@ const { colors: c, gradients: g, fonts: f } = theme
 const AGENT_NAME = 'Kira'
 
 const VOICE_GREETING: Record<string, string> = {
-  eu_de: "Hey! Ich bin Kira, dein KI-Karriere-Assistent von Job-Lens. Du kannst auf Deutsch oder Englisch mit mir sprechen. Wie kann ich dir helfen?",
-  eu_en: "Hey! I'm Kira, your AI career assistant by Job-Lens. You can speak to me in German or English. How can I help you today?",
-  in_hi: "नमस्ते! मैं Kira हूँ, Job-Lens की AI करियर असिस्टेंट। आप मुझसे हिंदी या अंग्रेजी में बात कर सकते हैं। मैं आपकी कैसे मदद कर सकती हूँ?",
-  in_en: "Hey! I'm Kira, your AI career assistant for the Indian job market. You can speak to me in Hindi or English. How can I help you today?",
+  eu_de: "Hey, schön dass du da bist! Ich bin Kira. Ich helfe dir, den perfekten Job zu finden. Was suchst du gerade?",
+  eu_en: "Hey, great to have you here! I'm Kira. Tell me what you're looking for and let's find something good.",
+  in_hi: "Hey, aagaye! Main Kira hoon. Batao, kya dhundh rahe ho? Koi bhi job related sawaal ho, main hoon yahan.",
+  in_en: "Hey, welcome! I'm Kira. Tell me what kind of role you're after and let's get searching.",
 }
 
 const SUGGESTIONS: Record<string, string[]> = {
@@ -223,18 +223,33 @@ export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
     )
   }
 
+  function prepareForSpeech(text: string): string {
+    return text
+      .replace(/\*\*/g, '').replace(/#{1,6} /g, '').replace(/`/g, '')
+      // Add slight pause after sentence-ending punctuation for natural rhythm
+      .replace(/([.!?])\s+/g, '$1... ')
+      // Add slight pause after em-dash or long dash
+      .replace(/—/g, ', ')
+      // Normalize ellipsis
+      .replace(/\.\.\./g, '... ')
+      .trim()
+  }
+
   function speak(text: string, onEnd?: () => void, langOverride?: string) {
     if (!ttsSupported) { onEnd?.(); return }
     window.speechSynthesis.cancel()
     setVoiceState('speaking')
 
-    const clean = text.replace(/\*\*/g, '').replace(/#{1,6} /g, '').replace(/`/g, '')
+    const clean = prepareForSpeech(text)
     const lang  = langOverride || voiceLang
+    const prefix = lang.split('-')[0]
 
     const utterance    = new SpeechSynthesisUtterance(clean)
     utterance.lang     = lang
-    utterance.rate     = 1.05
-    utterance.pitch    = 1.05
+    // Slightly slower and warmer — less robotic than 1.05
+    utterance.rate     = prefix === 'hi' ? 0.88 : prefix === 'de' ? 0.90 : 0.92
+    utterance.pitch    = prefix === 'hi' ? 1.10 : prefix === 'de' ? 1.05 : 1.08
+    utterance.volume   = 1.0
     const voice        = pickVoice(lang)
     if (voice) utterance.voice = voice
 
