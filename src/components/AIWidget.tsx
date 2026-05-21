@@ -255,7 +255,7 @@ export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
     )
   }
 
-  function speakFallback(clean: string, onEnd?: () => void, lang?: string) {
+  function speakBrowser(clean: string, onEnd?: () => void, lang?: string) {
     if (!ttsSupported) { onEnd?.(); return }
     window.speechSynthesis.cancel()
     const utterance  = new SpeechSynthesisUtterance(clean)
@@ -272,12 +272,24 @@ export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
   async function speak(text: string, onEnd?: () => void, langOverride?: string) {
     if (!text.trim()) { onEnd?.(); return }
     setVoiceState('speaking')
-    window.speechSynthesis?.cancel()
-    if (audioRef.current) { audioRef.current.pause(); audioRef.current = null }
 
     const clean = text
       .replace(/\*\*/g, '').replace(/#{1,6} /g, '').replace(/`/g, '')
       .replace(/—/g, ', ').trim()
+
+    const lang   = langOverride || voiceLang
+    const prefix = lang.split('-')[0]
+
+    // Indic languages: browser TTS uses native Google voices (hi-IN, kn-IN, te-IN)
+    // which are far more natural than OpenAI nova trying to speak them
+    if (prefix === 'hi' || prefix === 'kn' || prefix === 'te') {
+      speakBrowser(clean, onEnd, lang)
+      return
+    }
+
+    // English and German: OpenAI nova
+    window.speechSynthesis?.cancel()
+    if (audioRef.current) { audioRef.current.pause(); audioRef.current = null }
 
     try {
       const res = await fetch(API.aiTts, {
@@ -296,7 +308,7 @@ export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
       audio.onerror = () => { URL.revokeObjectURL(url); audioRef.current = null; onEnd?.() }
       await audio.play()
     } catch {
-      speakFallback(clean, onEnd, langOverride || voiceLang)
+      speakBrowser(clean, onEnd, lang)
     }
   }
 
@@ -396,32 +408,70 @@ export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
 
       if (!res.ok || !res.body) throw new Error('Failed')
 
-      const reader    = res.body.getReader()
-      const decoder   = new TextDecoder()
-      let buffer      = ''
-      let assembled   = ''
+      const reader      = res.body.getReader()
+      const decoder     = new TextDecoder()
+      let httpBuf       = ''
+      let assembled     = ''
+      let sentenceBuf   = ''
+      let streamDone    = false
+      const ttsQueue:   string[] = []
+      let ttsPlaying    = false
+
+      // Drain queue one sentence at a time; when empty + stream done → listen
+      function drainQueue() {
+        if (ttsPlaying || ttsQueue.length === 0) return
+        ttsPlaying = true
+        const sentence = ttsQueue.shift()!
+        speak(sentence, () => {
+          ttsPlaying = false
+          if (ttsQueue.length > 0) drainQueue()
+          else if (streamDone && voiceActiveRef.current) {
+            setVoiceTranscript('')
+            startListening(handleVoiceInput)
+          }
+        })
+      }
+
+      // Flush complete sentences from sentenceBuf into ttsQueue
+      function flushSentences(force = false) {
+        const re = /[^.!?।\n]+[.!?।]+(?:\s|$)/g
+        let m: RegExpExecArray | null
+        let lastIndex = 0
+        re.lastIndex = 0
+        while ((m = re.exec(sentenceBuf)) !== null) {
+          const s = m[0].trim()
+          if (s.length > 3) { ttsQueue.push(s); drainQueue() }
+          lastIndex = re.lastIndex
+        }
+        sentenceBuf = sentenceBuf.slice(lastIndex)
+        if (force && sentenceBuf.trim().length > 3) {
+          ttsQueue.push(sentenceBuf.trim()); sentenceBuf = ''; drainQueue()
+        }
+      }
 
       while (true) {
         const { done, value } = await reader.read()
         if (done) break
-        buffer += decoder.decode(value, { stream: true })
-        const lines = buffer.split('\n'); buffer = lines.pop() || ''
+        httpBuf += decoder.decode(value, { stream: true })
+        const lines = httpBuf.split('\n'); httpBuf = lines.pop() || ''
         for (const line of lines) {
           if (!line.startsWith('data: ')) continue
           try {
             const event = JSON.parse(line.slice(6))
             if (event.text) {
-              assembled += event.text
+              assembled    += event.text
+              sentenceBuf  += event.text
               setMessages(prev => {
                 const copy = [...prev]
                 copy[assistantIdx] = { ...copy[assistantIdx], role: 'assistant', content: assembled }
                 return copy
               })
+              flushSentences()
             } else if (event.action) {
               setMessages(prev => {
                 const copy = [...prev]
-                const existing = copy[assistantIdx] || { role: 'assistant', content: '' }
-                copy[assistantIdx] = { ...existing, actions: [...(existing.actions || []), event.action as ActionButton] }
+                const ex = copy[assistantIdx] || { role: 'assistant', content: '' }
+                copy[assistantIdx] = { ...ex, actions: [...(ex.actions || []), event.action as ActionButton] }
                 return copy
               })
             }
@@ -429,15 +479,14 @@ export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
         }
       }
 
-      // Speak the response then listen again
-      if (voiceActiveRef.current && assembled) {
-        speak(assembled, () => {
-          if (voiceActiveRef.current) {
-            setVoiceTranscript('')
-            startListening(handleVoiceInput)
-          }
-        })
+      streamDone = true
+      flushSentences(true)
+      // If queue already drained before stream finished, start listening now
+      if (!ttsPlaying && ttsQueue.length === 0 && voiceActiveRef.current) {
+        setVoiceTranscript('')
+        startListening(handleVoiceInput)
       }
+
     } catch {
       if (voiceActiveRef.current) {
         speak("Sorry, something went wrong. Please try again.", () => {
