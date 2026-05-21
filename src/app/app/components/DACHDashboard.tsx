@@ -485,7 +485,6 @@ export default function DACHDashboard() {
                 { label: t('Anschreiben', 'Cover Letter'),      icon: '✉️', href: '/app/cover-letter'  },
                 { label: t('Auto Apply', 'Auto Apply'),         icon: '🤖', href: '/app/auto-apply'    },
                 { label: t('Zeugnis-Decoder', 'Zeugnis Decoder'), icon: '🇩🇪', href: '/app/zeugnis'   },
-                { label: t('Visa Check', 'Visa Check'),         icon: '🛂', href: '/app/visa'          },
               ].map(a => (
                 <button key={a.href} onClick={() => router.push(a.href)}
                   style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '11px 14px', borderRadius: 12, border: `1px solid ${border}`, background: 'rgba(255,255,255,.04)', color: txt2, fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: "'DM Sans',sans-serif", transition: 'all .15s', textAlign: 'left' }}

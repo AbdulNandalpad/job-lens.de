@@ -61,7 +61,6 @@ export default function Navbar() {
     { label: t.navbar.coverLetter, href: '/app/cover-letter' },
     { label: t.navbar.autoApply,   href: '/app/auto-apply' },
     { label: t.navbar.zeugnis,     href: '/app/zeugnis' },
-    { label: t.navbar.visa,        href: '/app/visa' },
     { label: t.navbar.tracker,     href: '/app/tracker' },
     { label: t.navbar.account,     href: '/app/account' },
   ]
