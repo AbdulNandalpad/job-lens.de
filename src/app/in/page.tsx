@@ -96,6 +96,25 @@ export default async function IndiaHomePage() {
         }
       `}</style>
 
+      {/* Top bar */}
+      <div style={{ background: 'rgba(10,21,32,0.95)', borderBottom: '1px solid rgba(255,153,51,0.15)', padding: '0 24px', height: 52, display: 'flex', alignItems: 'center', justifyContent: 'space-between', position: 'sticky', top: 0, zIndex: 100, backdropFilter: 'blur(12px)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <svg width="22" height="22" viewBox="0 0 44 44">
+            <circle cx="20" cy="20" r="13" fill="none" stroke={saffron} strokeWidth="2.5"/>
+            <circle cx="20" cy="20" r="8"  fill="none" stroke="rgba(255,153,51,0.5)" strokeWidth="1.2"/>
+            <circle cx="20" cy="20" r="3"  fill={saffron}/>
+            <line x1="7" y1="20" x2="33" y2="20" stroke={saffron} strokeWidth="0.8" strokeDasharray="2,2" opacity="0.5"/>
+            <line x1="28" y1="28" x2="36" y2="36" stroke={saffron} strokeWidth="3" strokeLinecap="round"/>
+          </svg>
+          <span style={{ fontFamily: "'Outfit', sans-serif", fontSize: 15, fontWeight: 700, color: 'rgba(255,255,255,0.9)' }}>
+            Job-Lens <span style={{ color: saffron }}>India</span>
+          </span>
+        </div>
+        <Link href="/in/login" style={{ padding: '7px 20px', borderRadius: 8, background: 'rgba(255,153,51,0.12)', border: '1px solid rgba(255,153,51,0.35)', color: saffron, fontWeight: 700, fontSize: 13, textDecoration: 'none', fontFamily: "'Outfit', sans-serif", transition: 'all .15s' }}>
+          Sign In
+        </Link>
+      </div>
+
       {/* Hero */}
       <section style={{
         background: `radial-gradient(ellipse at 15% 60%, rgba(255,153,51,0.18) 0%, transparent 50%), radial-gradient(ellipse at 80% 20%, rgba(19,136,8,0.1) 0%, transparent 50%), linear-gradient(160deg, #0a1520 0%, #0f2035 60%, #0a1c2e 100%)`,
@@ -329,6 +348,20 @@ export default async function IndiaHomePage() {
         </div>
       </section>
 
+      {/* KIRA DEMO */}
+      <section id="kira-demo" style={{ background: white, padding: '72px 24px', borderTop: `1px solid #edf1f6` }}>
+        <div style={{ maxWidth: 860, margin: '0 auto', textAlign: 'center' }}>
+          <div style={{ fontSize: 12, fontWeight: 700, color: saffron, letterSpacing: 2, textTransform: 'uppercase', marginBottom: 12 }}>Kira Preview</div>
+          <h2 style={{ fontFamily: "'Outfit',sans-serif", fontSize: 30, fontWeight: 800, color: navy, marginBottom: 12 }}>
+            Meet Kira — your AI career coach
+          </h2>
+          <p style={{ fontSize: 15, color: '#6b7c93', maxWidth: 480, margin: '0 auto 40px', lineHeight: 1.7 }}>
+            Kira scans your CV, matches it against jobs and tells you exactly how to beat ATS. See a live demo below.
+          </p>
+          <KiraDemoWidget market="in" lang="EN" />
+        </div>
+      </section>
+
       {/* THE SOLUTION */}
       <section style={{ background: navy, padding: '64px 24px', borderTop: `4px solid ${indiaGreen}` }}>
         <div style={{ maxWidth: 1000, margin: '0 auto', textAlign: 'center' }}>
@@ -390,20 +423,6 @@ export default async function IndiaHomePage() {
               </div>
             ))}
           </div>
-        </div>
-      </section>
-
-      {/* KIRA DEMO */}
-      <section id="kira-demo" style={{ background: white, padding: '72px 24px', borderTop: `1px solid #edf1f6` }}>
-        <div style={{ maxWidth: 860, margin: '0 auto', textAlign: 'center' }}>
-          <div style={{ fontSize: 12, fontWeight: 700, color: saffron, letterSpacing: 2, textTransform: 'uppercase', marginBottom: 12 }}>Kira Preview</div>
-          <h2 style={{ fontFamily: "'Outfit',sans-serif", fontSize: 30, fontWeight: 800, color: navy, marginBottom: 12 }}>
-            Meet Kira — your AI career coach
-          </h2>
-          <p style={{ fontSize: 15, color: '#6b7c93', maxWidth: 480, margin: '0 auto 40px', lineHeight: 1.7 }}>
-            Kira scans your CV, matches it against jobs and tells you exactly how to beat ATS. See a live demo below.
-          </p>
-          <KiraDemoWidget market="in" lang="EN" />
         </div>
       </section>
 
