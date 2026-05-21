@@ -8,21 +8,21 @@ interface Msg { role: 'user' | 'kira'; text: string }
 const SCRIPTS: Record<string, Msg[]> = {
   'eu-DE': [
     { role: 'user', text: 'Ich bin Full-Stack-Entwickler mit 4 Jahren Erfahrung. Welche Jobs passen zu mir in München?' },
-    { role: 'kira', text: 'Für dein Profil habe ich drei starke Matches: **Senior Full-Stack Engineer bei BMW** (95.000 € · München), **Backend Developer bei MAN** (88.000 € · München) und **Software Engineer bei Allianz** (91.000 €). Deine Node.js- und React-Skills passen sehr gut. Soll ich deinen Lebenslauf für eine dieser Stellen optimieren?' },
+    { role: 'kira', text: 'Für dein Profil habe ich drei starke Matches: **Senior Full-Stack Engineer bei BMW** (95.000 € · München), **Backend Developer bei MAN** (88.000 € · München) und **Software Engineer bei Allianz** (91.000 €). Deine Node.js- und React-Skills passen sehr gut. Soll ich die Lücken analysieren?' },
     { role: 'user', text: 'Ja, für BMW bitte.' },
-    { role: 'kira', text: 'Erledigt! Dein Lebenslauf ist jetzt ATS-optimiert für BMW — Keywords wie **"Cloud-native"**, **"CI/CD"** und **"Agile"** wurden ergänzt. Dein ATS-Score: **91/100** — du bist unter den Top-Bewerbern. Soll ich auch ein Anschreiben erstellen?' },
+    { role: 'kira', text: 'Ich habe die BMW-Stelle analysiert — deinem Lebenslauf fehlen Keywords wie **"Cloud-native"**, **"CI/CD"** und **"Agile"**. Geh zum **CV Builder**, um deinen Lebenslauf für BMW zu optimieren. Dein Score kann von 78 auf **91/100** steigen.' },
   ],
   'eu-EN': [
     { role: 'user', text: 'I\'m a Full-Stack developer with 4 years of experience. What jobs match my profile in Germany?' },
-    { role: 'kira', text: 'Strong matches for your profile: **Senior Full-Stack Engineer at BMW** (€95,000 · Munich), **Backend Developer at MAN** (€88,000 · Munich), and **Software Engineer at Allianz** (€91,000). Your Node.js and React skills are a great fit. Want me to tailor your CV for one of these?' },
-    { role: 'user', text: 'Yes, please tailor it for BMW.' },
-    { role: 'kira', text: 'Done! Your CV is now ATS-optimised for BMW — I\'ve added keywords like **"cloud-native"**, **"CI/CD"** and **"Agile"**. Your ATS score: **91/100** — you\'re among the top applicants. Want a cover letter too?' },
+    { role: 'kira', text: 'Strong matches for your profile: **Senior Full-Stack Engineer at BMW** (€95,000 · Munich), **Backend Developer at MAN** (€88,000 · Munich), and **Software Engineer at Allianz** (€91,000). Your Node.js and React skills are a great fit. Want me to analyse the gaps?' },
+    { role: 'user', text: 'Yes, analyse it for BMW.' },
+    { role: 'kira', text: 'I\'ve analysed the BMW job description — your CV is missing **"cloud-native"**, **"CI/CD"** and **"Agile"**. Head to **CV Builder** to tailor your CV for BMW. Your score can jump from 78 to **91/100**.' },
   ],
   'in-EN': [
     { role: 'user', text: 'I have 3 years experience as a data analyst. Which companies in Bangalore should I target?' },
-    { role: 'kira', text: 'Top matches for a data analyst in Bangalore: **Data Analyst at Flipkart** (₹14–18 LPA), **Senior Analyst at PhonePe** (₹16–20 LPA), and **Business Analyst at CRED** (₹15–20 LPA). Your profile scores **78/100** for these roles. Want me to optimise your CV?' },
-    { role: 'user', text: 'Yes, tailor my CV for CRED.' },
-    { role: 'kira', text: 'Done! Your CV is now ATS-optimised for CRED. I\'ve added keywords like **"Python"**, **"SQL"**, **"product analytics"** and **"A/B testing"**. ATS score: **86/100** — you\'re in the top 15% of applicants. Want a cover letter too?' },
+    { role: 'kira', text: 'Top matches for a data analyst in Bangalore: **Data Analyst at Flipkart** (₹14–18 LPA), **Senior Analyst at PhonePe** (₹16–20 LPA), and **Business Analyst at CRED** (₹15–20 LPA). Your profile scores **78/100** for these roles. Want me to analyse the gaps for CRED?' },
+    { role: 'user', text: 'Yes, analyse my CV for CRED.' },
+    { role: 'kira', text: 'I\'ve analysed the CRED job description — your CV is missing **"Python"**, **"SQL"**, **"product analytics"** and **"A/B testing"**. Head to **CV Builder** to tailor your CV for CRED. Your score can go from 78 to **86/100**.' },
   ],
 }
 
