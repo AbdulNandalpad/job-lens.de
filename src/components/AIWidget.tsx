@@ -13,6 +13,8 @@ const VOICE_GREETING: Record<string, string> = {
   eu_en: "Hey, great to have you here! I'm Kira. Tell me what you're looking for and let's find something good.",
   in_hi: "Hey, aagaye! Main Kira hoon. Batao, kya dhundh rahe ho? Koi bhi job related sawaal ho, main hoon yahan.",
   in_en: "Hey, welcome! I'm Kira. Tell me what kind of role you're after and let's get searching.",
+  in_kn: "ನಮಸ್ಕಾರ! ನಾನು Kira. Job-Lens ನ AI career assistant. ನಿಮಗೆ ಯಾವ ಕೆಲಸ ಬೇಕು, ಹೇಳಿ!",
+  in_te: "నమస్కారం! నేను Kira. Job-Lens AI career assistant. మీకు ఏ job కావాలో చెప్పండి!",
 }
 
 const SUGGESTIONS: Record<string, string[]> = {
@@ -38,6 +40,8 @@ const VOICE_LANGS: Record<string, { code: string; label: string }[]> = {
   in: [
     { code: 'hi-IN', label: 'हिंदी' },
     { code: 'en-IN', label: 'English' },
+    { code: 'kn-IN', label: 'ಕನ್ನಡ' },
+    { code: 'te-IN', label: 'తెలుగు' },
   ],
 }
 
@@ -201,6 +205,20 @@ export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
       return (
         voices.find(v => v.lang === 'hi-IN') ||
         voices.find(v => v.lang.startsWith('hi')) ||
+        null
+      )
+    }
+    if (prefix === 'kn') {
+      return (
+        voices.find(v => v.lang === 'kn-IN') ||
+        voices.find(v => v.lang.startsWith('kn')) ||
+        null
+      )
+    }
+    if (prefix === 'te') {
+      return (
+        voices.find(v => v.lang === 'te-IN') ||
+        voices.find(v => v.lang.startsWith('te')) ||
         null
       )
     }
@@ -565,7 +583,7 @@ export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
               </button>
 
               {/* Language toggle */}
-              <div style={{ position: 'absolute', top: 12, left: 12, display: 'flex', gap: 6 }}>
+              <div style={{ position: 'absolute', top: 12, left: 12, display: 'flex', gap: 5, flexWrap: 'wrap', maxWidth: 180 }}>
                 {VOICE_LANGS[market]?.map(lang => (
                   <button key={lang.code} onClick={() => {
                     setVoiceLang(lang.code)

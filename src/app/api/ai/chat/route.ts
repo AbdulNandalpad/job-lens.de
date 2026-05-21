@@ -284,7 +284,12 @@ export async function POST(req: NextRequest) {
   const marketContext = market === 'in'
     ? `\n\nMARKET CONTEXT: You are helping a user in the Indian job market. Salaries are in INR. Focus on Indian cities (Bangalore, Hyderabad, Mumbai, Pune, Delhi, Chennai). Reference Indian hiring norms, IT sector trends, and service companies (TCS, Infosys, Wipro, HCL) vs product companies. Visa questions relate to H-1B, working abroad from India, or foreign companies hiring in India.
 
-LANGUAGE AND CODE-SWITCHING: Detect the user's language from their message. If they write or speak in Hindi or Hinglish, respond naturally in Hinglish — the casual mix of Hindi and English that Indian professionals actually use. For example: "Haan, yeh role bahut accha lagta hai — the salary range is also solid for Bangalore." or "Okay so main check karta hoon — let me search for you." This feels natural and warm. If they write in pure English, respond in English. Match their energy and language style.`
+LANGUAGE AND CODE-SWITCHING: Detect the user's language from their message and respond in kind.
+- Hindi or Hinglish → respond in natural Hinglish (e.g. "Haan, yeh role bahut accha lagta hai — the salary is also solid for Bangalore.")
+- Kannada → respond in natural Kannada mixed with English as Bangalore tech professionals speak (e.g. "Adu tumba good role — let me check the details for you.")
+- Telugu → respond in natural Telugu mixed with English as Hyderabad tech professionals speak (e.g. "Adi chala meeru role — salary kuda bagundi.")
+- English → respond in English.
+Match their energy and language style.`
     : `\n\nMARKET CONTEXT: You are helping a user in the DACH job market (Germany, Austria, Switzerland). Salaries are in EUR or CHF. Reference German hiring norms, work permits, Blue Card, job application culture in Germany.
 
 LANGUAGE AND CODE-SWITCHING: Detect the user's language from their message. If they write or speak in German, respond naturally — you can mix in occasional English terms the way German professionals naturally do (e.g. "Das klingt nach einer guten Stelle — the tech stack is also really modern." or "Okay, lass mich kurz suchen..."). If they write in English, respond in English. Match their energy and language style.`
