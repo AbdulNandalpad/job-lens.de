@@ -155,6 +155,7 @@ export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
   const recognitionRef   = useRef<ISpeechRecognition | null>(null)
   const voiceActiveRef   = useRef(false)   // tracks if voice loop should continue
   const messagesRef      = useRef<Message[]>([])
+  const audioRef         = useRef<HTMLAudioElement | null>(null)
 
   // Keep messagesRef in sync so voice callbacks have current messages
   useEffect(() => { messagesRef.current = messages }, [messages])
@@ -223,39 +224,71 @@ export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
     )
   }
 
-  function prepareForSpeech(text: string): string {
+  function cleanForSpeech(text: string): string {
     return text
       .replace(/\*\*/g, '').replace(/#{1,6} /g, '').replace(/`/g, '')
-      // Add slight pause after sentence-ending punctuation for natural rhythm
-      .replace(/([.!?])\s+/g, '$1... ')
-      // Add slight pause after em-dash or long dash
       .replace(/—/g, ', ')
-      // Normalize ellipsis
-      .replace(/\.\.\./g, '... ')
       .trim()
   }
 
-  function speak(text: string, onEnd?: () => void, langOverride?: string) {
+  function speakFallback(clean: string, onEnd?: () => void, lang?: string) {
     if (!ttsSupported) { onEnd?.(); return }
     window.speechSynthesis.cancel()
-    setVoiceState('speaking')
-
-    const clean = prepareForSpeech(text)
-    const lang  = langOverride || voiceLang
-    const prefix = lang.split('-')[0]
-
-    const utterance    = new SpeechSynthesisUtterance(clean)
-    utterance.lang     = lang
-    // Slightly slower and warmer — less robotic than 1.05
-    utterance.rate     = prefix === 'hi' ? 0.88 : prefix === 'de' ? 0.90 : 0.92
-    utterance.pitch    = prefix === 'hi' ? 1.10 : prefix === 'de' ? 1.05 : 1.08
-    utterance.volume   = 1.0
-    const voice        = pickVoice(lang)
+    const utterance  = new SpeechSynthesisUtterance(clean)
+    utterance.lang   = lang || voiceLang
+    utterance.rate   = 1.0
+    utterance.pitch  = 1.0
+    const voice      = pickVoice(lang || voiceLang)
     if (voice) utterance.voice = voice
-
-    utterance.onend   = () => { if (voiceActiveRef.current) { onEnd?.() } }
+    utterance.onend  = () => { if (voiceActiveRef.current) onEnd?.() }
     utterance.onerror = () => { onEnd?.() }
     window.speechSynthesis.speak(utterance)
+  }
+
+  async function speak(text: string, onEnd?: () => void, langOverride?: string) {
+    if (!text.trim()) { onEnd?.(); return }
+    setVoiceState('speaking')
+
+    // Stop any currently playing audio
+    if (audioRef.current) {
+      audioRef.current.pause()
+      audioRef.current.src = ''
+      audioRef.current = null
+    }
+    window.speechSynthesis?.cancel()
+
+    const clean = cleanForSpeech(text)
+
+    try {
+      const res = await fetch(API.aiTts, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text: clean }),
+      })
+
+      if (!res.ok) throw new Error('TTS API unavailable')
+      if (!voiceActiveRef.current) return  // user exited voice mode while fetching
+
+      const blob  = await res.blob()
+      const url   = URL.createObjectURL(blob)
+      const audio = new Audio(url)
+      audioRef.current = audio
+
+      audio.onended = () => {
+        URL.revokeObjectURL(url)
+        audioRef.current = null
+        if (voiceActiveRef.current) onEnd?.()
+      }
+      audio.onerror = () => {
+        URL.revokeObjectURL(url)
+        audioRef.current = null
+        onEnd?.()
+      }
+      await audio.play()
+    } catch {
+      // Fall back to browser TTS if OpenAI TTS is not configured or fails
+      speakFallback(clean, onEnd, langOverride || voiceLang)
+    }
   }
 
   // ── Speech recognition ─────────────────────────────────────────────────
@@ -325,6 +358,11 @@ export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
     voiceActiveRef.current = false
     recognitionRef.current?.abort()
     window.speechSynthesis?.cancel()
+    if (audioRef.current) {
+      audioRef.current.pause()
+      audioRef.current.src = ''
+      audioRef.current = null
+    }
     setVoiceMode(false)
     setVoiceState('idle')
     setVoiceTranscript('')
