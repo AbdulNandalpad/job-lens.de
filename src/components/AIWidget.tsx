@@ -160,6 +160,7 @@ export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
   const [voiceLang, setVoiceLang]             = useState(() =>
     market === 'in' ? 'en-IN' : 'de-DE'   // updated by lang effect below
   )
+  const [isMobile, setIsMobile]               = useState(false)
 
   const messagesEndRef   = useRef<HTMLDivElement>(null)
   const inputRef         = useRef<HTMLTextAreaElement>(null)
@@ -189,6 +190,7 @@ export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
     const SR = typeof window !== 'undefined' ? (window.SpeechRecognition || window.webkitSpeechRecognition) : null
     setVoiceSupported(!!SR)
     setTtsSupported(typeof window !== 'undefined' && 'speechSynthesis' in window)
+    setIsMobile(/Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent))
     return () => clearTimeout(t)
   }, [])
 
@@ -634,7 +636,7 @@ export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
             </button>
 
             {/* Voice mode button */}
-            {(voiceSupported && ttsSupported) && !voiceMode && (
+            {(voiceSupported && ttsSupported) && !voiceMode && !isMobile && (
               <button className="jlaw-voice-btn" onClick={enterVoiceMode} title="Talk to Kira"
                 style={{ width: 28, height: 28, borderRadius: 7, border: 'none', background: 'rgba(109,40,217,.15)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'background .2s', color: `${c.ai}` }}>
                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><rect x="9" y="2" width="6" height="12" rx="3" stroke="currentColor" strokeWidth="2"/><path d="M5 10a7 7 0 0 0 14 0" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/><line x1="12" y1="17" x2="12" y2="21" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/><line x1="9" y1="21" x2="15" y2="21" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg>
