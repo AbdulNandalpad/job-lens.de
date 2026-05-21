@@ -7,7 +7,39 @@ import { SS, API, CREDIT_COST } from '@/lib/constants'
 const { colors: c, gradients: g, fonts: f } = theme
 
 const AGENT_NAME = 'Kira'
-const VOICE_GREETING = "Hey! I'm Kira, your AI career assistant. How can I help you today?"
+
+const VOICE_GREETING: Record<string, string> = {
+  eu_de: "Hey! Ich bin Kira, dein KI-Karriere-Assistent von Job-Lens. Du kannst auf Deutsch oder Englisch mit mir sprechen. Wie kann ich dir helfen?",
+  eu_en: "Hey! I'm Kira, your AI career assistant by Job-Lens. You can speak to me in German or English. How can I help you today?",
+  in_hi: "नमस्ते! मैं Kira हूँ, Job-Lens की AI करियर असिस्टेंट। आप मुझसे हिंदी या अंग्रेजी में बात कर सकते हैं। मैं आपकी कैसे मदद कर सकती हूँ?",
+  in_en: "Hey! I'm Kira, your AI career assistant for the Indian job market. You can speak to me in Hindi or English. How can I help you today?",
+}
+
+const SUGGESTIONS: Record<string, string[]> = {
+  eu: [
+    'Find me senior developer jobs in Stuttgart',
+    'Search for marketing manager roles in Munich',
+    'What jobs match my CV best?',
+    'Show me remote jobs in Germany',
+  ],
+  in: [
+    'Find me software engineer jobs in Bangalore',
+    'Search for product manager roles in Hyderabad',
+    'What IT jobs match my CV best?',
+    'Show me remote jobs in India',
+  ],
+}
+
+const VOICE_LANGS: Record<string, { code: string; label: string }[]> = {
+  eu: [
+    { code: 'de-DE', label: 'Deutsch' },
+    { code: 'en-GB', label: 'English' },
+  ],
+  in: [
+    { code: 'hi-IN', label: 'हिंदी' },
+    { code: 'en-IN', label: 'English' },
+  ],
+}
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -39,13 +71,6 @@ declare global {
 }
 
 // ── Constants ─────────────────────────────────────────────────────────────────
-
-const SUGGESTIONS = [
-  'Find me senior developer jobs in Stuttgart',
-  'Search for marketing manager roles in Munich',
-  'What jobs match my CV best?',
-  'Show me remote jobs in Germany',
-]
 
 const STATUS_LABELS: Record<string, string> = {
   search_jobs:     'Searching live jobs...',
@@ -120,6 +145,9 @@ export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
   const [voiceSupported, setVoiceSupported]   = useState(false)
   const [ttsSupported, setTtsSupported]       = useState(false)
   const [interimText, setInterimText]         = useState('')
+  const [voiceLang, setVoiceLang]             = useState(() =>
+    market === 'in' ? 'hi-IN' : 'de-DE'
+  )
 
   const messagesEndRef   = useRef<HTMLDivElement>(null)
   const inputRef         = useRef<HTMLTextAreaElement>(null)
@@ -165,32 +193,49 @@ export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
   }, [messages])
 
   // ── TTS ────────────────────────────────────────────────────────────────
-  function pickVoice(): SpeechSynthesisVoice | null {
+  function pickVoice(lang: string): SpeechSynthesisVoice | null {
     const voices = window.speechSynthesis.getVoices()
+    const prefix = lang.split('-')[0]  // 'hi', 'de', 'en'
+
+    if (prefix === 'hi') {
+      return (
+        voices.find(v => v.lang === 'hi-IN') ||
+        voices.find(v => v.lang.startsWith('hi')) ||
+        null
+      )
+    }
+    if (prefix === 'de') {
+      return (
+        voices.find(v => v.name === 'Google Deutsch') ||
+        voices.find(v => v.lang === 'de-DE' && !v.name.toLowerCase().includes('male')) ||
+        voices.find(v => v.lang.startsWith('de')) ||
+        null
+      )
+    }
+    // English fallback (en-GB preferred, en-IN for India)
     return (
       voices.find(v => v.name === 'Google UK English Female') ||
       voices.find(v => v.name.includes('Samantha')) ||
       voices.find(v => v.name.includes('Microsoft Zira')) ||
-      voices.find(v => v.name.includes('Karen')) ||
-      voices.find(v => v.lang === 'en-GB' && v.name.toLowerCase().includes('female')) ||
-      voices.find(v => v.lang.startsWith('en-') && !v.name.toLowerCase().includes('male')) ||
+      voices.find(v => v.lang === lang && !v.name.toLowerCase().includes('male')) ||
       voices.find(v => v.lang.startsWith('en')) ||
       null
     )
   }
 
-  function speak(text: string, onEnd?: () => void) {
+  function speak(text: string, onEnd?: () => void, langOverride?: string) {
     if (!ttsSupported) { onEnd?.(); return }
     window.speechSynthesis.cancel()
     setVoiceState('speaking')
 
-    // Strip any leftover markdown symbols just in case
     const clean = text.replace(/\*\*/g, '').replace(/#{1,6} /g, '').replace(/`/g, '')
+    const lang  = langOverride || voiceLang
 
-    const utterance = new SpeechSynthesisUtterance(clean)
-    utterance.rate  = 1.05
-    utterance.pitch = 1.05
-    const voice = pickVoice()
+    const utterance    = new SpeechSynthesisUtterance(clean)
+    utterance.lang     = lang
+    utterance.rate     = 1.05
+    utterance.pitch    = 1.05
+    const voice        = pickVoice(lang)
     if (voice) utterance.voice = voice
 
     utterance.onend   = () => { if (voiceActiveRef.current) { onEnd?.() } }
@@ -207,7 +252,7 @@ export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
     const rec = new SR()
     rec.continuous      = false
     rec.interimResults  = true
-    rec.lang            = market === 'in' ? 'en-IN' : 'en-GB'
+    rec.lang            = voiceLang
 
     rec.onstart  = () => setVoiceState('listening')
     rec.onerror  = (e) => {
@@ -253,7 +298,9 @@ export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
 
     // Small delay so voices can load on mobile
     setTimeout(() => {
-      speak(VOICE_GREETING, () => {
+      const langKey = `${market}_${voiceLang.split('-')[0]}`
+      const greeting = VOICE_GREETING[langKey] || VOICE_GREETING[`${market}_en`] || VOICE_GREETING['eu_en']
+      speak(greeting, () => {
         if (voiceActiveRef.current) startListening(handleVoiceInput)
       })
     }, 300)
@@ -515,6 +562,21 @@ export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
                 Exit voice
               </button>
 
+              {/* Language toggle */}
+              <div style={{ position: 'absolute', top: 12, left: 12, display: 'flex', gap: 6 }}>
+                {VOICE_LANGS[market]?.map(lang => (
+                  <button key={lang.code} onClick={() => {
+                    setVoiceLang(lang.code)
+                    recognitionRef.current?.abort()
+                  }} style={{
+                    padding: '4px 10px', borderRadius: 20, border: 'none', cursor: 'pointer',
+                    background: voiceLang === lang.code ? 'rgba(109,40,217,.55)' : 'rgba(255,255,255,.08)',
+                    color: voiceLang === lang.code ? '#fff' : 'rgba(255,255,255,.45)',
+                    fontSize: 11, fontFamily: f.body, transition: 'all .15s',
+                  }}>{lang.label}</button>
+                ))}
+              </div>
+
               {/* Pulsing avatar */}
               <div style={{ position: 'relative', width: 120, height: 120, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 24 }}>
                 {/* Rings — only visible when listening */}
@@ -585,7 +647,7 @@ export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
                       Hi! I'm {AGENT_NAME}, your AI career assistant. I can find live jobs, score your CV, analyse skill gaps, and give salary info for DACH roles.
                     </p>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                      {SUGGESTIONS.map(s => (
+                      {(SUGGESTIONS[market] || SUGGESTIONS.eu).map(s => (
                         <button key={s} className="jlaw-suggest" onClick={() => sendMessage(s)} style={{ textAlign: 'left', padding: '7px 12px', borderRadius: 10, background: 'rgba(255,255,255,.04)', border: '1px solid rgba(255,255,255,.1)', color: 'rgba(255,255,255,.55)', fontSize: 12, cursor: 'pointer', transition: 'all .15s', fontFamily: f.body }}>{s}</button>
                       ))}
                     </div>

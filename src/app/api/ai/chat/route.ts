@@ -270,8 +270,8 @@ export async function POST(req: NextRequest) {
   }
 
   const marketContext = market === 'in'
-    ? '\n\nMARKET CONTEXT: You are helping a user in the Indian job market. Salaries are in INR. Focus on Indian cities (Bangalore, Hyderabad, Mumbai, Pune, Delhi, Chennai). Reference Indian hiring norms, IT sector trends, and service companies (TCS, Infosys, Wipro, HCL) vs product companies. Visa questions relate to H-1B, work abroad from India, or foreign companies hiring in India.'
-    : ''
+    ? '\n\nMARKET CONTEXT: You are helping a user in the Indian job market. Salaries are in INR. Focus on Indian cities (Bangalore, Hyderabad, Mumbai, Pune, Delhi, Chennai). Reference Indian hiring norms, IT sector trends, and service companies (TCS, Infosys, Wipro, HCL) vs product companies. Visa questions relate to H-1B, work abroad from India, or foreign companies hiring in India.\n\nLANGUAGE: The user may write or speak in Hindi or English. Detect their language from each message and respond in the same language. If they write in Hindi (Devanagari script or Hinglish), respond in Hindi. If they write in English, respond in English.'
+    : '\n\nLANGUAGE: The user may write or speak in German or English. Detect their language from each message and respond in the same language. If they write in German, respond in German. If they write in English, respond in English.'
 
   const systemContent = cvText
     ? `${SYSTEM_PROMPT}${marketContext}\n\n---\nUser CV:\n${cvText.slice(0, 6000)}\n---`
