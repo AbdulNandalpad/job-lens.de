@@ -139,6 +139,34 @@ export default async function IndiaHomePage() {
                   What is ATS?
                 </a>
               </div>
+
+              {/* Kira hero teaser */}
+              <a href="#kira-demo" style={{
+                display: 'inline-flex', alignItems: 'center', gap: 12, marginTop: 28,
+                background: 'rgba(255,153,51,0.1)', border: '1px solid rgba(255,153,51,0.28)',
+                borderRadius: 16, padding: '11px 16px 11px 11px', textDecoration: 'none',
+                maxWidth: 420,
+              }}>
+                <div style={{ width: 38, height: 38, borderRadius: '50%', background: 'linear-gradient(135deg, #FF993388, #FF993344)', border: '1px solid rgba(255,153,51,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                  <svg width="17" height="17" viewBox="0 0 44 44">
+                    <circle cx="20" cy="20" r="13" fill="none" stroke={saffron} strokeWidth="2.8"/>
+                    <circle cx="20" cy="20" r="3" fill={saffron}/>
+                    <line x1="28" y1="28" x2="36" y2="36" stroke={saffron} strokeWidth="3.5" strokeLinecap="round"/>
+                  </svg>
+                </div>
+                <div style={{ textAlign: 'left', flex: 1 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 3 }}>
+                    <span style={{ fontSize: 11, fontWeight: 700, color: saffron, fontFamily: "'Outfit',sans-serif" }}>Kira AI</span>
+                    <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#22c55e', display: 'inline-block' }} />
+                  </div>
+                  <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.65)', lineHeight: 1.45, fontFamily: "'DM Sans',sans-serif" }}>
+                    &ldquo;I scan your CV, find ATS gaps and fix them for every job you apply to.&rdquo;
+                  </div>
+                </div>
+                <div style={{ flexShrink: 0, padding: '7px 13px', borderRadius: 10, background: saffron, color: white, fontSize: 12, fontWeight: 700, fontFamily: "'Outfit',sans-serif", whiteSpace: 'nowrap' as const }}>
+                  Meet Kira ↓
+                </div>
+              </a>
             </div>
 
             {/* Score card */}
@@ -366,7 +394,7 @@ export default async function IndiaHomePage() {
       </section>
 
       {/* KIRA DEMO */}
-      <section style={{ background: white, padding: '72px 24px', borderTop: `1px solid #edf1f6` }}>
+      <section id="kira-demo" style={{ background: white, padding: '72px 24px', borderTop: `1px solid #edf1f6` }}>
         <div style={{ maxWidth: 860, margin: '0 auto', textAlign: 'center' }}>
           <div style={{ fontSize: 12, fontWeight: 700, color: saffron, letterSpacing: 2, textTransform: 'uppercase', marginBottom: 12 }}>Kira Preview</div>
           <h2 style={{ fontFamily: "'Outfit',sans-serif", fontSize: 30, fontWeight: 800, color: navy, marginBottom: 12 }}>

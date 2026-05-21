@@ -59,6 +59,8 @@ const translations = {
     fullSprintFeatures: ['150 Credits (~50 komplette Bewerbungen)', 'Alles aus Job Hunt', 'Mehrmonatige Jobsuche', 'Ideal für Karrierewechsler'],
     starterNote: 'Auch erhältlich: Starter-Paket €4,99 / 20 Credits',
     getFullSprint: 'Full Sprint holen',
+    kiraHeroMsg: '„Ich scanne deinen Lebenslauf, finde die besten Jobs und schreibe dein Anschreiben."',
+    kiraHeroBtn: 'Kira testen ↓',
     demoTag: '✨ Kira Preview',
     demoTitle: 'Sprich mit Kira — Live-Demo',
     demoSub: 'Kira liest deinen Lebenslauf, findet passende Jobs und optimiert deine Bewerbung. Sieh es in Aktion.',
@@ -123,6 +125,8 @@ const translations = {
     fullSprintFeatures: ['150 credits (~50 full applications)', 'Everything in Job Hunt', 'Multi-month job search', 'Ideal for career changers'],
     starterNote: 'Also available: Starter pack €4.99 / 20 credits',
     getFullSprint: 'Get Full Sprint',
+    kiraHeroMsg: '"I scan your CV, find the best matching jobs and write your cover letter."',
+    kiraHeroBtn: 'Meet Kira ↓',
     demoTag: '✨ Kira Preview',
     demoTitle: 'Talk to Kira — live demo',
     demoSub: 'Kira reads your CV, finds matching jobs and optimises your application. See it in action.',
@@ -371,6 +375,41 @@ export default function HomePage() {
             </Link>
           </div>
 
+          {/* Kira hero teaser */}
+          <div style={{ marginTop: 32, display: 'flex', justifyContent: 'center' }}>
+            <a href="#kira-demo" style={{
+              display: 'inline-flex', alignItems: 'center', gap: 14,
+              background: 'rgba(55,138,221,0.1)',
+              border: '1px solid rgba(55,138,221,0.28)',
+              borderRadius: 18, padding: '12px 16px 12px 12px',
+              textDecoration: 'none', maxWidth: 460,
+              transition: 'border-color 0.2s, background 0.2s',
+            }}>
+              {/* Avatar */}
+              <div style={{ width: 40, height: 40, borderRadius: '50%', background: 'linear-gradient(135deg, #378ADD, #378ADD66)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                <svg width="18" height="18" viewBox="0 0 44 44">
+                  <circle cx="20" cy="20" r="13" fill="none" stroke="white" strokeWidth="2.8"/>
+                  <circle cx="20" cy="20" r="3" fill="white"/>
+                  <line x1="28" y1="28" x2="36" y2="36" stroke="white" strokeWidth="3.5" strokeLinecap="round"/>
+                </svg>
+              </div>
+              {/* Text */}
+              <div style={{ textAlign: 'left', flex: 1 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 3 }}>
+                  <span style={{ fontSize: 11, fontWeight: 700, color: c.accent, fontFamily: f.heading }}>Kira AI</span>
+                  <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#22c55e', display: 'inline-block' }} />
+                </div>
+                <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.7)', lineHeight: 1.45, fontFamily: f.body }}>
+                  {t.kiraHeroMsg}
+                </div>
+              </div>
+              {/* CTA pill */}
+              <div style={{ flexShrink: 0, padding: '7px 14px', borderRadius: 10, background: c.accent, color: '#fff', fontSize: 12, fontWeight: 700, fontFamily: f.heading, whiteSpace: 'nowrap' as const }}>
+                {t.kiraHeroBtn}
+              </div>
+            </a>
+          </div>
+
           <div style={{ marginTop: 20, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 18, fontSize: 12, color: 'rgba(255,255,255,0.3)' }}>
             <span>{t.madeIn}</span>
             <span style={{ opacity: 0.4 }}>·</span>
@@ -493,7 +532,7 @@ export default function HomePage() {
         </div>
 
         {/* ── Kira Demo ── */}
-        <div style={{ marginTop: 80 }}>
+        <div id="kira-demo" style={{ marginTop: 80 }}>
           <div style={{ textAlign: 'center', marginBottom: 40 }}>
             <div style={{ display: 'inline-block', fontSize: 11, fontWeight: 700, color: c.accent, letterSpacing: 1.5, textTransform: 'uppercase' as const, background: c.primaryLight, padding: '4px 14px', borderRadius: 20, marginBottom: 14 }}>
               {t.demoTag}
