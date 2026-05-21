@@ -83,4 +83,5 @@ export const API = {
   indiaCareerScanPro:   '/api/india/career-scan-pro',
   aiChat:               '/api/ai/chat',
   aiTts:                '/api/ai/tts',
+  careerProfile:        '/api/profile/career',
 } as const

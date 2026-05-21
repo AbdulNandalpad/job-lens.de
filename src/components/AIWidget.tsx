@@ -559,7 +559,23 @@ export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
       }
       if (text) {
         sessionStorage.setItem(SS.cvText, text); setCvText(text); setHasCv(true)
-        setMessages(prev => [...prev, { role: 'assistant', content: `CV uploaded! I'll use it to personalise job searches and score matches. What would you like to search for?` }])
+        setMessages(prev => [...prev, { role: 'assistant', content: `Got it! Reading your CV now...` }])
+        // Extract and save structured career profile in the background
+        fetch(API.careerProfile, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ cvText: text, market }),
+        }).then(r => r.json()).then(({ profile }) => {
+          const name = profile?.name ? `, ${profile.name.split(' ')[0]}` : ''
+          const title = profile?.current_title ? ` as a ${profile.current_title}` : ''
+          const skills = profile?.skills?.slice(0, 3).join(', ')
+          setMessages(prev => [...prev, {
+            role: 'assistant',
+            content: `Nice${name}! I can see you've got experience${title}${skills ? ` — strong in ${skills}` : ''}. I've saved your profile so I'll remember you across sessions. What roles are you looking for?`,
+          }])
+        }).catch(() => {
+          setMessages(prev => [...prev, { role: 'assistant', content: `CV uploaded! I'll use it to personalise job searches and score matches. What would you like to search for?` }])
+        })
       }
     } catch {
       setMessages(prev => [...prev, { role: 'assistant', content: 'Could not read that file. Please try PDF, DOCX, or TXT.' }])
@@ -621,7 +637,7 @@ export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
                 {AGENT_NAME}<span style={{ fontWeight: 400, color: 'rgba(255,255,255,.4)', fontSize: 11, marginLeft: 6 }}>by Job-Lens</span>
               </div>
               <div style={{ color: hasCv ? c.success : 'rgba(255,255,255,.4)', fontSize: 11 }}>
-                {cvUploading ? 'Uploading CV...' : hasCv ? '✓ CV loaded' : 'No CV · upload for better results'}
+                {cvUploading ? 'Reading your CV...' : hasCv ? '✓ Profile saved' : 'Upload CV · Kira will remember you'}
               </div>
             </div>
 

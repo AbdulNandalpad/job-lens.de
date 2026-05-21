@@ -274,6 +274,15 @@ export async function POST(req: NextRequest) {
 
   if (!messages.length) return new Response(JSON.stringify({ error: 'No messages' }), { status: 400 })
 
+  // Load saved career profile — gives Kira persistent knowledge of the user
+  const { data: profileRow } = await supabase
+    .from('profiles')
+    .select('career_data')
+    .eq('id', user.id)
+    .single()
+
+  const careerProfile = profileRow?.career_data as Record<string, unknown> | null
+
   const marketContext = market === 'in'
     ? `\n\nMARKET CONTEXT: You are helping a user in the Indian job market. Salaries are in INR. Focus on Indian cities (Bangalore, Hyderabad, Mumbai, Pune, Delhi, Chennai). Reference Indian hiring norms, IT sector trends, and service companies (TCS, Infosys, Wipro, HCL) vs product companies. Visa questions relate to H-1B, working abroad from India, or foreign companies hiring in India.
 
@@ -287,9 +296,27 @@ Match their energy and language style.`
 
 LANGUAGE AND CODE-SWITCHING: Detect the user's language from their message. If they write or speak in German, respond naturally — you can mix in occasional English terms the way German professionals naturally do (e.g. "Das klingt nach einer guten Stelle — the tech stack is also really modern." or "Okay, lass mich kurz suchen..."). If they write in English, respond in English. Match their energy and language style.`
 
-  const systemContent = cvText
-    ? `${SYSTEM_PROMPT}${marketContext}\n\n---\nUser CV:\n${cvText.slice(0, 6000)}\n---`
-    : `${SYSTEM_PROMPT}${marketContext}`
+  // Build system context — career profile (structured) takes priority over raw CV text
+  let userContext = ''
+  if (careerProfile) {
+    const p = careerProfile
+    userContext = `\n\n---\nUSER CAREER PROFILE (extracted from their CV):\n` +
+      `Name: ${p.name || 'Unknown'}\n` +
+      `Current Title: ${p.current_title || 'Unknown'}\n` +
+      `Experience: ${p.experience_years ? `${p.experience_years} years` : 'Unknown'}\n` +
+      `Skills: ${(p.skills as string[])?.join(', ') || 'None listed'}\n` +
+      `Target Roles: ${(p.target_roles as string[])?.join(', ') || 'Not specified'}\n` +
+      `Education: ${p.education || 'Not specified'}\n` +
+      `Location: ${p.location || 'Not specified'}\n` +
+      `Strengths: ${(p.strengths as string[])?.join(', ') || 'None listed'}\n` +
+      `Summary: ${p.summary || 'None'}\n` +
+      (cvText ? `\nFull CV Text:\n${cvText.slice(0, 4000)}` : '') +
+      `\n---`
+  } else if (cvText) {
+    userContext = `\n\n---\nUser CV:\n${cvText.slice(0, 6000)}\n---`
+  }
+
+  const systemContent = `${SYSTEM_PROMPT}${marketContext}${userContext}`
 
   const encoder = new TextEncoder()
 
