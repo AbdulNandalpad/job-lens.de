@@ -159,6 +159,7 @@ export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
   const recognitionRef   = useRef<ISpeechRecognition | null>(null)
   const voiceActiveRef   = useRef(false)   // tracks if voice loop should continue
   const messagesRef      = useRef<Message[]>([])
+  const audioRef         = useRef<HTMLAudioElement | null>(null)
 
   // Keep messagesRef in sync so voice callbacks have current messages
   useEffect(() => { messagesRef.current = messages }, [messages])
@@ -241,26 +242,49 @@ export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
     )
   }
 
-  function speak(text: string, onEnd?: () => void, langOverride?: string) {
+  function speakFallback(clean: string, onEnd?: () => void, lang?: string) {
     if (!ttsSupported) { onEnd?.(); return }
     window.speechSynthesis.cancel()
+    const utterance  = new SpeechSynthesisUtterance(clean)
+    utterance.lang   = lang || voiceLang
+    utterance.rate   = 1.0
+    utterance.pitch  = 1.0
+    const voice      = pickVoice(lang || voiceLang)
+    if (voice) utterance.voice = voice
+    utterance.onend  = () => { if (voiceActiveRef.current) onEnd?.() }
+    utterance.onerror = () => { onEnd?.() }
+    window.speechSynthesis.speak(utterance)
+  }
+
+  async function speak(text: string, onEnd?: () => void, langOverride?: string) {
+    if (!text.trim()) { onEnd?.(); return }
     setVoiceState('speaking')
+    window.speechSynthesis?.cancel()
+    if (audioRef.current) { audioRef.current.pause(); audioRef.current = null }
 
     const clean = text
       .replace(/\*\*/g, '').replace(/#{1,6} /g, '').replace(/`/g, '')
       .replace(/—/g, ', ').trim()
 
-    const lang      = langOverride || voiceLang
-    const utterance = new SpeechSynthesisUtterance(clean)
-    utterance.lang  = lang
-    utterance.rate  = 1.0
-    utterance.pitch = 1.0
-    const voice     = pickVoice(lang)
-    if (voice) utterance.voice = voice
+    try {
+      const res = await fetch(API.aiTts, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text: clean }),
+      })
+      if (!res.ok) throw new Error('TTS unavailable')
+      if (!voiceActiveRef.current) return
 
-    utterance.onend  = () => { if (voiceActiveRef.current) onEnd?.() }
-    utterance.onerror = () => { onEnd?.() }
-    window.speechSynthesis.speak(utterance)
+      const blob  = await res.blob()
+      const url   = URL.createObjectURL(blob)
+      const audio = new Audio(url)
+      audioRef.current = audio
+      audio.onended = () => { URL.revokeObjectURL(url); audioRef.current = null; if (voiceActiveRef.current) onEnd?.() }
+      audio.onerror = () => { URL.revokeObjectURL(url); audioRef.current = null; onEnd?.() }
+      await audio.play()
+    } catch {
+      speakFallback(clean, onEnd, langOverride || voiceLang)
+    }
   }
 
   // ── Speech recognition ─────────────────────────────────────────────────
@@ -330,6 +354,7 @@ export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
     voiceActiveRef.current = false
     recognitionRef.current?.abort()
     window.speechSynthesis?.cancel()
+    if (audioRef.current) { audioRef.current.pause(); audioRef.current = null }
     setVoiceMode(false)
     setVoiceState('idle')
     setVoiceTranscript('')
