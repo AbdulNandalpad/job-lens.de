@@ -255,33 +255,6 @@ export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
     )
   }
 
-  function speakBrowser(clean: string, onEnd?: () => void, lang?: string) {
-    if (!ttsSupported) { onEnd?.(); return }
-    window.speechSynthesis.cancel()
-
-    const utterance  = new SpeechSynthesisUtterance(clean)
-    utterance.lang   = lang || voiceLang
-    utterance.rate   = 1.0
-    utterance.pitch  = 1.0
-    const voice      = pickVoice(lang || voiceLang)
-    if (voice) utterance.voice = voice
-
-    // Safety timeout — Chrome mobile can silently stall speechSynthesis
-    const duration   = Math.max(4000, (clean.length / 12) * 1000 + 1500)
-    const safety     = setTimeout(() => { clearInterval(resumeCheck); onEnd?.() }, duration)
-
-    // Chrome bug: synthesis pauses itself — resume every 2s
-    const resumeCheck = setInterval(() => {
-      if (window.speechSynthesis.paused) window.speechSynthesis.resume()
-    }, 2000)
-
-    const done = () => { clearTimeout(safety); clearInterval(resumeCheck) }
-
-    utterance.onend  = () => { done(); if (voiceActiveRef.current) onEnd?.() }
-    utterance.onerror = () => { done(); onEnd?.() }
-    window.speechSynthesis.speak(utterance)
-  }
-
   async function speak(text: string, onEnd?: () => void, langOverride?: string) {
     if (!text.trim()) { onEnd?.(); return }
     setVoiceState('speaking')
@@ -293,20 +266,33 @@ export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
     const lang   = langOverride || voiceLang
     const prefix = lang.split('-')[0]
 
-    // Indic languages: browser native voices (hi-IN, kn-IN, te-IN) are more natural
+    // onEnd must fire exactly once — guard against double-calls from
+    // safety timeout + real event both firing
+    let finished = false
+    const finish = () => { if (finished) return; finished = true; onEnd?.() }
+    const estMs  = Math.max(6000, (clean.length / 10) * 1000 + 3000)
+    const safety = setTimeout(finish, estMs)
+
     if (prefix === 'hi' || prefix === 'kn' || prefix === 'te') {
-      speakBrowser(clean, onEnd, lang)
+      // Indic: use browser native voices — more natural than OpenAI nova
+      if (!ttsSupported) { clearTimeout(safety); finish(); return }
+      window.speechSynthesis.cancel()
+      const utt = new SpeechSynthesisUtterance(clean)
+      utt.lang = lang; utt.rate = 1.0; utt.pitch = 1.0
+      const v = pickVoice(lang); if (v) utt.voice = v
+      // Chrome mobile pauses speechSynthesis silently — resume it
+      const heartbeat = setInterval(() => {
+        if (window.speechSynthesis.paused) window.speechSynthesis.resume()
+      }, 2000)
+      utt.onend  = () => { clearTimeout(safety); clearInterval(heartbeat); finish() }
+      utt.onerror = () => { clearTimeout(safety); clearInterval(heartbeat); finish() }
+      window.speechSynthesis.speak(utt)
       return
     }
 
-    // English and German: OpenAI nova
+    // English / German: OpenAI nova
     window.speechSynthesis?.cancel()
     if (audioRef.current) { audioRef.current.pause(); audioRef.current = null }
-
-    // Safety timeout in case audio events don't fire on mobile
-    const duration = Math.max(4000, (clean.length / 12) * 1000 + 2000)
-    const safety   = setTimeout(() => { audioRef.current = null; onEnd?.() }, duration)
-    const done     = () => clearTimeout(safety)
 
     try {
       const res = await fetch(API.aiTts, {
@@ -314,28 +300,39 @@ export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ text: clean }),
       })
-      if (!res.ok) throw new Error('TTS unavailable')
-      if (!voiceActiveRef.current) { done(); return }
+      if (!res.ok) throw new Error()
+      if (!voiceActiveRef.current) { clearTimeout(safety); return }
 
       const blob  = await res.blob()
       const url   = URL.createObjectURL(blob)
       const audio = new Audio(url)
       audioRef.current = audio
 
-      audio.onended = () => { done(); URL.revokeObjectURL(url); audioRef.current = null; if (voiceActiveRef.current) onEnd?.() }
-      audio.onerror = () => { done(); URL.revokeObjectURL(url); audioRef.current = null; onEnd?.() }
+      const cleanup = () => { clearTimeout(safety); URL.revokeObjectURL(url); audioRef.current = null }
+      audio.onended = () => { cleanup(); finish() }
+      audio.onerror = () => { cleanup(); finish() }
 
-      // Handle iOS autoplay rejection — fall back to browser TTS
-      const playPromise = audio.play()
-      if (playPromise !== undefined) {
-        playPromise.catch(() => {
-          done(); URL.revokeObjectURL(url); audioRef.current = null
-          speakBrowser(clean, onEnd, lang)
-        })
-      }
+      // iOS: audio.play() may reject due to autoplay policy
+      const p = audio.play()
+      if (p) p.catch(() => {
+        cleanup()
+        // Fall back to browser TTS on iOS autoplay block
+        if (!ttsSupported) { finish(); return }
+        window.speechSynthesis.cancel()
+        const utt = new SpeechSynthesisUtterance(clean)
+        utt.lang = lang
+        utt.onend = finish; utt.onerror = finish
+        window.speechSynthesis.speak(utt)
+      })
     } catch {
-      done()
-      speakBrowser(clean, onEnd, lang)
+      clearTimeout(safety)
+      // Network error — fall back to browser TTS
+      if (!ttsSupported) { finish(); return }
+      window.speechSynthesis.cancel()
+      const utt = new SpeechSynthesisUtterance(clean)
+      utt.lang = lang
+      utt.onend = finish; utt.onerror = finish
+      window.speechSynthesis.speak(utt)
     }
   }
 
@@ -432,68 +429,29 @@ export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
           cvText, market,
         }),
       })
-
       if (!res.ok || !res.body) throw new Error('Failed')
 
-      const reader      = res.body.getReader()
-      const decoder     = new TextDecoder()
-      let httpBuf       = ''
-      let assembled     = ''
-      let sentenceBuf   = ''
-      let streamDone    = false
-      const ttsQueue:   string[] = []
-      let ttsPlaying    = false
-
-      // Drain queue one sentence at a time; when empty + stream done → listen
-      function drainQueue() {
-        if (ttsPlaying || ttsQueue.length === 0) return
-        ttsPlaying = true
-        const sentence = ttsQueue.shift()!
-        speak(sentence, () => {
-          ttsPlaying = false
-          if (ttsQueue.length > 0) drainQueue()
-          else if (streamDone && voiceActiveRef.current) {
-            setVoiceTranscript('')
-            startListening(handleVoiceInput)
-          }
-        })
-      }
-
-      // Flush complete sentences from sentenceBuf into ttsQueue
-      function flushSentences(force = false) {
-        const re = /[^.!?।\n]+[.!?।]+(?:\s|$)/g
-        let m: RegExpExecArray | null
-        let lastIndex = 0
-        re.lastIndex = 0
-        while ((m = re.exec(sentenceBuf)) !== null) {
-          const s = m[0].trim()
-          if (s.length > 3) { ttsQueue.push(s); drainQueue() }
-          lastIndex = re.lastIndex
-        }
-        sentenceBuf = sentenceBuf.slice(lastIndex)
-        if (force && sentenceBuf.trim().length > 3) {
-          ttsQueue.push(sentenceBuf.trim()); sentenceBuf = ''; drainQueue()
-        }
-      }
+      const reader  = res.body.getReader()
+      const decoder = new TextDecoder()
+      let buffer    = ''
+      let assembled = ''
 
       while (true) {
         const { done, value } = await reader.read()
         if (done) break
-        httpBuf += decoder.decode(value, { stream: true })
-        const lines = httpBuf.split('\n'); httpBuf = lines.pop() || ''
+        buffer += decoder.decode(value, { stream: true })
+        const lines = buffer.split('\n'); buffer = lines.pop() || ''
         for (const line of lines) {
           if (!line.startsWith('data: ')) continue
           try {
             const event = JSON.parse(line.slice(6))
             if (event.text) {
-              assembled    += event.text
-              sentenceBuf  += event.text
+              assembled += event.text
               setMessages(prev => {
                 const copy = [...prev]
                 copy[assistantIdx] = { ...copy[assistantIdx], role: 'assistant', content: assembled }
                 return copy
               })
-              flushSentences()
             } else if (event.action) {
               setMessages(prev => {
                 const copy = [...prev]
@@ -506,17 +464,17 @@ export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
         }
       }
 
-      streamDone = true
-      flushSentences(true)
-      // If queue already drained before stream finished, start listening now
-      if (!ttsPlaying && ttsQueue.length === 0 && voiceActiveRef.current) {
-        setVoiceTranscript('')
+      if (!voiceActiveRef.current) return
+      if (assembled) {
+        speak(assembled, () => {
+          if (voiceActiveRef.current) { setVoiceTranscript(''); startListening(handleVoiceInput) }
+        })
+      } else {
         startListening(handleVoiceInput)
       }
-
     } catch {
       if (voiceActiveRef.current) {
-        speak("Sorry, something went wrong. Please try again.", () => {
+        speak('Sorry, something went wrong. Please try again.', () => {
           if (voiceActiveRef.current) startListening(handleVoiceInput)
         })
       }
