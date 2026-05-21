@@ -150,7 +150,7 @@ export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
   const [ttsSupported, setTtsSupported]       = useState(false)
   const [interimText, setInterimText]         = useState('')
   const [voiceLang, setVoiceLang]             = useState(() =>
-    market === 'in' ? 'hi-IN' : 'de-DE'
+    market === 'in' ? 'en-IN' : 'de-DE'
   )
 
   const messagesEndRef   = useRef<HTMLDivElement>(null)
