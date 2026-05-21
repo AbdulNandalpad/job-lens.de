@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { theme } from '@/lib/theme'
 import { SS, API, CREDIT_COST } from '@/lib/constants'
+import { useLanguage } from '@/lib/i18n'
 
 const { colors: c, gradients: g, fonts: f } = theme
 
@@ -18,7 +19,13 @@ const VOICE_GREETING: Record<string, string> = {
 }
 
 const SUGGESTIONS: Record<string, string[]> = {
-  eu: [
+  eu_DE: [
+    'Finde mir Senior Developer Jobs in Stuttgart',
+    'Suche nach Marketing Manager Stellen in München',
+    'Welche Jobs passen am besten zu meinem Lebenslauf?',
+    'Zeige mir Remote-Jobs in Deutschland',
+  ],
+  eu_EN: [
     'Find me senior developer jobs in Stuttgart',
     'Search for marketing manager roles in Munich',
     'What jobs match my CV best?',
@@ -133,6 +140,7 @@ function VoiceWaveform({ active }: { active: boolean }) {
 // ── Main component ────────────────────────────────────────────────────────────
 
 export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
+  const { lang } = useLanguage()
   const [open, setOpen]           = useState(false)
   const [messages, setMessages]   = useState<Message[]>([])
   const [input, setInput]         = useState('')
@@ -150,7 +158,7 @@ export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
   const [ttsSupported, setTtsSupported]       = useState(false)
   const [interimText, setInterimText]         = useState('')
   const [voiceLang, setVoiceLang]             = useState(() =>
-    market === 'in' ? 'en-IN' : 'de-DE'
+    market === 'in' ? 'en-IN' : 'de-DE'   // updated by lang effect below
   )
 
   const messagesEndRef   = useRef<HTMLDivElement>(null)
@@ -163,6 +171,11 @@ export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
 
   // Keep messagesRef in sync so voice callbacks have current messages
   useEffect(() => { messagesRef.current = messages }, [messages])
+
+  // Sync voice language with site language toggle (DACH only)
+  useEffect(() => {
+    if (market !== 'in') setVoiceLang(lang === 'EN' ? 'en-GB' : 'de-DE')
+  }, [lang, market])
 
   // ── Init ───────────────────────────────────────────────────────────────
   useEffect(() => {
@@ -689,10 +702,15 @@ export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
                 {isEmpty ? (
                   <div style={{ paddingTop: 8 }}>
                     <p style={{ color: 'rgba(255,255,255,.5)', fontSize: 12, marginBottom: 12, lineHeight: 1.6 }}>
-                      Hi! I'm {AGENT_NAME}, your AI career assistant. I can find live jobs, score your CV, analyse skill gaps, and give salary info for {market === 'in' ? 'Indian' : 'DACH'} roles.
+                      {market === 'in'
+                        ? `Hi! I'm ${AGENT_NAME}, your AI career assistant. I can find live jobs, score your CV, analyse skill gaps, and give salary info for Indian roles.`
+                        : lang === 'DE'
+                          ? `Hallo! Ich bin ${AGENT_NAME}, dein KI-Karriere-Assistent. Ich finde Jobs, bewerte deinen Lebenslauf, analysiere Skill-Gaps und gebe Gehaltsinfos für DACH.`
+                          : `Hi! I'm ${AGENT_NAME}, your AI career assistant. I can find live jobs, score your CV, analyse skill gaps, and give salary info for DACH roles.`
+                      }
                     </p>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                      {(SUGGESTIONS[market] || SUGGESTIONS.eu).map(s => (
+                      {(market === 'in' ? SUGGESTIONS.in : (SUGGESTIONS[`eu_${lang}`] || SUGGESTIONS.eu_EN)).map(s => (
                         <button key={s} className="jlaw-suggest" onClick={() => sendMessage(s)} style={{ textAlign: 'left', padding: '7px 12px', borderRadius: 10, background: 'rgba(255,255,255,.04)', border: '1px solid rgba(255,255,255,.1)', color: 'rgba(255,255,255,.55)', fontSize: 12, cursor: 'pointer', transition: 'all .15s', fontFamily: f.body }}>{s}</button>
                       ))}
                     </div>
