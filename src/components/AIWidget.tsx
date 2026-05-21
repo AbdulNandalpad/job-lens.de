@@ -664,27 +664,13 @@ export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
                 {isEmpty ? (
                   <div style={{ paddingTop: 8 }}>
                     <p style={{ color: 'rgba(255,255,255,.5)', fontSize: 12, marginBottom: 12, lineHeight: 1.6 }}>
-                      Hi! I'm {AGENT_NAME}, your AI career assistant. I can find live jobs, score your CV, analyse skill gaps, and give salary info for DACH roles.
+                      Hi! I'm {AGENT_NAME}, your AI career assistant. I can find live jobs, score your CV, analyse skill gaps, and give salary info for {market === 'in' ? 'Indian' : 'DACH'} roles.
                     </p>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                       {(SUGGESTIONS[market] || SUGGESTIONS.eu).map(s => (
                         <button key={s} className="jlaw-suggest" onClick={() => sendMessage(s)} style={{ textAlign: 'left', padding: '7px 12px', borderRadius: 10, background: 'rgba(255,255,255,.04)', border: '1px solid rgba(255,255,255,.1)', color: 'rgba(255,255,255,.55)', fontSize: 12, cursor: 'pointer', transition: 'all .15s', fontFamily: f.body }}>{s}</button>
                       ))}
                     </div>
-                    {!hasCv && (
-                      <button className="jlaw-suggest" onClick={() => fileInputRef.current?.click()}
-                        style={{ marginTop: 8, width: '100%', textAlign: 'left', padding: '8px 12px', borderRadius: 10, background: 'rgba(109,40,217,.1)', border: '1px dashed rgba(109,40,217,.4)', color: 'rgba(109,40,217,.8)', fontSize: 12, cursor: 'pointer', transition: 'all .15s', fontFamily: f.body, display: 'flex', alignItems: 'center', gap: 8 }}>
-                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/><line x1="12" y1="18" x2="12" y2="12" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/><polyline points="9 15 12 12 15 15" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
-                        Upload your CV for personalised results (PDF, DOCX, TXT)
-                      </button>
-                    )}
-                    {(voiceSupported && ttsSupported) && (
-                      <button className="jlaw-voice-btn" onClick={enterVoiceMode}
-                        style={{ marginTop: 6, width: '100%', textAlign: 'left', padding: '8px 12px', borderRadius: 10, background: 'rgba(109,40,217,.08)', border: '1px dashed rgba(109,40,217,.3)', color: `rgba(109,40,217,.8)`, fontSize: 12, cursor: 'pointer', transition: 'all .15s', fontFamily: f.body, display: 'flex', alignItems: 'center', gap: 8 }}>
-                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><rect x="9" y="2" width="6" height="12" rx="3" stroke="currentColor" strokeWidth="2"/><path d="M5 10a7 7 0 0 0 14 0" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/><line x1="12" y1="17" x2="12" y2="21" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/><line x1="9" y1="21" x2="15" y2="21" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg>
-                        Or talk to {AGENT_NAME} — voice conversation
-                      </button>
-                    )}
                   </div>
                 ) : (
                   <>
