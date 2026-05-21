@@ -43,7 +43,7 @@ export default function DatenschutzPage() {
             Datenschutzerklärung
           </h1>
           <p style={{ fontSize: 13, color: c.textMuted, margin: 0 }}>
-            Gemäß DSGVO (EU) 2016/679 · Stand: Mai 2025
+            Gemäß DSGVO (EU) 2016/679 · Stand: Mai 2026
           </p>
         </div>
 
@@ -79,8 +79,13 @@ export default function DatenschutzPage() {
           </p>
 
           <p style={{ margin: '0 0 6px', fontWeight: 600, color: c.primary }}>d) Nutzungsprotokoll (Credits)</p>
-          <p style={{ margin: '0 0 0' }}>
+          <p style={{ margin: '0 0 16px' }}>
             Wir speichern, welche KI-Aktionen (z.B. Lebenslauf-Optimierung, Anschreiben-Erstellung) Sie durchgeführt haben, um das Credit-System zu verwalten. Diese Daten beinhalten keine Inhalte Ihres Lebenslaufs. Rechtsgrundlage: Art. 6 Abs. 1 lit. b DSGVO.
+          </p>
+
+          <p style={{ margin: '0 0 6px', fontWeight: 600, color: c.primary }}>e) KI-Karriereprofil (Kira)</p>
+          <p style={{ margin: '0 0 0' }}>
+            Wenn Sie einen Lebenslauf hochladen und in die KI-Analyse durch Kira einwilligen, extrahieren wir strukturierte Karrieredaten (u.a. Berufsbezeichnung, Fähigkeiten, Berufserfahrung in Jahren, Zielrollen) und speichern diese dauerhaft in Ihrem Nutzerkonto in unserer Datenbank (Supabase, Region EU-West, Irland). Diese Daten dienen ausschließlich der personalisierten Job-Empfehlung und CV-Optimierung innerhalb der Plattform. Rechtsgrundlage: Art. 6 Abs. 1 lit. a DSGVO (Einwilligung). Sie können Ihr Karriereprofil jederzeit unter <em>Einstellungen → Kira AI Profildaten</em> vollständig löschen.
           </p>
         </Section>
 
@@ -90,7 +95,8 @@ export default function DatenschutzPage() {
             {[
               { name: 'Vercel Inc.', country: 'USA', purpose: 'Hosting der Webanwendung', link: 'https://vercel.com/legal/privacy-policy' },
               { name: 'Supabase Inc.', country: 'USA / EU-Region', purpose: 'Datenbank und Authentifizierung', link: 'https://supabase.com/privacy' },
-              { name: 'Anthropic PBC', country: 'USA', purpose: 'KI-Analyse (Claude API)', link: 'https://www.anthropic.com/privacy' },
+              { name: 'Anthropic PBC', country: 'USA', purpose: 'KI-Analyse — Lebenslauf-Extraktion und Karriereprofil (Claude API)', link: 'https://www.anthropic.com/privacy' },
+              { name: 'OpenAI Inc.', country: 'USA', purpose: 'KI-Sprachsynthese — Text-zu-Sprache für den Kira-Assistenten (TTS API)', link: 'https://openai.com/policies/privacy-policy' },
               { name: 'Adzuna Ltd.', country: 'Großbritannien', purpose: 'Jobsuche-API', link: 'https://www.adzuna.de/privacy' },
               { name: 'PayPal (Europe) S.à r.l.', country: 'Luxemburg / USA', purpose: 'Zahlungsabwicklung', link: 'https://www.paypal.com/de/webapps/mpp/ua/privacy-full' },
             ].map(p => (

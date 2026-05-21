@@ -5,6 +5,7 @@ import { useState, useEffect, useRef, type ReactNode } from 'react'
 import { createClient } from '@/lib/supabase'
 import { theme } from '@/lib/theme'
 import { useLanguage, DEFlag, GBFlag } from '@/lib/i18n'
+import KiraDemoWidget from '@/components/KiraDemoWidget'
 
 const { colors: c, gradients: g, fonts: f, shadow: sh } = theme
 
@@ -58,6 +59,9 @@ const translations = {
     fullSprintFeatures: ['150 Credits (~50 komplette Bewerbungen)', 'Alles aus Job Hunt', 'Mehrmonatige Jobsuche', 'Ideal für Karrierewechsler'],
     starterNote: 'Auch erhältlich: Starter-Paket €4,99 / 20 Credits',
     getFullSprint: 'Full Sprint holen',
+    demoTag: '✨ Kira Preview',
+    demoTitle: 'Sprich mit Kira — Live-Demo',
+    demoSub: 'Kira liest deinen Lebenslauf, findet passende Jobs und optimiert deine Bewerbung. Sieh es in Aktion.',
     freeNoteBottom: 'Neue Accounts erhalten',
     freeCreditsNote: '5 kostenlose Credits',
     noCard: '— keine Karte nötig. Credits verfallen nie.',
@@ -119,6 +123,9 @@ const translations = {
     fullSprintFeatures: ['150 credits (~50 full applications)', 'Everything in Job Hunt', 'Multi-month job search', 'Ideal for career changers'],
     starterNote: 'Also available: Starter pack €4.99 / 20 credits',
     getFullSprint: 'Get Full Sprint',
+    demoTag: '✨ Kira Preview',
+    demoTitle: 'Talk to Kira — live demo',
+    demoSub: 'Kira reads your CV, finds matching jobs and optimises your application. See it in action.',
     freeNoteBottom: 'New accounts get',
     freeCreditsNote: '5 free credits',
     noCard: '— no card needed. Credits never expire.',
@@ -483,6 +490,18 @@ export default function HomePage() {
               ))}
             </div>
           </div>
+        </div>
+
+        {/* ── Kira Demo ── */}
+        <div style={{ marginTop: 80 }}>
+          <div style={{ textAlign: 'center', marginBottom: 40 }}>
+            <div style={{ display: 'inline-block', fontSize: 11, fontWeight: 700, color: c.accent, letterSpacing: 1.5, textTransform: 'uppercase' as const, background: c.primaryLight, padding: '4px 14px', borderRadius: 20, marginBottom: 14 }}>
+              {t.demoTag}
+            </div>
+            <div style={{ fontFamily: f.heading, fontSize: 26, fontWeight: 700, color: c.primary, marginBottom: 10 }}>{t.demoTitle}</div>
+            <div style={{ fontSize: 14, color: c.textMuted, maxWidth: 400, margin: '0 auto', lineHeight: 1.65 }}>{t.demoSub}</div>
+          </div>
+          <KiraDemoWidget market="eu" lang={lang} />
         </div>
 
         {/* ── Pricing ── */}

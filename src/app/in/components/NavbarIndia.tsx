@@ -68,6 +68,9 @@ export default function NavbarIndia() {
     { label: 'Account',      href: '/in/account' },
   ]
 
+  // Don't render on landing page or login — those have their own headers
+  if (pathname === '/in' || pathname === '/in/login') return null
+
   const isActive = (href: string) => pathname === href
   const currentPage = navItems.find(item => isActive(item.href))?.label || 'Job-Lens India'
 

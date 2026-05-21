@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 import IndiaDashboard from './components/IndiaDashboard'
+import KiraDemoWidget from '@/components/KiraDemoWidget'
 
 const saffron = '#FF9933'
 const indiaGreen = '#138808'
@@ -364,6 +365,20 @@ export default async function IndiaHomePage() {
         </div>
       </section>
 
+      {/* KIRA DEMO */}
+      <section style={{ background: white, padding: '72px 24px', borderTop: `1px solid #edf1f6` }}>
+        <div style={{ maxWidth: 860, margin: '0 auto', textAlign: 'center' }}>
+          <div style={{ fontSize: 12, fontWeight: 700, color: saffron, letterSpacing: 2, textTransform: 'uppercase', marginBottom: 12 }}>Kira Preview</div>
+          <h2 style={{ fontFamily: "'Outfit',sans-serif", fontSize: 30, fontWeight: 800, color: navy, marginBottom: 12 }}>
+            Meet Kira — your AI career coach
+          </h2>
+          <p style={{ fontSize: 15, color: '#6b7c93', maxWidth: 480, margin: '0 auto 40px', lineHeight: 1.7 }}>
+            Kira scans your CV, matches it against jobs and tells you exactly how to beat ATS. See a live demo below.
+          </p>
+          <KiraDemoWidget market="in" lang="EN" />
+        </div>
+      </section>
+
       {/* PRICING */}
       <section style={{ padding: '72px 24px', background: '#f8fafc' }}>
         <div style={{ maxWidth: 900, margin: '0 auto', textAlign: 'center' }}>
@@ -458,7 +473,7 @@ export default async function IndiaHomePage() {
           <div style={{ display: 'flex', gap: 20, justifyContent: 'center', flexWrap: 'wrap' }}>
             <Link href="/" style={{ fontSize: 12, color: 'rgba(255,255,255,0.35)', textDecoration: 'none' }}>Job-Lens DACH</Link>
             <Link href="/impressum" style={{ fontSize: 12, color: 'rgba(255,255,255,0.35)', textDecoration: 'none' }}>Impressum</Link>
-            <Link href="/datenschutz" style={{ fontSize: 12, color: 'rgba(255,255,255,0.35)', textDecoration: 'none' }}>Privacy</Link>
+            <Link href="/privacy" style={{ fontSize: 12, color: 'rgba(255,255,255,0.35)', textDecoration: 'none' }}>Privacy Policy</Link>
           </div>
         </div>
       </footer>
