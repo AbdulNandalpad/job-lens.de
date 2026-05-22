@@ -14,7 +14,7 @@ interface Job {
   apply_url: string; posted: string
 }
 interface FeatureAction { feature: string; label: string; href: string; reason: string }
-interface Msg { role: 'user' | 'assistant'; content: string; status?: string; jobs?: Job[]; action?: FeatureAction }
+interface Msg { role: 'user' | 'assistant'; content: string; status?: string; jobs?: Job[]; jobsTotal?: number; action?: FeatureAction }
 
 const AGENT = 'Kira'
 
@@ -143,7 +143,7 @@ export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
             } else if (evt.jobs) {
               setMsgs(prev => {
                 const cp = [...prev]
-                cp[idx] = { ...cp[idx], jobs: evt.jobs as Job[], status: undefined }
+                cp[idx] = { ...cp[idx], jobs: evt.jobs as Job[], jobsTotal: evt.total as number | undefined, status: undefined }
                 return cp
               })
             } else if (evt.action) {
@@ -296,6 +296,11 @@ export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
                     {/* Job cards */}
                     {m.jobs && m.jobs.length > 0 && (
                       <div style={{ marginTop: 6, marginLeft: 28, display: 'flex', flexDirection: 'column', gap: 6 }}>
+                        <div style={{ fontSize: 10, color: 'rgba(255,255,255,.35)', marginBottom: 2, fontFamily: f.body }}>
+                          {m.jobsTotal && m.jobsTotal > m.jobs.length
+                            ? `Showing ${m.jobs.length} of ${m.jobsTotal.toLocaleString()} jobs`
+                            : `${m.jobs.length} job${m.jobs.length !== 1 ? 's' : ''} found`}
+                        </div>
                         {m.jobs.map((job, ji) => {
                           const salary = fmtSalary(job.salary_min, job.salary_max, market)
                           return (
@@ -303,13 +308,19 @@ export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
                               <div style={{ fontWeight: 700, fontSize: 12, color: '#fff', fontFamily: f.heading, lineHeight: 1.3 }}>{job.title}</div>
                               <div style={{ fontSize: 11, color: 'rgba(255,255,255,.5)', marginTop: 3, fontFamily: f.body }}>{job.company} · {job.location}</div>
                               {salary && <div style={{ fontSize: 11, color: accent, marginTop: 3, fontWeight: 600 }}>{salary}</div>}
-                              <a href={job.apply_url} target="_blank" rel="noopener noreferrer" className="kira-apply"
-                                style={{ display: 'inline-block', marginTop: 7, fontSize: 11, padding: '4px 10px', borderRadius: 6, background: accent, color: '#fff', textDecoration: 'none', fontWeight: 600, transition: 'opacity .15s' }}>
-                                Apply →
-                              </a>
+                              {job.apply_url && (
+                                <a href={job.apply_url} target="_blank" rel="noopener noreferrer" className="kira-apply"
+                                  style={{ display: 'inline-block', marginTop: 7, fontSize: 11, padding: '4px 10px', borderRadius: 6, background: accent, color: '#fff', textDecoration: 'none', fontWeight: 600, transition: 'opacity .15s' }}>
+                                  View Job →
+                                </a>
+                              )}
                             </div>
                           )
                         })}
+                        <Link href={market === 'in' ? '/in/jobs' : '/app/jobs'}
+                          style={{ display: 'block', marginTop: 2, padding: '7px 12px', borderRadius: 8, border: `1px solid ${accent}44`, color: accent, textDecoration: 'none', fontSize: 11, fontWeight: 600, textAlign: 'center', fontFamily: f.heading }}>
+                          Browse all jobs →
+                        </Link>
                       </div>
                     )}
 

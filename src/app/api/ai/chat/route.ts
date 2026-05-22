@@ -18,8 +18,16 @@ PERSONALITY:
 FORMAT — CRITICAL:
 - Plain text only. Zero markdown. No asterisks, no bold, no headers, no bullet dashes.
 - Keep responses tight — 2 to 5 sentences max. Brief and punchy.
-- When jobs are found: job cards are shown automatically to the user, so just give a short spoken intro like "Found 5 good ones for you in Munich." Then highlight one or two standout things without listing all job details again.
+- When jobs are found: job cards are shown automatically to the user, so just give a short spoken intro like "Found some good ones in Munich." Don't repeat job details in text.
 - Each insight in one sentence maximum.
+
+SEARCH_JOBS PARAMETER RULES — READ CAREFULLY:
+- query: ONLY the job title or skill keywords. Strip location words. Examples:
+    User says "software developer jobs in Munich" → query="software developer", location="Munich"
+    User says "find me React jobs" → query="React developer", location="" (empty)
+    User says "Marketing Manager Berlin" → query="Marketing Manager", location="Berlin"
+- location: the city or region extracted separately. Never include it in query.
+- country: pick based on location — "de" for German cities, "at" for Austria, "ch" for Switzerland, "in" for Indian cities. Default: "de" for DACH market, "in" for India market.
 
 WHAT YOU CAN DO:
 1. Search live jobs via search_jobs — ALWAYS call this when asked about jobs. Never make up listings.
@@ -93,6 +101,39 @@ const FEATURE_LINKS: Record<'eu' | 'in', Record<string, { label: string; href: s
 
 interface SearchInput { query: string; location?: string; country?: string }
 
+function mapJobs(results: Record<string, unknown>[], fallbackCity: string, country: string) {
+  return results.map(j => {
+    const loc     = j.location as Record<string, unknown> | undefined
+    const areas   = loc?.area as string[] | undefined
+    const company = j.company as Record<string, unknown> | undefined
+    return {
+      title:      String(j.title || ''),
+      company:    String(company?.display_name || ''),
+      location:   areas?.[areas.length - 1] || fallbackCity || country.toUpperCase(),
+      posted:     String(j.created || ''),
+      salary_min: (j.salary_min as number) || null,
+      salary_max: (j.salary_max as number) || null,
+      apply_url:  String(j.redirect_url || ''),
+    }
+  }).sort((a, b) => new Date(b.posted).getTime() - new Date(a.posted).getTime())
+}
+
+async function fetchAdzuna(
+  appId: string, appKey: string, country: string, query: string, city: string, signal: AbortSignal
+): Promise<{ results: Record<string, unknown>[]; count: number } | null> {
+  const params = new URLSearchParams({
+    app_id:           appId,
+    app_key:          appKey,
+    results_per_page: '10',
+    what:             query,
+    where:            city,
+  })
+  const res = await fetch(`https://api.adzuna.com/v1/api/jobs/${country}/search/1?${params}`, { signal })
+  if (!res.ok) return null
+  const data = await res.json()
+  return { results: data.results || [], count: data.count || 0 }
+}
+
 async function searchJobs(input: SearchInput, market: string): Promise<string> {
   const appId  = process.env.ADZUNA_APP_ID
   const appKey = process.env.ADZUNA_APP_KEY
@@ -104,52 +145,28 @@ async function searchJobs(input: SearchInput, market: string): Promise<string> {
   const country = input.country || (market === 'in' ? 'in' : 'de')
   const city    = (input.location || '').split(',')[0].trim()
 
-  const params = new URLSearchParams({
-    app_id:           appId,
-    app_key:          appKey,
-    results_per_page: '6',
-    what:             input.query,
-  })
-  if (city) params.set('where', city)
-
   const ctrl  = new AbortController()
-  const timer = setTimeout(() => ctrl.abort(), 8000)
+  const timer = setTimeout(() => ctrl.abort(), 10_000)
 
   try {
-    const res = await fetch(
-      `https://api.adzuna.com/v1/api/jobs/${country}/search/1?${params}`,
-      { signal: ctrl.signal }
-    )
+    // First: search with city filter
+    let data = await fetchAdzuna(appId, appKey, country, input.query, city, ctrl.signal)
+
+    // Fallback: retry without city if zero results and city was specified
+    if (data && data.results.length === 0 && city) {
+      data = await fetchAdzuna(appId, appKey, country, input.query, '', ctrl.signal)
+    }
+
     clearTimeout(timer)
 
-    if (!res.ok) {
-      console.error('Adzuna error:', res.status)
+    if (!data) {
       return JSON.stringify({ error: 'Job search unavailable', jobs: [] })
     }
 
-    const data = await res.json()
-    const jobs = (data.results || [])
-      .slice(0, 6)
-      .map((j: Record<string, unknown>) => {
-        const loc     = j.location as Record<string, unknown> | undefined
-        const areas   = loc?.area as string[] | undefined
-        const company = j.company as Record<string, unknown> | undefined
-        return {
-          title:      String(j.title || ''),
-          company:    String(company?.display_name || ''),
-          location:   areas?.[areas.length - 1] || city || country.toUpperCase(),
-          posted:     String(j.created || ''),
-          salary_min: (j.salary_min as number) || null,
-          salary_max: (j.salary_max as number) || null,
-          description: String(j.description || '').slice(0, 250),
-          apply_url:  String(j.redirect_url || ''),
-        }
-      })
-      .sort((a: { posted: string }, b: { posted: string }) =>
-        new Date(b.posted).getTime() - new Date(a.posted).getTime()
-      )
+    const sorted = mapJobs(data.results, city, country)
+    const jobs   = sorted.slice(0, 5)
 
-    return JSON.stringify({ jobs, total: data.count || jobs.length })
+    return JSON.stringify({ jobs, total: data.count })
   } catch {
     clearTimeout(timer)
     return JSON.stringify({ error: 'Job search timed out', jobs: [] })
@@ -245,9 +262,9 @@ export async function POST(req: NextRequest) {
 
                 if (tb.name === 'search_jobs') {
                   result = await searchJobs(tb.input as SearchInput, market)
-                  const parsed = JSON.parse(result) as { jobs?: unknown[]; error?: string }
+                  const parsed = JSON.parse(result) as { jobs?: unknown[]; total?: number; error?: string }
                   if (parsed.jobs && parsed.jobs.length > 0) {
-                    safeSend({ jobs: parsed.jobs })
+                    safeSend({ jobs: parsed.jobs, total: parsed.total ?? parsed.jobs.length })
                   }
 
                 } else if (tb.name === 'suggest_feature') {
