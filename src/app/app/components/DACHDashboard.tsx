@@ -340,6 +340,11 @@ export default function DACHDashboard() {
           .kpi-grid    { grid-template-columns:1fr 1fr!important;gap:10px!important }
           .macro-grid  { grid-template-columns:1fr!important }
           .hero-top    { flex-direction:column!important;align-items:flex-start!important }
+          .country-pills-desktop { display:none!important }
+          .country-select-mobile { display:flex!important }
+        }
+        @media(min-width:601px){
+          .country-select-mobile { display:none!important }
         }
         @media(max-width:380px){
           .kpi-grid    { grid-template-columns:1fr!important }
@@ -398,14 +403,26 @@ export default function DACHDashboard() {
 
             {/* Right controls */}
             <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
-              {/* Country switcher */}
-              <div style={{ display: 'flex', gap: 4, background: 'rgba(255,255,255,.04)', border: `1px solid ${border}`, borderRadius: 12, padding: 4 }}>
+              {/* Country switcher — pills on desktop, select on mobile */}
+              <div className="country-pills-desktop" style={{ display: 'flex', gap: 4, background: 'rgba(255,255,255,.04)', border: `1px solid ${border}`, borderRadius: 12, padding: 4 }}>
                 {COUNTRIES.map(c => (
                   <button key={c.code} className="country-pill" onClick={() => setCountry(c.code)}
                     style={{ padding: '7px 13px', borderRadius: 8, border: `1px solid ${country === c.code ? blue : 'transparent'}`, background: country === c.code ? blue + '22' : 'transparent', color: country === c.code ? '#fff' : txt2, fontSize: 12, fontWeight: country === c.code ? 700 : 400, cursor: 'pointer', fontFamily: "'DM Sans',sans-serif" }}>
                     {c.flag} {c.name}
                   </button>
                 ))}
+              </div>
+              <div className="country-select-mobile" style={{ alignItems: 'center', gap: 6, background: 'rgba(255,255,255,.04)', border: `1px solid ${border}`, borderRadius: 12, padding: '2px 6px' }}>
+                <select
+                  value={country}
+                  onChange={e => setCountry(e.target.value as Country)}
+                  style={{ background: 'transparent', border: 'none', color: '#fff', fontSize: 13, fontWeight: 700, fontFamily: "'DM Sans',sans-serif", cursor: 'pointer', outline: 'none', padding: '7px 4px' }}>
+                  {COUNTRIES.map(c => (
+                    <option key={c.code} value={c.code} style={{ background: '#0e1a28', color: '#fff' }}>
+                      {c.flag} {c.name}
+                    </option>
+                  ))}
+                </select>
               </div>
 
               {/* Credits */}
