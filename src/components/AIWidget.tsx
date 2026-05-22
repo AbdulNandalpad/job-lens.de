@@ -234,8 +234,8 @@ function VoiceOrb({ state }: { state: VoiceState }) {
   }, [])
 
   return (
-    <div style={{ position: 'relative', width: 320, height: 160 }}>
-      <canvas ref={canvasRef} style={{ width: 320, height: 160, display: 'block' }} />
+    <div style={{ position: 'relative', width: '100%', maxWidth: 320 }}>
+      <canvas ref={canvasRef} style={{ width: '100%', aspectRatio: '2 / 1', display: 'block' }} />
       <div style={{ position: 'absolute', left: '50%', top: '50%', transform: 'translate(-50%, -50%)', pointerEvents: 'none', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
         {state === 'processing'
           ? <div style={{ display: 'flex', gap: 8 }}>
@@ -785,7 +785,14 @@ export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
         .kira-apply:hover          { opacity:.85 }
         .kira-mic-btn:hover        { background:rgba(255,255,255,.12) !important }
         @media (max-width:480px) {
-          .kira-panel { width:calc(100vw - 24px) !important;right:12px !important;left:12px !important;height:72vh !important;bottom:74px !important }
+          .kira-panel { width:calc(100vw - 24px) !important;right:12px !important;left:12px !important;height:72dvh !important;bottom:74px !important }
+        }
+        @media (max-height:500px) {
+          .kira-panel { height:calc(100dvh - 76px) !important;bottom:68px !important;max-height:calc(100dvh - 76px) !important }
+          .kira-fab   { bottom:12px !important }
+        }
+        @media (max-height:500px) and (max-width:900px) {
+          .kira-panel { width:calc(100vw - 24px) !important;right:12px !important;left:12px !important }
         }
       `}</style>
 
@@ -877,7 +884,7 @@ export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
 
           {/* ── Voice overlay ── */}
           {voiceMode ? (
-            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 16, padding: '24px 20px' }}>
+            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 16, padding: '16px 20px', overflowY: 'auto' }}>
               {cvDiscussMode && (
                 <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: 1, color: accent, textTransform: 'uppercase', opacity: .8 }}>
                   {lang === 'DE' ? 'CV-Gespräch' : 'CV Discussion'}
