@@ -673,8 +673,24 @@ export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
             <button className="jlaw-close" onClick={() => setOpen(false)} style={{ width: 24, height: 24, borderRadius: 6, border: 'none', background: 'rgba(255,255,255,.08)', cursor: 'pointer', color: 'rgba(255,255,255,.6)', fontSize: 14, display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'background .2s', flexShrink: 0 }}>✕</button>
           </div>
 
-          {/* ── Voice mode UI ── */}
-          {voiceMode ? (
+          {/* ── Mobile notice ── */}
+          {isMobile ? (
+            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '32px 24px', gap: 20, textAlign: 'center' }}>
+              <div style={{ width: 56, height: 56, borderRadius: '50%', background: `linear-gradient(135deg,${c.ai},${c.accent})`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22 }}>
+                💻
+              </div>
+              <div>
+                <div style={{ color: '#fff', fontSize: 15, fontWeight: 700, fontFamily: f.heading, marginBottom: 10 }}>
+                  {lang === 'DE' ? 'Auf dem Handy bin ich eingeschränkt.' : 'My options are limited on mobile.'}
+                </div>
+                <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: 13, lineHeight: 1.6, fontFamily: f.body }}>
+                  {lang === 'DE'
+                    ? 'Für das volle Kira-Erlebnis bitte den PC nutzen.'
+                    : 'For the full Kira experience, please use a PC to talk to me.'}
+                </div>
+              </div>
+            </div>
+          ) : voiceMode ? (
             <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '24px 20px', position: 'relative' }}>
 
               {/* Exit voice */}

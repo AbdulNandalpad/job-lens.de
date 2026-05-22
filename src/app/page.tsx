@@ -277,12 +277,13 @@ export default function HomePage() {
         .jl-lang-btn:not(.active):hover { color: rgba(255,255,255,0.7); background: rgba(255,255,255,0.06); }
         .jl-home-logo-text { display: inline; }
         .jl-home-lang { display: flex; }
+        .jl-home-dach-pill { display: inline-flex; }
         .jl-home-india { display: flex; }
         .jl-home-greeting { display: inline; }
         .jl-home-nav-links { display: contents; }
         @media (max-width: 768px) {
           .jl-home-logo-text { display: none !important; }
-          .jl-home-lang { display: none !important; }
+          .jl-home-dach-pill { display: none !important; }
           .jl-home-greeting { display: none !important; }
           .jl-home-nav-links { display: none !important; }
         }
@@ -324,7 +325,7 @@ export default function HomePage() {
 
           {/* Market pills */}
           <div style={{ display: 'flex', gap: 6 }}>
-            <span style={{ fontSize: 11, fontWeight: 700, padding: '5px 12px', borderRadius: 10, border: '1px solid rgba(55,138,221,0.4)', background: 'rgba(55,138,221,0.12)', color: '#85B7EB', fontFamily: 'inherit' }}>
+            <span className="jl-home-dach-pill" style={{ fontSize: 11, fontWeight: 700, padding: '5px 12px', borderRadius: 10, border: '1px solid rgba(55,138,221,0.4)', background: 'rgba(55,138,221,0.12)', color: '#85B7EB', fontFamily: 'inherit' }}>
               🇩🇪 DACH
             </span>
             <Link href="/in" style={{ fontSize: 11, fontWeight: 600, textDecoration: 'none', padding: '5px 12px', borderRadius: 10, border: '1px solid rgba(255,153,51,0.2)', background: 'rgba(255,153,51,0.07)', color: '#FF9933', fontFamily: 'inherit' }}>

@@ -332,7 +332,7 @@ LANGUAGE AND CODE-SWITCHING: Detect the user's language from their message. If t
 
         for (let i = 0; i < 5; i++) {
           const response = await client.messages.create({
-            model: 'claude-opus-4-7',
+            model: 'claude-sonnet-4-6',
             max_tokens: 2048,
             system: systemContent,
             tools,
