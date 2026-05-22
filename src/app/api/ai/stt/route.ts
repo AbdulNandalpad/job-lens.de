@@ -13,9 +13,12 @@ export async function POST(req: NextRequest) {
   const file = form.get('file') as File | null
   if (!file) return NextResponse.json({ error: 'No audio file' }, { status: 400 })
 
+  const language = form.get('language') as string | null
+
   const outForm = new FormData()
   outForm.append('file', file, file.name || 'audio.webm')
   outForm.append('model', 'whisper-1')
+  if (language) outForm.append('language', language)
 
   try {
     const res = await fetch('https://api.openai.com/v1/audio/transcriptions', {
