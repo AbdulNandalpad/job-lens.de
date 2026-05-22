@@ -68,85 +68,181 @@ function MicIcon({ size = 16, color = 'currentColor' }: { size?: number; color?:
   )
 }
 
-// ── Voice orb — glass sphere with modulation rings ───────────────────────────
+// ── Voice orb — canvas wave animation ────────────────────────────────────────
 function VoiceOrb({ state }: { state: VoiceState }) {
-  const active     = state !== 'idle'
-  const speaking   = state === 'speaking'
-  const listening  = state === 'listening'
-  const processing = state === 'processing'
+  const canvasRef = useRef<HTMLCanvasElement>(null)
+  const rafRef    = useRef<number>(0)
+  const timeRef   = useRef(0)
+  const stateRef  = useRef(state)
 
-  // Ring config per state: [count, period(s), gap(s), color]
-  const rings = speaking
-    ? { count: 4, period: 1.0, gap: 0.25, color: 'rgba(168,85,247,' }   // purple — fast
-    : listening
-    ? { count: 3, period: 2.0, gap: 0.6,  color: 'rgba(96,165,250,'  }   // blue  — slow
-    : null
+  useEffect(() => { stateRef.current = state }, [state])
+
+  type Particle = { x: number; y: number; vx: number; vy: number; life: number; decay: number; r: number; left: boolean }
+  const particles = useRef<Particle[]>([])
+
+  useEffect(() => {
+    const canvas = canvasRef.current
+    if (!canvas) return
+    const ctx = canvas.getContext('2d')!
+    if (!ctx) return
+
+    // Internal resolution 2× for retina
+    const W = 640, H = 320
+    canvas.width  = W
+    canvas.height = H
+    const cx = W / 2, cy = H / 2
+    const CR = 76  // circle radius in canvas coords
+
+    function emitParticles() {
+      const s = stateRef.current
+      if (s === 'idle') return
+      const n = s === 'speaking' ? 5 : s === 'listening' ? 3 : 1
+      for (let i = 0; i < n; i++) {
+        const angle = Math.random() * Math.PI * 2
+        const x     = cx + Math.cos(angle) * (CR + 4)
+        const y     = cy + Math.sin(angle) * (CR + 4)
+        const spd   = 1 + Math.random() * 3
+        particles.current.push({
+          x, y,
+          vx: Math.cos(angle) * spd,
+          vy: Math.sin(angle) * spd,
+          life: 1,
+          decay: 0.022 + Math.random() * 0.028,
+          r: 1.2 + Math.random() * 2.8,
+          left: Math.cos(angle) < 0,
+        })
+      }
+      if (particles.current.length > 140) particles.current = particles.current.slice(-140)
+    }
+
+    function stepParticles() {
+      for (const p of particles.current) {
+        p.x   += p.vx; p.y += p.vy
+        p.vx  *= 0.96; p.vy *= 0.96
+        p.life -= p.decay
+      }
+      particles.current = particles.current.filter(p => p.life > 0)
+    }
+
+    function drawParticles() {
+      for (const p of particles.current) {
+        const a = Math.max(0, p.life) * 0.88
+        ctx.beginPath()
+        ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2)
+        ctx.fillStyle = p.left ? `rgba(0,230,210,${a})` : `rgba(255,20,155,${a})`
+        ctx.fill()
+      }
+    }
+
+    function drawWaveSide(t: number, left: boolean, amplitude: number, speed: number) {
+      const startX = cx + (left ? -CR : CR)
+      const endX   = left ? 0 : W
+      const dir    = left ? -1 : 1
+      const len    = Math.abs(endX - startX)
+
+      const layers = [
+        { fq: 1.0, am: 1.00, lw: 3.0, al: 0.90, ph: 0.0  },
+        { fq: 1.7, am: 0.55, lw: 1.8, al: 0.55, ph: 1.3  },
+        { fq: 0.7, am: 0.75, lw: 1.2, al: 0.32, ph: 2.9  },
+      ]
+
+      for (const lyr of layers) {
+        ctx.beginPath()
+        for (let i = 0; i <= 120; i++) {
+          const p   = i / 120
+          const x   = startX + dir * p * len
+          const env = Math.sin(p * Math.PI)   // bell: 0 → 1 → 0
+          const y   = cy + Math.sin(p * Math.PI * 3 * lyr.fq + t * speed + lyr.ph) * amplitude * lyr.am * env
+          if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y)
+        }
+        const grad = ctx.createLinearGradient(startX, 0, endX, 0)
+        if (left) {
+          grad.addColorStop(0,   `rgba(0,230,210,${lyr.al})`)
+          grad.addColorStop(0.5, `rgba(0,190,255,${lyr.al * 0.6})`)
+          grad.addColorStop(1,   `rgba(0,150,255,0)`)
+        } else {
+          grad.addColorStop(0,   `rgba(255,20,155,${lyr.al})`)
+          grad.addColorStop(0.5, `rgba(255,70,40,${lyr.al * 0.6})`)
+          grad.addColorStop(1,   `rgba(255,110,20,0)`)
+        }
+        ctx.strokeStyle = grad
+        ctx.lineWidth   = lyr.lw
+        ctx.lineCap     = 'round'
+        ctx.stroke()
+      }
+    }
+
+    function draw(t: number) {
+      const s   = stateRef.current
+      const amp = s === 'speaking' ? 58 : s === 'listening' ? 38 : s === 'processing' ? 20 : 0
+      const spd = s === 'speaking' ? 3.4 : s === 'listening' ? 2.0 : 1.4
+
+      ctx.clearRect(0, 0, W, H)
+
+      if (s !== 'idle') {
+        emitParticles()
+        stepParticles()
+        drawWaveSide(t, true,  amp, spd)
+        drawWaveSide(t, false, amp, spd)
+        drawParticles()
+
+        // Glow halo behind circle
+        const col = s === 'speaking' ? '255,20,155' : '0,220,200'
+        const gc  = ctx.createRadialGradient(cx, cy, CR * 0.5, cx, cy, CR * 2.4)
+        gc.addColorStop(0, `rgba(${col},0.25)`)
+        gc.addColorStop(1, `rgba(${col},0)`)
+        ctx.beginPath(); ctx.arc(cx, cy, CR * 2.4, 0, Math.PI * 2)
+        ctx.fillStyle = gc; ctx.fill()
+      } else {
+        particles.current = []
+      }
+
+      // Circle fill
+      const fill = ctx.createRadialGradient(cx - CR * 0.22, cy - CR * 0.32, CR * 0.08, cx, cy, CR)
+      fill.addColorStop(0, '#1e3250')
+      fill.addColorStop(1, '#0b1622')
+      ctx.beginPath(); ctx.arc(cx, cy, CR, 0, Math.PI * 2)
+      ctx.fillStyle = fill; ctx.fill()
+
+      // Circle border
+      ctx.beginPath(); ctx.arc(cx, cy, CR, 0, Math.PI * 2)
+      if (s !== 'idle') {
+        const brd = ctx.createLinearGradient(cx - CR, cy, cx + CR, cy)
+        if (s === 'speaking') {
+          brd.addColorStop(0, 'rgba(0,230,210,0.75)')
+          brd.addColorStop(1, 'rgba(255,20,155,0.75)')
+        } else {
+          brd.addColorStop(0, 'rgba(0,230,210,0.85)')
+          brd.addColorStop(1, 'rgba(0,160,255,0.85)')
+        }
+        ctx.strokeStyle = brd; ctx.lineWidth = 2.5
+      } else {
+        ctx.strokeStyle = 'rgba(255,255,255,0.14)'; ctx.lineWidth = 1.5
+      }
+      ctx.stroke()
+    }
+
+    let lastTs = 0
+    function loop(ts: number) {
+      const dt = Math.min((ts - lastTs) / 1000, 0.05)
+      lastTs = ts; timeRef.current += dt
+      draw(timeRef.current)
+      rafRef.current = requestAnimationFrame(loop)
+    }
+    rafRef.current = requestAnimationFrame(loop)
+    return () => { cancelAnimationFrame(rafRef.current) }
+  }, [])
 
   return (
-    <div style={{ position: 'relative', width: 220, height: 220, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-
-      {/* Modulation rings — expand outward, fade out */}
-      {rings && Array.from({ length: rings.count }).map((_, i) => (
-        <div key={i} style={{
-          position: 'absolute',
-          width: 128, height: 128,
-          borderRadius: '50%',
-          border: `${speaking ? 2 : 1.5}px solid ${rings.color}${speaking ? 0.65 : 0.5})`,
-          animation: `kira-modring ${rings.period}s ease-out ${i * rings.gap}s infinite`,
-          opacity: 0,
-        }} />
-      ))}
-
-      {/* Ambient glow */}
-      <div style={{
-        position: 'absolute', width: 170, height: 170, borderRadius: '50%',
-        background: speaking
-          ? 'radial-gradient(circle, rgba(139,92,246,.18) 0%, rgba(59,130,246,.1) 55%, transparent 70%)'
-          : listening
-          ? 'radial-gradient(circle, rgba(59,130,246,.14) 0%, transparent 70%)'
-          : 'radial-gradient(circle, rgba(109,40,217,.07) 0%, transparent 70%)',
-        animation: speaking ? 'kira-glow-pulse 1.0s ease-in-out infinite' : 'kira-orb-idle 4s ease-in-out infinite',
-        transition: 'opacity .6s',
-      }} />
-
-      {/* Glass sphere */}
-      <div style={{
-        width: 128, height: 128, borderRadius: '50%',
-        position: 'relative', overflow: 'hidden',
-        background: active
-          ? speaking
-            ? 'radial-gradient(circle at 32% 26%, rgba(255,255,255,.22) 0%, rgba(168,85,247,.82) 22%, rgba(109,40,217,.7) 50%, rgba(55,138,221,.55) 78%, rgba(15,30,70,.4) 100%)'
-            : 'radial-gradient(circle at 32% 26%, rgba(255,255,255,.18) 0%, rgba(96,165,250,.78) 22%, rgba(59,130,246,.65) 50%, rgba(37,99,235,.5) 78%, rgba(10,20,50,.35) 100%)'
-          : 'radial-gradient(circle at 32% 26%, rgba(255,255,255,.1) 0%, rgba(109,40,217,.3) 40%, rgba(55,138,221,.2) 70%, rgba(10,20,40,.3) 100%)',
-        border: '1px solid rgba(255,255,255,.22)',
-        boxShadow: speaking
-          ? '0 8px 40px rgba(139,92,246,.5), 0 0 80px rgba(109,40,217,.2), inset 0 1px 0 rgba(255,255,255,.3)'
-          : listening
-          ? '0 8px 40px rgba(59,130,246,.4), 0 0 60px rgba(37,99,235,.15), inset 0 1px 0 rgba(255,255,255,.25)'
-          : '0 4px 20px rgba(0,0,0,.35), inset 0 1px 0 rgba(255,255,255,.1)',
-        transition: 'background .6s, box-shadow .6s',
-        animation: speaking   ? 'kira-sphere-speak 1.0s ease-in-out infinite'
-                 : listening  ? 'kira-sphere-listen 2.0s ease-in-out infinite'
-                 : processing ? 'kira-sphere-listen 1.4s ease-in-out infinite'
-                 :              'kira-orb-idle 4s ease-in-out infinite',
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-      }}>
-        {/* Processing: dots */}
-        {processing && (
-          <div style={{ display: 'flex', gap: 7, zIndex: 1 }}>
-            {[0, 1, 2].map(i => (
-              <div key={i} style={{ width: 9, height: 9, borderRadius: '50%', background: 'rgba(255,255,255,.9)', animation: `kira-dot 1.1s ease-in-out ${i * .18}s infinite` }} />
-            ))}
-          </div>
-        )}
-        {/* Glass specular highlight — top-left ellipse */}
-        <div style={{
-          position: 'absolute', top: 14, left: 18,
-          width: 40, height: 22, borderRadius: '50%',
-          background: `rgba(255,255,255,${active ? .42 : .14})`,
-          filter: 'blur(7px)', transform: 'rotate(-20deg)',
-          pointerEvents: 'none', transition: 'opacity .5s',
-        }} />
+    <div style={{ position: 'relative', width: 320, height: 160 }}>
+      <canvas ref={canvasRef} style={{ width: 320, height: 160, display: 'block' }} />
+      <div style={{ position: 'absolute', left: '50%', top: '50%', transform: 'translate(-50%, -50%)', pointerEvents: 'none', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+        {state === 'processing'
+          ? <div style={{ display: 'flex', gap: 8 }}>
+              {[0,1,2].map(i => <div key={i} style={{ width: 10, height: 10, borderRadius: '50%', background: 'rgba(255,255,255,.85)', animation: `kira-dot 1.1s ease-in-out ${i * .18}s infinite` }} />)}
+            </div>
+          : <MicIcon size={22} color={state !== 'idle' ? '#00eeff' : 'rgba(255,255,255,0.45)'} />
+        }
       </div>
     </div>
   )
@@ -679,11 +775,6 @@ export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
         @keyframes kira-slide         { from{opacity:0;transform:translateY(12px) scale(.97)} to{opacity:1;transform:none} }
         @keyframes kira-dot           { 0%,60%,100%{opacity:.3;transform:translateY(0)} 30%{opacity:1;transform:translateY(-5px)} }
         @keyframes kira-spin          { to{transform:rotate(360deg)} }
-        @keyframes kira-orb-idle      { 0%,100%{transform:scale(1);opacity:.6} 50%{transform:scale(1.035);opacity:.88} }
-        @keyframes kira-sphere-listen { 0%,100%{transform:scale(1)} 50%{transform:scale(1.05)} }
-        @keyframes kira-sphere-speak  { 0%,100%{transform:scale(1)} 40%{transform:scale(1.09)} 70%{transform:scale(.97)} }
-        @keyframes kira-modring       { 0%{transform:scale(1);opacity:.8} 100%{transform:scale(1.9);opacity:0} }
-        @keyframes kira-glow-pulse    { 0%,100%{transform:scale(1);opacity:.7} 50%{transform:scale(1.15);opacity:1} }
         .kira-fab:hover            { transform:scale(1.08) !important }
         .kira-send:hover:not(:disabled){ opacity:.85 }
         .kira-send:disabled        { opacity:.4;cursor:not-allowed }
@@ -746,10 +837,13 @@ export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
 
             {/* Mic toggle — desktop only */}
             {isMobile ? (
-              <div title={lang === 'DE' ? 'Sprache nur am PC verfügbar' : 'Voice available on desktop only'}
-                style={{ width: 28, height: 28, borderRadius: 7, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, opacity: .3, cursor: 'not-allowed' }}>
+              <button
+                onClick={() => setMsgs(prev => [...prev, { role: 'assistant', content: lang === 'DE'
+                  ? 'Sprache ist nur am PC verfügbar. Bitte öffne die App auf einem Computer.'
+                  : 'Voice mode is only available on desktop — please use a PC to access this feature.' }])}
+                style={{ width: 28, height: 28, borderRadius: 7, border: 'none', background: 'rgba(255,255,255,.08)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, opacity: .5 }}>
                 <MicIcon size={13} color="rgba(255,255,255,.55)"/>
-              </div>
+              </button>
             ) : (
               <button className="kira-mic-btn"
                 title={voiceMode ? 'End voice' : lang === 'DE' ? 'Sprachassistentin' : 'Voice mode'}
@@ -775,7 +869,7 @@ export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
               </button>
             )}
 
-            <button className="kira-close" onClick={() => { setOpen(false); if (voiceMode) exitVoiceMode() }}
+            <button className="kira-close" onClick={() => { setOpen(false); stopAudio(); if (voiceMode) exitVoiceMode() }}
               style={{ width: 24, height: 24, borderRadius: 6, border: 'none', background: 'rgba(255,255,255,.08)', cursor: 'pointer', color: 'rgba(255,255,255,.6)', fontSize: 14, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
               ✕
             </button>
@@ -975,6 +1069,9 @@ export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
             ? `Hallo${name}! Ich bin Kira, deine KI-Karriereassistentin. Wie kann ich dir heute helfen?`
             : `Hi${name}! I'm Kira, your AI career assistant. How can I help you today?`
           void playTts(text)
+        } else if (!nowOpening) {
+          stopAudio()
+          if (voiceModeRef.current) exitVoiceMode()
         }
       }}
         title="Chat with Kira"
