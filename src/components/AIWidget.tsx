@@ -68,27 +68,46 @@ export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
   const key    = market === 'in' ? 'in_EN' : `eu_${lang}`
   const accent = market === 'in' ? '#FF9933' : c.accent
 
-  const [open, setOpen]           = useState(false)
-  const [msgs, setMsgs]           = useState<Msg[]>([])
-  const [input, setInput]         = useState('')
-  const [loading, setLoading]     = useState(false)
-  const [cvName, setCvName]       = useState('')
+  const [open, setOpen]               = useState(false)
+  const [msgs, setMsgs]               = useState<Msg[]>([])
+  const [input, setInput]             = useState('')
+  const [loading, setLoading]         = useState(false)
+  const [cvName, setCvName]           = useState('')
   const [cvUploading, setCvUploading] = useState(false)
+  const [voiceOn, setVoiceOn]         = useState(true)
+  const [listening, setListening]     = useState(false)   // Web Speech API active
+  const [recording, setRecording]     = useState(false)   // MediaRecorder active
+  const [sttLoading, setSttLoading]   = useState(false)   // Whisper processing
+  const [ttsPlaying, setTtsPlaying]   = useState(false)   // audio playing
+  const [hasSpeechRec, setHasSpeechRec] = useState(false)
 
-  const bottomRef   = useRef<HTMLDivElement>(null)
-  const inputRef    = useRef<HTMLTextAreaElement>(null)
-  const cvRef       = useRef('')
-  const fileInputRef = useRef<HTMLInputElement>(null)
+  const bottomRef        = useRef<HTMLDivElement>(null)
+  const inputRef         = useRef<HTMLTextAreaElement>(null)
+  const cvRef            = useRef('')
+  const fileInputRef     = useRef<HTMLInputElement>(null)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const recognitionRef   = useRef<any>(null)
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null)
+  const audioChunksRef   = useRef<Blob[]>([])
+  const audioRef         = useRef<HTMLAudioElement | null>(null)
+  const audioCtxRef      = useRef<AudioContext | null>(null)
+  const voiceOnRef       = useRef(true)
+  const transcriptRef    = useRef('')
 
   useEffect(() => {
     const cv = sessionStorage.getItem(SS.cvText) || ''
     cvRef.current = cv
     if (cv) setCvName('CV ready')
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    setHasSpeechRec(!!((window as any).SpeechRecognition || (window as any).webkitSpeechRecognition))
     try {
       const saved = sessionStorage.getItem(SS.aiMessages)
       if (saved) setMsgs(JSON.parse(saved))
     } catch { /* ignore */ }
   }, [])
+
+  useEffect(() => { voiceOnRef.current = voiceOn }, [voiceOn])
 
   useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: 'smooth' }) }, [msgs])
 
@@ -130,6 +149,118 @@ export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
     if (fileInputRef.current) fileInputRef.current.value = ''
   }
 
+  // ── iOS AudioContext unlock ──────────────────────────────────────────────────
+  function unlockAudio() {
+    if (audioCtxRef.current) return
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const ACtx = window.AudioContext || (window as any).webkitAudioContext
+      if (ACtx) { audioCtxRef.current = new ACtx(); audioCtxRef.current.resume() }
+    } catch { /* not supported */ }
+  }
+
+  // ── TTS ──────────────────────────────────────────────────────────────────────
+  function stopTts() {
+    if (audioRef.current) { audioRef.current.pause(); audioRef.current = null }
+    setTtsPlaying(false)
+  }
+
+  async function playTts(text: string) {
+    if (!voiceOnRef.current || !text.trim()) return
+    stopTts()
+    try {
+      setTtsPlaying(true)
+      const res = await fetch(API.aiTts, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text: text.slice(0, 1000), voice: 'nova' }),
+      })
+      if (!res.ok) { setTtsPlaying(false); return }
+      const blob = await res.blob()
+      const url  = URL.createObjectURL(blob)
+      const audio = new Audio(url)
+      audioRef.current = audio
+      audio.onended = () => { setTtsPlaying(false); URL.revokeObjectURL(url) }
+      audio.onerror = () => { setTtsPlaying(false); URL.revokeObjectURL(url) }
+      await audio.play()
+    } catch { setTtsPlaying(false) }
+  }
+
+  // ── STT — desktop path (Web Speech API) ─────────────────────────────────────
+  function toggleListening() {
+    unlockAudio()
+    if (listening) {
+      recognitionRef.current?.stop()
+      return
+    }
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
+    if (!SR) return
+    const rec = new SR()
+    rec.lang           = lang === 'DE' ? 'de-DE' : market === 'in' ? 'en-IN' : 'en-US'
+    rec.interimResults = true
+    rec.continuous     = false
+    transcriptRef.current = ''
+    rec.onresult = (e: Event) => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const ev = e as any
+      const t = Array.from(ev.results as unknown[]).map((r: unknown) => (r as { 0: { transcript: string } })[0].transcript).join('')
+      setInput(t)
+      transcriptRef.current = t
+    }
+    rec.onend = () => {
+      setListening(false)
+      recognitionRef.current = null
+      const t = transcriptRef.current.trim()
+      transcriptRef.current = ''
+      if (t) { setInput(''); void send(t) }
+    }
+    rec.onerror = () => { setListening(false); recognitionRef.current = null }
+    recognitionRef.current = rec
+    rec.start()
+    setListening(true)
+  }
+
+  // ── STT — mobile path (MediaRecorder + Whisper) ──────────────────────────────
+  function getSupportedMimeType() {
+    const types = ['audio/webm;codecs=opus', 'audio/webm', 'audio/mp4', 'audio/ogg;codecs=opus', 'audio/ogg']
+    return types.find(t => MediaRecorder.isTypeSupported(t)) || ''
+  }
+
+  async function startRecording() {
+    unlockAudio()  // unlock AudioContext on the user-gesture before any awaits
+    if (recording || sttLoading) return
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+      const mimeType = getSupportedMimeType()
+      const mr = new MediaRecorder(stream, mimeType ? { mimeType } : undefined)
+      audioChunksRef.current = []
+      mr.ondataavailable = e => { if (e.data.size > 0) audioChunksRef.current.push(e.data) }
+      mr.onstop = async () => {
+        stream.getTracks().forEach(t => t.stop())
+        setRecording(false)
+        setSttLoading(true)
+        try {
+          const blob = new Blob(audioChunksRef.current, { type: mr.mimeType || 'audio/webm' })
+          const ext  = (mr.mimeType || '').includes('mp4') ? 'mp4' : (mr.mimeType || '').includes('ogg') ? 'ogg' : 'webm'
+          const form = new FormData()
+          form.append('file', blob, `audio.${ext}`)
+          const res  = await fetch(API.aiStt, { method: 'POST', body: form })
+          const data = await res.json()
+          if (data.text?.trim()) void send(data.text.trim())
+        } catch { /* ignore STT error */ }
+        setSttLoading(false)
+      }
+      mediaRecorderRef.current = mr
+      mr.start()
+      setRecording(true)
+    } catch { /* mic permission denied */ }
+  }
+
+  function stopRecording() {
+    mediaRecorderRef.current?.stop()
+  }
+
   function tailorCv(job: Job) {
     if (!cvRef.current) {
       setMsgs(prev => [...prev,
@@ -161,6 +292,7 @@ export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
     const idx = history.length
     setMsgs(prev => [...prev, { role: 'assistant', content: '' }])
 
+    let assembled = ''
     try {
       const res = await fetch(API.aiChat, {
         method: 'POST',
@@ -177,7 +309,6 @@ export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
       const reader  = res.body.getReader()
       const decoder = new TextDecoder()
       let buf = ''
-      let assembled = ''
 
       while (true) {
         const { done, value } = await reader.read()
@@ -234,6 +365,7 @@ export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
     }
 
     setLoading(false)
+    if (assembled) void playTts(assembled)
     inputRef.current?.focus()
   }
 
@@ -255,6 +387,8 @@ export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
         .kira-input:focus      { outline:none }
         .kira-job-card:hover   { border-color:${accent}66 !important; background:rgba(255,255,255,.08) !important }
         .kira-apply:hover      { opacity:.85 }
+        .kira-icon-btn:hover   { background:rgba(255,255,255,.15) !important }
+        @keyframes kira-pulse  { 0%,100%{box-shadow:0 0 0 0 #ef444466} 50%{box-shadow:0 0 0 6px #ef444400} }
         @media (max-width:480px) {
           .kira-panel { width:calc(100vw - 24px) !important; right:12px !important; left:12px !important; height:70vh !important; bottom:74px !important }
         }
@@ -313,15 +447,67 @@ export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
               }
             </button>
 
-            {/* Voice placeholder — coming soon */}
-            <button title={lang === 'DE' ? 'Sprachfunktion demnächst verfügbar' : 'Voice coming soon'} disabled
-              style={{ width: 28, height: 28, borderRadius: 7, border: 'none', background: 'rgba(255,255,255,.05)', cursor: 'not-allowed', color: 'rgba(255,255,255,.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-              <svg width="12" height="14" viewBox="0 0 24 28" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <rect x="8" y="1" width="8" height="14" rx="4"/>
-                <path d="M4 14a8 8 0 0 0 16 0"/>
-                <line x1="12" y1="22" x2="12" y2="27"/>
-                <line x1="8" y1="27" x2="16" y2="27"/>
-              </svg>
+            {/* Mic button — two paths: SpeechRecognition (desktop) or MediaRecorder (mobile) */}
+            {hasSpeechRec ? (
+              <button className="kira-icon-btn"
+                title={listening ? 'Stop' : lang === 'DE' ? 'Sprechen' : 'Speak'}
+                onClick={toggleListening}
+                disabled={loading || sttLoading || recording}
+                style={{ width: 28, height: 28, borderRadius: 7, border: 'none', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', transition: 'all .15s',
+                  background: listening ? '#ef4444' : 'rgba(255,255,255,.08)',
+                  color: listening ? '#fff' : 'rgba(255,255,255,.6)',
+                  animation: listening ? 'kira-pulse 1.2s ease infinite' : 'none',
+                }}>
+                <svg width="12" height="14" viewBox="0 0 24 28" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <rect x="8" y="1" width="8" height="14" rx="4"/>
+                  <path d="M4 14a8 8 0 0 0 16 0"/>
+                  <line x1="12" y1="22" x2="12" y2="27"/>
+                  <line x1="8" y1="27" x2="16" y2="27"/>
+                </svg>
+              </button>
+            ) : (
+              <button className="kira-icon-btn"
+                title={lang === 'DE' ? 'Gedrückt halten zum Sprechen' : 'Hold to speak'}
+                onMouseDown={startRecording} onMouseUp={stopRecording}
+                onTouchStart={e => { e.preventDefault(); startRecording() }}
+                onTouchEnd={e => { e.preventDefault(); stopRecording() }}
+                disabled={loading}
+                style={{ width: 28, height: 28, borderRadius: 7, border: 'none', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', transition: 'all .15s',
+                  background: recording ? '#ef4444' : sttLoading ? `${accent}33` : 'rgba(255,255,255,.08)',
+                  color: recording || sttLoading ? '#fff' : 'rgba(255,255,255,.6)',
+                  animation: recording ? 'kira-pulse 1.2s ease infinite' : 'none',
+                }}>
+                {sttLoading
+                  ? <span style={{ width: 10, height: 10, border: '2px solid rgba(255,255,255,.3)', borderTopColor: '#fff', borderRadius: '50%', display: 'inline-block', animation: 'kira-spin .8s linear infinite' }}/>
+                  : <svg width="12" height="14" viewBox="0 0 24 28" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <rect x="8" y="1" width="8" height="14" rx="4"/>
+                      <path d="M4 14a8 8 0 0 0 16 0"/>
+                      <line x1="12" y1="22" x2="12" y2="27"/>
+                      <line x1="8" y1="27" x2="16" y2="27"/>
+                    </svg>
+                }
+              </button>
+            )}
+
+            {/* Speaker toggle — mute/unmute TTS */}
+            <button className="kira-icon-btn"
+              title={voiceOn ? (lang === 'DE' ? 'Ton aus' : 'Mute Kira') : (lang === 'DE' ? 'Ton an' : 'Unmute Kira')}
+              onClick={() => { if (ttsPlaying) stopTts(); setVoiceOn(v => !v) }}
+              style={{ width: 28, height: 28, borderRadius: 7, border: 'none', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', transition: 'all .15s',
+                background: voiceOn ? `${accent}22` : 'rgba(255,255,255,.05)',
+                color: voiceOn ? accent : 'rgba(255,255,255,.25)',
+              }}>
+              {voiceOn
+                ? <svg width="14" height="12" viewBox="0 0 24 20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <polygon points="11 4 6 8 2 8 2 12 6 12 11 16 11 4"/>
+                    <path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"/>
+                  </svg>
+                : <svg width="14" height="12" viewBox="0 0 24 20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <polygon points="11 4 6 8 2 8 2 12 6 12 11 16 11 4"/>
+                    <line x1="23" y1="9" x2="17" y2="15"/>
+                    <line x1="17" y1="9" x2="23" y2="15"/>
+                  </svg>
+              }
             </button>
 
             {/* Clear */}
