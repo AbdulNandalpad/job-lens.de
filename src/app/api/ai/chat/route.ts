@@ -152,31 +152,45 @@ async function executeSearchJobs(input: SearchJobsInput, market: 'eu' | 'in' = '
   const country = input.country || (market === 'in' ? 'in' : 'de')
   const city    = (input.location || '').split(',')[0].trim()
 
-  const params = new URLSearchParams({ app_id: appId, app_key: appKey, results_per_page: '8', what: input.query })
+  const params = new URLSearchParams({
+    app_id: appId, app_key: appKey,
+    results_per_page: '8', what: input.query,
+    sort_by: 'date',
+  })
   if (city) params.set('where', city)
 
+  const abort = new AbortController()
+  const timer = setTimeout(() => abort.abort(), 8000)
+
   try {
-    const res  = await fetch(`https://api.adzuna.com/v1/api/jobs/${country}/search/1?${params}`)
+    const res  = await fetch(`https://api.adzuna.com/v1/api/jobs/${country}/search/1?${params}`, { signal: abort.signal })
+    clearTimeout(timer)
     if (!res.ok) return JSON.stringify({ error: 'Job search unavailable', jobs: [] })
     const data = await res.json()
-    const jobs = (data.results || []).slice(0, 8).map((j: Record<string, unknown>) => {
-      const loc     = j.location as Record<string, unknown> | undefined
-      const areas   = loc?.area as string[] | undefined
-      const company = j.company as Record<string, unknown> | undefined
-      return {
-        id:          String(j.id),
-        title:       String(j.title || ''),
-        company:     String(company?.display_name || ''),
-        location:    areas?.[areas.length - 1] || city || country.toUpperCase(),
-        description: String(j.description || '').slice(0, 400),
-        apply_url:   String(j.redirect_url || ''),
-        posted:      String(j.created || ''),
-        salary_min:  (j.salary_min as number) || null,
-        salary_max:  (j.salary_max as number) || null,
-      }
-    })
+    const jobs = (data.results || [])
+      .slice(0, 8)
+      .map((j: Record<string, unknown>) => {
+        const loc     = j.location as Record<string, unknown> | undefined
+        const areas   = loc?.area as string[] | undefined
+        const company = j.company as Record<string, unknown> | undefined
+        return {
+          id:          String(j.id),
+          title:       String(j.title || ''),
+          company:     String(company?.display_name || ''),
+          location:    areas?.[areas.length - 1] || city || country.toUpperCase(),
+          description: String(j.description || '').slice(0, 400),
+          apply_url:   String(j.redirect_url || ''),
+          posted:      String(j.created || ''),
+          salary_min:  (j.salary_min as number) || null,
+          salary_max:  (j.salary_max as number) || null,
+        }
+      })
+      .sort((a: { posted: string }, b: { posted: string }) =>
+        new Date(b.posted).getTime() - new Date(a.posted).getTime()
+      )
     return JSON.stringify({ jobs, total: data.count || jobs.length })
   } catch {
+    clearTimeout(timer)
     return JSON.stringify({ error: 'Failed to fetch jobs', jobs: [] })
   }
 }
