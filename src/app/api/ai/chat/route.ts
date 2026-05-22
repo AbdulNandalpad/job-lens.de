@@ -7,44 +7,27 @@ const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
 
 // ── System prompt ─────────────────────────────────────────────────────────────
 
-const BASE_SYSTEM = `You are Kira, an AI career assistant built into Job-Lens. You are warm, direct, and genuinely helpful — like a smart friend who knows the job market well.
+const BASE_SYSTEM = `You are Kira, an AI career assistant. Warm, direct, genuinely helpful — like a smart friend who knows the job market.
 
 PERSONALITY:
-- Conversational and natural. Use contractions: you'll, I'd, let's, I've.
-- Short punchy sentences. React naturally: "Oh nice!", "Okay so here's the thing —", "Found some good ones."
-- Show enthusiasm for strong matches. Show empathy when things are tough.
-- Never sound like you're reading from a report.
+- Conversational. Use contractions: you'll, I'd, let's.
+- React naturally: "Oh nice!", "Got it —", "Found some good ones."
+- Never sound like a report or a list of bullet points.
+
+WHAT YOU DO — only these three things:
+1. Find live jobs — call search_jobs immediately when asked. Never invent listings.
+2. Salary guidance — give specific ranges. DACH: entry €45-65k, mid €65-90k, senior €90-130k+ (Munich 15-20% higher). India: entry 4-8 LPA, mid 8-20 LPA, senior 20-50 LPA.
+3. CV scoring — score /10 with 2 specific strengths and 2 gaps. Reference the actual CV. Ask one question at a time when doing a CV review.
+
+SEARCH_JOBS RULES:
+- query: job title/skills only — strip location words
+- location: city extracted separately
+- country: de/at/ch/in based on city; default de for DACH, in for India
 
 FORMAT — CRITICAL:
-- Plain text only. Zero markdown. No asterisks, no bold, no headers, no bullet dashes.
-- Keep responses tight — 2 to 5 sentences max. Brief and punchy.
-- When jobs are found: job cards are shown automatically to the user, so just give a short spoken intro like "Found some good ones in Munich." Don't repeat job details in text.
-- Each insight in one sentence maximum.
-
-SEARCH_JOBS PARAMETER RULES — READ CAREFULLY:
-- query: ONLY the job title or skill keywords. Strip location words. Examples:
-    User says "software developer jobs in Munich" → query="software developer", location="Munich"
-    User says "find me React jobs" → query="React developer", location="" (empty)
-    User says "Marketing Manager Berlin" → query="Marketing Manager", location="Berlin"
-- location: the city or region extracted separately. Never include it in query.
-- country: pick based on location — "de" for German cities, "at" for Austria, "ch" for Switzerland, "in" for Indian cities. Default: "de" for DACH market, "in" for India market.
-
-WHAT YOU CAN DO:
-1. Search live jobs via search_jobs — ALWAYS call this when asked about jobs. Never make up listings.
-2. Score CV match — when user asks "does my CV match X?" or "how do I score for Y role?", read their CV from context and give: a score out of 10, 2 strengths, 2 gaps. No tool needed — just analyse.
-3. Skill gap — when user asks "what am I missing for X?", compare their CV to the role requirements. List 2-4 missing skills concisely.
-4. Salary guidance — give real ranges from your knowledge. Be specific. DACH: entry €45-65k, mid €65-90k, senior €90-130k+ (Munich 15-20% higher). India: entry 4-8 LPA, mid 8-20 LPA, senior 20-50 LPA (Bangalore/Hyderabad top end).
-5. Suggest features via suggest_feature when relevant.
-
-CV SCORING EXAMPLE (when CV is available):
-User: "Does my CV match a Senior React Developer role?"
-You: "You'd score about 7/10 for that. Strong on React and TypeScript, solid project history. You're missing GraphQL and testing experience — worth adding if you have any. Want me to search for openings?"
-
-RULES:
-- Job search: call search_jobs immediately. Do not answer from memory.
-- After jobs are shown: offer one follow-up — CV match score or cover letter help.
-- If no results: say so honestly, suggest broadening the search.
-- If no CV in context: still help, just say you can't personalise without a CV upload.`
+- Plain text only. Zero markdown. No asterisks, headers, or bullet dashes.
+- 1-3 sentences max. Short and punchy.
+- After jobs found: one spoken intro line only — job cards appear automatically, don't repeat details.`
 
 // ── Tools ─────────────────────────────────────────────────────────────────────
 
@@ -55,47 +38,14 @@ const tools: Anthropic.Messages.Tool[] = [
     input_schema: {
       type: 'object' as const,
       properties: {
-        query:    { type: 'string', description: 'Job title or keywords, e.g. "Senior React Developer"' },
-        location: { type: 'string', description: 'City or region, e.g. "Munich" or "Bangalore"' },
-        country:  { type: 'string', description: 'Country code: de, at, ch, in. Defaults to de for DACH, in for India.' },
+        query:    { type: 'string', description: 'Job title or keywords only — no location words' },
+        location: { type: 'string', description: 'City or region extracted separately, e.g. "Munich"' },
+        country:  { type: 'string', description: 'Country code: de, at, ch, in' },
       },
       required: ['query'],
     },
   },
-  {
-    name: 'suggest_feature',
-    description: 'Show a button directing the user to a Job-Lens feature. Use when they need CV tailoring, career analysis, cover letter, or application tracking.',
-    input_schema: {
-      type: 'object' as const,
-      properties: {
-        feature: {
-          type: 'string',
-          enum: ['career_scan', 'cv_builder', 'cover_letter', 'tracker'],
-          description: 'Which feature to link to',
-        },
-        reason: { type: 'string', description: 'One short sentence explaining why you are suggesting this' },
-      },
-      required: ['feature', 'reason'],
-    },
-  },
 ]
-
-// ── Feature link map ──────────────────────────────────────────────────────────
-
-const FEATURE_LINKS: Record<'eu' | 'in', Record<string, { label: string; href: string }>> = {
-  eu: {
-    career_scan:  { label: 'Open Career Scan',  href: '/app/career-scan' },
-    cv_builder:   { label: 'Open CV Builder',   href: '/app/cv-builder' },
-    cover_letter: { label: 'Open Cover Letter', href: '/app/cover-letter' },
-    tracker:      { label: 'Open Tracker',      href: '/app/tracker' },
-  },
-  in: {
-    career_scan:  { label: 'Open Career Scan',  href: '/in/career-scan' },
-    cv_builder:   { label: 'Open CV Builder',   href: '/in/cv-builder' },
-    cover_letter: { label: 'Open Cover Letter', href: '/in/cover-letter' },
-    tracker:      { label: 'Open Tracker',      href: '/in/tracker' },
-  },
-}
 
 // ── Adzuna job search ─────────────────────────────────────────────────────────
 
@@ -219,6 +169,7 @@ export async function POST(req: NextRequest) {
   const cvText: string             = body.cvText   || ''
   const market: 'eu' | 'in'       = body.market   || MARKET.eu
   const mode: string               = body.mode     || ''
+  const isVoice: boolean           = !!body.isVoice
 
   if (!messages.length) return new Response('No messages', { status: 400 })
 
@@ -271,7 +222,7 @@ export async function POST(req: NextRequest) {
         for (let round = 0; round < 3; round++) {
           const response = await client.messages.create({
             model:      'claude-sonnet-4-6',
-            max_tokens: 800,
+            max_tokens: isVoice ? 300 : 700,
             system:     systemContent,
             tools,
             messages:   currentMsgs,
@@ -284,7 +235,7 @@ export async function POST(req: NextRequest) {
 
             // Signal tool activity to client
             for (const tb of toolUses) {
-              if (tb.name !== 'suggest_feature') safeSend({ status: tb.name })
+              safeSend({ status: tb.name })
             }
 
             // Execute tools in parallel
@@ -299,17 +250,6 @@ export async function POST(req: NextRequest) {
                   if (parsed.jobs && parsed.jobs.length > 0) {
                     safeSend({ jobs: parsed.jobs, total: parsed.total ?? parsed.jobs.length, query: inp.query, location: inp.location || '' })
                   }
-
-                } else if (tb.name === 'suggest_feature') {
-                  const inp  = tb.input as { feature: string; reason: string }
-                  const meta = FEATURE_LINKS[market][inp.feature]
-                  if (meta) {
-                    result = JSON.stringify({ feature: inp.feature, label: meta.label, href: meta.href, reason: inp.reason })
-                    safeSend({ action: JSON.parse(result) })
-                  } else {
-                    result = JSON.stringify({ error: 'Unknown feature' })
-                  }
-
                 } else {
                   result = JSON.stringify({ error: 'Unknown tool' })
                 }

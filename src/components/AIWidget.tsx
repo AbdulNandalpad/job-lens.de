@@ -68,57 +68,92 @@ function MicIcon({ size = 16, color = 'currentColor' }: { size?: number; color?:
   )
 }
 
-// ── Voice orb (OpenAI-style pulsing sphere) ──────────────────────────────────
+// ── Voice orb — circle with wave bars inside when speaking ───────────────────
 function VoiceOrb({ state, accent }: { state: VoiceState; accent: string }) {
-  const active    = state !== 'idle'
-  const speaking  = state === 'speaking'
-  const listening = state === 'listening'
+  const active     = state !== 'idle'
+  const speaking   = state === 'speaking'
+  const listening  = state === 'listening'
   const processing = state === 'processing'
 
-  const orbAnim = speaking    ? 'kira-orb-speak 0.75s ease-in-out infinite'
-               : listening   ? 'kira-orb-listen 1.6s ease-in-out infinite'
-               : processing  ? 'kira-orb-process 1.4s ease-in-out infinite'
-               :               'kira-orb-idle 3s ease-in-out infinite'
+  // Pre-defined bar heights + animation delays — deterministic, no Math.random
+  const bars = [
+    { h: 0.28, d: 0.00 }, { h: 0.62, d: 0.07 }, { h: 0.90, d: 0.14 },
+    { h: 0.75, d: 0.04 }, { h: 1.00, d: 0.11 }, { h: 0.50, d: 0.18 },
+    { h: 0.85, d: 0.02 }, { h: 0.65, d: 0.09 }, { h: 1.00, d: 0.16 },
+    { h: 0.42, d: 0.06 }, { h: 0.70, d: 0.13 }, { h: 0.30, d: 0.01 },
+  ]
 
   return (
-    <div style={{ position: 'relative', width: 190, height: 190, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-      {/* Outer glow ring — expands and fades */}
+    <div style={{ position: 'relative', width: 200, height: 200, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+
+      {/* Listening: expanding ripple rings */}
+      {listening && [1, 2, 3].map(i => (
+        <div key={i} style={{
+          position: 'absolute',
+          width: 138 + i * 24, height: 138 + i * 24,
+          borderRadius: '50%',
+          border: `1.5px solid ${accent}`,
+          animation: `kira-ripple 2.4s ease-out ${i * 0.65}s infinite`,
+          opacity: 0,
+        }} />
+      ))}
+
+      {/* Soft outer glow */}
       <div style={{
-        position: 'absolute', width: 170, height: 170, borderRadius: '50%',
-        background: `radial-gradient(circle, ${accent}${active ? '20' : '09'} 0%, transparent 68%)`,
-        animation: active ? `kira-glow-pulse ${speaking ? '0.85' : '1.7'}s ease-in-out infinite` : 'kira-orb-idle 3s ease-in-out infinite',
-        transition: 'opacity .4s',
+        position: 'absolute', width: 160, height: 160, borderRadius: '50%',
+        background: `radial-gradient(circle, ${accent}${active ? '1c' : '08'} 0%, transparent 70%)`,
+        animation: speaking ? 'kira-glow-beat 0.85s ease-in-out infinite' : 'kira-orb-idle 3.5s ease-in-out infinite',
+        transition: 'opacity .5s',
       }} />
 
-      {/* Main orb */}
+      {/* Main circle — overflow:hidden clips bars to sphere shape */}
       <div style={{
-        width: 118, height: 118, borderRadius: '50%', zIndex: 1,
+        width: 130, height: 130, borderRadius: '50%',
+        overflow: 'hidden', position: 'relative',
         background: active
-          ? `radial-gradient(circle at 33% 30%, ${accent}ee 0%, ${accent}88 40%, ${accent}33 100%)`
-          : `radial-gradient(circle at 33% 30%, rgba(255,255,255,.13) 0%, rgba(255,255,255,.04) 100%)`,
+          ? `radial-gradient(circle at 34% 28%, ${accent}f0 0%, ${accent}88 44%, ${accent}44 100%)`
+          : `radial-gradient(circle at 34% 28%, rgba(255,255,255,.11) 0%, rgba(255,255,255,.04) 100%)`,
         boxShadow: active
-          ? `0 0 50px ${accent}55, 0 0 100px ${accent}1a, inset 0 0 40px ${accent}22`
-          : `0 0 20px rgba(255,255,255,.05), inset 0 0 20px rgba(255,255,255,.02)`,
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
+          ? `0 0 44px ${accent}55, 0 0 80px ${accent}1a`
+          : '0 0 14px rgba(255,255,255,.04)',
         transition: 'background .5s, box-shadow .5s',
-        animation: orbAnim,
+        animation: !speaking && !listening
+          ? (active ? 'kira-orb-breathe 1.7s ease-in-out infinite' : 'kira-orb-idle 3.5s ease-in-out infinite')
+          : undefined,
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
       }}>
+
+        {/* Wave bars (clipped to circle) */}
+        {speaking && (
+          <div style={{ display: 'flex', gap: 3, alignItems: 'center', height: 64 }}>
+            {bars.map((b, i) => (
+              <div key={i} style={{
+                width: 3.5, borderRadius: 2,
+                background: 'rgba(255,255,255,.9)',
+                height: `${b.h * 50}px`,
+                animation: `kira-bar .44s ease-in-out ${b.d}s infinite alternate`,
+              }} />
+            ))}
+          </div>
+        )}
+
+        {/* Processing dots */}
+        {processing && (
+          <div style={{ display: 'flex', gap: 7 }}>
+            {[0, 1, 2].map(i => (
+              <div key={i} style={{ width: 9, height: 9, borderRadius: '50%', background: 'rgba(255,255,255,.88)', animation: `kira-dot 1.1s ease-in-out ${i * .18}s infinite` }} />
+            ))}
+          </div>
+        )}
+
         {/* Specular highlight */}
         <div style={{
-          width: 44, height: 44, borderRadius: '50%',
-          background: `radial-gradient(circle at 30% 25%, rgba(255,255,255,${active ? '.45' : '.15'}) 0%, transparent 65%)`,
-          transition: 'opacity .4s',
+          position: 'absolute', top: 17, left: 23,
+          width: 34, height: 20, borderRadius: '50%',
+          background: `rgba(255,255,255,${active ? .36 : .1})`,
+          filter: 'blur(7px)', pointerEvents: 'none',
         }} />
       </div>
-
-      {/* Processing: 3 floating dots */}
-      {processing && (
-        <div style={{ position: 'absolute', bottom: 24, display: 'flex', gap: 6, alignItems: 'center' }}>
-          {[0, 1, 2].map(i => (
-            <div key={i} style={{ width: 7, height: 7, borderRadius: '50%', background: accent, animation: `kira-dot 1.1s ease-in-out ${i * .18}s infinite` }} />
-          ))}
-        </div>
-      )}
     </div>
   )
 }
@@ -155,6 +190,7 @@ export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
   const audioChunksRef   = useRef<Blob[]>([])
   const audioRef         = useRef<HTMLAudioElement | null>(null)
   const audioCtxRef      = useRef<AudioContext | null>(null)
+  const ttsResolveRef    = useRef<(() => void) | null>(null)
   const voiceModeRef     = useRef(false)
   const cvDiscussModeRef = useRef(false)
   const transcriptRef    = useRef('')
@@ -255,26 +291,30 @@ export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
 
   function stopAudio() {
     if (audioRef.current) { audioRef.current.pause(); audioRef.current = null }
+    // Resolve any pending TTS promise so the voice loop doesn't hang after exit
+    if (ttsResolveRef.current) { ttsResolveRef.current(); ttsResolveRef.current = null }
   }
 
   function playTts(text: string): Promise<void> {
     stopAudio()
     if (!text.trim()) return Promise.resolve()
     return new Promise<void>((resolve) => {
+      ttsResolveRef.current = resolve
+      const done = () => { ttsResolveRef.current = null; resolve() }
       fetch(API.aiTts, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text: text.slice(0, 1000), voice: 'nova' }),
+        body: JSON.stringify({ text: text.slice(0, 800) }),
       }).then(async res => {
-        if (!res.ok) { resolve(); return }
+        if (!res.ok) { done(); return }
         const blob  = await res.blob()
         const url   = URL.createObjectURL(blob)
         const audio = new Audio(url)
         audioRef.current = audio
-        audio.onended = () => { URL.revokeObjectURL(url); audioRef.current = null; resolve() }
-        audio.onerror = () => { URL.revokeObjectURL(url); audioRef.current = null; resolve() }
-        audio.play().catch(() => resolve())
-      }).catch(() => resolve())
+        audio.onended = () => { URL.revokeObjectURL(url); audioRef.current = null; done() }
+        audio.onerror = () => { URL.revokeObjectURL(url); audioRef.current = null; done() }
+        audio.play().catch(done)
+      }).catch(done)
     })
   }
 
@@ -522,6 +562,11 @@ export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
     setMsgs(prev => [...prev, { role: 'assistant', content: '' }])
 
     let assembled = ''
+    // Sentence-streaming TTS: first sentence fires mid-stream, rest queued after
+    let pendingVoice   = ''
+    let firstTtsFired  = false
+    let ttsChain       = Promise.resolve() as Promise<void>
+
     try {
       const res = await fetch(API.aiChat, {
         method: 'POST',
@@ -530,6 +575,7 @@ export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
           messages: history.map(m => ({ role: m.role, content: m.content })),
           cvText: cvRef.current,
           market,
+          isVoice,
           ...(cvDiscussModeRef.current ? { mode: 'cv_discuss' } : {}),
         }),
       })
@@ -554,6 +600,20 @@ export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
             if (evt.text) {
               assembled += evt.text
               setMsgs(prev => { const cp = [...prev]; cp[idx] = { role: 'assistant', content: assembled, jobs: cp[idx]?.jobs, action: cp[idx]?.action }; return cp })
+              // Fire TTS for first complete sentence as soon as it arrives
+              if (isVoice && !firstTtsFired) {
+                pendingVoice += evt.text
+                const m = pendingVoice.match(/^(.+?[.!?])(?:\s|$)/)
+                if (m) {
+                  firstTtsFired = true
+                  const sentence = m[1].trim()
+                  pendingVoice   = pendingVoice.slice(m[0].length).trimStart()
+                  setVoiceState('speaking')
+                  ttsChain = ttsChain.then(() => voiceModeRef.current ? playTts(sentence) : Promise.resolve())
+                }
+              } else if (isVoice) {
+                pendingVoice += evt.text
+              }
             } else if (evt.jobs) {
               setMsgs(prev => { const cp = [...prev]; cp[idx] = { ...cp[idx], jobs: evt.jobs as Job[], jobsTotal: evt.total as number | undefined, jobsSearch: { q: String(evt.query || ''), location: String(evt.location || '') }, status: undefined }; return cp })
             } else if (evt.action) {
@@ -573,8 +633,13 @@ export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
     setLoading(false)
 
     if (isVoice && voiceModeRef.current) {
-      setVoiceState('speaking')
-      if (assembled) await playTts(assembled)
+      // Queue any remaining text after sentence boundary (or full response if no boundary found)
+      const remainder = firstTtsFired ? pendingVoice.trim() : assembled.trim()
+      if (remainder) {
+        ttsChain = ttsChain.then(() => voiceModeRef.current ? playTts(remainder) : Promise.resolve())
+      }
+      if (!firstTtsFired) setVoiceState('speaking')
+      await ttsChain
       if (voiceModeRef.current) {
         setVoiceState('idle')
         setTimeout(() => startListening(), 400)
@@ -593,14 +658,14 @@ export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
   return (
     <>
       <style>{`
-        @keyframes kira-slide       { from{opacity:0;transform:translateY(12px) scale(.97)} to{opacity:1;transform:none} }
-        @keyframes kira-dot         { 0%,60%,100%{opacity:.3;transform:translateY(0)} 30%{opacity:1;transform:translateY(-5px)} }
-        @keyframes kira-spin        { to{transform:rotate(360deg)} }
-        @keyframes kira-orb-idle    { 0%,100%{transform:scale(1);opacity:.7} 50%{transform:scale(1.05);opacity:1} }
-        @keyframes kira-orb-listen  { 0%,100%{transform:scale(1)} 50%{transform:scale(1.11)} }
-        @keyframes kira-orb-speak   { 0%,100%{transform:scale(1)} 30%{transform:scale(1.15)} 70%{transform:scale(0.95)} }
-        @keyframes kira-orb-process { 0%,100%{transform:scale(1);opacity:.85} 50%{transform:scale(1.07);opacity:1} }
-        @keyframes kira-glow-pulse  { 0%{transform:scale(1);opacity:.6} 100%{transform:scale(1.45);opacity:0} }
+        @keyframes kira-slide      { from{opacity:0;transform:translateY(12px) scale(.97)} to{opacity:1;transform:none} }
+        @keyframes kira-dot        { 0%,60%,100%{opacity:.3;transform:translateY(0)} 30%{opacity:1;transform:translateY(-5px)} }
+        @keyframes kira-spin       { to{transform:rotate(360deg)} }
+        @keyframes kira-orb-idle   { 0%,100%{transform:scale(1);opacity:.65} 50%{transform:scale(1.04);opacity:.92} }
+        @keyframes kira-orb-breathe{ 0%,100%{transform:scale(1)} 50%{transform:scale(1.06)} }
+        @keyframes kira-glow-beat  { 0%,100%{transform:scale(1)} 50%{transform:scale(1.2)} }
+        @keyframes kira-ripple     { 0%{transform:scale(.82);opacity:.65} 100%{transform:scale(1.55);opacity:0} }
+        @keyframes kira-bar        { 0%{transform:scaleY(.16)} 100%{transform:scaleY(1)} }
         .kira-fab:hover            { transform:scale(1.08) !important }
         .kira-send:hover:not(:disabled){ opacity:.85 }
         .kira-send:disabled        { opacity:.4;cursor:not-allowed }
