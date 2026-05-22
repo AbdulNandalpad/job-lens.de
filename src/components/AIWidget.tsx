@@ -447,68 +447,7 @@ export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
               }
             </button>
 
-            {/* Mic button — two paths: SpeechRecognition (desktop) or MediaRecorder (mobile) */}
-            {hasSpeechRec ? (
-              <button className="kira-icon-btn"
-                title={listening ? 'Stop' : lang === 'DE' ? 'Sprechen' : 'Speak'}
-                onClick={toggleListening}
-                disabled={loading || sttLoading || recording}
-                style={{ width: 28, height: 28, borderRadius: 7, border: 'none', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', transition: 'all .15s',
-                  background: listening ? '#ef4444' : 'rgba(255,255,255,.08)',
-                  color: listening ? '#fff' : 'rgba(255,255,255,.6)',
-                  animation: listening ? 'kira-pulse 1.2s ease infinite' : 'none',
-                }}>
-                <svg width="12" height="14" viewBox="0 0 24 28" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <rect x="8" y="1" width="8" height="14" rx="4"/>
-                  <path d="M4 14a8 8 0 0 0 16 0"/>
-                  <line x1="12" y1="22" x2="12" y2="27"/>
-                  <line x1="8" y1="27" x2="16" y2="27"/>
-                </svg>
-              </button>
-            ) : (
-              <button className="kira-icon-btn"
-                title={lang === 'DE' ? 'Gedrückt halten zum Sprechen' : 'Hold to speak'}
-                onMouseDown={startRecording} onMouseUp={stopRecording}
-                onTouchStart={e => { e.preventDefault(); startRecording() }}
-                onTouchEnd={e => { e.preventDefault(); stopRecording() }}
-                disabled={loading}
-                style={{ width: 28, height: 28, borderRadius: 7, border: 'none', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', transition: 'all .15s',
-                  background: recording ? '#ef4444' : sttLoading ? `${accent}33` : 'rgba(255,255,255,.08)',
-                  color: recording || sttLoading ? '#fff' : 'rgba(255,255,255,.6)',
-                  animation: recording ? 'kira-pulse 1.2s ease infinite' : 'none',
-                }}>
-                {sttLoading
-                  ? <span style={{ width: 10, height: 10, border: '2px solid rgba(255,255,255,.3)', borderTopColor: '#fff', borderRadius: '50%', display: 'inline-block', animation: 'kira-spin .8s linear infinite' }}/>
-                  : <svg width="12" height="14" viewBox="0 0 24 28" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <rect x="8" y="1" width="8" height="14" rx="4"/>
-                      <path d="M4 14a8 8 0 0 0 16 0"/>
-                      <line x1="12" y1="22" x2="12" y2="27"/>
-                      <line x1="8" y1="27" x2="16" y2="27"/>
-                    </svg>
-                }
-              </button>
-            )}
-
-            {/* Speaker toggle — mute/unmute TTS */}
-            <button className="kira-icon-btn"
-              title={voiceOn ? (lang === 'DE' ? 'Ton aus' : 'Mute Kira') : (lang === 'DE' ? 'Ton an' : 'Unmute Kira')}
-              onClick={() => { if (ttsPlaying) stopTts(); setVoiceOn(v => !v) }}
-              style={{ width: 28, height: 28, borderRadius: 7, border: 'none', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', transition: 'all .15s',
-                background: voiceOn ? `${accent}22` : 'rgba(255,255,255,.05)',
-                color: voiceOn ? accent : 'rgba(255,255,255,.25)',
-              }}>
-              {voiceOn
-                ? <svg width="14" height="12" viewBox="0 0 24 20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <polygon points="11 4 6 8 2 8 2 12 6 12 11 16 11 4"/>
-                    <path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"/>
-                  </svg>
-                : <svg width="14" height="12" viewBox="0 0 24 20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <polygon points="11 4 6 8 2 8 2 12 6 12 11 16 11 4"/>
-                    <line x1="23" y1="9" x2="17" y2="15"/>
-                    <line x1="17" y1="9" x2="23" y2="15"/>
-                  </svg>
-              }
-            </button>
+            {/* Voice buttons hidden — re-enable when voice is ready */}
 
             {/* Clear */}
             {msgs.length > 0 && (
@@ -665,17 +604,29 @@ export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
       )}
 
       {/* ── FAB ── */}
-      <button className="kira-fab" onClick={() => setOpen(o => !o)}
-        style={{ position: 'fixed', bottom: 20, right: 20, zIndex: 9999, width: 52, height: 52, borderRadius: '50%', border: 'none',
-          background: `linear-gradient(135deg,${accent},${accent}99)`,
-          cursor: 'pointer', boxShadow: `0 4px 20px ${accent}55`,
-          display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'transform .2s',
-        }}>
-        {open
-          ? <svg width="18" height="18" viewBox="0 0 20 20" fill="none"><path d="M5 5l10 10M15 5L5 15" stroke="#fff" strokeWidth="2.2" strokeLinecap="round"/></svg>
-          : <span style={{ color: '#fff', fontSize: 16, fontWeight: 800, fontFamily: f.heading, letterSpacing: '-0.5px' }}>Ki</span>
-        }
-      </button>
+      <div style={{ position: 'fixed', bottom: 16, right: 20, zIndex: 9999, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
+        <button className="kira-fab" onClick={() => setOpen(o => !o)}
+          style={{ width: 54, height: 54, borderRadius: '50%', border: 'none',
+            background: `linear-gradient(135deg,${accent},${accent}bb)`,
+            cursor: 'pointer', boxShadow: `0 4px 24px ${accent}66`,
+            display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'transform .2s',
+          }}>
+          {open
+            ? <svg width="18" height="18" viewBox="0 0 20 20" fill="none"><path d="M5 5l10 10M15 5L5 15" stroke="#fff" strokeWidth="2.2" strokeLinecap="round"/></svg>
+            : <svg width="24" height="24" viewBox="0 0 24 24" fill="white">
+                <path d="M20 2H4C2.9 2 2 2.9 2 4v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z"/>
+                <circle cx="8" cy="11" r="1" fill={accent === '#FF9933' ? '#FF9933' : '#378ADD'} opacity="0.6"/>
+                <circle cx="12" cy="11" r="1" fill={accent === '#FF9933' ? '#FF9933' : '#378ADD'} opacity="0.6"/>
+                <circle cx="16" cy="11" r="1" fill={accent === '#FF9933' ? '#FF9933' : '#378ADD'} opacity="0.6"/>
+              </svg>
+          }
+        </button>
+        {!open && (
+          <span style={{ color: 'rgba(255,255,255,.75)', fontSize: 10, fontWeight: 700, fontFamily: f.heading, letterSpacing: '0.3px', textShadow: '0 1px 4px rgba(0,0,0,.5)' }}>
+            Kira AI
+          </span>
+        )}
+      </div>
     </>
   )
 }
