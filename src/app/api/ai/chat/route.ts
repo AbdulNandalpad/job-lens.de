@@ -154,13 +154,12 @@ async function executeSearchJobs(input: SearchJobsInput, market: 'eu' | 'in' = '
 
   const params = new URLSearchParams({
     app_id: appId, app_key: appKey,
-    results_per_page: '8', what: input.query,
-    sort_by: 'date',
+    results_per_page: '6', what: input.query,
   })
   if (city) params.set('where', city)
 
   const abort = new AbortController()
-  const timer = setTimeout(() => abort.abort(), 8000)
+  const timer = setTimeout(() => abort.abort(), 7000)
 
   try {
     const res  = await fetch(`https://api.adzuna.com/v1/api/jobs/${country}/search/1?${params}`, { signal: abort.signal })
@@ -168,7 +167,7 @@ async function executeSearchJobs(input: SearchJobsInput, market: 'eu' | 'in' = '
     if (!res.ok) return JSON.stringify({ error: 'Job search unavailable', jobs: [] })
     const data = await res.json()
     const jobs = (data.results || [])
-      .slice(0, 8)
+      .slice(0, 6)
       .map((j: Record<string, unknown>) => {
         const loc     = j.location as Record<string, unknown> | undefined
         const areas   = loc?.area as string[] | undefined
@@ -178,7 +177,7 @@ async function executeSearchJobs(input: SearchJobsInput, market: 'eu' | 'in' = '
           title:       String(j.title || ''),
           company:     String(company?.display_name || ''),
           location:    areas?.[areas.length - 1] || city || country.toUpperCase(),
-          description: String(j.description || '').slice(0, 400),
+          description: String(j.description || '').slice(0, 300),
           apply_url:   String(j.redirect_url || ''),
           posted:      String(j.created || ''),
           salary_min:  (j.salary_min as number) || null,
@@ -336,8 +335,24 @@ LANGUAGE AND CODE-SWITCHING: Detect the user's language from their message. If t
 
   const readable = new ReadableStream({
     async start(controller) {
-      const send = (data: Record<string, unknown>) =>
-        controller.enqueue(encoder.encode(`data: ${JSON.stringify(data)}\n\n`))
+      let closed = false
+
+      const safeSend = (data: Record<string, unknown>) => {
+        if (closed) return
+        try { controller.enqueue(encoder.encode(`data: ${JSON.stringify(data)}\n\n`)) } catch { closed = true }
+      }
+
+      const safeClose = () => {
+        if (closed) return
+        closed = true
+        try { controller.close() } catch { /* already closed */ }
+      }
+
+      // Overall deadline — ensures stream always terminates even if Claude or Adzuna hangs
+      const deadline = setTimeout(() => {
+        safeSend({ error: 'Request timed out. Please try again.' })
+        safeClose()
+      }, 50_000)
 
       try {
         let currentMessages: Anthropic.Messages.MessageParam[] = messages.map(m => ({
@@ -347,7 +362,7 @@ LANGUAGE AND CODE-SWITCHING: Detect the user's language from their message. If t
         for (let i = 0; i < 5; i++) {
           const response = await client.messages.create({
             model: 'claude-sonnet-4-6',
-            max_tokens: 2048,
+            max_tokens: 1024,
             system: systemContent,
             tools,
             messages: currentMessages,
@@ -357,7 +372,7 @@ LANGUAGE AND CODE-SWITCHING: Detect the user's language from their message. If t
             const toolBlocks = response.content.filter(b => b.type === 'tool_use') as Anthropic.Messages.ToolUseBlock[]
 
             for (const tb of toolBlocks) {
-              if (tb.name !== 'suggest_action') send({ status: tb.name })
+              if (tb.name !== 'suggest_action') safeSend({ status: tb.name })
             }
 
             const toolResults: Anthropic.Messages.ToolResultBlockParam[] = await Promise.all(
@@ -370,8 +385,7 @@ LANGUAGE AND CODE-SWITCHING: Detect the user's language from their message. If t
                   case 'get_salary_info':result = await executeSalaryInfo(tb.input as SalaryInfoInput, market); break
                   case 'suggest_action': {
                     result = executeSuggestAction(tb.input as SuggestAction, market)
-                    // Emit the action immediately so widget can render the button
-                    try { send({ action: JSON.parse(result) }) } catch { /* ignore */ }
+                    try { safeSend({ action: JSON.parse(result) }) } catch { /* ignore */ }
                     break
                   }
                   default: result = JSON.stringify({ error: 'Unknown tool' })
@@ -391,19 +405,20 @@ LANGUAGE AND CODE-SWITCHING: Detect the user's language from their message. If t
             const words      = fullText.split(/(\s+)/)
             for (let w = 0; w < words.length; w += 3) {
               const chunk = words.slice(w, w + 3).join('')
-              if (chunk) send({ text: chunk })
+              if (chunk) safeSend({ text: chunk })
             }
             break
           }
         }
 
-        send({ done: true })
+        safeSend({ done: true })
       } catch (err) {
         console.error('Kira error:', err)
-        send({ error: 'Something went wrong. Please try again.' })
+        safeSend({ error: 'Something went wrong. Please try again.' })
+      } finally {
+        clearTimeout(deadline)
+        safeClose()
       }
-
-      controller.close()
     },
   })
 
