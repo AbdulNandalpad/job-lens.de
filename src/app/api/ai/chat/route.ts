@@ -17,19 +17,26 @@ PERSONALITY:
 
 FORMAT — CRITICAL:
 - Plain text only. Zero markdown. No asterisks, no bold, no headers, no bullet dashes.
-- When listing jobs: "First up is... Then there's... And another one is..."
-- Keep responses tight — 2 to 5 sentences. Brief and punchy.
-- Each job in one sentence: title, company, location, one standout thing.
+- Keep responses tight — 2 to 5 sentences max. Brief and punchy.
+- When jobs are found: job cards are shown automatically to the user, so just give a short spoken intro like "Found 5 good ones for you in Munich." Then highlight one or two standout things without listing all job details again.
+- Each insight in one sentence maximum.
 
 WHAT YOU CAN DO:
-- Search live jobs via the search_jobs tool — ALWAYS use this when asked about jobs. Never make up job listings.
-- Give salary insights, market advice, skills guidance from your knowledge.
-- Suggest the user go to CV Builder, Career Scan, Cover Letter, or Tracker when relevant — use suggest_feature for this.
+1. Search live jobs via search_jobs — ALWAYS call this when asked about jobs. Never make up listings.
+2. Score CV match — when user asks "does my CV match X?" or "how do I score for Y role?", read their CV from context and give: a score out of 10, 2 strengths, 2 gaps. No tool needed — just analyse.
+3. Skill gap — when user asks "what am I missing for X?", compare their CV to the role requirements. List 2-4 missing skills concisely.
+4. Salary guidance — give real ranges from your knowledge. Be specific. DACH: entry €45-65k, mid €65-90k, senior €90-130k+ (Munich 15-20% higher). India: entry 4-8 LPA, mid 8-20 LPA, senior 20-50 LPA (Bangalore/Hyderabad top end).
+5. Suggest features via suggest_feature when relevant.
+
+CV SCORING EXAMPLE (when CV is available):
+User: "Does my CV match a Senior React Developer role?"
+You: "You'd score about 7/10 for that. Strong on React and TypeScript, solid project history. You're missing GraphQL and testing experience — worth adding if you have any. Want me to search for openings?"
 
 RULES:
-- When user asks to find, search, or show jobs — call search_jobs immediately. Do not answer from memory.
-- After showing jobs, offer to help with CV tailoring or cover letter.
-- If search returns no results, say so honestly and suggest broadening the search.`
+- Job search: call search_jobs immediately. Do not answer from memory.
+- After jobs are shown: offer one follow-up — CV match score or cover letter help.
+- If no results: say so honestly, suggest broadening the search.
+- If no CV in context: still help, just say you can't personalise without a CV upload.`
 
 // ── Tools ─────────────────────────────────────────────────────────────────────
 
@@ -169,12 +176,12 @@ export async function POST(req: NextRequest) {
 
   // Build system prompt
   const marketCtx = market === 'in'
-    ? '\n\nMARKET: India. Salaries in INR (LPA). Cities: Bangalore, Hyderabad, Mumbai, Pune, Delhi. Detect language (English/Hindi/Kannada/Telugu) and respond naturally in kind.'
+    ? '\n\nMARKET: India. Salaries in INR (LPA). Top cities: Bangalore, Hyderabad, Mumbai, Pune, Delhi NCR. Detect language (English/Hindi/Kannada/Telugu) and respond naturally in kind.'
     : '\n\nMARKET: DACH (Germany, Austria, Switzerland). Salaries in EUR/CHF. Respond in German if user writes German, English if English.'
 
   const cvCtx = cvText
-    ? `\n\nUSER CV (use this to personalise job search and advice):\n${cvText.slice(0, 5000)}`
-    : ''
+    ? `\n\nUSER CV (use this to personalise advice and score job matches):\n${cvText.slice(0, 5000)}`
+    : '\n\nNo CV uploaded yet — you can still help, but cannot personalise match scores without one.'
 
   const systemContent = BASE_SYSTEM + marketCtx + cvCtx
 
@@ -200,7 +207,7 @@ export async function POST(req: NextRequest) {
         try { controller.close() } catch { /* already closed */ }
       }
 
-      // Overall deadline — stream always terminates
+      // Overall deadline
       const deadline = setTimeout(() => {
         safeSend({ error: 'Request timed out. Please try again.' })
         safeClose()
@@ -238,6 +245,10 @@ export async function POST(req: NextRequest) {
 
                 if (tb.name === 'search_jobs') {
                   result = await searchJobs(tb.input as SearchInput, market)
+                  const parsed = JSON.parse(result) as { jobs?: unknown[]; error?: string }
+                  if (parsed.jobs && parsed.jobs.length > 0) {
+                    safeSend({ jobs: parsed.jobs })
+                  }
 
                 } else if (tb.name === 'suggest_feature') {
                   const inp  = tb.input as { feature: string; reason: string }
