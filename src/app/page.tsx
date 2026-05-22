@@ -59,11 +59,20 @@ const translations = {
     fullSprintFeatures: ['150 Credits (~50 komplette Bewerbungen)', 'Alles aus Job Hunt', 'Mehrmonatige Jobsuche', 'Ideal für Karrierewechsler'],
     starterNote: 'Auch erhältlich: Starter-Paket €4,99 / 20 Credits',
     getFullSprint: 'Full Sprint holen',
-    kiraHeroMsg: '„Ich scanne deinen Lebenslauf, finde die besten Jobs und schreibe dein Anschreiben."',
-    kiraHeroBtn: 'Kira testen ↓',
+    kiraHeroMsg: 'Dein nächster Job ist ein Gespräch entfernt.',
+    kiraHeroBtn: 'Kira kennenlernen ↓',
     demoTag: '✨ Kira Preview',
     demoTitle: 'Sprich mit Kira — Live-Demo',
     demoSub: 'Kira liest deinen Lebenslauf, findet passende Jobs und optimiert deine Bewerbung. Sieh es in Aktion.',
+    kiraTag: 'Lern Kira kennen — KI-Karriereassistentin',
+    kiraHeadline1: 'Dein nächster Job ist',
+    kiraHeadline2: 'ein Gespräch entfernt.',
+    kiraSub: 'Kira kennt den DACH-Markt in- und auswendig. Sprich einfach mit ihr — sie findet passende Jobs, liest deinen Lebenslauf und gibt echte Gehaltsdaten. Voice-first. Keine Formulare. Keine Filter.',
+    kiraFeatures: [
+      { icon: '🎙', label: 'Voice-first', desc: 'Einfach sprechen — Kira hört zu' },
+      { icon: '🔍', label: 'Live Jobsuche', desc: 'Echte Stellen, passend zu dir' },
+      { icon: '📄', label: 'Lebenslauf-Analyse', desc: 'Score, Lücken & nächste Schritte' },
+    ] as { icon: string; label: string; desc: string }[],
     freeNoteBottom: 'Neue Accounts erhalten',
     freeCreditsNote: '5 kostenlose Credits',
     noCard: '— keine Karte nötig. Credits verfallen nie.',
@@ -125,11 +134,20 @@ const translations = {
     fullSprintFeatures: ['150 credits (~50 full applications)', 'Everything in Job Hunt', 'Multi-month job search', 'Ideal for career changers'],
     starterNote: 'Also available: Starter pack €4.99 / 20 credits',
     getFullSprint: 'Get Full Sprint',
-    kiraHeroMsg: '"I scan your CV, find the best matching jobs and write your cover letter."',
+    kiraHeroMsg: 'Your next job is a conversation away.',
     kiraHeroBtn: 'Meet Kira ↓',
     demoTag: '✨ Kira Preview',
     demoTitle: 'Talk to Kira — live demo',
     demoSub: 'Kira reads your CV, finds matching jobs and optimises your application. See it in action.',
+    kiraTag: 'Meet Kira — AI Career Assistant',
+    kiraHeadline1: 'Your next job is a',
+    kiraHeadline2: 'conversation away.',
+    kiraSub: 'Kira knows the DACH market inside out. Just talk — she finds live jobs, reads your CV, gives real salary data. Voice-first. No forms. No fluff. Just results.',
+    kiraFeatures: [
+      { icon: '🎙', label: 'Voice-first', desc: 'Just speak — Kira listens' },
+      { icon: '🔍', label: 'Live job search', desc: 'Real roles, matched to you' },
+      { icon: '📄', label: 'CV insight', desc: 'Score, gaps & next steps' },
+    ] as { icon: string; label: string; desc: string }[],
     freeNoteBottom: 'New accounts get',
     freeCreditsNote: '5 free credits',
     noCard: '— no card needed. Credits never expire.',
@@ -377,35 +395,32 @@ export default function HomePage() {
           </div>
 
           {/* Kira hero teaser */}
-          <div style={{ marginTop: 32, display: 'flex', justifyContent: 'center' }}>
+          <div style={{ marginTop: 36, display: 'flex', justifyContent: 'center' }}>
             <a href="#kira-demo" style={{
               display: 'inline-flex', alignItems: 'center', gap: 14,
-              background: 'rgba(55,138,221,0.1)',
-              border: '1px solid rgba(55,138,221,0.28)',
-              borderRadius: 18, padding: '12px 16px 12px 12px',
-              textDecoration: 'none', maxWidth: 460,
+              background: 'linear-gradient(135deg,rgba(109,40,217,0.18),rgba(55,138,221,0.14))',
+              border: '1px solid rgba(255,255,255,0.14)',
+              borderRadius: 20, padding: '14px 18px 14px 14px',
+              textDecoration: 'none', maxWidth: 480,
               transition: 'border-color 0.2s, background 0.2s',
+              backdropFilter: 'blur(12px)',
             }}>
-              {/* Avatar */}
-              <div style={{ width: 40, height: 40, borderRadius: '50%', background: 'linear-gradient(135deg, #378ADD, #378ADD66)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                <svg width="18" height="18" viewBox="0 0 44 44">
-                  <circle cx="20" cy="20" r="13" fill="none" stroke="white" strokeWidth="2.8"/>
-                  <circle cx="20" cy="20" r="3" fill="white"/>
-                  <line x1="28" y1="28" x2="36" y2="36" stroke="white" strokeWidth="3.5" strokeLinecap="round"/>
-                </svg>
+              {/* Kira avatar with pulse */}
+              <div style={{ position: 'relative', flexShrink: 0 }}>
+                <div style={{ width: 44, height: 44, borderRadius: '50%', background: 'linear-gradient(135deg,#6D28D9,#378ADD)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10a7 7 0 0 0 14 0"/><line x1="12" y1="19" x2="12" y2="22"/></svg>
+                </div>
+                <span style={{ position: 'absolute', bottom: 1, right: 1, width: 10, height: 10, borderRadius: '50%', background: '#22c55e', border: '2px solid #0c1c30' }} />
               </div>
               {/* Text */}
               <div style={{ textAlign: 'left', flex: 1 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 3 }}>
-                  <span style={{ fontSize: 11, fontWeight: 700, color: c.accent, fontFamily: f.heading }}>Kira AI</span>
-                  <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#22c55e', display: 'inline-block' }} />
-                </div>
-                <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.7)', lineHeight: 1.45, fontFamily: f.body }}>
+                <div style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.45)', letterSpacing: 0.8, textTransform: 'uppercase' as const, marginBottom: 4, fontFamily: f.heading }}>Kira AI · Online now</div>
+                <div style={{ fontSize: 14, fontWeight: 600, color: '#fff', lineHeight: 1.4, fontFamily: f.heading }}>
                   {t.kiraHeroMsg}
                 </div>
               </div>
-              {/* CTA pill */}
-              <div style={{ flexShrink: 0, padding: '7px 14px', borderRadius: 10, background: c.accent, color: '#fff', fontSize: 12, fontWeight: 700, fontFamily: f.heading, whiteSpace: 'nowrap' as const }}>
+              {/* CTA */}
+              <div style={{ flexShrink: 0, padding: '8px 16px', borderRadius: 10, background: 'linear-gradient(135deg,#6D28D9,#378ADD)', color: '#fff', fontSize: 12, fontWeight: 700, fontFamily: f.heading, whiteSpace: 'nowrap' as const, boxShadow: '0 4px 12px rgba(109,40,217,0.4)' }}>
                 {t.kiraHeroBtn}
               </div>
             </a>
@@ -532,16 +547,59 @@ export default function HomePage() {
           </div>
         </div>
 
-        {/* ── Kira Demo ── */}
+        {/* ── Kira Section ── */}
         <div id="kira-demo" style={{ marginTop: 80 }}>
-          <div style={{ textAlign: 'center', marginBottom: 40 }}>
-            <div style={{ display: 'inline-block', fontSize: 11, fontWeight: 700, color: c.accent, letterSpacing: 1.5, textTransform: 'uppercase' as const, background: c.primaryLight, padding: '4px 14px', borderRadius: 20, marginBottom: 14 }}>
-              {t.demoTag}
+          <div style={{
+            background: 'linear-gradient(160deg,#0c1c30 0%,#08121f 100%)',
+            borderRadius: 24, padding: '64px 32px 52px',
+            position: 'relative', overflow: 'hidden',
+          }}>
+            {/* Background glow */}
+            <div style={{ position: 'absolute', top: -80, left: '50%', transform: 'translateX(-50%)', width: 600, height: 320, background: 'radial-gradient(ellipse, rgba(109,40,217,0.18) 0%, rgba(55,138,221,0.1) 45%, transparent 70%)', pointerEvents: 'none' }} />
+            <div style={{ position: 'absolute', bottom: -40, left: '20%', width: 300, height: 200, background: 'radial-gradient(ellipse, rgba(0,200,200,0.07) 0%, transparent 70%)', pointerEvents: 'none' }} />
+            <div style={{ position: 'absolute', bottom: -40, right: '15%', width: 280, height: 180, background: 'radial-gradient(ellipse, rgba(255,20,160,0.07) 0%, transparent 70%)', pointerEvents: 'none' }} />
+
+            <div style={{ position: 'relative', zIndex: 1, textAlign: 'center', marginBottom: 48 }}>
+              {/* Tag */}
+              <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, marginBottom: 22 }}>
+                <div style={{ width: 28, height: 28, borderRadius: '50%', background: 'linear-gradient(135deg,#6D28D9,#378ADD)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10a7 7 0 0 0 14 0"/><line x1="12" y1="19" x2="12" y2="22"/></svg>
+                </div>
+                <span style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.45)', letterSpacing: 1.5, textTransform: 'uppercase' as const }}>
+                  {t.kiraTag}
+                </span>
+              </div>
+
+              {/* Headline */}
+              <h2 style={{ fontFamily: f.heading, fontSize: 'clamp(30px,4.5vw,52px)', fontWeight: 700, color: '#fff', margin: '0 0 20px', lineHeight: 1.12, letterSpacing: -0.8 }}>
+                {t.kiraHeadline1}{' '}
+                <span style={{ background: 'linear-gradient(90deg,#00e8d0,#378ADD,#a855f7)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>
+                  {t.kiraHeadline2}
+                </span>
+              </h2>
+
+              {/* Sub */}
+              <p style={{ fontSize: 16, color: 'rgba(255,255,255,0.5)', maxWidth: 520, margin: '0 auto 40px', lineHeight: 1.8, fontWeight: 400 }}>
+                {t.kiraSub}
+              </p>
+
+              {/* Feature pills */}
+              <div style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap' }}>
+                {t.kiraFeatures.map(feat => (
+                  <div key={feat.label} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 18px', borderRadius: 14, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', backdropFilter: 'blur(8px)' }}>
+                    <span style={{ fontSize: 20, lineHeight: 1 }}>{feat.icon}</span>
+                    <div style={{ textAlign: 'left' }}>
+                      <div style={{ fontSize: 12, fontWeight: 700, color: '#fff', fontFamily: f.heading }}>{feat.label}</div>
+                      <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.38)', marginTop: 1 }}>{feat.desc}</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
-            <div style={{ fontFamily: f.heading, fontSize: 26, fontWeight: 700, color: c.primary, marginBottom: 10 }}>{t.demoTitle}</div>
-            <div style={{ fontSize: 14, color: c.textMuted, maxWidth: 400, margin: '0 auto', lineHeight: 1.65 }}>{t.demoSub}</div>
+
+            {/* Demo widget */}
+            <KiraDemoWidget market="eu" lang={lang} />
           </div>
-          <KiraDemoWidget market="eu" lang={lang} />
         </div>
 
         {/* ── Pricing ── */}
