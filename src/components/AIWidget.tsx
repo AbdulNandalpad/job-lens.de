@@ -1,907 +1,308 @@
 'use client'
 
-import { useState, useRef, useEffect, useCallback } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { theme } from '@/lib/theme'
 import { SS, API } from '@/lib/constants'
 import { useLanguage } from '@/lib/i18n'
 
-const { colors: c, gradients: g, fonts: f } = theme
+const { colors: c, fonts: f, gradients: g } = theme
 
-const AGENT_NAME = 'Kira'
-const LS_CV_CONSENT = 'jl_cv_consent'
+interface Msg { role: 'user' | 'assistant'; content: string; status?: string }
 
-const VOICE_GREETING: Record<string, string> = {
-  eu_de: "Hey, schön dass du da bist! Ich bin Kira. Ich helfe dir, den perfekten Job zu finden. Was suchst du gerade?",
-  eu_en: "Hey, great to have you here! I'm Kira. Tell me what you're looking for and let's find something good.",
-  in_hi: "Hey, aagaye! Main Kira hoon. Batao, kya dhundh rahe ho? Koi bhi job related sawaal ho, main hoon yahan.",
-  in_en: "Hey, welcome! I'm Kira. Tell me what kind of role you're after and let's get searching.",
-  in_kn: "ನಮಸ್ಕಾರ! ನಾನು Kira. Job-Lens ನ AI career assistant. ನಿಮಗೆ ಯಾವ ಕೆಲಸ ಬೇಕು, ಹೇಳಿ!",
-  in_te: "నమస్కారం! నేను Kira. Job-Lens AI career assistant. మీకు ఏ job కావాలో చెప్పండి!",
+const AGENT = 'Kira'
+
+const GREETINGS: Record<string, string> = {
+  eu_DE: 'Hallo! Ich bin Kira. Ich finde Jobs, bewerte deinen Lebenslauf und helfe dir bei der Bewerbung.',
+  eu_EN: "Hi! I'm Kira. I can find live jobs, score your CV match, and guide your application.",
+  in_EN: "Hi! I'm Kira. I can find jobs in India, score your CV, and help with your job search.",
 }
 
 const SUGGESTIONS: Record<string, string[]> = {
   eu_DE: [
-    'Finde mir Senior Developer Jobs in Stuttgart',
-    'Suche nach Marketing Manager Stellen in München',
-    'Welche Jobs passen am besten zu meinem Lebenslauf?',
-    'Zeige mir Remote-Jobs in Deutschland',
+    'Softwareentwickler Jobs in München',
+    'Remote Marketing Jobs in Deutschland',
+    'Welche Jobs passen zu meinem Lebenslauf?',
   ],
   eu_EN: [
-    'Find me senior developer jobs in Stuttgart',
-    'Search for marketing manager roles in Munich',
+    'Software developer jobs in Munich',
+    'Remote jobs in Germany',
     'What jobs match my CV best?',
-    'Show me remote jobs in Germany',
   ],
-  in: [
-    'Find me software engineer jobs in Bangalore',
-    'Search for product manager roles in Hyderabad',
-    'What IT jobs match my CV best?',
-    'Show me remote jobs in India',
+  in_EN: [
+    'Software engineer jobs in Bangalore',
+    'Product manager roles in Hyderabad',
+    'What jobs match my CV?',
   ],
 }
 
-const VOICE_LANGS: Record<string, { code: string; label: string }[]> = {
-  eu: [
-    { code: 'de-DE', label: 'Deutsch' },
-    { code: 'en-GB', label: 'English' },
-  ],
-  in: [
-    { code: 'hi-IN', label: 'हिंदी' },
-    { code: 'en-IN', label: 'English' },
-    { code: 'kn-IN', label: 'ಕನ್ನಡ' },
-    { code: 'te-IN', label: 'తెలుగు' },
-  ],
+const STATUS_LABELS: Record<string, Record<string, string>> = {
+  eu_DE: { search_jobs: 'Suche Jobs...', score_jobs: 'Bewerte CV-Match...', get_skill_gap: 'Analysiere Skills...' },
+  eu_EN: { search_jobs: 'Searching jobs...', score_jobs: 'Scoring CV match...', get_skill_gap: 'Analysing skills...' },
+  in_EN: { search_jobs: 'Searching jobs...', score_jobs: 'Scoring CV match...', get_skill_gap: 'Analysing skills...' },
 }
-
-// ── Types ─────────────────────────────────────────────────────────────────────
-
-interface ActionButton { feature: string; label: string; href: string; reason: string }
-interface Message {
-  role: 'user' | 'assistant'
-  content: string
-  status?: string
-  actions?: ActionButton[]
-}
-type VoiceState = 'idle' | 'greeting' | 'listening' | 'processing' | 'speaking'
-
-// ── Browser API types ─────────────────────────────────────────────────────────
-
-interface ISpeechRecognition extends EventTarget {
-  continuous: boolean; interimResults: boolean; lang: string
-  start(): void; stop(): void; abort(): void
-  onstart: (() => void) | null; onend: (() => void) | null
-  onerror: ((e: { error: string }) => void) | null
-  onresult: ((e: ISpeechRecognitionEvent) => void) | null
-}
-interface ISpeechRecognitionResult { 0: { transcript: string }; isFinal: boolean }
-interface ISpeechRecognitionEvent { results: ISpeechRecognitionResult[] }
-declare global {
-  interface Window {
-    SpeechRecognition: new () => ISpeechRecognition
-    webkitSpeechRecognition: new () => ISpeechRecognition
-  }
-}
-
-// ── Constants ─────────────────────────────────────────────────────────────────
-
-const STATUS_LABELS: Record<string, string> = {
-  search_jobs:     'Searching live jobs...',
-  score_jobs:      'Scoring your CV match...',
-  get_skill_gap:   'Analysing skill gaps...',
-  get_salary_info: 'Looking up salary data...',
-}
-
-const FEATURE_ICONS: Record<string, string> = {
-  career_scan: '🔍', cv_builder: '📄', cover_letter: '✉️',
-  auto_apply: '⚡', tracker: '📋',
-}
-
-const VOICE_STATE_LABEL: Record<VoiceState, string> = {
-  idle:       '',
-  greeting:   `${AGENT_NAME} is speaking...`,
-  listening:  'Listening...',
-  processing: `${AGENT_NAME} is thinking...`,
-  speaking:   `${AGENT_NAME} is speaking...`,
-}
-
-// ── Sub-components ────────────────────────────────────────────────────────────
-
-function TypingDots() {
-  return (
-    <span style={{ display: 'inline-flex', gap: 3, alignItems: 'center' }}>
-      {[0, 1, 2].map(i => (
-        <span key={i} style={{
-          width: 5, height: 5, borderRadius: '50%', background: c.accent,
-          display: 'inline-block',
-          animation: 'jlaw-dot 1.2s ease-in-out infinite',
-          animationDelay: `${i * 0.2}s`,
-        }} />
-      ))}
-    </span>
-  )
-}
-
-function VoiceWaveform({ active }: { active: boolean }) {
-  return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 3, height: 28 }}>
-      {[0.6, 1, 0.8, 1.2, 0.7, 1, 0.9].map((h, i) => (
-        <span key={i} style={{
-          width: 3, borderRadius: 2,
-          background: `linear-gradient(to top, ${c.ai}, ${c.accent})`,
-          height: active ? `${h * 20}px` : '4px',
-          animation: active ? `jlaw-bar 0.8s ease-in-out infinite alternate` : 'none',
-          animationDelay: `${i * 0.1}s`,
-          transition: 'height 0.3s ease',
-        }} />
-      ))}
-    </div>
-  )
-}
-
-// ── Main component ────────────────────────────────────────────────────────────
 
 export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
   const { lang } = useLanguage()
-  const [open, setOpen]           = useState(false)
-  const [messages, setMessages]   = useState<Message[]>([])
-  const [input, setInput]         = useState('')
-  const [loading, setLoading]     = useState(false)
-  const [cvText, setCvText]       = useState('')
-  const [hasCv, setHasCv]         = useState(false)
-  const [cvUploading, setCvUploading] = useState(false)
-  const [showConsentModal, setShowConsentModal] = useState(false)
-  const pendingCvFileRef = useRef<File | null>(null)
-  const [pulse, setPulse]         = useState(true)
+  const key = market === 'in' ? 'in_EN' : `eu_${lang}`
+  const accent = market === 'in' ? '#FF9933' : c.accent
 
-  // Voice mode
-  const [voiceMode, setVoiceMode]       = useState(false)
-  const [voiceState, setVoiceState]     = useState<VoiceState>('idle')
-  const [voiceTranscript, setVoiceTranscript] = useState('')
-  const [voiceSupported, setVoiceSupported]   = useState(false)
-  const [ttsSupported, setTtsSupported]       = useState(false)
-  const [interimText, setInterimText]         = useState('')
-  const [voiceLang, setVoiceLang]             = useState(() =>
-    market === 'in' ? 'en-IN' : 'de-DE'   // updated by lang effect below
-  )
-  const [isMobile, setIsMobile]               = useState(false)
-  const [mobileVoiceNote, setMobileVoiceNote] = useState(false)
+  const [open, setOpen]       = useState(false)
+  const [msgs, setMsgs]       = useState<Msg[]>([])
+  const [input, setInput]     = useState('')
+  const [loading, setLoading] = useState(false)
+  const [isMobile, setIsMobile] = useState(false)
 
-  const messagesEndRef   = useRef<HTMLDivElement>(null)
-  const inputRef         = useRef<HTMLTextAreaElement>(null)
-  const fileInputRef     = useRef<HTMLInputElement>(null)
-  const recognitionRef   = useRef<ISpeechRecognition | null>(null)
-  const voiceActiveRef   = useRef(false)   // tracks if voice loop should continue
-  const messagesRef      = useRef<Message[]>([])
-  const audioRef         = useRef<HTMLAudioElement | null>(null)
+  const bottomRef = useRef<HTMLDivElement>(null)
+  const inputRef  = useRef<HTMLTextAreaElement>(null)
+  const cvRef     = useRef('')
 
-  // Keep messagesRef in sync so voice callbacks have current messages
-  useEffect(() => { messagesRef.current = messages }, [messages])
-
-  // Sync voice language with site language toggle (DACH only)
   useEffect(() => {
-    if (market !== 'in') setVoiceLang(lang === 'EN' ? 'en-GB' : 'de-DE')
-  }, [lang, market])
-
-  // ── Init ───────────────────────────────────────────────────────────────
-  useEffect(() => {
-    const cv = sessionStorage.getItem(SS.cvText) || ''
-    setCvText(cv); setHasCv(!!cv)
+    setIsMobile(window.innerWidth < 768)
+    cvRef.current = sessionStorage.getItem(SS.cvText) || ''
     try {
       const saved = sessionStorage.getItem(SS.aiMessages)
-      if (saved) setMessages(JSON.parse(saved))
+      if (saved) setMsgs(JSON.parse(saved))
     } catch { /* ignore */ }
-    const t = setTimeout(() => setPulse(false), 6000)
-    const SR = typeof window !== 'undefined' ? (window.SpeechRecognition || window.webkitSpeechRecognition) : null
-    setVoiceSupported(!!SR)
-    setTtsSupported(typeof window !== 'undefined' && 'speechSynthesis' in window)
-    setIsMobile(/Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent))
-    return () => clearTimeout(t)
   }, [])
 
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }, [messages])
+    bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
+  }, [msgs])
 
   useEffect(() => {
-    if (open && !voiceMode) setTimeout(() => inputRef.current?.focus(), 100)
-    if (!open) {
-      exitVoiceMode()
-      setPulse(false)
-    }
-  }, [open])
+    if (msgs.length) sessionStorage.setItem(SS.aiMessages, JSON.stringify(msgs.slice(-20)))
+  }, [msgs])
 
   useEffect(() => {
-    if (messages.length > 0) {
-      sessionStorage.setItem(SS.aiMessages, JSON.stringify(messages.slice(-20)))
-    }
-  }, [messages])
+    if (open && !isMobile) setTimeout(() => inputRef.current?.focus(), 50)
+  }, [open, isMobile])
 
-  // ── TTS ────────────────────────────────────────────────────────────────
-  function pickVoice(lang: string): SpeechSynthesisVoice | null {
-    const voices = window.speechSynthesis.getVoices()
-    const prefix = lang.split('-')[0]  // 'hi', 'de', 'en'
+  async function send(text: string) {
+    if (!text.trim() || loading) return
 
-    if (prefix === 'hi') {
-      return (
-        voices.find(v => v.lang === 'hi-IN') ||
-        voices.find(v => v.lang.startsWith('hi')) ||
-        null
-      )
-    }
-    if (prefix === 'kn') {
-      return (
-        voices.find(v => v.lang === 'kn-IN') ||
-        voices.find(v => v.lang.startsWith('kn')) ||
-        null
-      )
-    }
-    if (prefix === 'te') {
-      return (
-        voices.find(v => v.lang === 'te-IN') ||
-        voices.find(v => v.lang.startsWith('te')) ||
-        null
-      )
-    }
-    if (prefix === 'de') {
-      return (
-        voices.find(v => v.name === 'Google Deutsch') ||
-        voices.find(v => v.lang === 'de-DE' && !v.name.toLowerCase().includes('male')) ||
-        voices.find(v => v.lang.startsWith('de')) ||
-        null
-      )
-    }
-    // English fallback (en-GB preferred, en-IN for India)
-    return (
-      voices.find(v => v.name === 'Google UK English Female') ||
-      voices.find(v => v.name.includes('Samantha')) ||
-      voices.find(v => v.name.includes('Microsoft Zira')) ||
-      voices.find(v => v.lang === lang && !v.name.toLowerCase().includes('male')) ||
-      voices.find(v => v.lang.startsWith('en')) ||
-      null
-    )
-  }
+    const userMsg: Msg = { role: 'user', content: text.trim() }
+    const history = [...msgs, userMsg]
+    setMsgs(history)
+    setInput('')
+    setLoading(true)
 
-  async function speak(text: string, onEnd?: () => void, langOverride?: string) {
-    if (!text.trim()) { onEnd?.(); return }
-    setVoiceState('speaking')
-
-    const clean = text
-      .replace(/\*\*/g, '').replace(/#{1,6} /g, '').replace(/`/g, '')
-      .replace(/—/g, ', ').trim()
-
-    const lang   = langOverride || voiceLang
-    const prefix = lang.split('-')[0]
-
-    // finish() fires exactly once.
-    // safety is only cleared inside finish() — never in cleanup/catch —
-    // so even if every audio path fails silently, the timer always rescues the loop.
-    let finished  = false
-    let heartbeat = 0 as unknown as ReturnType<typeof setInterval>
-    const estMs   = Math.max(5000, Math.ceil(clean.length / 13) * 1000 + 2000)
-    const safety  = setTimeout(() => finish(), estMs)
-    const finish  = () => {
-      if (finished) return
-      finished = true
-      clearTimeout(safety)
-      clearInterval(heartbeat)
-      onEnd?.()
-    }
-
-    // Helper: speak via browser TTS (used for Indic + EN/DE fallback)
-    const useBrowserTts = () => {
-      if (finished) return
-      if (!ttsSupported) { finish(); return }
-      window.speechSynthesis.cancel()
-      const utt = new SpeechSynthesisUtterance(clean)
-      utt.lang = lang; utt.rate = 1.0; utt.pitch = 1.0
-      const v = pickVoice(lang); if (v) utt.voice = v
-      heartbeat = setInterval(() => {
-        if (window.speechSynthesis.paused) window.speechSynthesis.resume()
-      }, 2000)
-      utt.onend  = finish
-      utt.onerror = finish
-      window.speechSynthesis.speak(utt)
-    }
-
-    // Indic languages: native browser voices are more natural
-    if (prefix === 'hi' || prefix === 'kn' || prefix === 'te') {
-      useBrowserTts(); return
-    }
-
-    // English / German: OpenAI nova, with browser TTS fallback
-    window.speechSynthesis?.cancel()
-    if (audioRef.current) { audioRef.current.pause(); audioRef.current = null }
-
-    try {
-      const res = await fetch(API.aiTts, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text: clean }),
-      })
-      if (!res.ok) throw new Error()
-      if (finished || !voiceActiveRef.current) return
-
-      const blob  = await res.blob()
-      const url   = URL.createObjectURL(blob)
-      const audio = new Audio(url)
-      audioRef.current = audio
-
-      audio.onended = () => { URL.revokeObjectURL(url); audioRef.current = null; finish() }
-      audio.onerror = () => { URL.revokeObjectURL(url); audioRef.current = null; finish() }
-
-      const p = audio.play()
-      if (p) p.catch(() => {
-        // iOS autoplay blocked — safety still running, switch to browser TTS
-        URL.revokeObjectURL(url); audioRef.current = null
-        useBrowserTts()
-      })
-    } catch {
-      // Network/API error — safety still running, switch to browser TTS
-      useBrowserTts()
-    }
-  }
-
-  // ── Speech recognition ─────────────────────────────────────────────────
-  function startListening(onResult: (text: string) => void) {
-    const SR = window.SpeechRecognition || window.webkitSpeechRecognition
-    if (!SR || !voiceActiveRef.current) return
-
-    recognitionRef.current?.abort()
-    const rec = new SR()
-    rec.continuous      = false
-    rec.interimResults  = true
-    rec.lang            = voiceLang
-
-    rec.onstart  = () => setVoiceState('listening')
-    rec.onerror  = (e) => {
-      if (e.error !== 'aborted' && voiceActiveRef.current) {
-        setVoiceState('listening')
-        setTimeout(() => startListening(onResult), 500)
-      }
-    }
-
-    let finalTranscript = ''
-    rec.onresult = (e) => {
-      let interim = ''
-      finalTranscript = ''
-      for (const result of e.results) {
-        if (result.isFinal) finalTranscript += result[0].transcript
-        else interim += result[0].transcript
-      }
-      setInterimText(interim || finalTranscript)
-    }
-
-    rec.onend = () => {
-      setInterimText('')
-      if (finalTranscript.trim() && voiceActiveRef.current) {
-        setVoiceTranscript(finalTranscript.trim())
-        onResult(finalTranscript.trim())
-      } else if (voiceActiveRef.current) {
-        // Silence — listen again
-        setTimeout(() => startListening(onResult), 300)
-      }
-    }
-
-    recognitionRef.current = rec
-    try { rec.start() } catch {
-      // SpeechRecognition failed to start (iOS permissions / gesture context)
-      // Retry once after a short delay
-      setTimeout(() => { if (voiceActiveRef.current) startListening(onResult) }, 800)
-    }
-  }
-
-  // ── Voice mode lifecycle ───────────────────────────────────────────────
-  function enterVoiceMode() {
-    voiceActiveRef.current = true
-    setVoiceMode(true)
-    setVoiceTranscript('')
-    setInterimText('')
-    setVoiceState('greeting')
-
-    // Small delay so voices can load on mobile
-    setTimeout(() => {
-      const langKey = `${market}_${voiceLang.split('-')[0]}`
-      const greeting = VOICE_GREETING[langKey] || VOICE_GREETING[`${market}_en`] || VOICE_GREETING['eu_en']
-      speak(greeting, () => {
-        if (voiceActiveRef.current) startListening(handleVoiceInput)
-      })
-    }, 300)
-  }
-
-  function exitVoiceMode() {
-    voiceActiveRef.current = false
-    recognitionRef.current?.abort()
-    window.speechSynthesis?.cancel()
-    if (audioRef.current) { audioRef.current.pause(); audioRef.current = null }
-    setVoiceMode(false)
-    setVoiceState('idle')
-    setVoiceTranscript('')
-    setInterimText('')
-  }
-
-  // ── Voice → API → TTS cycle ────────────────────────────────────────────
-  async function handleVoiceInput(text: string) {
-    if (!voiceActiveRef.current) return
-    setVoiceState('processing')
-
-    const userMsg: Message = { role: 'user', content: text }
-    const currentMessages  = [...messagesRef.current, userMsg]
-    setMessages(prev => [...prev, userMsg, { role: 'assistant', content: '' }])
-    const assistantIdx = currentMessages.length
+    const idx = history.length
+    setMsgs(prev => [...prev, { role: 'assistant', content: '' }])
 
     try {
       const res = await fetch(API.aiChat, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          messages: currentMessages.map(m => ({ role: m.role, content: m.content })),
-          cvText, market,
+          messages: history.map(m => ({ role: m.role, content: m.content })),
+          cvText: cvRef.current,
+          market,
         }),
       })
+
       if (!res.ok || !res.body) throw new Error('Failed')
 
       const reader  = res.body.getReader()
       const decoder = new TextDecoder()
-      let buffer    = ''
+      let buf = ''
       let assembled = ''
 
       while (true) {
         const { done, value } = await reader.read()
         if (done) break
-        buffer += decoder.decode(value, { stream: true })
-        const lines = buffer.split('\n'); buffer = lines.pop() || ''
+        buf += decoder.decode(value, { stream: true })
+        const lines = buf.split('\n')
+        buf = lines.pop() || ''
         for (const line of lines) {
           if (!line.startsWith('data: ')) continue
           try {
-            const event = JSON.parse(line.slice(6))
-            if (event.text) {
-              assembled += event.text
-              setMessages(prev => {
-                const copy = [...prev]
-                copy[assistantIdx] = { ...copy[assistantIdx], role: 'assistant', content: assembled }
-                return copy
-              })
-            } else if (event.action) {
-              setMessages(prev => {
-                const copy = [...prev]
-                const ex = copy[assistantIdx] || { role: 'assistant', content: '' }
-                copy[assistantIdx] = { ...ex, actions: [...(ex.actions || []), event.action as ActionButton] }
-                return copy
-              })
+            const evt = JSON.parse(line.slice(6))
+            if (evt.text) {
+              assembled += evt.text
+              setMsgs(prev => { const cp = [...prev]; cp[idx] = { role: 'assistant', content: assembled }; return cp })
+            } else if (evt.status) {
+              setMsgs(prev => { const cp = [...prev]; cp[idx] = { role: 'assistant', content: '', status: evt.status }; return cp })
+            } else if (evt.error) {
+              setMsgs(prev => { const cp = [...prev]; cp[idx] = { role: 'assistant', content: evt.error }; return cp })
             }
-          } catch { /* ignore */ }
+          } catch { /* ignore malformed chunk */ }
         }
       }
-
-      if (!voiceActiveRef.current) return
-      if (assembled) {
-        speak(assembled, () => {
-          if (voiceActiveRef.current) { setVoiceTranscript(''); startListening(handleVoiceInput) }
-        })
-      } else {
-        startListening(handleVoiceInput)
-      }
     } catch {
-      if (voiceActiveRef.current) {
-        speak('Sorry, something went wrong. Please try again.', () => {
-          if (voiceActiveRef.current) startListening(handleVoiceInput)
-        })
-      }
-    }
-  }
-
-  // ── Text chat send ─────────────────────────────────────────────────────
-  const sendMessage = useCallback(async (text: string) => {
-    if (!text.trim() || loading) return
-    const userMsg: Message = { role: 'user', content: text.trim() }
-    const updatedMessages = [...messages, userMsg]
-    setMessages(updatedMessages); setInput(''); setLoading(true)
-    const assistantIdx = updatedMessages.length
-    setMessages(prev => [...prev, { role: 'assistant', content: '' }])
-
-    try {
-      const res = await fetch(API.aiChat, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          messages: updatedMessages.map(m => ({ role: m.role, content: m.content })),
-          cvText, market,
-        }),
+      setMsgs(prev => {
+        const cp = [...prev]
+        cp[idx] = { role: 'assistant', content: 'Connection error. Please try again.' }
+        return cp
       })
-
-      if (!res.ok || !res.body) throw new Error('Failed')
-
-      const reader    = res.body.getReader()
-      const decoder   = new TextDecoder()
-      let buffer      = ''
-      let assembled   = ''
-
-      while (true) {
-        const { done, value } = await reader.read()
-        if (done) break
-        buffer += decoder.decode(value, { stream: true })
-        const lines = buffer.split('\n'); buffer = lines.pop() || ''
-        for (const line of lines) {
-          if (!line.startsWith('data: ')) continue
-          try {
-            const event = JSON.parse(line.slice(6))
-            if (event.text) {
-              assembled += event.text
-              setMessages(prev => { const copy = [...prev]; copy[assistantIdx] = { ...copy[assistantIdx], role: 'assistant', content: assembled }; return copy })
-            } else if (event.action) {
-              setMessages(prev => { const copy = [...prev]; const ex = copy[assistantIdx] || { role: 'assistant', content: '' }; copy[assistantIdx] = { ...ex, actions: [...(ex.actions || []), event.action as ActionButton] }; return copy })
-            } else if (event.status) {
-              setMessages(prev => { const copy = [...prev]; copy[assistantIdx] = { role: 'assistant', content: '', status: event.status }; return copy })
-            } else if (event.error) {
-              setMessages(prev => { const copy = [...prev]; copy[assistantIdx] = { role: 'assistant', content: event.error }; return copy })
-            }
-          } catch { /* ignore */ }
-        }
-      }
-    } catch {
-      setMessages(prev => { const copy = [...prev]; copy[assistantIdx] = { role: 'assistant', content: 'Connection error. Please try again.' }; return copy })
     }
-    setLoading(false); inputRef.current?.focus()
-  }, [messages, loading, cvText, market])
 
-  function handleKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>) {
-    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(input) }
+    setLoading(false)
+    inputRef.current?.focus()
   }
 
-  // ── CV upload ──────────────────────────────────────────────────────────
-  async function handleCvFile(file: File) {
-    setCvUploading(true)
-    try {
-      let text = ''
-      if (file.name.endsWith('.txt') || file.type === 'text/plain') {
-        text = await file.text()
-      } else {
-        const form = new FormData(); form.append('file', file)
-        const res  = await fetch(API.extractPdf, { method: 'POST', body: form })
-        const data = await res.json()
-        text = data.text || ''
-      }
-      if (text) {
-        sessionStorage.setItem(SS.cvText, text); setCvText(text); setHasCv(true)
-        setMessages(prev => [...prev, { role: 'assistant', content: `Got it! Reading your CV now...` }])
-        // Extract and save structured career profile in the background
-        fetch(API.careerProfile, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ cvText: text, market }),
-        }).then(r => r.json()).then(({ profile }) => {
-          const name = profile?.name ? `, ${profile.name.split(' ')[0]}` : ''
-          const title = profile?.current_title ? ` as a ${profile.current_title}` : ''
-          const skills = profile?.skills?.slice(0, 3).join(', ')
-          setMessages(prev => [...prev, {
-            role: 'assistant',
-            content: `Nice${name}! I can see you've got experience${title}${skills ? ` — strong in ${skills}` : ''}. I've saved your profile so I'll remember you across sessions. What roles are you looking for?`,
-          }])
-        }).catch(() => {
-          setMessages(prev => [...prev, { role: 'assistant', content: `CV uploaded! I'll use it to personalise job searches and score matches. What would you like to search for?` }])
-        })
-      }
-    } catch {
-      setMessages(prev => [...prev, { role: 'assistant', content: 'Could not read that file. Please try PDF, DOCX, or TXT.' }])
-    }
-    setCvUploading(false)
-  }
+  const greeting    = GREETINGS[key]    || GREETINGS['eu_EN']
+  const suggestions = SUGGESTIONS[key]  || SUGGESTIONS['eu_EN']
+  const statusMap   = STATUS_LABELS[key] || STATUS_LABELS['eu_EN']
 
-  function clearChat() { setMessages([]); sessionStorage.removeItem(SS.aiMessages) }
-  const isEmpty = messages.length === 0
-
-  // ── Render ─────────────────────────────────────────────────────────────
   return (
     <>
       <style>{`
-        @keyframes jlaw-dot  { 0%,60%,100%{opacity:.3;transform:translateY(0)} 30%{opacity:1;transform:translateY(-3px)} }
-        @keyframes jlaw-pulse{ 0%,100%{box-shadow:0 0 0 0 rgba(109,40,217,.5)} 50%{box-shadow:0 0 0 10px rgba(109,40,217,0)} }
-        @keyframes jlaw-slide-up{ from{opacity:0;transform:translateY(16px) scale(.97)} to{opacity:1;transform:translateY(0) scale(1)} }
-        @keyframes jlaw-ring { 0%{transform:scale(1);opacity:.6} 100%{transform:scale(2.2);opacity:0} }
-        @keyframes jlaw-bar  { 0%{transform:scaleY(.4)} 100%{transform:scaleY(1)} }
-        @keyframes spin      { to{transform:rotate(360deg)} }
-        .jlaw-fab:hover            { transform:scale(1.06) !important }
-        .jlaw-close:hover          { background:rgba(255,255,255,.15) !important }
-        .jlaw-clear:hover          { color:${c.danger} !important }
-        .jlaw-send:hover:not(:disabled){ opacity:.85 }
-        .jlaw-send:disabled        { opacity:.4;cursor:not-allowed }
-        .jlaw-icon-btn:hover       { background:rgba(255,255,255,.12) !important }
-        .jlaw-suggest:hover        { background:rgba(55,138,221,.12) !important;border-color:${c.accent} !important;color:${c.accent} !important }
-        .jlaw-input:focus          { outline:none }
-        .jlaw-msg-user { background:linear-gradient(135deg,${c.accent},${c.navy});border-radius:14px 14px 3px 14px }
-        .jlaw-msg-ai   { background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.1);border-radius:3px 14px 14px 14px }
-        .jlaw-voice-btn:hover      { background:rgba(109,40,217,.25) !important }
-        .jlaw-exit-voice:hover     { background:rgba(255,255,255,.12) !important }
-        @media (max-width:480px)   { .jlaw-panel{width:calc(100vw - 24px) !important;right:12px !important;left:12px !important} }
-        @media (max-height:500px)  { .jlaw-panel{top:8px !important;bottom:70px !important;height:auto !important;right:12px !important} .jlaw-fab{bottom:12px !important;right:12px !important;width:44px !important;height:44px !important} }
+        @keyframes kira-slide { from{opacity:0;transform:translateY(12px) scale(.97)} to{opacity:1;transform:none} }
+        @keyframes kira-dot   { 0%,60%,100%{opacity:.3;transform:translateY(0)} 30%{opacity:1;transform:translateY(-3px)} }
+        @keyframes kira-spin  { to{transform:rotate(360deg)} }
+        .kira-fab:hover     { transform:scale(1.08) !important }
+        .kira-send:hover:not(:disabled) { opacity:.85 }
+        .kira-send:disabled { opacity:.4; cursor:not-allowed }
+        .kira-suggest:hover { border-color:${accent} !important; color:${accent} !important; background:rgba(55,138,221,.08) !important }
+        .kira-close:hover   { background:rgba(255,255,255,.15) !important }
+        .kira-input:focus   { outline:none }
+        @media (max-width:480px) { .kira-panel{width:calc(100vw - 24px) !important;right:12px !important;left:12px !important} }
       `}</style>
 
-      <input ref={fileInputRef} type="file" accept=".pdf,.docx,.txt" style={{ display: 'none' }}
-        onChange={e => {
-          const f = e.target.files?.[0]
-          if (!f) return
-          if (typeof window !== 'undefined' && localStorage.getItem(LS_CV_CONSENT)) {
-            handleCvFile(f)
-          } else {
-            pendingCvFileRef.current = f
-            setShowConsentModal(true)
-          }
-          if (fileInputRef.current) fileInputRef.current.value = ''
-        }} />
-
+      {/* ── Panel ── */}
       {open && (
-        <div className="jlaw-panel" style={{
+        <div className="kira-panel" style={{
           position: 'fixed', bottom: 80, right: 20, zIndex: 9999,
-          width: 368, height: 540,
+          width: 360, height: 520,
           background: 'linear-gradient(160deg,#0f1f33 0%,#0a1520 100%)',
           border: '1px solid rgba(255,255,255,.1)', borderRadius: 18,
-          boxShadow: '0 24px 64px rgba(0,0,0,.5)',
+          boxShadow: '0 20px 60px rgba(0,0,0,.5)',
           display: 'flex', flexDirection: 'column',
-          animation: 'jlaw-slide-up .22s ease', overflow: 'hidden',
+          animation: 'kira-slide .2s ease', overflow: 'hidden',
         }}>
 
-          {/* ── Header ── */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 14px', borderBottom: '1px solid rgba(255,255,255,.08)', flexShrink: 0 }}>
-            <div style={{ width: 32, height: 32, borderRadius: '50%', background: `linear-gradient(135deg,${c.ai},${c.accent})`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700, color: '#fff', flexShrink: 0, letterSpacing: '-.5px' }}>
-              {AGENT_NAME.slice(0, 2)}
+          {/* Header */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 14px', borderBottom: '1px solid rgba(255,255,255,.07)', flexShrink: 0 }}>
+            <div style={{ width: 32, height: 32, borderRadius: '50%', background: `linear-gradient(135deg,${accent}cc,${accent}55)`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              <svg width="14" height="14" viewBox="0 0 44 44">
+                <circle cx="20" cy="20" r="13" fill="none" stroke="white" strokeWidth="2.8"/>
+                <circle cx="20" cy="20" r="3" fill="white"/>
+                <line x1="28" y1="28" x2="36" y2="36" stroke="white" strokeWidth="3.5" strokeLinecap="round"/>
+              </svg>
             </div>
             <div style={{ flex: 1 }}>
-              <div style={{ color: '#fff', fontSize: 13, fontWeight: 700, fontFamily: f.heading }}>
-                {AGENT_NAME}<span style={{ fontWeight: 400, color: 'rgba(255,255,255,.4)', fontSize: 11, marginLeft: 6 }}>by Job-Lens</span>
-              </div>
-              <div style={{ color: hasCv ? c.success : 'rgba(255,255,255,.4)', fontSize: 11 }}>
-                {cvUploading ? 'Reading your CV...' : hasCv ? '✓ Profile saved' : 'Upload CV · Kira will remember you'}
-              </div>
+              <div style={{ color: '#fff', fontSize: 13, fontWeight: 700, fontFamily: f.heading }}>{AGENT}</div>
+              <div style={{ fontSize: 10, color: accent, fontWeight: 600 }}>AI Career Assistant</div>
             </div>
-
-            {/* Upload CV */}
-            <button className="jlaw-icon-btn" onClick={() => fileInputRef.current?.click()} disabled={cvUploading} title="Upload CV"
-              style={{ width: 28, height: 28, borderRadius: 7, border: 'none', background: hasCv ? 'rgba(29,158,117,.2)' : 'rgba(255,255,255,.07)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'background .2s', color: hasCv ? c.success : 'rgba(255,255,255,.5)' }}>
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/><polyline points="14 2 14 8 20 8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/><line x1="12" y1="18" x2="12" y2="12" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/><polyline points="9 15 12 12 15 15" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
-            </button>
-
-            {/* Voice mode button */}
-            {(voiceSupported && ttsSupported) && !voiceMode && (
-              <button className="jlaw-voice-btn" onClick={() => isMobile ? setMobileVoiceNote(true) : enterVoiceMode()} title="Talk to Kira"
-                style={{ width: 28, height: 28, borderRadius: 7, border: 'none', background: 'rgba(109,40,217,.15)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'background .2s', color: `${c.ai}` }}>
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><rect x="9" y="2" width="6" height="12" rx="3" stroke="currentColor" strokeWidth="2"/><path d="M5 10a7 7 0 0 0 14 0" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/><line x1="12" y1="17" x2="12" y2="21" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/><line x1="9" y1="21" x2="15" y2="21" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg>
+            {msgs.length > 0 && (
+              <button onClick={() => { setMsgs([]); sessionStorage.removeItem(SS.aiMessages) }}
+                style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,.35)', fontSize: 11, cursor: 'pointer', padding: '2px 6px', fontFamily: f.body }}>
+                Clear
               </button>
             )}
-
-            {messages.length > 0 && !voiceMode && (
-              <button className="jlaw-clear" onClick={clearChat} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,.3)', fontSize: 11, padding: '2px 6px', borderRadius: 6, transition: 'color .2s', fontFamily: f.body }}>Clear</button>
-            )}
-            <button className="jlaw-close" onClick={() => setOpen(false)} style={{ width: 24, height: 24, borderRadius: 6, border: 'none', background: 'rgba(255,255,255,.08)', cursor: 'pointer', color: 'rgba(255,255,255,.6)', fontSize: 14, display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'background .2s', flexShrink: 0 }}>✕</button>
+            <button className="kira-close" onClick={() => setOpen(false)}
+              style={{ width: 24, height: 24, borderRadius: 6, border: 'none', background: 'rgba(255,255,255,.08)', cursor: 'pointer', color: 'rgba(255,255,255,.6)', fontSize: 14, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              ✕
+            </button>
           </div>
 
-          {/* ── Voice mode UI ── */}
-          {voiceMode ? (
-            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '24px 20px', position: 'relative' }}>
-
-              {/* Exit voice */}
-              <button className="jlaw-exit-voice" onClick={exitVoiceMode}
-                style={{ position: 'absolute', top: 12, right: 12, padding: '5px 12px', borderRadius: 8, border: '1px solid rgba(255,255,255,.15)', background: 'rgba(255,255,255,.06)', color: 'rgba(255,255,255,.6)', fontSize: 11, cursor: 'pointer', fontFamily: f.body, transition: 'background .2s' }}>
-                Exit voice
-              </button>
-
-              {/* Language toggle */}
-              <div style={{ position: 'absolute', top: 12, left: 12, display: 'flex', gap: 5, flexWrap: 'wrap', maxWidth: 180 }}>
-                {VOICE_LANGS[market]?.map(lang => (
-                  <button key={lang.code} onClick={() => {
-                    setVoiceLang(lang.code)
-                    recognitionRef.current?.abort()
-                  }} style={{
-                    padding: '4px 10px', borderRadius: 20, border: 'none', cursor: 'pointer',
-                    background: voiceLang === lang.code ? 'rgba(109,40,217,.55)' : 'rgba(255,255,255,.08)',
-                    color: voiceLang === lang.code ? '#fff' : 'rgba(255,255,255,.45)',
-                    fontSize: 11, fontFamily: f.body, transition: 'all .15s',
-                  }}>{lang.label}</button>
-                ))}
+          {/* ── Mobile notice ── */}
+          {isMobile ? (
+            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '28px 24px', gap: 16, textAlign: 'center' }}>
+              <div style={{ fontSize: 32 }}>💻</div>
+              <div style={{ color: '#fff', fontSize: 15, fontWeight: 700, fontFamily: f.heading }}>
+                {lang === 'DE' ? 'Auf dem Handy eingeschränkt' : 'Limited on mobile'}
               </div>
-
-              {/* Pulsing avatar */}
-              <div style={{ position: 'relative', width: 120, height: 120, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 24 }}>
-                {/* Rings — only visible when listening */}
-                {voiceState === 'listening' && [1, 2, 3].map(i => (
-                  <div key={i} style={{
-                    position: 'absolute', borderRadius: '50%',
-                    border: `1px solid rgba(109,40,217,${0.5 - i * 0.12})`,
-                    width: 120 + i * 28, height: 120 + i * 28,
-                    animation: `jlaw-ring 2s ease-out infinite`,
-                    animationDelay: `${i * 0.4}s`,
-                  }} />
-                ))}
-                {/* Avatar circle */}
-                <div style={{
-                  width: 90, height: 90, borderRadius: '50%',
-                  background: `linear-gradient(135deg,${c.ai},${c.accent})`,
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  boxShadow: voiceState === 'listening'
-                    ? `0 0 0 6px rgba(109,40,217,.2), 0 0 40px rgba(109,40,217,.4)`
-                    : `0 0 20px rgba(109,40,217,.3)`,
-                  transition: 'box-shadow .4s ease',
-                  zIndex: 1,
-                }}>
-                  {voiceState === 'speaking' || voiceState === 'greeting' ? (
-                    <VoiceWaveform active />
-                  ) : voiceState === 'processing' ? (
-                    <span style={{ width: 20, height: 20, border: '2.5px solid rgba(255,255,255,.3)', borderTopColor: '#fff', borderRadius: '50%', display: 'inline-block', animation: 'spin .8s linear infinite' }} />
-                  ) : (
-                    <span style={{ fontFamily: f.heading, fontSize: 26, fontWeight: 800, color: '#fff', letterSpacing: '-1px' }}>{AGENT_NAME.slice(0, 2)}</span>
-                  )}
-                </div>
-              </div>
-
-              {/* State label */}
-              <div style={{ color: 'rgba(255,255,255,.7)', fontSize: 13, fontWeight: 600, marginBottom: 12, height: 20, fontFamily: f.body }}>
-                {VOICE_STATE_LABEL[voiceState]}
-              </div>
-
-              {/* Live transcript */}
-              <div style={{
-                minHeight: 44, maxHeight: 80, overflowY: 'auto',
-                background: 'rgba(255,255,255,.05)', borderRadius: 12,
-                padding: '8px 14px', width: '100%',
-                color: interimText ? 'rgba(255,255,255,.5)' : 'rgba(255,255,255,.75)',
-                fontSize: 13, lineHeight: 1.5, textAlign: 'center',
-                fontFamily: f.body, fontStyle: interimText ? 'italic' : 'normal',
-                transition: 'color .2s',
-              }}>
-                {interimText || voiceTranscript || (voiceState === 'listening' ? 'Say something...' : ' ')}
-              </div>
-
-              {/* Waveform indicator for speaking */}
-              {(voiceState === 'speaking' || voiceState === 'greeting') && (
-                <div style={{ marginTop: 16 }}><VoiceWaveform active /></div>
-              )}
-
-              <div style={{ marginTop: 'auto', paddingTop: 16, color: 'rgba(255,255,255,.25)', fontSize: 11, textAlign: 'center', fontFamily: f.body }}>
-                Tap "Exit voice" to return to text chat
+              <div style={{ color: 'rgba(255,255,255,.5)', fontSize: 13, lineHeight: 1.6, fontFamily: f.body }}>
+                {lang === 'DE'
+                  ? 'Für das volle Kira-Erlebnis bitte den PC nutzen.'
+                  : 'For the full Kira experience, please use a PC.'}
               </div>
             </div>
           ) : (
             <>
-              {/* ── Mobile voice notice ── */}
-              {mobileVoiceNote && (
-                <div style={{ margin: '8px 14px 0', padding: '10px 14px', borderRadius: 10, background: 'rgba(109,40,217,0.15)', border: '1px solid rgba(109,40,217,0.35)', display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
-                  <span style={{ fontSize: 16 }}>🎙️</span>
-                  <span style={{ flex: 1, fontSize: 12, color: 'rgba(255,255,255,0.75)', lineHeight: 1.5, fontFamily: f.body }}>
-                    {lang === 'DE'
-                      ? 'Meine Sprachfunktion ist auf dem Handy eingeschränkt. Für das beste Erlebnis bitte den PC nutzen.'
-                      : 'My voice capabilities are limited on mobile. For the best experience, please use a PC.'}
-                  </span>
-                  <button onClick={() => setMobileVoiceNote(false)} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.4)', cursor: 'pointer', fontSize: 14, padding: '0 2px', lineHeight: 1 }}>✕</button>
-                </div>
-              )}
-
-              {/* ── Text messages ── */}
+              {/* ── Messages ── */}
               <div style={{ flex: 1, overflowY: 'auto', padding: '12px 14px' }}>
-                {isEmpty ? (
-                  <div style={{ paddingTop: 8 }}>
-                    <p style={{ color: 'rgba(255,255,255,.5)', fontSize: 12, marginBottom: 12, lineHeight: 1.6 }}>
-                      {market === 'in'
-                        ? `Hi! I'm ${AGENT_NAME}, your AI career assistant. I can find live jobs, score your CV, analyse skill gaps, and give salary info for Indian roles.`
-                        : lang === 'DE'
-                          ? `Hallo! Ich bin ${AGENT_NAME}, dein KI-Karriere-Assistent. Ich finde Jobs, bewerte deinen Lebenslauf, analysiere Skill-Gaps und gebe Gehaltsinfos für DACH.`
-                          : `Hi! I'm ${AGENT_NAME}, your AI career assistant. I can find live jobs, score your CV, analyse skill gaps, and give salary info for DACH roles.`
-                      }
-                    </p>
+                {msgs.length === 0 ? (
+                  <div>
+                    <p style={{ color: 'rgba(255,255,255,.55)', fontSize: 12, lineHeight: 1.65, marginBottom: 14 }}>{greeting}</p>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                      {(market === 'in' ? SUGGESTIONS.in : (SUGGESTIONS[`eu_${lang}`] || SUGGESTIONS.eu_EN)).map(s => (
-                        <button key={s} className="jlaw-suggest" onClick={() => sendMessage(s)} style={{ textAlign: 'left', padding: '7px 12px', borderRadius: 10, background: 'rgba(255,255,255,.04)', border: '1px solid rgba(255,255,255,.1)', color: 'rgba(255,255,255,.55)', fontSize: 12, cursor: 'pointer', transition: 'all .15s', fontFamily: f.body }}>{s}</button>
+                      {suggestions.map(s => (
+                        <button key={s} className="kira-suggest" onClick={() => send(s)}
+                          style={{ textAlign: 'left', padding: '7px 12px', borderRadius: 10, background: 'rgba(255,255,255,.04)', border: '1px solid rgba(255,255,255,.1)', color: 'rgba(255,255,255,.55)', fontSize: 12, cursor: 'pointer', transition: 'all .15s', fontFamily: f.body }}>
+                          {s}
+                        </button>
                       ))}
                     </div>
                   </div>
                 ) : (
                   <>
-                    {messages.map((msg, i) => (
-                      <div key={i} style={{ display: 'flex', justifyContent: msg.role === 'user' ? 'flex-end' : 'flex-start', marginBottom: 8, alignItems: 'flex-end', gap: 6 }}>
-                        {msg.role === 'assistant' && (
-                          <div style={{ width: 22, height: 22, borderRadius: '50%', background: `linear-gradient(135deg,${c.ai},${c.accent})`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 8, fontWeight: 700, color: '#fff', flexShrink: 0, letterSpacing: '-.3px' }}>{AGENT_NAME.slice(0, 2)}</div>
-                        )}
-                        <div style={{ maxWidth: '78%', display: 'flex', flexDirection: 'column', gap: 6 }}>
-                          <div className={msg.role === 'user' ? 'jlaw-msg-user' : 'jlaw-msg-ai'} style={{ padding: '8px 11px', color: '#fff', fontSize: 13, lineHeight: 1.55, fontFamily: f.body }}>
-                            {msg.status ? (
-                              <span style={{ color: 'rgba(255,255,255,.5)', display: 'flex', alignItems: 'center', gap: 6 }}>
-                                <TypingDots /> {STATUS_LABELS[msg.status] || 'Thinking...'}
-                              </span>
-                            ) : msg.role === 'assistant' && i === messages.length - 1 && msg.content === '' && !msg.actions?.length ? (
-                              <TypingDots />
-                            ) : (
-                              <span style={{ whiteSpace: 'pre-wrap' }}>{msg.content}</span>
-                            )}
+                    {msgs.map((m, i) => (
+                      <div key={i} style={{ display: 'flex', justifyContent: m.role === 'user' ? 'flex-end' : 'flex-start', marginBottom: 8, gap: 6, alignItems: 'flex-end' }}>
+                        {m.role === 'assistant' && (
+                          <div style={{ width: 22, height: 22, borderRadius: '50%', background: `linear-gradient(135deg,${accent},${accent}88)`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                            <svg width="10" height="10" viewBox="0 0 44 44">
+                              <circle cx="20" cy="20" r="13" fill="none" stroke="white" strokeWidth="3"/>
+                              <circle cx="20" cy="20" r="3" fill="white"/>
+                              <line x1="28" y1="28" x2="36" y2="36" stroke="white" strokeWidth="4" strokeLinecap="round"/>
+                            </svg>
                           </div>
-                          {msg.actions?.map((a, ai) => (
-                            <a key={ai} href={a.href} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px', borderRadius: 10, textDecoration: 'none', background: 'rgba(55,138,221,.15)', border: '1px solid rgba(55,138,221,.35)', color: '#fff', fontSize: 12, fontFamily: f.body, transition: 'background .15s' }}
-                              onMouseEnter={e => (e.currentTarget.style.background = 'rgba(55,138,221,.28)')}
-                              onMouseLeave={e => (e.currentTarget.style.background = 'rgba(55,138,221,.15)')}>
-                              <span style={{ fontSize: 14 }}>{FEATURE_ICONS[a.feature] || '→'}</span>
-                              <div style={{ flex: 1 }}>
-                                <div style={{ fontWeight: 600, color: c.accent }}>{a.label} →</div>
-                                <div style={{ color: 'rgba(255,255,255,.5)', fontSize: 11, marginTop: 1 }}>{a.reason}</div>
-                              </div>
-                            </a>
-                          ))}
+                        )}
+                        <div style={{
+                          maxWidth: '78%', padding: '8px 12px', fontSize: 13, lineHeight: 1.55, color: '#fff', fontFamily: f.body,
+                          borderRadius: m.role === 'user' ? '14px 14px 3px 14px' : '3px 14px 14px 14px',
+                          background: m.role === 'user' ? `linear-gradient(135deg,${accent}cc,${accent}88)` : 'rgba(255,255,255,.07)',
+                          border: m.role === 'assistant' ? '1px solid rgba(255,255,255,.08)' : 'none',
+                        }}>
+                          {m.status ? (
+                            <span style={{ color: 'rgba(255,255,255,.5)', display: 'flex', alignItems: 'center', gap: 6, fontSize: 12 }}>
+                              <span style={{ display: 'inline-flex', gap: 3 }}>
+                                {[0, 1, 2].map(j => <span key={j} style={{ width: 4, height: 4, borderRadius: '50%', background: accent, display: 'inline-block', animation: `kira-dot 1.2s ease-in-out ${j * .2}s infinite` }}/>)}
+                              </span>
+                              {statusMap[m.status] || 'Thinking...'}
+                            </span>
+                          ) : i === msgs.length - 1 && m.role === 'assistant' && m.content === '' ? (
+                            <span style={{ display: 'inline-flex', gap: 3, alignItems: 'center' }}>
+                              {[0, 1, 2].map(j => <span key={j} style={{ width: 4, height: 4, borderRadius: '50%', background: accent, display: 'inline-block', animation: `kira-dot 1.2s ease-in-out ${j * .2}s infinite` }}/>)}
+                            </span>
+                          ) : (
+                            <span style={{ whiteSpace: 'pre-wrap' }}>{m.content}</span>
+                          )}
                         </div>
                       </div>
                     ))}
-                    <div ref={messagesEndRef} />
+                    <div ref={bottomRef}/>
                   </>
                 )}
               </div>
 
-              {/* ── Text input ── */}
-              <div style={{ padding: '10px 12px 12px', borderTop: '1px solid rgba(255,255,255,.08)', flexShrink: 0 }}>
+              {/* ── Input ── */}
+              <div style={{ padding: '10px 12px 12px', borderTop: '1px solid rgba(255,255,255,.07)', flexShrink: 0 }}>
                 <div style={{ display: 'flex', alignItems: 'flex-end', gap: 6, background: 'rgba(255,255,255,.07)', border: '1px solid rgba(255,255,255,.12)', borderRadius: 12, padding: '7px 8px' }}>
-                  <textarea ref={inputRef} className="jlaw-input" value={input} onChange={e => setInput(e.target.value)} onKeyDown={handleKeyDown}
-                    placeholder={`Ask ${AGENT_NAME} about jobs, salaries, CV match...`} disabled={loading} rows={1}
-                    style={{ flex: 1, resize: 'none', border: 'none', background: 'transparent', fontFamily: f.body, fontSize: 13, color: '#fff', lineHeight: 1.5, maxHeight: 80, overflowY: 'auto' }} />
-                  <button className="jlaw-send" onClick={() => sendMessage(input)} disabled={!input.trim() || loading}
+                  <textarea ref={inputRef} className="kira-input"
+                    value={input} onChange={e => setInput(e.target.value)}
+                    onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(input) } }}
+                    placeholder={lang === 'DE' ? 'Frage Kira nach Jobs, Gehalt, Lebenslauf...' : 'Ask Kira about jobs, salary, your CV...'}
+                    disabled={loading} rows={1}
+                    style={{ flex: 1, resize: 'none', border: 'none', background: 'transparent', fontFamily: f.body, fontSize: 13, color: '#fff', lineHeight: 1.5, maxHeight: 80, overflowY: 'auto' }}/>
+                  <button className="kira-send" onClick={() => send(input)} disabled={!input.trim() || loading}
                     style={{ width: 30, height: 30, borderRadius: 8, border: 'none', background: g.button, cursor: 'pointer', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: 14, transition: 'opacity .2s' }}>
-                    {loading ? <span style={{ width: 12, height: 12, border: '2px solid rgba(255,255,255,.3)', borderTopColor: '#fff', borderRadius: '50%', display: 'inline-block', animation: 'spin .8s linear infinite' }} /> : '↑'}
+                    {loading
+                      ? <span style={{ width: 12, height: 12, border: '2px solid rgba(255,255,255,.3)', borderTopColor: '#fff', borderRadius: '50%', display: 'inline-block', animation: 'kira-spin .8s linear infinite' }}/>
+                      : '↑'}
                   </button>
                 </div>
-                <div style={{ textAlign: 'center', marginTop: 5, color: 'rgba(255,255,255,.2)', fontSize: 10 }}>
-                  Enter to send
-                </div>
+                <div style={{ textAlign: 'center', marginTop: 5, color: 'rgba(255,255,255,.2)', fontSize: 10 }}>Enter to send</div>
               </div>
             </>
           )}
         </div>
       )}
 
-      {/* ── Consent Modal ── */}
-      {showConsentModal && (
-        <div style={{
-          position: 'fixed', inset: 0, zIndex: 10000,
-          background: 'rgba(0,0,0,.65)', display: 'flex', alignItems: 'center', justifyContent: 'center',
-          padding: '20px',
-        }}>
-          <div style={{
-            background: 'linear-gradient(160deg,#0f1f33 0%,#0a1520 100%)',
-            border: '1px solid rgba(255,255,255,.15)', borderRadius: 18,
-            padding: '28px 24px', maxWidth: 360, width: '100%',
-            boxShadow: '0 24px 64px rgba(0,0,0,.6)',
-          }}>
-            <div style={{ fontSize: 20, marginBottom: 12 }}>🔒</div>
-            <div style={{ color: '#fff', fontSize: 15, fontWeight: 700, fontFamily: f.heading, marginBottom: 10 }}>
-              Before we read your CV
-            </div>
-            <p style={{ color: 'rgba(255,255,255,.65)', fontSize: 13, lineHeight: 1.6, margin: '0 0 10px' }}>
-              Your CV is processed by <strong style={{ color: '#fff' }}>Anthropic Claude AI</strong> to power Kira&apos;s job search and career advice. The extracted profile is stored securely in the EU (Ireland) and linked to your account.
-            </p>
-            <p style={{ color: 'rgba(255,255,255,.65)', fontSize: 13, lineHeight: 1.6, margin: '0 0 18px' }}>
-              We never sell your data. You can delete it anytime from <strong style={{ color: '#fff' }}>Account Settings → AI Profile Data</strong>.
-            </p>
-            <div style={{ display: 'flex', gap: 10 }}>
-              <button
-                onClick={() => {
-                  localStorage.setItem(LS_CV_CONSENT, '1')
-                  setShowConsentModal(false)
-                  const f = pendingCvFileRef.current
-                  pendingCvFileRef.current = null
-                  if (f) handleCvFile(f)
-                }}
-                style={{ flex: 1, padding: '10px 0', borderRadius: 9, border: 'none', background: `linear-gradient(135deg,${c.ai},${c.accent})`, color: '#fff', fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: f.body }}>
-                Accept &amp; Upload
-              </button>
-              <button
-                onClick={() => { setShowConsentModal(false); pendingCvFileRef.current = null }}
-                style={{ flex: 1, padding: '10px 0', borderRadius: 9, border: '1px solid rgba(255,255,255,.15)', background: 'rgba(255,255,255,.06)', color: 'rgba(255,255,255,.6)', fontSize: 13, cursor: 'pointer', fontFamily: f.body }}>
-                Cancel
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* ── FAB ── */}
-      <button className="jlaw-fab" onClick={() => setOpen(o => !o)}
-        style={{ position: 'fixed', bottom: 20, right: 20, zIndex: 9999, width: 54, height: 54, borderRadius: '50%', border: 'none', background: `linear-gradient(135deg,${c.ai},${c.accent})`, cursor: 'pointer', boxShadow: '0 4px 20px rgba(109,40,217,.45)', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'transform .2s', animation: pulse ? 'jlaw-pulse 2s ease-in-out 3' : 'none' }}
-        title={`Chat with ${AGENT_NAME}`}>
+      <button className="kira-fab" onClick={() => setOpen(o => !o)}
+        style={{ position: 'fixed', bottom: 20, right: 20, zIndex: 9999, width: 52, height: 52, borderRadius: '50%', border: 'none',
+          background: `linear-gradient(135deg,${accent},${accent}99)`,
+          cursor: 'pointer', boxShadow: `0 4px 20px ${accent}55`,
+          display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'transform .2s',
+        }}>
         {open
-          ? <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M5 5l10 10M15 5L5 15" stroke="#fff" strokeWidth="2.2" strokeLinecap="round"/></svg>
-          : <span style={{ fontFamily: f.heading, fontSize: 15, fontWeight: 800, color: '#fff', letterSpacing: '-.5px' }}>{AGENT_NAME.slice(0, 2)}</span>
+          ? <svg width="18" height="18" viewBox="0 0 20 20" fill="none"><path d="M5 5l10 10M15 5L5 15" stroke="#fff" strokeWidth="2.2" strokeLinecap="round"/></svg>
+          : <svg width="20" height="20" viewBox="0 0 44 44">
+              <circle cx="20" cy="20" r="13" fill="none" stroke="white" strokeWidth="2.8"/>
+              <circle cx="20" cy="20" r="3" fill="white"/>
+              <line x1="28" y1="28" x2="36" y2="36" stroke="white" strokeWidth="3.5" strokeLinecap="round"/>
+            </svg>
         }
       </button>
     </>

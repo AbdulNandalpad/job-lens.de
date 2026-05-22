@@ -5,166 +5,121 @@ import { MARKET } from '@/lib/constants'
 
 const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
 
-const SYSTEM_PROMPT = `You are Kira, an AI career assistant built into Job-Lens. You are warm, enthusiastic, and genuinely care about helping people find great jobs. You feel like a smart friend who happens to know everything about the job market — not a corporate bot.
+// ── System prompt ─────────────────────────────────────────────────────────────
 
-PERSONALITY — THIS IS THE MOST IMPORTANT SECTION:
-- Sound like a real person having a conversation, not a system reading out a report
-- React emotionally and naturally: "Oh nice, that's a strong background!", "Hmm, let me dig into that...", "Okay so here's the thing —", "That's actually really common, don't worry"
-- Use contractions always: you'll, I'd, it's, that's, let's, I've, they're, we're
-- Vary sentence length — short punchy reactions followed by a bit more detail: "Found some good ones. Here's what stood out:"
-- Show genuine enthusiasm when a good match comes up: "Ooh, this one looks really solid for you."
-- Show empathy when things are tough: "I get it, the market's been rough lately. But honestly, your profile's stronger than you think."
-- Use natural spoken filler at the start of responses: "So,", "Right,", "Okay so,", "Actually,", "Here's the thing —"
-- Never sound like you're reading from a checklist or report
-- Keep it warm but efficient — you value the user's time
+const BASE_SYSTEM = `You are Kira, an AI career assistant built into Job-Lens. You are warm, direct, and genuinely helpful — like a smart friend who knows the job market well.
 
-WHAT YOU CAN DO DIRECTLY:
-- Search live jobs via search_jobs
-- Score how well a CV matches a job via score_jobs
-- Analyse skill gaps between a CV and job description via get_skill_gap
-- Give salary insights for any role via get_salary_info
-- Answer questions about the job market, visa requirements, in-demand skills, hiring norms, relocation, work permits
-- Help users decide which jobs to prioritise
+PERSONALITY:
+- Conversational and natural. Use contractions: you'll, I'd, let's, I've.
+- Short punchy sentences. React naturally: "Oh nice!", "Okay so here's the thing —", "Found some good ones."
+- Show enthusiasm for strong matches. Show empathy when things are tough.
+- Never sound like you're reading from a report.
 
-WHAT YOU HAND OFF TO THE APP (use suggest_action for these):
-- Full CV analysis with scoring, market fit, AI risk score → suggest career_scan
-- Tailoring a CV for a specific role → suggest cv_builder
-- Writing a cover letter → suggest cover_letter
-- Auto-filling job application forms → suggest auto_apply
-- Tracking job applications → suggest tracker
+FORMAT — CRITICAL:
+- Plain text only. Zero markdown. No asterisks, no bold, no headers, no bullet dashes.
+- When listing jobs: "First up is... Then there's... And another one is..."
+- Keep responses tight — 2 to 5 sentences. Brief and punchy.
+- Each job in one sentence: title, company, location, one standout thing.
 
-HAND-OFF RULES:
-- When a user wants to tailor their CV or needs a full career analysis, always use suggest_action — never try to do it yourself in the chat
-- After a job search, if a job looks like a strong match, proactively offer to check the skill gap or suggest CV Builder
-- After scoring a job, if score < 60, suggest Career Scan for a full analysis
+WHAT YOU CAN DO:
+- Search live jobs via the search_jobs tool — ALWAYS use this when asked about jobs. Never make up job listings.
+- Give salary insights, market advice, skills guidance from your knowledge.
+- Suggest the user go to CV Builder, Career Scan, Cover Letter, or Tracker when relevant — use suggest_feature for this.
 
-FORMAT — CRITICAL (this is spoken aloud via voice, not read on screen):
-- Plain conversational text only. Zero markdown whatsoever.
-- No asterisks (*), no bold (**text**), no headers (#), no bullet dashes (-), no backticks
-- When listing jobs, use natural spoken format: "First up is... Then there's... And another good one is..."
-- Or use 1. 2. 3. for numbered items when needed
-- Keep responses tight — 2 to 5 sentences for answers. Spoken responses should feel brief and punchy.
-- If listing multiple jobs, describe each in one sentence: title, company, location, one standout thing`
+RULES:
+- When user asks to find, search, or show jobs — call search_jobs immediately. Do not answer from memory.
+- After showing jobs, offer to help with CV tailoring or cover letter.
+- If search returns no results, say so honestly and suggest broadening the search.`
 
-// ── Tool definitions ─────────────────────────────────────────────────────────
+// ── Tools ─────────────────────────────────────────────────────────────────────
 
 const tools: Anthropic.Messages.Tool[] = [
   {
     name: 'search_jobs',
-    description: 'Search for live job listings from Adzuna matching the query and location.',
+    description: 'Search live job listings from Adzuna. Call this whenever the user wants to find or see jobs.',
     input_schema: {
       type: 'object' as const,
       properties: {
-        query:    { type: 'string', description: 'Job search query, e.g. "Senior React Developer" or "Marketing Manager fintech"' },
-        location: { type: 'string', description: 'City or region, e.g. "Stuttgart" or "Munich"' },
-        country:  { type: 'string', description: 'Country code: de, at, ch. Default: de' },
+        query:    { type: 'string', description: 'Job title or keywords, e.g. "Senior React Developer"' },
+        location: { type: 'string', description: 'City or region, e.g. "Munich" or "Bangalore"' },
+        country:  { type: 'string', description: 'Country code: de, at, ch, in. Defaults to de for DACH, in for India.' },
       },
       required: ['query'],
     },
   },
   {
-    name: 'score_jobs',
-    description: 'Score how well the user\'s CV matches a specific job. Returns a 0-100 match score plus key matching and missing skills.',
-    input_schema: {
-      type: 'object' as const,
-      properties: {
-        job_title:       { type: 'string' },
-        job_description: { type: 'string' },
-        cv_text:         { type: 'string' },
-      },
-      required: ['job_title', 'job_description', 'cv_text'],
-    },
-  },
-  {
-    name: 'get_skill_gap',
-    description: 'Compare the user\'s CV against a job description and return matching skills and missing skills the user should highlight or acquire.',
-    input_schema: {
-      type: 'object' as const,
-      properties: {
-        cv_text:         { type: 'string', description: 'The user\'s CV text' },
-        job_description: { type: 'string', description: 'The full job description' },
-      },
-      required: ['cv_text', 'job_description'],
-    },
-  },
-  {
-    name: 'get_salary_info',
-    description: 'Return typical salary ranges for a role in the DACH job market based on Claude\'s training knowledge.',
-    input_schema: {
-      type: 'object' as const,
-      properties: {
-        role:       { type: 'string', description: 'Job title or role, e.g. "Senior Software Engineer"' },
-        country:    { type: 'string', description: 'de, at, or ch. Default: de' },
-        seniority:  { type: 'string', description: 'junior, mid, senior, lead. Optional.' },
-      },
-      required: ['role'],
-    },
-  },
-  {
-    name: 'suggest_action',
-    description: 'Show the user a clickable button to navigate to a specific Job-Lens feature. Use this whenever the user\'s intent requires deeper work that the chat cannot do — CV tailoring, full analysis, cover letter, auto apply, or tracking.',
+    name: 'suggest_feature',
+    description: 'Show a button directing the user to a Job-Lens feature. Use when they need CV tailoring, career analysis, cover letter, or application tracking.',
     input_schema: {
       type: 'object' as const,
       properties: {
         feature: {
           type: 'string',
-          enum: ['career_scan', 'cv_builder', 'cover_letter', 'auto_apply', 'tracker'],
-          description: 'Which app feature to send the user to',
+          enum: ['career_scan', 'cv_builder', 'cover_letter', 'tracker'],
+          description: 'Which feature to link to',
         },
-        reason: {
-          type: 'string',
-          description: 'One short sentence explaining why you are suggesting this feature (shown as button label context)',
-        },
+        reason: { type: 'string', description: 'One short sentence explaining why you are suggesting this' },
       },
       required: ['feature', 'reason'],
     },
   },
 ]
 
-// ── Tool executors ────────────────────────────────────────────────────────────
+// ── Feature link map ──────────────────────────────────────────────────────────
 
-interface SearchJobsInput  { query: string; location?: string; country?: string }
-interface ScoreJobsInput   { job_title: string; job_description: string; cv_text: string }
-interface SkillGapInput    { cv_text: string; job_description: string }
-interface SalaryInfoInput  { role: string; country?: string; seniority?: string }
-interface SuggestAction    { feature: string; reason: string }
-
-const FEATURE_META: Record<'eu' | 'in', Record<string, { label: string; href: string }>> = {
+const FEATURE_LINKS: Record<'eu' | 'in', Record<string, { label: string; href: string }>> = {
   eu: {
-    career_scan:  { label: 'Open Career Scan',   href: '/app/career-scan' },
-    cv_builder:   { label: 'Open CV Builder',    href: '/app/cv-builder' },
-    cover_letter: { label: 'Open Cover Letter',  href: '/app/cover-letter' },
-    auto_apply:   { label: 'Open Auto Apply',    href: '/app/auto-apply' },
-    tracker:      { label: 'Open Tracker',       href: '/app/tracker' },
+    career_scan:  { label: 'Open Career Scan',  href: '/app/career-scan' },
+    cv_builder:   { label: 'Open CV Builder',   href: '/app/cv-builder' },
+    cover_letter: { label: 'Open Cover Letter', href: '/app/cover-letter' },
+    tracker:      { label: 'Open Tracker',      href: '/app/tracker' },
   },
   in: {
-    career_scan:  { label: 'Open Career Scan',   href: '/in/career-scan' },
-    cv_builder:   { label: 'Open CV Builder',    href: '/in/cv-builder' },
-    cover_letter: { label: 'Open Cover Letter',  href: '/in/cover-letter' },
-    auto_apply:   { label: 'Open Auto Apply',    href: '/app/auto-apply' },
-    tracker:      { label: 'Open Tracker',       href: '/in/tracker' },
+    career_scan:  { label: 'Open Career Scan',  href: '/in/career-scan' },
+    cv_builder:   { label: 'Open CV Builder',   href: '/in/cv-builder' },
+    cover_letter: { label: 'Open Cover Letter', href: '/in/cover-letter' },
+    tracker:      { label: 'Open Tracker',      href: '/in/tracker' },
   },
 }
 
-async function executeSearchJobs(input: SearchJobsInput, market: 'eu' | 'in' = 'eu'): Promise<string> {
-  const appId   = process.env.ADZUNA_APP_ID!
-  const appKey  = process.env.ADZUNA_APP_KEY!
+// ── Adzuna job search ─────────────────────────────────────────────────────────
+
+interface SearchInput { query: string; location?: string; country?: string }
+
+async function searchJobs(input: SearchInput, market: string): Promise<string> {
+  const appId  = process.env.ADZUNA_APP_ID
+  const appKey = process.env.ADZUNA_APP_KEY
+
+  if (!appId || !appKey) {
+    return JSON.stringify({ error: 'Job search not configured', jobs: [] })
+  }
+
   const country = input.country || (market === 'in' ? 'in' : 'de')
   const city    = (input.location || '').split(',')[0].trim()
 
   const params = new URLSearchParams({
-    app_id: appId, app_key: appKey,
-    results_per_page: '6', what: input.query,
+    app_id:           appId,
+    app_key:          appKey,
+    results_per_page: '6',
+    what:             input.query,
   })
   if (city) params.set('where', city)
 
-  const abort = new AbortController()
-  const timer = setTimeout(() => abort.abort(), 7000)
+  const ctrl  = new AbortController()
+  const timer = setTimeout(() => ctrl.abort(), 8000)
 
   try {
-    const res  = await fetch(`https://api.adzuna.com/v1/api/jobs/${country}/search/1?${params}`, { signal: abort.signal })
+    const res = await fetch(
+      `https://api.adzuna.com/v1/api/jobs/${country}/search/1?${params}`,
+      { signal: ctrl.signal }
+    )
     clearTimeout(timer)
-    if (!res.ok) return JSON.stringify({ error: 'Job search unavailable', jobs: [] })
+
+    if (!res.ok) {
+      console.error('Adzuna error:', res.status)
+      return JSON.stringify({ error: 'Job search unavailable', jobs: [] })
+    }
+
     const data = await res.json()
     const jobs = (data.results || [])
       .slice(0, 6)
@@ -173,164 +128,57 @@ async function executeSearchJobs(input: SearchJobsInput, market: 'eu' | 'in' = '
         const areas   = loc?.area as string[] | undefined
         const company = j.company as Record<string, unknown> | undefined
         return {
-          id:          String(j.id),
-          title:       String(j.title || ''),
-          company:     String(company?.display_name || ''),
-          location:    areas?.[areas.length - 1] || city || country.toUpperCase(),
-          description: String(j.description || '').slice(0, 300),
-          apply_url:   String(j.redirect_url || ''),
-          posted:      String(j.created || ''),
-          salary_min:  (j.salary_min as number) || null,
-          salary_max:  (j.salary_max as number) || null,
+          title:      String(j.title || ''),
+          company:    String(company?.display_name || ''),
+          location:   areas?.[areas.length - 1] || city || country.toUpperCase(),
+          posted:     String(j.created || ''),
+          salary_min: (j.salary_min as number) || null,
+          salary_max: (j.salary_max as number) || null,
+          description: String(j.description || '').slice(0, 250),
+          apply_url:  String(j.redirect_url || ''),
         }
       })
       .sort((a: { posted: string }, b: { posted: string }) =>
         new Date(b.posted).getTime() - new Date(a.posted).getTime()
       )
+
     return JSON.stringify({ jobs, total: data.count || jobs.length })
   } catch {
     clearTimeout(timer)
-    return JSON.stringify({ error: 'Failed to fetch jobs', jobs: [] })
+    return JSON.stringify({ error: 'Job search timed out', jobs: [] })
   }
 }
 
-async function executeScoreJobs(input: ScoreJobsInput): Promise<string> {
-  try {
-    const res = await client.messages.create({
-      model: 'claude-haiku-4-5-20251001',
-      max_tokens: 400,
-      messages: [{
-        role: 'user',
-        content: `Score this CV against the job. Return ONLY valid JSON, no markdown.
-
-Job: ${input.job_title}
-Description: ${input.job_description.slice(0, 1200)}
-
-CV: ${input.cv_text.slice(0, 2500)}
-
-Return: {"score": <0-100>, "matching_skills": ["skill1","skill2","skill3"], "missing_skills": ["skill1","skill2"], "verdict": "<1 plain sentence>"}`,
-      }],
-    })
-    const text = res.content.find(b => b.type === 'text')
-    if (!text || text.type !== 'text') return JSON.stringify({ score: 50, matching_skills: [], missing_skills: [], verdict: 'Scoring unavailable' })
-    return text.text.trim().replace(/^```json\n?/, '').replace(/\n?```$/, '')
-  } catch {
-    return JSON.stringify({ score: 50, matching_skills: [], missing_skills: [], verdict: 'Scoring unavailable' })
-  }
-}
-
-async function executeSkillGap(input: SkillGapInput): Promise<string> {
-  try {
-    const res = await client.messages.create({
-      model: 'claude-haiku-4-5-20251001',
-      max_tokens: 400,
-      messages: [{
-        role: 'user',
-        content: `Extract technical skills from this job description. Check which appear in the CV. Return ONLY valid JSON, no markdown.
-{ "matching": ["skill1", "skill2"], "missing": ["skill3", "skill4"] }
-Rules: max 8 each, concise 1-4 word items, technical/professional skills only.
-
-JOB: ${input.job_description.slice(0, 1200)}
-CV: ${input.cv_text.slice(0, 2000)}`,
-      }],
-    })
-    const text = res.content.find(b => b.type === 'text')
-    if (!text || text.type !== 'text') return JSON.stringify({ matching: [], missing: [] })
-    return text.text.trim().replace(/^```json\n?/, '').replace(/\n?```$/, '')
-  } catch {
-    return JSON.stringify({ matching: [], missing: [] })
-  }
-}
-
-async function executeSalaryInfo(input: SalaryInfoInput, market: 'eu' | 'in' = 'eu'): Promise<string> {
-  try {
-    const country     = input.country || (market === 'in' ? 'in' : 'de')
-    const countryName = country === 'at' ? 'Austria' : country === 'ch' ? 'Switzerland' : country === 'in' ? 'India' : 'Germany'
-    const currency    = country === 'ch' ? 'CHF' : country === 'in' ? 'INR' : 'EUR'
-    const res = await client.messages.create({
-      model: 'claude-haiku-4-5-20251001',
-      max_tokens: 300,
-      messages: [{
-        role: 'user',
-        content: `Provide typical gross annual salary ranges for "${input.role}" in ${countryName}${input.seniority ? ` at ${input.seniority} level` : ''}.
-Return ONLY valid JSON, no markdown:
-{"currency": "${currency}", "junior": {"min": <num>, "max": <num>}, "mid": {"min": <num>, "max": <num>}, "senior": {"min": <num>, "max": <num>}, "note": "<one plain sentence about market context>"}`,
-      }],
-    })
-    const text = res.content.find(b => b.type === 'text')
-    if (!text || text.type !== 'text') return JSON.stringify({ error: 'Salary data unavailable' })
-    return text.text.trim().replace(/^```json\n?/, '').replace(/\n?```$/, '')
-  } catch {
-    return JSON.stringify({ error: 'Salary data unavailable' })
-  }
-}
-
-function executeSuggestAction(input: SuggestAction, market: 'eu' | 'in'): string {
-  const meta = FEATURE_META[market][input.feature]
-  if (!meta) return JSON.stringify({ error: 'Unknown feature' })
-  return JSON.stringify({ feature: input.feature, label: meta.label, href: meta.href, reason: input.reason })
-}
-
-// ── Route handler ─────────────────────────────────────────────────────────────
+// ── Route ─────────────────────────────────────────────────────────────────────
 
 interface ChatMessage { role: 'user' | 'assistant'; content: string }
 
 export async function POST(req: NextRequest) {
+  // Auth
   const supabase = await createServerSupabase()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return new Response('Unauthorized', { status: 401 })
 
-  const body      = await req.json()
-  const messages: ChatMessage[] = body.messages || []
-  const cvText: string          = body.cvText || ''
-  const market: 'eu' | 'in'    = body.market || MARKET.eu
+  // Parse body
+  const body                       = await req.json()
+  const messages: ChatMessage[]    = body.messages || []
+  const cvText: string             = body.cvText   || ''
+  const market: 'eu' | 'in'       = body.market   || MARKET.eu
 
-  if (!messages.length) return new Response(JSON.stringify({ error: 'No messages' }), { status: 400 })
+  if (!messages.length) return new Response('No messages', { status: 400 })
 
-  // Load saved career profile — gives Kira persistent knowledge of the user
-  const { data: profileRow } = await supabase
-    .from('profiles')
-    .select('career_data')
-    .eq('id', user.id)
-    .single()
+  // Build system prompt
+  const marketCtx = market === 'in'
+    ? '\n\nMARKET: India. Salaries in INR (LPA). Cities: Bangalore, Hyderabad, Mumbai, Pune, Delhi. Detect language (English/Hindi/Kannada/Telugu) and respond naturally in kind.'
+    : '\n\nMARKET: DACH (Germany, Austria, Switzerland). Salaries in EUR/CHF. Respond in German if user writes German, English if English.'
 
-  const careerProfile = profileRow?.career_data as Record<string, unknown> | null
+  const cvCtx = cvText
+    ? `\n\nUSER CV (use this to personalise job search and advice):\n${cvText.slice(0, 5000)}`
+    : ''
 
-  const marketContext = market === 'in'
-    ? `\n\nMARKET CONTEXT: You are helping a user in the Indian job market. Salaries are in INR. Focus on Indian cities (Bangalore, Hyderabad, Mumbai, Pune, Delhi, Chennai). Reference Indian hiring norms, IT sector trends, and service companies (TCS, Infosys, Wipro, HCL) vs product companies. Visa questions relate to H-1B, working abroad from India, or foreign companies hiring in India.
+  const systemContent = BASE_SYSTEM + marketCtx + cvCtx
 
-LANGUAGE AND CODE-SWITCHING: Detect the user's language from their message and respond in kind.
-- Hindi or Hinglish → respond in natural Hinglish (e.g. "Haan, yeh role bahut accha lagta hai — the salary is also solid for Bangalore.")
-- Kannada → respond in natural Kannada mixed with English as Bangalore tech professionals speak (e.g. "Adu tumba good role — let me check the details for you.")
-- Telugu → respond in natural Telugu mixed with English as Hyderabad tech professionals speak (e.g. "Adi chala meeru role — salary kuda bagundi.")
-- English → respond in English.
-Match their energy and language style.`
-    : `\n\nMARKET CONTEXT: You are helping a user in the DACH job market (Germany, Austria, Switzerland). Salaries are in EUR or CHF. Reference German hiring norms, work permits, Blue Card, job application culture in Germany.
-
-LANGUAGE AND CODE-SWITCHING: Detect the user's language from their message. If they write or speak in German, respond naturally — you can mix in occasional English terms the way German professionals naturally do (e.g. "Das klingt nach einer guten Stelle — the tech stack is also really modern." or "Okay, lass mich kurz suchen..."). If they write in English, respond in English. Match their energy and language style.`
-
-  // Build system context — career profile (structured) takes priority over raw CV text
-  let userContext = ''
-  if (careerProfile) {
-    const p = careerProfile
-    userContext = `\n\n---\nUSER CAREER PROFILE (extracted from their CV):\n` +
-      `Name: ${p.name || 'Unknown'}\n` +
-      `Current Title: ${p.current_title || 'Unknown'}\n` +
-      `Experience: ${p.experience_years ? `${p.experience_years} years` : 'Unknown'}\n` +
-      `Skills: ${(p.skills as string[])?.join(', ') || 'None listed'}\n` +
-      `Target Roles: ${(p.target_roles as string[])?.join(', ') || 'Not specified'}\n` +
-      `Education: ${p.education || 'Not specified'}\n` +
-      `Location: ${p.location || 'Not specified'}\n` +
-      `Strengths: ${(p.strengths as string[])?.join(', ') || 'None listed'}\n` +
-      `Summary: ${p.summary || 'None'}\n` +
-      (cvText ? `\nFull CV Text:\n${cvText.slice(0, 4000)}` : '') +
-      `\n---`
-  } else if (cvText) {
-    userContext = `\n\n---\nUser CV:\n${cvText.slice(0, 6000)}\n---`
-  }
-
-  const systemContent = `${SYSTEM_PROMPT}${marketContext}${userContext}`
-
+  // Stream setup
   const encoder = new TextEncoder()
 
   const readable = new ReadableStream({
@@ -339,7 +187,11 @@ LANGUAGE AND CODE-SWITCHING: Detect the user's language from their message. If t
 
       const safeSend = (data: Record<string, unknown>) => {
         if (closed) return
-        try { controller.enqueue(encoder.encode(`data: ${JSON.stringify(data)}\n\n`)) } catch { closed = true }
+        try {
+          controller.enqueue(encoder.encode(`data: ${JSON.stringify(data)}\n\n`))
+        } catch {
+          closed = true
+        }
       }
 
       const safeClose = () => {
@@ -348,61 +200,77 @@ LANGUAGE AND CODE-SWITCHING: Detect the user's language from their message. If t
         try { controller.close() } catch { /* already closed */ }
       }
 
-      // Overall deadline — ensures stream always terminates even if Claude or Adzuna hangs
+      // Overall deadline — stream always terminates
       const deadline = setTimeout(() => {
         safeSend({ error: 'Request timed out. Please try again.' })
         safeClose()
-      }, 50_000)
+      }, 45_000)
 
       try {
-        let currentMessages: Anthropic.Messages.MessageParam[] = messages.map(m => ({
+        let currentMsgs: Anthropic.Messages.MessageParam[] = messages.map(m => ({
           role: m.role, content: m.content,
         }))
 
-        for (let i = 0; i < 5; i++) {
+        // Agentic loop — max 3 rounds
+        for (let round = 0; round < 3; round++) {
           const response = await client.messages.create({
-            model: 'claude-sonnet-4-6',
-            max_tokens: 1024,
-            system: systemContent,
+            model:      'claude-sonnet-4-6',
+            max_tokens: 800,
+            system:     systemContent,
             tools,
-            messages: currentMessages,
+            messages:   currentMsgs,
           })
 
           if (response.stop_reason === 'tool_use') {
-            const toolBlocks = response.content.filter(b => b.type === 'tool_use') as Anthropic.Messages.ToolUseBlock[]
+            const toolUses = response.content.filter(
+              (b): b is Anthropic.Messages.ToolUseBlock => b.type === 'tool_use'
+            )
 
-            for (const tb of toolBlocks) {
-              if (tb.name !== 'suggest_action') safeSend({ status: tb.name })
+            // Signal tool activity to client
+            for (const tb of toolUses) {
+              if (tb.name !== 'suggest_feature') safeSend({ status: tb.name })
             }
 
+            // Execute tools in parallel
             const toolResults: Anthropic.Messages.ToolResultBlockParam[] = await Promise.all(
-              toolBlocks.map(async (tb) => {
+              toolUses.map(async tb => {
                 let result: string
-                switch (tb.name) {
-                  case 'search_jobs':    result = await executeSearchJobs(tb.input as SearchJobsInput, market); break
-                  case 'score_jobs':     result = await executeScoreJobs(tb.input as ScoreJobsInput);           break
-                  case 'get_skill_gap':  result = await executeSkillGap(tb.input as SkillGapInput);             break
-                  case 'get_salary_info':result = await executeSalaryInfo(tb.input as SalaryInfoInput, market); break
-                  case 'suggest_action': {
-                    result = executeSuggestAction(tb.input as SuggestAction, market)
-                    try { safeSend({ action: JSON.parse(result) }) } catch { /* ignore */ }
-                    break
+
+                if (tb.name === 'search_jobs') {
+                  result = await searchJobs(tb.input as SearchInput, market)
+
+                } else if (tb.name === 'suggest_feature') {
+                  const inp  = tb.input as { feature: string; reason: string }
+                  const meta = FEATURE_LINKS[market][inp.feature]
+                  if (meta) {
+                    result = JSON.stringify({ feature: inp.feature, label: meta.label, href: meta.href, reason: inp.reason })
+                    safeSend({ action: JSON.parse(result) })
+                  } else {
+                    result = JSON.stringify({ error: 'Unknown feature' })
                   }
-                  default: result = JSON.stringify({ error: 'Unknown tool' })
+
+                } else {
+                  result = JSON.stringify({ error: 'Unknown tool' })
                 }
+
                 return { type: 'tool_result' as const, tool_use_id: tb.id, content: result }
               })
             )
 
-            currentMessages = [
-              ...currentMessages,
+            currentMsgs = [
+              ...currentMsgs,
               { role: 'assistant', content: response.content },
-              { role: 'user', content: toolResults },
+              { role: 'user',      content: toolResults },
             ]
+
           } else {
-            const textBlocks = response.content.filter(b => b.type === 'text') as Anthropic.Messages.TextBlock[]
-            const fullText   = textBlocks.map(b => b.text).join('')
-            const words      = fullText.split(/(\s+)/)
+            // Final text — stream in small word chunks
+            const fullText = response.content
+              .filter((b): b is Anthropic.Messages.TextBlock => b.type === 'text')
+              .map(b => b.text)
+              .join('')
+
+            const words = fullText.split(/(\s+)/)
             for (let w = 0; w < words.length; w += 3) {
               const chunk = words.slice(w, w + 3).join('')
               if (chunk) safeSend({ text: chunk })
@@ -412,8 +280,9 @@ LANGUAGE AND CODE-SWITCHING: Detect the user's language from their message. If t
         }
 
         safeSend({ done: true })
+
       } catch (err) {
-        console.error('Kira error:', err)
+        console.error('[Kira]', err)
         safeSend({ error: 'Something went wrong. Please try again.' })
       } finally {
         clearTimeout(deadline)
@@ -423,6 +292,10 @@ LANGUAGE AND CODE-SWITCHING: Detect the user's language from their message. If t
   })
 
   return new Response(readable, {
-    headers: { 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache', 'Connection': 'keep-alive' },
+    headers: {
+      'Content-Type':  'text/event-stream',
+      'Cache-Control': 'no-cache',
+      'Connection':    'keep-alive',
+    },
   })
 }
