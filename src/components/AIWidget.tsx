@@ -210,7 +210,7 @@ export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
   useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: 'smooth' }) }, [msgs])
 
   useEffect(() => {
-    if (msgs.length) sessionStorage.setItem(SS.aiMessages, JSON.stringify(msgs.slice(-20)))
+    if (msgs.length) sessionStorage.setItem(SS.aiMessages, JSON.stringify(msgs.slice(-30)))
   }, [msgs])
 
   useEffect(() => {
@@ -365,18 +365,15 @@ export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
       rec.onerror = (e: any) => {
         if (listenTimerRef.current) clearTimeout(listenTimerRef.current)
         recognitionRef.current = null
-        const fatal = ['not-allowed', 'service-not-allowed']
-        if (fatal.includes(e.error as string)) {
-          // Permission denied — stop
+        if (e.error === 'no-speech' && voiceModeRef.current) {
+          setTimeout(() => { if (voiceModeRef.current) startListening() }, 800)
+        } else {
           setVoiceState('idle')
-        } else if (voiceModeRef.current) {
-          // network / audio-capture / other transient error — fall back to Whisper
-          void startWhisperRecording()
         }
       }
 
       recognitionRef.current = rec
-      try { rec.start() } catch { void startWhisperRecording() }
+      try { rec.start() } catch { setVoiceState('idle') }
 
     } else {
       // No Web Speech API (iOS Safari, Firefox) — go straight to Whisper
