@@ -221,8 +221,8 @@ export async function POST(req: NextRequest) {
         // Agentic loop — max 3 rounds
         for (let round = 0; round < 3; round++) {
           const response = await client.messages.create({
-            model:      'claude-sonnet-4-6',
-            max_tokens: isVoice ? 300 : 700,
+            model:      isVoice ? 'claude-haiku-4-5-20251001' : 'claude-sonnet-4-6',
+            max_tokens: isVoice ? 150 : 700,
             system:     systemContent,
             tools,
             messages:   currentMsgs,
