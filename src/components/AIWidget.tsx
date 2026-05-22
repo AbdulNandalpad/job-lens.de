@@ -172,6 +172,7 @@ export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
   const [voiceMode,     setVoiceMode]     = useState(false)
   const [voiceState,    setVoiceState]    = useState<VoiceState>('idle')
   const [cvDiscussMode, setCvDiscussMode] = useState(false)
+  const [isMobile,      setIsMobile]      = useState(false)
 
   // ── Refs ─────────────────────────────────────────────────────────────────
   const bottomRef        = useRef<HTMLDivElement>(null)
@@ -198,6 +199,8 @@ export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
 
   // ── Init: CV, saved messages, user name ─────────────────────────────────
   useEffect(() => {
+    setIsMobile(window.innerWidth <= 768 || /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent))
+
     const cv = sessionStorage.getItem(SS.cvText) || ''
     cvRef.current = cv
     if (cv) setCvName('CV ready')
@@ -741,22 +744,29 @@ export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
               }
             </button>
 
-            {/* Mic toggle */}
-            <button className="kira-mic-btn"
-              title={voiceMode ? 'End voice' : lang === 'DE' ? 'Sprachassistentin' : 'Voice mode'}
-              onClick={voiceMode ? exitVoiceMode : enterVoiceMode}
-              style={{
-                width: 28, height: 28, borderRadius: 7, border: 'none',
-                background: voiceMode ? `${accent}33` : 'rgba(255,255,255,.08)',
-                cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                flexShrink: 0, transition: 'all .15s',
-                boxShadow: voiceMode ? `0 0 10px ${accent}55` : 'none',
-              }}>
-              {voiceMode
-                ? <svg width="12" height="12" viewBox="0 0 20 20" fill="none"><path d="M5 5l10 10M15 5L5 15" stroke={accent} strokeWidth="2.2" strokeLinecap="round"/></svg>
-                : <MicIcon size={13} color="rgba(255,255,255,.55)"/>
-              }
-            </button>
+            {/* Mic toggle — desktop only */}
+            {isMobile ? (
+              <div title={lang === 'DE' ? 'Sprache nur am PC verfügbar' : 'Voice available on desktop only'}
+                style={{ width: 28, height: 28, borderRadius: 7, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, opacity: .3, cursor: 'not-allowed' }}>
+                <MicIcon size={13} color="rgba(255,255,255,.55)"/>
+              </div>
+            ) : (
+              <button className="kira-mic-btn"
+                title={voiceMode ? 'End voice' : lang === 'DE' ? 'Sprachassistentin' : 'Voice mode'}
+                onClick={voiceMode ? exitVoiceMode : enterVoiceMode}
+                style={{
+                  width: 28, height: 28, borderRadius: 7, border: 'none',
+                  background: voiceMode ? `${accent}33` : 'rgba(255,255,255,.08)',
+                  cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  flexShrink: 0, transition: 'all .15s',
+                  boxShadow: voiceMode ? `0 0 10px ${accent}55` : 'none',
+                }}>
+                {voiceMode
+                  ? <svg width="12" height="12" viewBox="0 0 20 20" fill="none"><path d="M5 5l10 10M15 5L5 15" stroke={accent} strokeWidth="2.2" strokeLinecap="round"/></svg>
+                  : <MicIcon size={13} color="rgba(255,255,255,.55)"/>
+                }
+              </button>
+            )}
 
             {msgs.length > 0 && !voiceMode && (
               <button onClick={() => { setMsgs([]); greetedRef.current = false; cvDiscussModeRef.current = false; setCvDiscussMode(false); sessionStorage.removeItem(SS.aiMessages) }}
@@ -945,7 +955,9 @@ export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
                 </button>
               </div>
               <div style={{ textAlign: 'center', marginTop: 5, color: 'rgba(255,255,255,.18)', fontSize: 10 }}>
-                {lang === 'DE' ? 'Enter zum Senden · 🎙 für Sprache' : 'Enter to send · 🎙 for voice'}
+                {isMobile
+                  ? (lang === 'DE' ? 'Enter zum Senden · Sprache nur am PC' : 'Enter to send · Voice on desktop only')
+                  : (lang === 'DE' ? 'Enter zum Senden · 🎙 für Sprache' : 'Enter to send · 🎙 for voice')}
               </div>
             </div>
           )}
