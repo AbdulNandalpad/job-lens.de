@@ -164,6 +164,7 @@ export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
     market === 'in' ? 'en-IN' : 'de-DE'   // updated by lang effect below
   )
   const [isMobile, setIsMobile]               = useState(false)
+  const [mobileVoiceNote, setMobileVoiceNote] = useState(false)
 
   const messagesEndRef   = useRef<HTMLDivElement>(null)
   const inputRef         = useRef<HTMLTextAreaElement>(null)
@@ -660,8 +661,8 @@ export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
             </button>
 
             {/* Voice mode button */}
-            {(voiceSupported && ttsSupported) && !voiceMode && !isMobile && (
-              <button className="jlaw-voice-btn" onClick={enterVoiceMode} title="Talk to Kira"
+            {(voiceSupported && ttsSupported) && !voiceMode && (
+              <button className="jlaw-voice-btn" onClick={() => isMobile ? setMobileVoiceNote(true) : enterVoiceMode()} title="Talk to Kira"
                 style={{ width: 28, height: 28, borderRadius: 7, border: 'none', background: 'rgba(109,40,217,.15)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'background .2s', color: `${c.ai}` }}>
                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><rect x="9" y="2" width="6" height="12" rx="3" stroke="currentColor" strokeWidth="2"/><path d="M5 10a7 7 0 0 0 14 0" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/><line x1="12" y1="17" x2="12" y2="21" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/><line x1="9" y1="21" x2="15" y2="21" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg>
               </button>
@@ -673,24 +674,8 @@ export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
             <button className="jlaw-close" onClick={() => setOpen(false)} style={{ width: 24, height: 24, borderRadius: 6, border: 'none', background: 'rgba(255,255,255,.08)', cursor: 'pointer', color: 'rgba(255,255,255,.6)', fontSize: 14, display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'background .2s', flexShrink: 0 }}>✕</button>
           </div>
 
-          {/* ── Mobile notice ── */}
-          {isMobile ? (
-            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '32px 24px', gap: 20, textAlign: 'center' }}>
-              <div style={{ width: 56, height: 56, borderRadius: '50%', background: `linear-gradient(135deg,${c.ai},${c.accent})`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22 }}>
-                💻
-              </div>
-              <div>
-                <div style={{ color: '#fff', fontSize: 15, fontWeight: 700, fontFamily: f.heading, marginBottom: 10 }}>
-                  {lang === 'DE' ? 'Auf dem Handy bin ich eingeschränkt.' : 'My options are limited on mobile.'}
-                </div>
-                <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: 13, lineHeight: 1.6, fontFamily: f.body }}>
-                  {lang === 'DE'
-                    ? 'Für das volle Kira-Erlebnis bitte den PC nutzen.'
-                    : 'For the full Kira experience, please use a PC to talk to me.'}
-                </div>
-              </div>
-            </div>
-          ) : voiceMode ? (
+          {/* ── Voice mode UI ── */}
+          {voiceMode ? (
             <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '24px 20px', position: 'relative' }}>
 
               {/* Exit voice */}
@@ -776,6 +761,19 @@ export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
             </div>
           ) : (
             <>
+              {/* ── Mobile voice notice ── */}
+              {mobileVoiceNote && (
+                <div style={{ margin: '8px 14px 0', padding: '10px 14px', borderRadius: 10, background: 'rgba(109,40,217,0.15)', border: '1px solid rgba(109,40,217,0.35)', display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
+                  <span style={{ fontSize: 16 }}>🎙️</span>
+                  <span style={{ flex: 1, fontSize: 12, color: 'rgba(255,255,255,0.75)', lineHeight: 1.5, fontFamily: f.body }}>
+                    {lang === 'DE'
+                      ? 'Meine Sprachfunktion ist auf dem Handy eingeschränkt. Für das beste Erlebnis bitte den PC nutzen.'
+                      : 'My voice capabilities are limited on mobile. For the best experience, please use a PC.'}
+                  </span>
+                  <button onClick={() => setMobileVoiceNote(false)} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.4)', cursor: 'pointer', fontSize: 14, padding: '0 2px', lineHeight: 1 }}>✕</button>
+                </div>
+              )}
+
               {/* ── Text messages ── */}
               <div style={{ flex: 1, overflowY: 'auto', padding: '12px 14px' }}>
                 {isEmpty ? (
