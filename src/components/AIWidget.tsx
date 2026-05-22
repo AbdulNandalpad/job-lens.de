@@ -410,11 +410,7 @@ export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
         }}>
         {open
           ? <svg width="18" height="18" viewBox="0 0 20 20" fill="none"><path d="M5 5l10 10M15 5L5 15" stroke="#fff" strokeWidth="2.2" strokeLinecap="round"/></svg>
-          : <svg width="20" height="20" viewBox="0 0 44 44">
-              <circle cx="20" cy="20" r="13" fill="none" stroke="white" strokeWidth="2.8"/>
-              <circle cx="20" cy="20" r="3" fill="white"/>
-              <line x1="28" y1="28" x2="36" y2="36" stroke="white" strokeWidth="3.5" strokeLinecap="round"/>
-            </svg>
+          : <span style={{ color: '#fff', fontSize: 16, fontWeight: 800, fontFamily: f.heading, letterSpacing: '-0.5px' }}>Ki</span>
         }
       </button>
     </>
