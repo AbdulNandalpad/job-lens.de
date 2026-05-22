@@ -16,33 +16,19 @@ interface Job {
 }
 interface FeatureAction { feature: string; label: string; href: string; reason: string }
 interface JobsSearch { q: string; location: string }
-interface Msg { role: 'user' | 'assistant'; content: string; status?: string; jobs?: Job[]; jobsTotal?: number; jobsSearch?: JobsSearch; action?: FeatureAction }
+interface Msg {
+  role: 'user' | 'assistant'; content: string
+  status?: string; jobs?: Job[]; jobsTotal?: number
+  jobsSearch?: JobsSearch; action?: FeatureAction
+}
 type VoiceState = 'idle' | 'listening' | 'processing' | 'speaking'
 
 const AGENT = 'Kira'
 
-const GREETINGS: Record<string, string> = {
-  eu_DE: 'Hallo! Ich bin Kira. Ich finde Jobs, bewerte deinen Lebenslauf und helfe dir bei der Bewerbung.',
-  eu_EN: "Hi! I'm Kira. I can find live jobs, score your CV match, and guide your application.",
-  in_EN: "Hi! I'm Kira. I can find jobs across India, score your CV, and help you land the right role.",
-}
-
 const SUGGESTIONS: Record<string, string[]> = {
-  eu_DE: [
-    'Softwareentwickler Jobs in München',
-    'Remote Marketing Jobs in Deutschland',
-    'Wie gut passt mein Lebenslauf zu diesen Jobs?',
-  ],
-  eu_EN: [
-    'Software developer jobs in Munich',
-    'Remote jobs in Germany',
-    'Does my CV match a Senior React Developer role?',
-  ],
-  in_EN: [
-    'Software engineer jobs in Bangalore',
-    'Product manager roles in Hyderabad',
-    'What am I missing for a senior dev role?',
-  ],
+  eu_DE: ['Softwareentwickler Jobs in München', 'Remote Marketing Jobs in Deutschland', 'Wie gut passt mein Lebenslauf zu diesen Jobs?'],
+  eu_EN: ['Software developer jobs in Munich', 'Remote jobs in Germany', 'Does my CV match a Senior React Developer role?'],
+  in_EN: ['Software engineer jobs in Bangalore', 'Product manager roles in Hyderabad', 'What am I missing for a senior dev role?'],
 }
 
 const STATUS_LABELS: Record<string, Record<string, string>> = {
@@ -52,10 +38,10 @@ const STATUS_LABELS: Record<string, Record<string, string>> = {
 }
 
 const VOICE_LABELS: Record<VoiceState, Record<string, string>> = {
-  idle:       { eu_DE: 'Tippe auf das Mikrofon', eu_EN: 'Tap mic to speak', in_EN: 'Tap mic to speak' },
-  listening:  { eu_DE: 'Ich höre zu…',           eu_EN: 'Listening…',       in_EN: 'Listening…'       },
-  processing: { eu_DE: 'Kira denkt nach…',       eu_EN: 'Kira is thinking…',in_EN: 'Kira is thinking…'},
-  speaking:   { eu_DE: 'Kira spricht…',          eu_EN: 'Kira is speaking…',in_EN: 'Kira is speaking…'},
+  idle:       { eu_DE: 'Tippe Sprechen',       eu_EN: 'Tap Speak',           in_EN: 'Tap Speak'           },
+  listening:  { eu_DE: 'Ich höre zu…',         eu_EN: 'Listening…',          in_EN: 'Listening…'          },
+  processing: { eu_DE: 'Kira denkt nach…',     eu_EN: 'Thinking…',           in_EN: 'Thinking…'           },
+  speaking:   { eu_DE: 'Kira spricht…',        eu_EN: 'Speaking…',           in_EN: 'Speaking…'           },
 }
 
 function fmtSalary(min: number | null, max: number | null, market: 'eu' | 'in'): string {
@@ -70,7 +56,7 @@ function fmtSalary(min: number | null, max: number | null, market: 'eu' | 'in'):
   return lo && hi ? `${lo} – ${hi}` : lo || hi
 }
 
-// ── Mic SVG ──────────────────────────────────────────────────────────────────
+// ── Mic SVG ─────────────────────────────────────────────────────────────────
 function MicIcon({ size = 16, color = 'currentColor' }: { size?: number; color?: string }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -82,78 +68,93 @@ function MicIcon({ size = 16, color = 'currentColor' }: { size?: number; color?:
   )
 }
 
-// ── Voice overlay animations ──────────────────────────────────────────────────
-function ListeningAnim({ accent }: { accent: string }) {
+// ── OpenAI-style circular voice visualiser ───────────────────────────────────
+function VoiceCircle({ state, accent }: { state: VoiceState; accent: string }) {
+  const active   = state !== 'idle'
+  const speaking = state === 'speaking'
+  const listening = state === 'listening'
+
   return (
-    <div style={{ position: 'relative', width: 88, height: 88, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+    <div style={{ position: 'relative', width: 150, height: 150, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      {/* Concentric pulse rings — animate outward and fade */}
       {[1, 2, 3].map(i => (
         <div key={i} style={{
           position: 'absolute',
-          width: 40 + i * 16, height: 40 + i * 16,
+          width:  56 + i * 26, height: 56 + i * 26,
           borderRadius: '50%',
           border: `1.5px solid ${accent}`,
-          animation: `kira-ring 2s ease-out ${i * 0.45}s infinite`,
-        }}/>
+          animation: active
+            ? `kira-ring ${speaking ? 1.1 : 1.8}s ease-out ${i * (speaking ? 0.18 : 0.35)}s infinite`
+            : `kira-idle-ring 4s ease-in-out ${i * 0.6}s infinite`,
+          opacity: active ? 0 : 0,  // initial — animation handles opacity
+        }} />
       ))}
-      <div style={{ width: 56, height: 56, borderRadius: '50%', background: `${accent}22`, border: `2px solid ${accent}`, display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1 }}>
-        <MicIcon size={24} color={accent}/>
+
+      {/* Glow backdrop */}
+      {active && (
+        <div style={{
+          position: 'absolute',
+          width: 100, height: 100, borderRadius: '50%',
+          background: `radial-gradient(circle, ${accent}28 0%, transparent 70%)`,
+          animation: speaking ? 'kira-breathe 1s ease-in-out infinite' : undefined,
+        }} />
+      )}
+
+      {/* Centre circle */}
+      <div style={{
+        width: 72, height: 72, borderRadius: '50%', zIndex: 1,
+        background: active
+          ? `radial-gradient(circle at 38% 38%, ${accent}55, ${accent}22)`
+          : 'rgba(255,255,255,.06)',
+        border: `2px solid ${active ? accent : 'rgba(255,255,255,.18)'}`,
+        boxShadow: active ? `0 0 28px ${accent}50, inset 0 0 14px ${accent}18` : 'none',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        transition: 'all 0.35s ease',
+        animation: speaking ? 'kira-breathe 1s ease-in-out infinite' : listening ? 'kira-listen-pulse 1.6s ease-in-out infinite' : undefined,
+      }}>
+        {state === 'processing'
+          ? <span style={{ width: 18, height: 18, border: `2.5px solid ${accent}44`, borderTopColor: accent, borderRadius: '50%', display: 'inline-block', animation: 'kira-spin .75s linear infinite' }}/>
+          : <MicIcon size={28} color={active ? '#fff' : 'rgba(255,255,255,.35)'}/>
+        }
       </div>
+
+      {/* Speaking: small floating wave dots below circle */}
+      {speaking && (
+        <div style={{ position: 'absolute', bottom: 8, display: 'flex', gap: 4, alignItems: 'flex-end' }}>
+          {[0.5, 1, 0.7, 1, 0.6].map((h, i) => (
+            <div key={i} style={{
+              width: 3, borderRadius: 2, background: accent,
+              height: `${h * 14}px`,
+              animation: `kira-wave .55s ease-in-out ${i * 0.09}s infinite alternate`,
+            }} />
+          ))}
+        </div>
+      )}
     </div>
   )
 }
 
-function ProcessingAnim({ accent }: { accent: string }) {
-  return (
-    <div style={{ display: 'flex', gap: 8, alignItems: 'center', height: 56 }}>
-      {[0, 1, 2].map(i => (
-        <div key={i} style={{ width: 10, height: 10, borderRadius: '50%', background: accent, animation: `kira-dot 1.2s ease-in-out ${i * 0.2}s infinite` }}/>
-      ))}
-    </div>
-  )
-}
-
-function SpeakingAnim({ accent }: { accent: string }) {
-  const heights = [0.35, 0.65, 1, 0.75, 1, 0.55, 0.8, 0.4, 0.7, 0.5]
-  return (
-    <div style={{ display: 'flex', gap: 3, alignItems: 'center', height: 56 }}>
-      {heights.map((h, i) => (
-        <div key={i} style={{
-          width: 4, borderRadius: 2, background: accent,
-          height: `${h * 40}px`,
-          animation: `kira-wave 0.6s ease-in-out ${i * 0.07}s infinite alternate`,
-        }}/>
-      ))}
-    </div>
-  )
-}
-
-function IdleAnim({ accent }: { accent: string }) {
-  return (
-    <div style={{ width: 56, height: 56, borderRadius: '50%', background: 'rgba(255,255,255,.05)', border: '1.5px solid rgba(255,255,255,.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', animation: 'kira-idle-pulse 2.5s ease-in-out infinite' }}>
-      <MicIcon size={22} color="rgba(255,255,255,.4)"/>
-    </div>
-  )
-}
-
+// ── Main component ───────────────────────────────────────────────────────────
 export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
   const { lang }   = useLanguage()
   const router     = useRouter()
   const key    = market === 'in' ? 'in_EN' : `eu_${lang}`
   const accent = market === 'in' ? '#FF9933' : c.accent
 
-  // ── Chat state ───────────────────────────────────────────────────────────────
+  // ── Chat state ───────────────────────────────────────────────────────────
   const [open,        setOpen]        = useState(false)
   const [msgs,        setMsgs]        = useState<Msg[]>([])
   const [input,       setInput]       = useState('')
   const [loading,     setLoading]     = useState(false)
   const [cvName,      setCvName]      = useState('')
   const [cvUploading, setCvUploading] = useState(false)
+  const [userName,    setUserName]    = useState('')
 
-  // ── Voice state ───────────────────────────────────────────────────────────────
+  // ── Voice state ──────────────────────────────────────────────────────────
   const [voiceMode,  setVoiceMode]  = useState(false)
   const [voiceState, setVoiceState] = useState<VoiceState>('idle')
 
-  // ── Refs ─────────────────────────────────────────────────────────────────────
+  // ── Refs ─────────────────────────────────────────────────────────────────
   const bottomRef        = useRef<HTMLDivElement>(null)
   const inputRef         = useRef<HTMLTextAreaElement>(null)
   const cvRef            = useRef('')
@@ -167,20 +168,44 @@ export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
   const voiceModeRef     = useRef(false)
   const transcriptRef    = useRef('')
   const listenTimerRef   = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const greetedRef       = useRef(false)
 
-  // Keep refs in sync
   useEffect(() => { voiceModeRef.current = voiceMode }, [voiceMode])
 
-  // ── Init ─────────────────────────────────────────────────────────────────────
+  // ── Init: CV, saved messages, user name ─────────────────────────────────
   useEffect(() => {
     const cv = sessionStorage.getItem(SS.cvText) || ''
     cvRef.current = cv
     if (cv) setCvName('CV ready')
+
     try {
       const saved = sessionStorage.getItem(SS.aiMessages)
-      if (saved) setMsgs(JSON.parse(saved))
+      if (saved) {
+        const parsed = JSON.parse(saved) as Msg[]
+        if (parsed.length > 0) {
+          setMsgs(parsed)
+          greetedRef.current = true   // existing history — skip greeting
+        }
+      }
     } catch { /* ignore */ }
+
+    // Fetch first name for personalised greeting
+    fetch('/api/user/profile')
+      .then(r => r.json())
+      .then((d: { full_name?: string }) => { if (d.full_name) setUserName(d.full_name.split(' ')[0]) })
+      .catch(() => {})
   }, [])
+
+  // ── Greeting on first open ───────────────────────────────────────────────
+  useEffect(() => {
+    if (!open || greetedRef.current) return
+    greetedRef.current = true
+    const name = userName ? `, ${userName}` : ''
+    const text = key === 'eu_DE'
+      ? `Hallo${name}! Ich bin Kira, deine KI-Karriereassistentin. Wie kann ich dir heute helfen?`
+      : `Hi${name}! I'm Kira, your AI career assistant. How can I help you today?`
+    setMsgs([{ role: 'assistant', content: text }])
+  }, [open, userName, key])
 
   useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: 'smooth' }) }, [msgs])
 
@@ -192,7 +217,7 @@ export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
     if (open && !voiceMode) setTimeout(() => inputRef.current?.focus(), 50)
   }, [open, voiceMode])
 
-  // ── CV upload ─────────────────────────────────────────────────────────────────
+  // ── CV upload ────────────────────────────────────────────────────────────
   async function handleCvUpload(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
     if (!file) return
@@ -223,17 +248,19 @@ export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
     if (fileInputRef.current) fileInputRef.current.value = ''
   }
 
-  // ── Audio unlock (iOS) ────────────────────────────────────────────────────────
+  // ── Audio helpers ─────────────────────────────────────────────────────────
   function unlockAudio() {
-    if (audioCtxRef.current) return
+    // Must be called synchronously inside a user-gesture handler (iOS requirement)
     try {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const ACtx = window.AudioContext || (window as any).webkitAudioContext
-      if (ACtx) { audioCtxRef.current = new ACtx(); audioCtxRef.current.resume() }
+      if (!audioCtxRef.current) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const ACtx = window.AudioContext || (window as any).webkitAudioContext
+        if (ACtx) audioCtxRef.current = new ACtx()
+      }
+      audioCtxRef.current?.resume()
     } catch { /* not supported */ }
   }
 
-  // ── Audio playback ────────────────────────────────────────────────────────────
   function stopAudio() {
     if (audioRef.current) { audioRef.current.pause(); audioRef.current = null }
   }
@@ -248,8 +275,8 @@ export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
         body: JSON.stringify({ text: text.slice(0, 1000), voice: 'nova' }),
       }).then(async res => {
         if (!res.ok) { resolve(); return }
-        const blob = await res.blob()
-        const url  = URL.createObjectURL(blob)
+        const blob  = await res.blob()
+        const url   = URL.createObjectURL(blob)
         const audio = new Audio(url)
         audioRef.current = audio
         audio.onended = () => { URL.revokeObjectURL(url); audioRef.current = null; resolve() }
@@ -259,30 +286,28 @@ export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
     })
   }
 
-  // ── STT helpers ───────────────────────────────────────────────────────────────
+  // ── STT helpers ──────────────────────────────────────────────────────────
   function getSttLang() {
     if (market === 'in') return 'en-IN'
     return lang === 'DE' ? 'de-DE' : 'en-GB'
   }
-
   function getWhisperLang() {
     if (market === 'in') return 'en'
     return lang === 'DE' ? 'de' : 'en'
   }
-
   function getSupportedMimeType() {
     const types = ['audio/webm;codecs=opus', 'audio/webm', 'audio/mp4', 'audio/ogg;codecs=opus', 'audio/ogg']
     return types.find(t => MediaRecorder.isTypeSupported(t)) || ''
   }
 
-  // ── Voice mode control ────────────────────────────────────────────────────────
+  // ── Voice mode control ───────────────────────────────────────────────────
   function enterVoiceMode() {
     if (loading) return
-    unlockAudio() // must be synchronous in the touch handler
+    unlockAudio()   // synchronous — must stay before any await
     voiceModeRef.current = true
     setVoiceMode(true)
     setVoiceState('idle')
-    setTimeout(() => startListening(), 150)
+    setTimeout(() => startListening(), 200)
   }
 
   function exitVoiceMode() {
@@ -293,14 +318,13 @@ export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
     stopAudio()
   }
 
-  // ── Listening ─────────────────────────────────────────────────────────────────
+  // ── Core listening ───────────────────────────────────────────────────────
   function startListening() {
     if (!voiceModeRef.current) return
-
     if (listenTimerRef.current) clearTimeout(listenTimerRef.current)
     setVoiceState('listening')
 
-    // Hard 15s escape — prevents any stuck-listening state
+    // Hard 15s escape — fires if browser never delivers onend
     listenTimerRef.current = setTimeout(() => {
       stopListening()
       if (voiceModeRef.current) setVoiceState('idle')
@@ -311,7 +335,7 @@ export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
     if (SR) {
       const rec = new SR()
       rec.lang           = getSttLang()
-      rec.continuous     = false   // one utterance — no loop risk
+      rec.continuous     = false   // single utterance — no self-loop possible
       rec.interimResults = false
       transcriptRef.current = ''
 
@@ -332,8 +356,8 @@ export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
           setVoiceState('processing')
           void send(t)
         } else if (voiceModeRef.current) {
-          // No speech heard — wait briefly and re-arm (not a loop: requires a browser event each time)
-          setTimeout(() => { if (voiceModeRef.current) startListening() }, 800)
+          // Silence — re-arm after short pause (requires new browser event each time, not a runaway loop)
+          setTimeout(() => { if (voiceModeRef.current) startListening() }, 700)
         }
       }
 
@@ -341,19 +365,21 @@ export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
       rec.onerror = (e: any) => {
         if (listenTimerRef.current) clearTimeout(listenTimerRef.current)
         recognitionRef.current = null
-        if (e.error === 'no-speech' && voiceModeRef.current) {
-          setTimeout(() => { if (voiceModeRef.current) startListening() }, 800)
-        } else {
-          // network / aborted / not-allowed → go idle, don't loop
+        const fatal = ['not-allowed', 'service-not-allowed']
+        if (fatal.includes(e.error as string)) {
+          // Permission denied — stop
           setVoiceState('idle')
+        } else if (voiceModeRef.current) {
+          // network / audio-capture / other transient error — fall back to Whisper
+          void startWhisperRecording()
         }
       }
 
       recognitionRef.current = rec
-      try { rec.start() } catch { setVoiceState('idle') }
+      try { rec.start() } catch { void startWhisperRecording() }
 
     } else {
-      // Whisper fallback (iOS Safari, Firefox)
+      // No Web Speech API (iOS Safari, Firefox) — go straight to Whisper
       if (listenTimerRef.current) clearTimeout(listenTimerRef.current)
       void startWhisperRecording()
     }
@@ -366,19 +392,27 @@ export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
     try { mediaRecorderRef.current?.stop() } catch { /* ignore */ }
   }
 
-  // ── Whisper path (iOS / Firefox) ──────────────────────────────────────────────
+  // ── Whisper path (iOS / Firefox / Web Speech fallback) ───────────────────
   async function startWhisperRecording() {
     if (!voiceModeRef.current) return
+    setVoiceState('listening')
     try {
       const stream   = await navigator.mediaDevices.getUserMedia({ audio: true })
       const mimeType = getSupportedMimeType()
       const mr       = new MediaRecorder(stream, mimeType ? { mimeType } : undefined)
       audioChunksRef.current = []
 
-      // Silence detection via AnalyserNode — auto-stops after 2s of silence post-speech
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const ACtx     = window.AudioContext || (window as any).webkitAudioContext
-      const ctx      = new ACtx()
+      // Silence detection using the SHARED AudioContext (already unlocked via unlockAudio)
+      // Creating a new AudioContext here would be blocked on iOS — reuse the existing one.
+      let ctx = audioCtxRef.current
+      if (!ctx) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const ACtx = window.AudioContext || (window as any).webkitAudioContext
+        ctx = new ACtx()
+        audioCtxRef.current = ctx
+      }
+      await ctx.resume()
+
       const analyser = ctx.createAnalyser()
       const source   = ctx.createMediaStreamSource(stream)
       source.connect(analyser)
@@ -398,14 +432,18 @@ export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
           if (!silenceStart) silenceStart = Date.now()
           if (Date.now() - silenceStart > 2000) {
             clearInterval(silenceCheck)
-            void ctx.close()
+            source.disconnect()
             mr.stop()
           }
         }
       }, 100)
 
       // 30s hard cap
-      const maxTimer = setTimeout(() => { clearInterval(silenceCheck); void ctx.close(); mr.stop() }, 30_000)
+      const maxTimer = setTimeout(() => {
+        clearInterval(silenceCheck)
+        source.disconnect()
+        mr.stop()
+      }, 30_000)
 
       mr.ondataavailable = e => { if (e.data.size > 0) audioChunksRef.current.push(e.data) }
       mr.onstop = async () => {
@@ -420,8 +458,8 @@ export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
           const form = new FormData()
           form.append('file', blob, `audio.${ext}`)
           form.append('language', getWhisperLang())
-          const res  = await fetch(API.aiStt, { method: 'POST', body: form })
-          const d    = await res.json()
+          const res = await fetch(API.aiStt, { method: 'POST', body: form })
+          const d   = await res.json()
           if (d.text?.trim() && voiceModeRef.current) {
             void send(d.text.trim())
           } else if (voiceModeRef.current) {
@@ -440,7 +478,7 @@ export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
     }
   }
 
-  // ── Tailor CV ─────────────────────────────────────────────────────────────────
+  // ── Tailor CV ────────────────────────────────────────────────────────────
   function tailorCv(job: Job) {
     if (!cvRef.current) {
       setMsgs(prev => [...prev, { role: 'assistant', content: lang === 'DE'
@@ -458,11 +496,11 @@ export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
     router.push(market === 'in' ? '/in/cv-builder' : '/app/cv-builder')
   }
 
-  // ── Send ──────────────────────────────────────────────────────────────────────
+  // ── Send ─────────────────────────────────────────────────────────────────
   async function send(text: string) {
     if (!text.trim() || loading) return
 
-    const isVoice = voiceModeRef.current  // capture now — don't re-read later
+    const isVoice = voiceModeRef.current
 
     const userMsg: Msg = { role: 'user', content: text.trim() }
     const history = [...msgs, userMsg]
@@ -505,51 +543,26 @@ export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
             const evt = JSON.parse(line.slice(6))
             if (evt.text) {
               assembled += evt.text
-              setMsgs(prev => {
-                const cp = [...prev]
-                cp[idx] = { role: 'assistant', content: assembled, jobs: cp[idx]?.jobs, action: cp[idx]?.action }
-                return cp
-              })
+              setMsgs(prev => { const cp = [...prev]; cp[idx] = { role: 'assistant', content: assembled, jobs: cp[idx]?.jobs, action: cp[idx]?.action }; return cp })
             } else if (evt.jobs) {
-              setMsgs(prev => {
-                const cp = [...prev]
-                cp[idx] = { ...cp[idx], jobs: evt.jobs as Job[], jobsTotal: evt.total as number | undefined, jobsSearch: { q: String(evt.query || ''), location: String(evt.location || '') }, status: undefined }
-                return cp
-              })
+              setMsgs(prev => { const cp = [...prev]; cp[idx] = { ...cp[idx], jobs: evt.jobs as Job[], jobsTotal: evt.total as number | undefined, jobsSearch: { q: String(evt.query || ''), location: String(evt.location || '') }, status: undefined }; return cp })
             } else if (evt.action) {
-              setMsgs(prev => {
-                const cp = [...prev]
-                cp[idx] = { ...cp[idx], action: evt.action as FeatureAction, status: undefined }
-                return cp
-              })
+              setMsgs(prev => { const cp = [...prev]; cp[idx] = { ...cp[idx], action: evt.action as FeatureAction, status: undefined }; return cp })
             } else if (evt.status) {
-              setMsgs(prev => {
-                const cp = [...prev]
-                cp[idx] = { role: 'assistant', content: '', status: evt.status as string }
-                return cp
-              })
+              setMsgs(prev => { const cp = [...prev]; cp[idx] = { role: 'assistant', content: '', status: evt.status as string }; return cp })
             } else if (evt.error) {
-              setMsgs(prev => {
-                const cp = [...prev]
-                cp[idx] = { role: 'assistant', content: evt.error as string }
-                return cp
-              })
+              setMsgs(prev => { const cp = [...prev]; cp[idx] = { role: 'assistant', content: evt.error as string }; return cp })
             }
           } catch { /* ignore malformed chunk */ }
         }
       }
     } catch {
-      setMsgs(prev => {
-        const cp = [...prev]
-        cp[idx] = { role: 'assistant', content: 'Connection error. Please try again.' }
-        return cp
-      })
+      setMsgs(prev => { const cp = [...prev]; cp[idx] = { role: 'assistant', content: 'Connection error. Please try again.' }; return cp })
     }
 
     setLoading(false)
 
     if (isVoice && voiceModeRef.current) {
-      // Voice mode: play TTS, await completion, then re-arm listening
       setVoiceState('speaking')
       if (assembled) await playTts(assembled)
       if (voiceModeRef.current) {
@@ -557,36 +570,38 @@ export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
         setTimeout(() => startListening(), 400)
       }
     }
-    // Text mode: no TTS, just restore focus
     if (!isVoice) inputRef.current?.focus()
   }
 
-  const greeting    = GREETINGS[key]    || GREETINGS['eu_EN']
-  const suggestions = SUGGESTIONS[key]  || SUGGESTIONS['eu_EN']
+  const suggestions = SUGGESTIONS[key]   || SUGGESTIONS['eu_EN']
   const statusMap   = STATUS_LABELS[key] || STATUS_LABELS['eu_EN']
-  const voiceLabel  = VOICE_LABELS[voiceState]?.[key] || VOICE_LABELS[voiceState]?.['eu_EN'] || ''
+  const voiceLabel  = (VOICE_LABELS[voiceState]?.[key] || VOICE_LABELS[voiceState]?.['eu_EN']) ?? ''
+
+  // Show suggestion chips after the opening greeting, or when msgs is empty
+  const showSuggestions = msgs.length <= 1 && !loading
 
   return (
     <>
       <style>{`
-        @keyframes kira-slide     { from{opacity:0;transform:translateY(12px) scale(.97)} to{opacity:1;transform:none} }
-        @keyframes kira-dot       { 0%,60%,100%{opacity:.3;transform:translateY(0)} 30%{opacity:1;transform:translateY(-4px)} }
-        @keyframes kira-spin      { to{transform:rotate(360deg)} }
-        @keyframes kira-ring      { 0%{transform:scale(1);opacity:.55} 100%{transform:scale(2.1);opacity:0} }
-        @keyframes kira-wave      { 0%{transform:scaleY(0.3)} 100%{transform:scaleY(1)} }
-        @keyframes kira-idle-pulse{ 0%,100%{opacity:.35} 50%{opacity:.75} }
-        .kira-fab:hover           { transform:scale(1.08) !important }
+        @keyframes kira-slide      { from{opacity:0;transform:translateY(12px) scale(.97)} to{opacity:1;transform:none} }
+        @keyframes kira-dot        { 0%,60%,100%{opacity:.3;transform:translateY(0)} 30%{opacity:1;transform:translateY(-4px)} }
+        @keyframes kira-spin       { to{transform:rotate(360deg)} }
+        @keyframes kira-ring       { 0%{transform:scale(1);opacity:.55} 100%{transform:scale(1.85);opacity:0} }
+        @keyframes kira-idle-ring  { 0%,100%{opacity:.06;transform:scale(1)} 50%{opacity:.15;transform:scale(1.06)} }
+        @keyframes kira-breathe    { 0%,100%{transform:scale(1)} 50%{transform:scale(1.09)} }
+        @keyframes kira-listen-pulse { 0%,100%{box-shadow:0 0 28px ${accent}50,inset 0 0 14px ${accent}18} 50%{box-shadow:0 0 42px ${accent}80,inset 0 0 20px ${accent}30} }
+        @keyframes kira-wave       { 0%{transform:scaleY(.25)} 100%{transform:scaleY(1)} }
+        .kira-fab:hover            { transform:scale(1.08) !important }
         .kira-send:hover:not(:disabled){ opacity:.85 }
-        .kira-send:disabled       { opacity:.4;cursor:not-allowed }
-        .kira-suggest:hover       { border-color:${accent} !important;color:${accent} !important;background:rgba(55,138,221,.08) !important }
-        .kira-close:hover         { background:rgba(255,255,255,.15) !important }
-        .kira-input:focus         { outline:none }
-        .kira-job-card:hover      { border-color:${accent}66 !important;background:rgba(255,255,255,.08) !important }
-        .kira-apply:hover         { opacity:.85 }
-        .kira-icon-btn:hover      { background:rgba(255,255,255,.15) !important }
-        .kira-mic-btn:hover       { background:rgba(255,255,255,.12) !important }
+        .kira-send:disabled        { opacity:.4;cursor:not-allowed }
+        .kira-suggest:hover        { border-color:${accent} !important;color:${accent} !important;background:${accent}0f !important }
+        .kira-close:hover          { background:rgba(255,255,255,.15) !important }
+        .kira-input:focus          { outline:none }
+        .kira-job-card:hover       { border-color:${accent}66 !important;background:rgba(255,255,255,.08) !important }
+        .kira-apply:hover          { opacity:.85 }
+        .kira-mic-btn:hover        { background:rgba(255,255,255,.12) !important }
         @media (max-width:480px) {
-          .kira-panel { width:calc(100vw - 24px) !important;right:12px !important;left:12px !important;height:70vh !important;bottom:74px !important }
+          .kira-panel { width:calc(100vw - 24px) !important;right:12px !important;left:12px !important;height:72vh !important;bottom:74px !important }
         }
       `}</style>
 
@@ -604,7 +619,6 @@ export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
 
           {/* ── Header ── */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 12px', borderBottom: '1px solid rgba(255,255,255,.07)', flexShrink: 0 }}>
-            {/* Avatar */}
             <div style={{ width: 32, height: 32, borderRadius: '50%', background: `linear-gradient(135deg,${accent}cc,${accent}55)`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
               <svg width="14" height="14" viewBox="0 0 44 44">
                 <circle cx="20" cy="20" r="13" fill="none" stroke="white" strokeWidth="2.8"/>
@@ -612,8 +626,6 @@ export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
                 <line x1="28" y1="28" x2="36" y2="36" stroke="white" strokeWidth="3.5" strokeLinecap="round"/>
               </svg>
             </div>
-
-            {/* Name + status */}
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ color: '#fff', fontSize: 13, fontWeight: 700, fontFamily: f.heading }}>{AGENT}</div>
               <div style={{ fontSize: 10, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 5 }}>
@@ -628,7 +640,6 @@ export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
               </div>
             </div>
 
-            {/* Hidden file input */}
             <input ref={fileInputRef} type="file" accept=".pdf,.doc,.docx,.txt" style={{ display: 'none' }} onChange={handleCvUpload}/>
 
             {/* Upload CV */}
@@ -636,15 +647,12 @@ export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
               style={{ width: 28, height: 28, borderRadius: 7, border: 'none', background: cvName ? `${accent}22` : 'rgba(255,255,255,.08)', cursor: 'pointer', color: cvName ? accent : 'rgba(255,255,255,.55)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, transition: 'all .15s' }}>
               {cvUploading
                 ? <span style={{ width: 10, height: 10, border: '2px solid rgba(255,255,255,.3)', borderTopColor: '#fff', borderRadius: '50%', display: 'inline-block', animation: 'kira-spin .8s linear infinite' }}/>
-                : <svg width="13" height="13" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M10 3v10M6 7l4-4 4 4"/><path d="M3 17h14"/>
-                  </svg>
+                : <svg width="13" height="13" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10 3v10M6 7l4-4 4 4"/><path d="M3 17h14"/></svg>
               }
             </button>
 
-            {/* Mic / voice mode toggle */}
-            <button
-              className="kira-mic-btn"
+            {/* Mic toggle */}
+            <button className="kira-mic-btn"
               title={voiceMode ? 'End voice' : lang === 'DE' ? 'Sprachassistentin' : 'Voice mode'}
               onClick={voiceMode ? exitVoiceMode : enterVoiceMode}
               style={{
@@ -660,15 +668,13 @@ export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
               }
             </button>
 
-            {/* Clear */}
             {msgs.length > 0 && !voiceMode && (
-              <button onClick={() => { setMsgs([]); sessionStorage.removeItem(SS.aiMessages) }}
+              <button onClick={() => { setMsgs([]); greetedRef.current = false; sessionStorage.removeItem(SS.aiMessages) }}
                 style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,.3)', fontSize: 10, cursor: 'pointer', padding: '2px 4px', fontFamily: f.body, flexShrink: 0 }}>
                 Clear
               </button>
             )}
 
-            {/* Close */}
             <button className="kira-close" onClick={() => { setOpen(false); if (voiceMode) exitVoiceMode() }}
               style={{ width: 24, height: 24, borderRadius: 6, border: 'none', background: 'rgba(255,255,255,.08)', cursor: 'pointer', color: 'rgba(255,255,255,.6)', fontSize: 14, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
               ✕
@@ -677,36 +683,28 @@ export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
 
           {/* ── Voice overlay ── */}
           {voiceMode ? (
-            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 24, padding: '24px 20px' }}>
-              {/* Animated state indicator */}
-              {voiceState === 'listening'  && <ListeningAnim  accent={accent}/>}
-              {voiceState === 'processing' && <ProcessingAnim accent={accent}/>}
-              {voiceState === 'speaking'   && <SpeakingAnim   accent={accent}/>}
-              {voiceState === 'idle'       && <IdleAnim        accent={accent}/>}
+            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 20, padding: '24px 20px' }}>
+              <VoiceCircle state={voiceState} accent={accent}/>
 
-              {/* State label */}
-              <div style={{ fontSize: 13, color: 'rgba(255,255,255,.5)', fontFamily: f.body, textAlign: 'center' }}>
+              <div style={{ fontSize: 13, color: voiceState === 'idle' ? 'rgba(255,255,255,.35)' : 'rgba(255,255,255,.6)', fontFamily: f.body, textAlign: 'center', letterSpacing: .2 }}>
                 {voiceLabel}
               </div>
 
-              {/* Tap-to-speak in idle state */}
               {voiceState === 'idle' && (
                 <button onClick={() => startListening()}
-                  style={{ padding: '9px 22px', borderRadius: 20, border: `1.5px solid ${accent}55`, background: `${accent}15`, color: accent, fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: f.heading, transition: 'all .15s' }}>
+                  style={{ padding: '9px 26px', borderRadius: 20, border: `1.5px solid ${accent}55`, background: `${accent}15`, color: accent, fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: f.heading, transition: 'all .15s' }}>
                   {lang === 'DE' ? 'Sprechen' : 'Speak'}
                 </button>
               )}
 
-              {/* Transcript count hint */}
-              {msgs.length > 0 && (
-                <div style={{ fontSize: 11, color: 'rgba(255,255,255,.2)', fontFamily: f.body }}>
-                  {msgs.filter(m => m.role === 'user').length} {lang === 'DE' ? 'Nachrichten' : 'messages'} · {lang === 'DE' ? 'Beenden um Verlauf zu sehen' : 'End voice to see transcript'}
+              {msgs.filter(m => m.role === 'user').length > 0 && (
+                <div style={{ fontSize: 11, color: 'rgba(255,255,255,.2)', fontFamily: f.body, textAlign: 'center' }}>
+                  {msgs.filter(m => m.role === 'user').length} {lang === 'DE' ? 'Nachrichten' : 'messages'} · {lang === 'DE' ? 'Beenden für Verlauf' : 'end to see transcript'}
                 </div>
               )}
 
-              {/* End voice */}
               <button onClick={exitVoiceMode}
-                style={{ padding: '8px 20px', borderRadius: 20, border: '1px solid rgba(255,255,255,.12)', background: 'rgba(255,255,255,.05)', color: 'rgba(255,255,255,.4)', fontSize: 12, cursor: 'pointer', fontFamily: f.body, transition: 'all .15s' }}>
+                style={{ padding: '8px 20px', borderRadius: 20, border: '1px solid rgba(255,255,255,.1)', background: 'rgba(255,255,255,.04)', color: 'rgba(255,255,255,.35)', fontSize: 12, cursor: 'pointer', fontFamily: f.body }}>
                 {lang === 'DE' ? 'Beenden' : 'End voice'}
               </button>
             </div>
@@ -714,120 +712,116 @@ export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
           ) : (
             /* ── Messages ── */
             <div style={{ flex: 1, overflowY: 'auto', padding: '12px 14px' }}>
-              {msgs.length === 0 ? (
-                <div>
-                  <p style={{ color: 'rgba(255,255,255,.55)', fontSize: 12, lineHeight: 1.65, marginBottom: 14 }}>{greeting}</p>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                    {suggestions.map(s => (
-                      <button key={s} className="kira-suggest" onClick={() => send(s)}
-                        style={{ textAlign: 'left', padding: '7px 12px', borderRadius: 10, background: 'rgba(255,255,255,.04)', border: '1px solid rgba(255,255,255,.1)', color: 'rgba(255,255,255,.55)', fontSize: 12, cursor: 'pointer', transition: 'all .15s', fontFamily: f.body }}>
-                        {s}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              ) : (
-                <>
-                  {msgs.map((m, i) => (
-                    <div key={i} style={{ marginBottom: 8 }}>
-                      <div style={{ display: 'flex', justifyContent: m.role === 'user' ? 'flex-end' : 'flex-start', gap: 6, alignItems: 'flex-end' }}>
-                        {m.role === 'assistant' && (
-                          <div style={{ width: 22, height: 22, borderRadius: '50%', background: `linear-gradient(135deg,${accent},${accent}88)`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                            <svg width="10" height="10" viewBox="0 0 44 44">
-                              <circle cx="20" cy="20" r="13" fill="none" stroke="white" strokeWidth="3"/>
-                              <circle cx="20" cy="20" r="3" fill="white"/>
-                              <line x1="28" y1="28" x2="36" y2="36" stroke="white" strokeWidth="4" strokeLinecap="round"/>
-                            </svg>
-                          </div>
-                        )}
-                        {(m.content || m.status || (!m.jobs && !m.action)) && (
-                          <div style={{
-                            maxWidth: '78%', padding: '8px 12px', fontSize: 13, lineHeight: 1.55, color: '#fff', fontFamily: f.body,
-                            borderRadius: m.role === 'user' ? '14px 14px 3px 14px' : '3px 14px 14px 14px',
-                            background: m.role === 'user' ? `linear-gradient(135deg,${accent}cc,${accent}88)` : 'rgba(255,255,255,.07)',
-                            border: m.role === 'assistant' ? '1px solid rgba(255,255,255,.08)' : 'none',
-                          }}>
-                            {m.status ? (
-                              <span style={{ color: 'rgba(255,255,255,.5)', display: 'flex', alignItems: 'center', gap: 6, fontSize: 12 }}>
-                                <span style={{ display: 'inline-flex', gap: 3 }}>
-                                  {[0, 1, 2].map(j => <span key={j} style={{ width: 4, height: 4, borderRadius: '50%', background: accent, display: 'inline-block', animation: `kira-dot 1.2s ease-in-out ${j * .2}s infinite` }}/>)}
-                                </span>
-                                {statusMap[m.status] || 'Thinking...'}
-                              </span>
-                            ) : i === msgs.length - 1 && m.role === 'assistant' && m.content === '' ? (
-                              <span style={{ display: 'inline-flex', gap: 3, alignItems: 'center' }}>
-                                {[0, 1, 2].map(j => <span key={j} style={{ width: 4, height: 4, borderRadius: '50%', background: accent, display: 'inline-block', animation: `kira-dot 1.2s ease-in-out ${j * .2}s infinite` }}/>)}
-                              </span>
-                            ) : (
-                              <span style={{ whiteSpace: 'pre-wrap' }}>{m.content}</span>
-                            )}
-                          </div>
+              {msgs.map((m, i) => (
+                <div key={i} style={{ marginBottom: 8 }}>
+                  <div style={{ display: 'flex', justifyContent: m.role === 'user' ? 'flex-end' : 'flex-start', gap: 6, alignItems: 'flex-end' }}>
+                    {m.role === 'assistant' && (
+                      <div style={{ width: 22, height: 22, borderRadius: '50%', background: `linear-gradient(135deg,${accent},${accent}88)`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                        <svg width="10" height="10" viewBox="0 0 44 44">
+                          <circle cx="20" cy="20" r="13" fill="none" stroke="white" strokeWidth="3"/>
+                          <circle cx="20" cy="20" r="3" fill="white"/>
+                          <line x1="28" y1="28" x2="36" y2="36" stroke="white" strokeWidth="4" strokeLinecap="round"/>
+                        </svg>
+                      </div>
+                    )}
+                    {(m.content || m.status || (!m.jobs && !m.action)) && (
+                      <div style={{
+                        maxWidth: '78%', padding: '8px 12px', fontSize: 13, lineHeight: 1.55, color: '#fff', fontFamily: f.body,
+                        borderRadius: m.role === 'user' ? '14px 14px 3px 14px' : '3px 14px 14px 14px',
+                        background: m.role === 'user' ? `linear-gradient(135deg,${accent}cc,${accent}88)` : 'rgba(255,255,255,.07)',
+                        border: m.role === 'assistant' ? '1px solid rgba(255,255,255,.08)' : 'none',
+                      }}>
+                        {m.status ? (
+                          <span style={{ color: 'rgba(255,255,255,.5)', display: 'flex', alignItems: 'center', gap: 6, fontSize: 12 }}>
+                            <span style={{ display: 'inline-flex', gap: 3 }}>
+                              {[0,1,2].map(j => <span key={j} style={{ width: 4, height: 4, borderRadius: '50%', background: accent, display: 'inline-block', animation: `kira-dot 1.2s ease-in-out ${j*.2}s infinite` }}/>)}
+                            </span>
+                            {statusMap[m.status] || 'Thinking...'}
+                          </span>
+                        ) : i === msgs.length - 1 && m.role === 'assistant' && m.content === '' ? (
+                          <span style={{ display: 'inline-flex', gap: 3, alignItems: 'center' }}>
+                            {[0,1,2].map(j => <span key={j} style={{ width: 4, height: 4, borderRadius: '50%', background: accent, display: 'inline-block', animation: `kira-dot 1.2s ease-in-out ${j*.2}s infinite` }}/>)}
+                          </span>
+                        ) : (
+                          <span style={{ whiteSpace: 'pre-wrap' }}>{m.content}</span>
                         )}
                       </div>
+                    )}
+                  </div>
 
-                      {/* Job cards */}
-                      {m.jobs && m.jobs.length > 0 && (
-                        <div style={{ marginTop: 6, marginLeft: 28, display: 'flex', flexDirection: 'column', gap: 6 }}>
-                          <div style={{ fontSize: 10, color: 'rgba(255,255,255,.35)', marginBottom: 2, fontFamily: f.body }}>
-                            {m.jobsTotal && m.jobsTotal > m.jobs.length
-                              ? `Showing ${m.jobs.length} of ${m.jobsTotal.toLocaleString()} jobs`
-                              : `${m.jobs.length} job${m.jobs.length !== 1 ? 's' : ''} found`}
+                  {/* Job cards */}
+                  {m.jobs && m.jobs.length > 0 && (
+                    <div style={{ marginTop: 6, marginLeft: 28, display: 'flex', flexDirection: 'column', gap: 6 }}>
+                      <div style={{ fontSize: 10, color: 'rgba(255,255,255,.35)', marginBottom: 2, fontFamily: f.body }}>
+                        {m.jobsTotal && m.jobsTotal > m.jobs.length
+                          ? `Showing ${m.jobs.length} of ${m.jobsTotal.toLocaleString()} jobs`
+                          : `${m.jobs.length} job${m.jobs.length !== 1 ? 's' : ''} found`}
+                      </div>
+                      {m.jobs.map((job, ji) => {
+                        const salary = fmtSalary(job.salary_min, job.salary_max, market)
+                        return (
+                          <div key={ji} className="kira-job-card" style={{ background: 'rgba(255,255,255,.05)', border: '1px solid rgba(255,255,255,.08)', borderRadius: 10, padding: '10px 12px', transition: 'all .15s' }}>
+                            <div style={{ fontWeight: 700, fontSize: 12, color: '#fff', fontFamily: f.heading, lineHeight: 1.3 }}>{job.title}</div>
+                            <div style={{ fontSize: 11, color: 'rgba(255,255,255,.5)', marginTop: 3 }}>{job.company} · {job.location}</div>
+                            {salary && <div style={{ fontSize: 11, color: accent, marginTop: 3, fontWeight: 600 }}>{salary}</div>}
+                            <div style={{ display: 'flex', gap: 6, marginTop: 7, flexWrap: 'wrap' }}>
+                              {job.apply_url && (
+                                <a href={job.apply_url} target="_blank" rel="noopener noreferrer" className="kira-apply"
+                                  style={{ fontSize: 11, padding: '4px 10px', borderRadius: 6, background: accent, color: '#fff', textDecoration: 'none', fontWeight: 600, transition: 'opacity .15s' }}>
+                                  View Job →
+                                </a>
+                              )}
+                              <button onClick={() => tailorCv(job)}
+                                style={{ fontSize: 11, padding: '4px 10px', borderRadius: 6, background: 'rgba(255,255,255,.1)', border: `1px solid ${accent}55`, color: '#fff', cursor: 'pointer', fontWeight: 600, fontFamily: f.body }}>
+                                Tailor CV
+                              </button>
+                            </div>
                           </div>
-                          {m.jobs.map((job, ji) => {
-                            const salary = fmtSalary(job.salary_min, job.salary_max, market)
-                            return (
-                              <div key={ji} className="kira-job-card" style={{ background: 'rgba(255,255,255,.05)', border: '1px solid rgba(255,255,255,.08)', borderRadius: 10, padding: '10px 12px', transition: 'all .15s' }}>
-                                <div style={{ fontWeight: 700, fontSize: 12, color: '#fff', fontFamily: f.heading, lineHeight: 1.3 }}>{job.title}</div>
-                                <div style={{ fontSize: 11, color: 'rgba(255,255,255,.5)', marginTop: 3, fontFamily: f.body }}>{job.company} · {job.location}</div>
-                                {salary && <div style={{ fontSize: 11, color: accent, marginTop: 3, fontWeight: 600 }}>{salary}</div>}
-                                <div style={{ display: 'flex', gap: 6, marginTop: 7, flexWrap: 'wrap' }}>
-                                  {job.apply_url && (
-                                    <a href={job.apply_url} target="_blank" rel="noopener noreferrer" className="kira-apply"
-                                      style={{ fontSize: 11, padding: '4px 10px', borderRadius: 6, background: accent, color: '#fff', textDecoration: 'none', fontWeight: 600, transition: 'opacity .15s' }}>
-                                      View Job →
-                                    </a>
-                                  )}
-                                  <button onClick={() => tailorCv(job)}
-                                    style={{ fontSize: 11, padding: '4px 10px', borderRadius: 6, background: 'rgba(255,255,255,.1)', border: `1px solid ${accent}55`, color: '#fff', cursor: 'pointer', fontWeight: 600, fontFamily: f.body }}>
-                                    Tailor CV
-                                  </button>
-                                </div>
-                              </div>
-                            )
-                          })}
-                          {(() => {
-                            const q   = m.jobsSearch?.q || ''
-                            const loc = m.jobsSearch?.location || ''
-                            const base = market === 'in' ? '/in/jobs' : '/app/jobs'
-                            const params = new URLSearchParams()
-                            if (q)   params.set('q', q)
-                            if (loc && market === 'in') params.set('location', loc)
-                            const href = params.toString() ? `${base}?${params}` : base
-                            return (
-                              <Link href={href}
-                                style={{ display: 'block', marginTop: 2, padding: '7px 12px', borderRadius: 8, border: `1px solid ${accent}44`, color: accent, textDecoration: 'none', fontSize: 11, fontWeight: 600, textAlign: 'center', fontFamily: f.heading }}>
-                                Browse all {q ? `"${q}"` : ''} jobs →
-                              </Link>
-                            )
-                          })()}
-                        </div>
-                      )}
-
-                      {/* Feature action button */}
-                      {m.action && (
-                        <div style={{ marginTop: 6, marginLeft: 28 }}>
-                          <div style={{ fontSize: 11, color: 'rgba(255,255,255,.4)', marginBottom: 5, fontFamily: f.body }}>{m.action.reason}</div>
-                          <Link href={m.action.href}
-                            style={{ display: 'inline-block', padding: '7px 14px', borderRadius: 8, background: `linear-gradient(135deg,${accent},${accent}99)`, color: '#fff', textDecoration: 'none', fontSize: 12, fontWeight: 600, fontFamily: f.heading }}>
-                            {m.action.label} →
+                        )
+                      })}
+                      {(() => {
+                        const q    = m.jobsSearch?.q || ''
+                        const loc  = m.jobsSearch?.location || ''
+                        const base = market === 'in' ? '/in/jobs' : '/app/jobs'
+                        const p    = new URLSearchParams()
+                        if (q)   p.set('q', q)
+                        if (loc && market === 'in') p.set('location', loc)
+                        return (
+                          <Link href={p.toString() ? `${base}?${p}` : base}
+                            style={{ display: 'block', marginTop: 2, padding: '7px 12px', borderRadius: 8, border: `1px solid ${accent}44`, color: accent, textDecoration: 'none', fontSize: 11, fontWeight: 600, textAlign: 'center', fontFamily: f.heading }}>
+                            Browse all {q ? `"${q}"` : ''} jobs →
                           </Link>
-                        </div>
-                      )}
+                        )
+                      })()}
                     </div>
+                  )}
+
+                  {/* Feature action */}
+                  {m.action && (
+                    <div style={{ marginTop: 6, marginLeft: 28 }}>
+                      <div style={{ fontSize: 11, color: 'rgba(255,255,255,.4)', marginBottom: 5 }}>{m.action.reason}</div>
+                      <Link href={m.action.href}
+                        style={{ display: 'inline-block', padding: '7px 14px', borderRadius: 8, background: `linear-gradient(135deg,${accent},${accent}99)`, color: '#fff', textDecoration: 'none', fontSize: 12, fontWeight: 600, fontFamily: f.heading }}>
+                        {m.action.label} →
+                      </Link>
+                    </div>
+                  )}
+                </div>
+              ))}
+
+              {/* Suggestion chips — shown after greeting or on empty state */}
+              {showSuggestions && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: msgs.length > 0 ? 10 : 0 }}>
+                  {suggestions.map(s => (
+                    <button key={s} className="kira-suggest" onClick={() => send(s)}
+                      style={{ textAlign: 'left', padding: '7px 12px', borderRadius: 10, background: 'rgba(255,255,255,.04)', border: '1px solid rgba(255,255,255,.1)', color: 'rgba(255,255,255,.5)', fontSize: 12, cursor: 'pointer', transition: 'all .15s', fontFamily: f.body }}>
+                      {s}
+                    </button>
                   ))}
-                  <div ref={bottomRef}/>
-                </>
+                </div>
               )}
+
+              <div ref={bottomRef}/>
             </div>
           )}
 
@@ -848,8 +842,8 @@ export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
                     : '↑'}
                 </button>
               </div>
-              <div style={{ textAlign: 'center', marginTop: 5, color: 'rgba(255,255,255,.2)', fontSize: 10 }}>
-                {lang === 'DE' ? 'Enter zum Senden · Mikrofon für Sprache' : 'Enter to send · mic for voice'}
+              <div style={{ textAlign: 'center', marginTop: 5, color: 'rgba(255,255,255,.18)', fontSize: 10 }}>
+                {lang === 'DE' ? 'Enter zum Senden · 🎙 für Sprache' : 'Enter to send · 🎙 for voice'}
               </div>
             </div>
           )}
