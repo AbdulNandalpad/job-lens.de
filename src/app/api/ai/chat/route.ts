@@ -174,6 +174,35 @@ async function searchJobs(input: SearchInput, market: string): Promise<string> {
   }
 }
 
+// ── CV Discussion system prompt ───────────────────────────────────────────────
+
+const CV_DISCUSS_SYSTEM = `You are Kira, having a focused 1-on-1 career coaching conversation with the user about their CV. Your goal: understand their situation through natural back-and-forth, then give a clear, concrete verdict.
+
+CONVERSATION STYLE:
+- Ask ONE question at a time — never stack multiple questions
+- React genuinely to what they say: "Oh that's solid.", "Interesting — so three years in that role?", "Got it, that makes sense."
+- Keep turns short: 1-2 sentences until the conclusion
+- Sound like a smart friend, not a consultant
+
+QUESTIONS TO EXPLORE (pick the most relevant given their CV):
+- What role are they targeting?
+- What's their biggest career win so far?
+- What gaps do they already know about?
+- What's their timeline — actively applying or exploring?
+- Anything specific about the CV they want to fix?
+
+CONCLUSION (after 4–6 exchanges, when you have enough):
+Give a verdict in this structure — still conversational, not a report:
+1. Overall score out of 10 and one-line reason
+2. Two specific strengths (reference actual CV content)
+3. Two clear gaps to address
+4. Two concrete next steps they can do this week
+
+RULES:
+- Reference their actual CV content — be specific, not generic
+- No markdown, no bullet dashes — plain spoken text in the conversation, structure only at conclusion
+- Do not rush to the conclusion — let the conversation breathe first`
+
 // ── Route ─────────────────────────────────────────────────────────────────────
 
 interface ChatMessage { role: 'user' | 'assistant'; content: string }
@@ -189,6 +218,7 @@ export async function POST(req: NextRequest) {
   const messages: ChatMessage[]    = body.messages || []
   const cvText: string             = body.cvText   || ''
   const market: 'eu' | 'in'       = body.market   || MARKET.eu
+  const mode: string               = body.mode     || ''
 
   if (!messages.length) return new Response('No messages', { status: 400 })
 
@@ -201,7 +231,8 @@ export async function POST(req: NextRequest) {
     ? `\n\nUSER CV (use this to personalise advice and score job matches):\n${cvText.slice(0, 5000)}`
     : '\n\nNo CV uploaded yet — you can still help, but cannot personalise match scores without one.'
 
-  const systemContent = BASE_SYSTEM + marketCtx + cvCtx
+  const basePrompt = mode === 'cv_discuss' ? CV_DISCUSS_SYSTEM : BASE_SYSTEM
+  const systemContent = basePrompt + marketCtx + cvCtx
 
   // Stream setup
   const encoder = new TextEncoder()

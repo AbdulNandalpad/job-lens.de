@@ -68,65 +68,54 @@ function MicIcon({ size = 16, color = 'currentColor' }: { size?: number; color?:
   )
 }
 
-// ── OpenAI-style circular voice visualiser ───────────────────────────────────
-function VoiceCircle({ state, accent }: { state: VoiceState; accent: string }) {
-  const active   = state !== 'idle'
-  const speaking = state === 'speaking'
+// ── Voice orb (OpenAI-style pulsing sphere) ──────────────────────────────────
+function VoiceOrb({ state, accent }: { state: VoiceState; accent: string }) {
+  const active    = state !== 'idle'
+  const speaking  = state === 'speaking'
   const listening = state === 'listening'
+  const processing = state === 'processing'
+
+  const orbAnim = speaking    ? 'kira-orb-speak 0.75s ease-in-out infinite'
+               : listening   ? 'kira-orb-listen 1.6s ease-in-out infinite'
+               : processing  ? 'kira-orb-process 1.4s ease-in-out infinite'
+               :               'kira-orb-idle 3s ease-in-out infinite'
 
   return (
-    <div style={{ position: 'relative', width: 150, height: 150, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-      {/* Concentric pulse rings — animate outward and fade */}
-      {[1, 2, 3].map(i => (
-        <div key={i} style={{
-          position: 'absolute',
-          width:  56 + i * 26, height: 56 + i * 26,
-          borderRadius: '50%',
-          border: `1.5px solid ${accent}`,
-          animation: active
-            ? `kira-ring ${speaking ? 1.1 : 1.8}s ease-out ${i * (speaking ? 0.18 : 0.35)}s infinite`
-            : `kira-idle-ring 4s ease-in-out ${i * 0.6}s infinite`,
-          opacity: active ? 0 : 0,  // initial — animation handles opacity
-        }} />
-      ))}
-
-      {/* Glow backdrop */}
-      {active && (
-        <div style={{
-          position: 'absolute',
-          width: 100, height: 100, borderRadius: '50%',
-          background: `radial-gradient(circle, ${accent}28 0%, transparent 70%)`,
-          animation: speaking ? 'kira-breathe 1s ease-in-out infinite' : undefined,
-        }} />
-      )}
-
-      {/* Centre circle */}
+    <div style={{ position: 'relative', width: 190, height: 190, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      {/* Outer glow ring — expands and fades */}
       <div style={{
-        width: 72, height: 72, borderRadius: '50%', zIndex: 1,
+        position: 'absolute', width: 170, height: 170, borderRadius: '50%',
+        background: `radial-gradient(circle, ${accent}${active ? '20' : '09'} 0%, transparent 68%)`,
+        animation: active ? `kira-glow-pulse ${speaking ? '0.85' : '1.7'}s ease-in-out infinite` : 'kira-orb-idle 3s ease-in-out infinite',
+        transition: 'opacity .4s',
+      }} />
+
+      {/* Main orb */}
+      <div style={{
+        width: 118, height: 118, borderRadius: '50%', zIndex: 1,
         background: active
-          ? `radial-gradient(circle at 38% 38%, ${accent}55, ${accent}22)`
-          : 'rgba(255,255,255,.06)',
-        border: `2px solid ${active ? accent : 'rgba(255,255,255,.18)'}`,
-        boxShadow: active ? `0 0 28px ${accent}50, inset 0 0 14px ${accent}18` : 'none',
+          ? `radial-gradient(circle at 33% 30%, ${accent}ee 0%, ${accent}88 40%, ${accent}33 100%)`
+          : `radial-gradient(circle at 33% 30%, rgba(255,255,255,.13) 0%, rgba(255,255,255,.04) 100%)`,
+        boxShadow: active
+          ? `0 0 50px ${accent}55, 0 0 100px ${accent}1a, inset 0 0 40px ${accent}22`
+          : `0 0 20px rgba(255,255,255,.05), inset 0 0 20px rgba(255,255,255,.02)`,
         display: 'flex', alignItems: 'center', justifyContent: 'center',
-        transition: 'all 0.35s ease',
-        animation: speaking ? 'kira-breathe 1s ease-in-out infinite' : listening ? 'kira-listen-pulse 1.6s ease-in-out infinite' : undefined,
+        transition: 'background .5s, box-shadow .5s',
+        animation: orbAnim,
       }}>
-        {state === 'processing'
-          ? <span style={{ width: 18, height: 18, border: `2.5px solid ${accent}44`, borderTopColor: accent, borderRadius: '50%', display: 'inline-block', animation: 'kira-spin .75s linear infinite' }}/>
-          : <MicIcon size={28} color={active ? '#fff' : 'rgba(255,255,255,.35)'}/>
-        }
+        {/* Specular highlight */}
+        <div style={{
+          width: 44, height: 44, borderRadius: '50%',
+          background: `radial-gradient(circle at 30% 25%, rgba(255,255,255,${active ? '.45' : '.15'}) 0%, transparent 65%)`,
+          transition: 'opacity .4s',
+        }} />
       </div>
 
-      {/* Speaking: small floating wave dots below circle */}
-      {speaking && (
-        <div style={{ position: 'absolute', bottom: 8, display: 'flex', gap: 4, alignItems: 'flex-end' }}>
-          {[0.5, 1, 0.7, 1, 0.6].map((h, i) => (
-            <div key={i} style={{
-              width: 3, borderRadius: 2, background: accent,
-              height: `${h * 14}px`,
-              animation: `kira-wave .55s ease-in-out ${i * 0.09}s infinite alternate`,
-            }} />
+      {/* Processing: 3 floating dots */}
+      {processing && (
+        <div style={{ position: 'absolute', bottom: 24, display: 'flex', gap: 6, alignItems: 'center' }}>
+          {[0, 1, 2].map(i => (
+            <div key={i} style={{ width: 7, height: 7, borderRadius: '50%', background: accent, animation: `kira-dot 1.1s ease-in-out ${i * .18}s infinite` }} />
           ))}
         </div>
       )}
@@ -151,8 +140,9 @@ export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
   const [userName,    setUserName]    = useState('')
 
   // ── Voice state ──────────────────────────────────────────────────────────
-  const [voiceMode,  setVoiceMode]  = useState(false)
-  const [voiceState, setVoiceState] = useState<VoiceState>('idle')
+  const [voiceMode,     setVoiceMode]     = useState(false)
+  const [voiceState,    setVoiceState]    = useState<VoiceState>('idle')
+  const [cvDiscussMode, setCvDiscussMode] = useState(false)
 
   // ── Refs ─────────────────────────────────────────────────────────────────
   const bottomRef        = useRef<HTMLDivElement>(null)
@@ -166,11 +156,13 @@ export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
   const audioRef         = useRef<HTMLAudioElement | null>(null)
   const audioCtxRef      = useRef<AudioContext | null>(null)
   const voiceModeRef     = useRef(false)
+  const cvDiscussModeRef = useRef(false)
   const transcriptRef    = useRef('')
   const listenTimerRef   = useRef<ReturnType<typeof setTimeout> | null>(null)
   const greetedRef       = useRef(false)
 
-  useEffect(() => { voiceModeRef.current = voiceMode }, [voiceMode])
+  useEffect(() => { voiceModeRef.current  = voiceMode     }, [voiceMode])
+  useEffect(() => { cvDiscussModeRef.current = cvDiscussMode }, [cvDiscussMode])
 
   // ── Init: CV, saved messages, user name ─────────────────────────────────
   useEffect(() => {
@@ -196,7 +188,7 @@ export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
       .catch(() => {})
   }, [])
 
-  // ── Greeting on first open ───────────────────────────────────────────────
+  // ── Greeting on first open (text only — TTS is triggered by the FAB click) ─
   useEffect(() => {
     if (!open || greetedRef.current) return
     greetedRef.current = true
@@ -205,7 +197,6 @@ export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
       ? `Hallo${name}! Ich bin Kira, deine KI-Karriereassistentin. Wie kann ich dir heute helfen?`
       : `Hi${name}! I'm Kira, your AI career assistant. How can I help you today?`
     setMsgs([{ role: 'assistant', content: text }])
-    void playTts(text)
   }, [open, userName, key])
 
   useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: 'smooth' }) }, [msgs])
@@ -313,8 +304,10 @@ export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
 
   function exitVoiceMode() {
     voiceModeRef.current = false
+    cvDiscussModeRef.current = false
     setVoiceMode(false)
     setVoiceState('idle')
+    setCvDiscussMode(false)
     stopListening()
     stopAudio()
   }
@@ -494,6 +487,24 @@ export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
     router.push(market === 'in' ? '/in/cv-builder' : '/app/cv-builder')
   }
 
+  // ── CV Discussion ────────────────────────────────────────────────────────
+  function startCvDiscussion() {
+    if (!cvRef.current) {
+      setMsgs(prev => [...prev, { role: 'assistant', content: lang === 'DE'
+        ? 'Lade deinen Lebenslauf hoch (Büroklammer oben) — dann können wir ihn gemeinsam besprechen.'
+        : 'Upload your CV first (clip icon above), then we can talk through it together.' }])
+      return
+    }
+    setCvDiscussMode(true)
+    cvDiscussModeRef.current = true
+    enterVoiceMode()
+    const opening = key === 'eu_DE'
+      ? 'Lass uns deinen Lebenslauf besprechen! Für welche Art von Stelle bewirbst du dich gerade?'
+      : "Let's talk through your CV! What kind of role are you going for right now?"
+    setMsgs(prev => [...prev, { role: 'assistant', content: opening }])
+    void playTts(opening)
+  }
+
   // ── Send ─────────────────────────────────────────────────────────────────
   async function send(text: string) {
     if (!text.trim() || loading) return
@@ -519,6 +530,7 @@ export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
           messages: history.map(m => ({ role: m.role, content: m.content })),
           cvText: cvRef.current,
           market,
+          ...(cvDiscussModeRef.current ? { mode: 'cv_discuss' } : {}),
         }),
       })
 
@@ -581,14 +593,14 @@ export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
   return (
     <>
       <style>{`
-        @keyframes kira-slide      { from{opacity:0;transform:translateY(12px) scale(.97)} to{opacity:1;transform:none} }
-        @keyframes kira-dot        { 0%,60%,100%{opacity:.3;transform:translateY(0)} 30%{opacity:1;transform:translateY(-4px)} }
-        @keyframes kira-spin       { to{transform:rotate(360deg)} }
-        @keyframes kira-ring       { 0%{transform:scale(1);opacity:.55} 100%{transform:scale(1.85);opacity:0} }
-        @keyframes kira-idle-ring  { 0%,100%{opacity:.06;transform:scale(1)} 50%{opacity:.15;transform:scale(1.06)} }
-        @keyframes kira-breathe    { 0%,100%{transform:scale(1)} 50%{transform:scale(1.09)} }
-        @keyframes kira-listen-pulse { 0%,100%{box-shadow:0 0 28px ${accent}50,inset 0 0 14px ${accent}18} 50%{box-shadow:0 0 42px ${accent}80,inset 0 0 20px ${accent}30} }
-        @keyframes kira-wave       { 0%{transform:scaleY(.25)} 100%{transform:scaleY(1)} }
+        @keyframes kira-slide       { from{opacity:0;transform:translateY(12px) scale(.97)} to{opacity:1;transform:none} }
+        @keyframes kira-dot         { 0%,60%,100%{opacity:.3;transform:translateY(0)} 30%{opacity:1;transform:translateY(-5px)} }
+        @keyframes kira-spin        { to{transform:rotate(360deg)} }
+        @keyframes kira-orb-idle    { 0%,100%{transform:scale(1);opacity:.7} 50%{transform:scale(1.05);opacity:1} }
+        @keyframes kira-orb-listen  { 0%,100%{transform:scale(1)} 50%{transform:scale(1.11)} }
+        @keyframes kira-orb-speak   { 0%,100%{transform:scale(1)} 30%{transform:scale(1.15)} 70%{transform:scale(0.95)} }
+        @keyframes kira-orb-process { 0%,100%{transform:scale(1);opacity:.85} 50%{transform:scale(1.07);opacity:1} }
+        @keyframes kira-glow-pulse  { 0%{transform:scale(1);opacity:.6} 100%{transform:scale(1.45);opacity:0} }
         .kira-fab:hover            { transform:scale(1.08) !important }
         .kira-send:hover:not(:disabled){ opacity:.85 }
         .kira-send:disabled        { opacity:.4;cursor:not-allowed }
@@ -667,7 +679,7 @@ export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
             </button>
 
             {msgs.length > 0 && !voiceMode && (
-              <button onClick={() => { setMsgs([]); greetedRef.current = false; sessionStorage.removeItem(SS.aiMessages) }}
+              <button onClick={() => { setMsgs([]); greetedRef.current = false; cvDiscussModeRef.current = false; setCvDiscussMode(false); sessionStorage.removeItem(SS.aiMessages) }}
                 style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,.3)', fontSize: 10, cursor: 'pointer', padding: '2px 4px', fontFamily: f.body, flexShrink: 0 }}>
                 Clear
               </button>
@@ -681,8 +693,13 @@ export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
 
           {/* ── Voice overlay ── */}
           {voiceMode ? (
-            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 20, padding: '24px 20px' }}>
-              <VoiceCircle state={voiceState} accent={accent}/>
+            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 16, padding: '24px 20px' }}>
+              {cvDiscussMode && (
+                <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: 1, color: accent, textTransform: 'uppercase', opacity: .8 }}>
+                  {lang === 'DE' ? 'CV-Gespräch' : 'CV Discussion'}
+                </div>
+              )}
+              <VoiceOrb state={voiceState} accent={accent}/>
 
               <div style={{ fontSize: 13, color: voiceState === 'idle' ? 'rgba(255,255,255,.35)' : 'rgba(255,255,255,.6)', fontFamily: f.body, textAlign: 'center', letterSpacing: .2 }}>
                 {voiceLabel}
@@ -810,6 +827,13 @@ export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
               {/* Suggestion chips — shown after greeting or on empty state */}
               {showSuggestions && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: msgs.length > 0 ? 10 : 0 }}>
+                  {cvName && (
+                    <button className="kira-suggest" onClick={startCvDiscussion}
+                      style={{ textAlign: 'left', padding: '8px 12px', borderRadius: 10, background: `${accent}12`, border: `1px solid ${accent}44`, color: accent, fontSize: 12, fontWeight: 600, cursor: 'pointer', transition: 'all .15s', fontFamily: f.body, display: 'flex', alignItems: 'center', gap: 7 }}>
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10a7 7 0 0 0 14 0"/><line x1="12" y1="19" x2="12" y2="22"/></svg>
+                      {lang === 'DE' ? 'Lebenslauf besprechen →' : 'Discuss my CV →'}
+                    </button>
+                  )}
                   {suggestions.map(s => (
                     <button key={s} className="kira-suggest" onClick={() => send(s)}
                       style={{ textAlign: 'left', padding: '7px 12px', borderRadius: 10, background: 'rgba(255,255,255,.04)', border: '1px solid rgba(255,255,255,.1)', color: 'rgba(255,255,255,.5)', fontSize: 12, cursor: 'pointer', transition: 'all .15s', fontFamily: f.body }}>
@@ -849,7 +873,18 @@ export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
       )}
 
       {/* ── FAB ── */}
-      <button className="kira-fab" onClick={() => setOpen(o => !o)}
+      <button className="kira-fab" onClick={() => {
+        const nowOpening = !open
+        setOpen(o => !o)
+        if (nowOpening && !greetedRef.current) {
+          unlockAudio()
+          const name = userName ? `, ${userName}` : ''
+          const text = key === 'eu_DE'
+            ? `Hallo${name}! Ich bin Kira, deine KI-Karriereassistentin. Wie kann ich dir heute helfen?`
+            : `Hi${name}! I'm Kira, your AI career assistant. How can I help you today?`
+          void playTts(text)
+        }
+      }}
         title="Chat with Kira"
         style={{
           position: 'fixed', bottom: 20, right: 20, zIndex: 9999,
