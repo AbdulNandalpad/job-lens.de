@@ -33,6 +33,12 @@ const COUNTRIES = [
   { code: 'at', label: '🇦🇹', name: 'Österreich' },
 ]
 
+const CITY_PILLS: Record<string, string[]> = {
+  de: ['München', 'Berlin', 'Hamburg', 'Frankfurt', 'Köln', 'Stuttgart', 'Düsseldorf', 'Leipzig'],
+  ch: ['Zürich', 'Bern', 'Basel', 'Genf', 'Lausanne'],
+  at: ['Wien', 'Graz', 'Linz', 'Salzburg', 'Innsbruck'],
+}
+
 function timeAgo(dateStr: string) {
   if (!dateStr) return ''
   const diff = Date.now() - new Date(dateStr).getTime()
@@ -48,6 +54,7 @@ export default function DACHJobsPage() {
   const { lang } = useLanguage()
   const [query,    setQuery]    = useState('')
   const [country,  setCountry]  = useState('de')
+  const [city,     setCity]     = useState('')
   const [jobs,     setJobs]     = useState<Job[]>([])
   const [loading,  setLoading]  = useState(false)
   const [loadingMore, setLoadingMore] = useState(false)
@@ -67,10 +74,12 @@ export default function DACHJobsPage() {
   }
 
   // ── Adzuna: fallback by trimming last word on 0 results ──────
-  async function fetchWithFallback(q: string, countryCode: string): Promise<{ jobs: Job[]; usedQuery: string }> {
+  async function fetchWithFallback(q: string, countryCode: string, location = ''): Promise<{ jobs: Job[]; usedQuery: string }> {
     let current = q.trim()
     while (current.length > 0) {
-      const res  = await fetch(`/api/jobs?${new URLSearchParams({ q: current, country: countryCode, page: '1' })}`)
+      const params = new URLSearchParams({ q: current, country: countryCode, page: '1' })
+      if (location) params.set('location', location)
+      const res  = await fetch(`/api/jobs?${params}`)
       const data = await res.json()
       const jobs = (data.jobs || []).map((j: Job) => ({ ...j, job_source: 'adzuna' as JobSource }))
       if (jobs.length > 0) return { jobs, usedQuery: current }
@@ -118,12 +127,14 @@ export default function DACHJobsPage() {
   useEffect(() => {
     if (autoSearched.current || typeof window === 'undefined') return
     const params = new URLSearchParams(window.location.search)
-    const q = params.get('q')
+    const q   = params.get('q')
+    const loc = params.get('city') || params.get('location') || ''
     if (q) {
       autoSearched.current = true
       setQuery(q)
+      if (loc) setCity(loc)
       setLoading(true); setSearched(true); setPage(1)
-      fetchWithFallback(q, country)
+      fetchWithFallback(q, country, loc)
         .then(({ jobs, usedQuery: uq }) => { setJobs(jobs); setUsedQuery(uq); setHasMore(jobs.length === 20) })
         .catch(() => { setJobs([]); setUsedQuery(q); setHasMore(false) })
         .finally(() => setLoading(false))
@@ -135,8 +146,8 @@ export default function DACHJobsPage() {
     setLoading(true); setSearched(true); setSelectedJobId(null); setPage(1)
     try {
       const { jobs: results, usedQuery: uq } = source === 'ba'
-        ? await fetchBAWithFallback(query, country === 'de' ? '' : country)
-        : await fetchWithFallback(query, country)
+        ? await fetchBAWithFallback(query, city || (country === 'de' ? '' : country))
+        : await fetchWithFallback(query, country, city)
       setJobs(results); setUsedQuery(uq); setHasMore(results.length === 20)
     } catch { setJobs([]); setUsedQuery(query); setHasMore(false) }
     setLoading(false)
@@ -153,7 +164,9 @@ export default function DACHJobsPage() {
         const data = await res.json()
         more = (data.jobs || []).map((j: Job) => ({ ...j, job_source: 'ba' as JobSource }))
       } else {
-        const res  = await fetch(`/api/jobs?${new URLSearchParams({ q: usedQuery, country, page: String(next) })}`)
+        const lmParams = new URLSearchParams({ q: usedQuery, country, page: String(next) })
+        if (city) lmParams.set('location', city)
+        const res  = await fetch(`/api/jobs?${lmParams}`)
         const data = await res.json()
         more = (data.jobs || []).map((j: Job) => ({ ...j, job_source: 'adzuna' as JobSource }))
       }
@@ -209,6 +222,8 @@ export default function DACHJobsPage() {
         @media (max-width: 768px) {
           .dach-search-bar { flex-direction: column !important; }
           .dach-search-bar input { min-width: unset !important; }
+          .dach-city-wrap { width: 100% !important; }
+          .dach-city-wrap input { width: 100% !important; box-sizing: border-box !important; }
           .dach-job-actions { flex-direction: column !important; gap: 8px !important; }
           .dach-job-actions > * { width: 100% !important; text-align: center !important; box-sizing: border-box !important; }
         }
@@ -233,19 +248,43 @@ export default function DACHJobsPage() {
           {/* Search card */}
           <div style={{ background: '#fff', borderRadius: 14, boxShadow: '0 2px 12px rgba(4,44,83,0.06)', border: '1px solid #edf1f6', marginBottom: 24, overflow: 'hidden' }}>
 
-            {/* Query + button */}
-            <div className="dach-search-bar" style={{ display: 'flex', gap: 12, padding: 16, flexWrap: 'wrap' }}>
+            {/* Query + City + button */}
+            <div className="dach-search-bar" style={{ display: 'flex', gap: 10, padding: 16, flexWrap: 'wrap' }}>
               <input
                 value={query}
                 onChange={e => setQuery(e.target.value)}
                 onKeyDown={e => e.key === 'Enter' && search()}
                 placeholder={label('Jobtitel oder Fähigkeit (z. B. React Entwickler)', 'Job title or skill (e.g. React Developer)')}
-                style={{ flex: 1, minWidth: 200, padding: '10px 14px', borderRadius: 8, border: '1px solid #dce4ef', fontSize: 13, fontFamily: "'DM Sans',sans-serif", outline: 'none', color: '#1a2332' }}
+                style={{ flex: 1, minWidth: 180, padding: '10px 14px', borderRadius: 8, border: '1px solid #dce4ef', fontSize: 13, fontFamily: "'DM Sans',sans-serif", outline: 'none', color: '#1a2332' }}
               />
+              <div className="dach-city-wrap" style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                <span style={{ position: 'absolute', left: 10, color: '#9aafbc', fontSize: 13, pointerEvents: 'none' }}>📍</span>
+                <input
+                  value={city}
+                  onChange={e => setCity(e.target.value)}
+                  onKeyDown={e => e.key === 'Enter' && search()}
+                  placeholder={label('Stadt', 'City')}
+                  style={{ width: 130, padding: '10px 12px 10px 30px', borderRadius: 8, border: '1px solid #dce4ef', fontSize: 13, fontFamily: "'DM Sans',sans-serif", outline: 'none', color: '#1a2332' }}
+                />
+                {city && (
+                  <button onClick={() => setCity('')}
+                    style={{ position: 'absolute', right: 8, background: 'none', border: 'none', cursor: 'pointer', color: '#9aafbc', fontSize: 14, lineHeight: 1, padding: 0 }}>×</button>
+                )}
+              </div>
               <button onClick={search} disabled={loading}
-                style={{ padding: '10px 24px', borderRadius: 8, background: loading ? '#ccc' : `linear-gradient(135deg,${blue},#2563eb)`, color: '#fff', fontWeight: 700, fontSize: 13, border: 'none', cursor: loading ? 'not-allowed' : 'pointer' }}>
+                style={{ padding: '10px 22px', borderRadius: 8, background: loading ? '#ccc' : `linear-gradient(135deg,${blue},#2563eb)`, color: '#fff', fontWeight: 700, fontSize: 13, border: 'none', cursor: loading ? 'not-allowed' : 'pointer', flexShrink: 0 }}>
                 {loading ? (lang === 'DE' ? 'Suche...' : 'Searching...') : (lang === 'DE' ? 'Suchen' : 'Search')}
               </button>
+            </div>
+
+            {/* City quick-pick pills */}
+            <div style={{ padding: '0 16px 14px', display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+              {(CITY_PILLS[country] || CITY_PILLS['de']).map(c => (
+                <button key={c} onClick={() => { setCity(city === c ? '' : c) }}
+                  style={{ padding: '5px 12px', borderRadius: 16, border: `1.5px solid ${city === c ? blue : '#dce4ef'}`, background: city === c ? blue + '12' : '#f8fafc', color: city === c ? blue : '#6b7c93', fontSize: 12, fontWeight: city === c ? 700 : 400, cursor: 'pointer', fontFamily: "'DM Sans',sans-serif", transition: 'all .12s' }}>
+                  {c}
+                </button>
+              ))}
             </div>
 
             {/* Source + Country filters — shown before first search */}
@@ -299,6 +338,12 @@ export default function DACHJobsPage() {
                 <span style={{ fontSize: 11, padding: '3px 10px', borderRadius: 12, background: source === 'ba' ? '#1D9E7512' : blue + '12', color: source === 'ba' ? '#1D9E75' : blue, fontWeight: 600 }}>
                   {source === 'ba' ? '🏢 Mittelstand' : `🌐 ${countryInfo?.label} ${countryInfo?.name}`}
                 </span>
+                {city && (
+                  <span style={{ fontSize: 11, padding: '3px 10px', borderRadius: 12, background: '#f0f4f8', color: '#6b7c93', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 4 }}>
+                    📍 {city}
+                    <button onClick={() => setCity('')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#9aafbc', fontSize: 13, lineHeight: 1, padding: 0, marginLeft: 2 }}>×</button>
+                  </span>
+                )}
                 <button onClick={() => switchSource(source === 'ba' ? 'adzuna' : 'ba')}
                   style={{ fontSize: 11, color: '#9aafbc', background: 'none', border: 'none', cursor: 'pointer', padding: 0, textDecoration: 'underline' }}>
                   {source === 'ba' ? label('Zu Adzuna wechseln', 'Switch to Adzuna') : label('Zu Mittelstand wechseln', 'Switch to Mittelstand')}
