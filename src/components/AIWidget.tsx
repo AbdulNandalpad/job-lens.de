@@ -205,6 +205,7 @@ export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
       ? `Hallo${name}! Ich bin Kira, deine KI-Karriereassistentin. Wie kann ich dir heute helfen?`
       : `Hi${name}! I'm Kira, your AI career assistant. How can I help you today?`
     setMsgs([{ role: 'assistant', content: text }])
+    void playTts(text)
   }, [open, userName, key])
 
   useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: 'smooth' }) }, [msgs])
