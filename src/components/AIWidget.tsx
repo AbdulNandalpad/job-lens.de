@@ -68,17 +68,22 @@ export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
   const key    = market === 'in' ? 'in_EN' : `eu_${lang}`
   const accent = market === 'in' ? '#FF9933' : c.accent
 
-  const [open, setOpen]       = useState(false)
-  const [msgs, setMsgs]       = useState<Msg[]>([])
-  const [input, setInput]     = useState('')
-  const [loading, setLoading] = useState(false)
+  const [open, setOpen]           = useState(false)
+  const [msgs, setMsgs]           = useState<Msg[]>([])
+  const [input, setInput]         = useState('')
+  const [loading, setLoading]     = useState(false)
+  const [cvName, setCvName]       = useState('')
+  const [cvUploading, setCvUploading] = useState(false)
 
-  const bottomRef = useRef<HTMLDivElement>(null)
-  const inputRef  = useRef<HTMLTextAreaElement>(null)
-  const cvRef     = useRef('')
+  const bottomRef   = useRef<HTMLDivElement>(null)
+  const inputRef    = useRef<HTMLTextAreaElement>(null)
+  const cvRef       = useRef('')
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
-    cvRef.current = sessionStorage.getItem(SS.cvText) || ''
+    const cv = sessionStorage.getItem(SS.cvText) || ''
+    cvRef.current = cv
+    if (cv) setCvName('CV ready')
     try {
       const saved = sessionStorage.getItem(SS.aiMessages)
       if (saved) setMsgs(JSON.parse(saved))
@@ -95,12 +100,42 @@ export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
     if (open) setTimeout(() => inputRef.current?.focus(), 50)
   }, [open])
 
+  async function handleCvUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setCvUploading(true)
+    try {
+      let text = ''
+      if (file.name.endsWith('.txt')) {
+        text = await file.text()
+      } else {
+        const form = new FormData()
+        form.append('file', file)
+        const res  = await fetch(API.extractPdf, { method: 'POST', body: form })
+        const data = await res.json()
+        if (!data.text) throw new Error('empty')
+        text = data.text
+      }
+      cvRef.current = text
+      sessionStorage.setItem(SS.cvText, text)
+      const label = file.name.length > 22 ? file.name.slice(0, 19) + '…' : file.name
+      setCvName(label)
+      setMsgs(prev => [...prev, { role: 'assistant', content: lang === 'DE'
+        ? `Lebenslauf "${label}" geladen! Ich kann jetzt Jobs für dich bewerten und deinen Lebenslauf anpassen.`
+        : `Got your CV! I can now score job matches and tailor your applications.` }])
+    } catch {
+      setMsgs(prev => [...prev, { role: 'assistant', content: 'Could not read that file. Try a PDF, Word doc, or text file.' }])
+    }
+    setCvUploading(false)
+    if (fileInputRef.current) fileInputRef.current.value = ''
+  }
+
   function tailorCv(job: Job) {
     if (!cvRef.current) {
       setMsgs(prev => [...prev,
         { role: 'assistant', content: lang === 'DE'
-            ? 'Lade zuerst deinen Lebenslauf über Career Scan hoch — dann kann ich ihn für diese Stelle anpassen.'
-            : 'Upload your CV via Career Scan first — then I can tailor it for this role.' }
+            ? 'Lade deinen Lebenslauf hoch (Büroklammer oben) — dann passe ich ihn für diese Stelle an.'
+            : 'Upload your CV using the clip icon above — then I can tailor it for this role.' }
       ])
       return
     }
@@ -238,7 +273,8 @@ export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
         }}>
 
           {/* Header */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 14px', borderBottom: '1px solid rgba(255,255,255,.07)', flexShrink: 0 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 12px', borderBottom: '1px solid rgba(255,255,255,.07)', flexShrink: 0 }}>
+            {/* Avatar */}
             <div style={{ width: 32, height: 32, borderRadius: '50%', background: `linear-gradient(135deg,${accent}cc,${accent}55)`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
               <svg width="14" height="14" viewBox="0 0 44 44">
                 <circle cx="20" cy="20" r="13" fill="none" stroke="white" strokeWidth="2.8"/>
@@ -246,16 +282,57 @@ export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
                 <line x1="28" y1="28" x2="36" y2="36" stroke="white" strokeWidth="3.5" strokeLinecap="round"/>
               </svg>
             </div>
-            <div style={{ flex: 1 }}>
+
+            {/* Name + status */}
+            <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ color: '#fff', fontSize: 13, fontWeight: 700, fontFamily: f.heading }}>{AGENT}</div>
-              <div style={{ fontSize: 10, color: accent, fontWeight: 600 }}>AI Career Assistant</div>
+              <div style={{ fontSize: 10, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 5 }}>
+                <span style={{ color: accent }}>AI Career Assistant</span>
+                {cvName && (
+                  <span style={{ color: '#4ade80', display: 'flex', alignItems: 'center', gap: 3 }}>
+                    <span>·</span>
+                    <svg width="8" height="8" viewBox="0 0 10 10"><circle cx="5" cy="5" r="4" fill="#4ade80"/></svg>
+                    <span style={{ maxWidth: 90, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{cvName}</span>
+                  </span>
+                )}
+              </div>
             </div>
+
+            {/* Hidden file input */}
+            <input ref={fileInputRef} type="file" accept=".pdf,.doc,.docx,.txt" style={{ display: 'none' }} onChange={handleCvUpload} />
+
+            {/* Upload CV button */}
+            <button title={lang === 'DE' ? 'Lebenslauf hochladen' : 'Upload CV'} onClick={() => fileInputRef.current?.click()} disabled={cvUploading}
+              style={{ width: 28, height: 28, borderRadius: 7, border: 'none', background: cvName ? `${accent}22` : 'rgba(255,255,255,.08)', cursor: 'pointer', color: cvName ? accent : 'rgba(255,255,255,.55)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, transition: 'all .15s' }}>
+              {cvUploading
+                ? <span style={{ width: 10, height: 10, border: '2px solid rgba(255,255,255,.3)', borderTopColor: '#fff', borderRadius: '50%', display: 'inline-block', animation: 'kira-spin .8s linear infinite' }}/>
+                : <svg width="13" height="13" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M10 3v10M6 7l4-4 4 4"/>
+                    <path d="M3 17h14"/>
+                  </svg>
+              }
+            </button>
+
+            {/* Voice placeholder — coming soon */}
+            <button title={lang === 'DE' ? 'Sprachfunktion demnächst verfügbar' : 'Voice coming soon'} disabled
+              style={{ width: 28, height: 28, borderRadius: 7, border: 'none', background: 'rgba(255,255,255,.05)', cursor: 'not-allowed', color: 'rgba(255,255,255,.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              <svg width="12" height="14" viewBox="0 0 24 28" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="8" y="1" width="8" height="14" rx="4"/>
+                <path d="M4 14a8 8 0 0 0 16 0"/>
+                <line x1="12" y1="22" x2="12" y2="27"/>
+                <line x1="8" y1="27" x2="16" y2="27"/>
+              </svg>
+            </button>
+
+            {/* Clear */}
             {msgs.length > 0 && (
               <button onClick={() => { setMsgs([]); sessionStorage.removeItem(SS.aiMessages) }}
-                style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,.35)', fontSize: 11, cursor: 'pointer', padding: '2px 6px', fontFamily: f.body }}>
+                style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,.3)', fontSize: 10, cursor: 'pointer', padding: '2px 4px', fontFamily: f.body, flexShrink: 0 }}>
                 Clear
               </button>
             )}
+
+            {/* Close */}
             <button className="kira-close" onClick={() => setOpen(false)}
               style={{ width: 24, height: 24, borderRadius: 6, border: 'none', background: 'rgba(255,255,255,.08)', cursor: 'pointer', color: 'rgba(255,255,255,.6)', fontSize: 14, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
               ✕
