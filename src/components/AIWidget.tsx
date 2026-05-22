@@ -604,29 +604,18 @@ export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
       )}
 
       {/* ── FAB ── */}
-      <div style={{ position: 'fixed', bottom: 16, right: 20, zIndex: 9999, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
-        <button className="kira-fab" onClick={() => setOpen(o => !o)}
-          style={{ width: 54, height: 54, borderRadius: '50%', border: 'none',
-            background: `linear-gradient(135deg,${accent},${accent}bb)`,
-            cursor: 'pointer', boxShadow: `0 4px 24px ${accent}66`,
-            display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'transform .2s',
-          }}>
-          {open
-            ? <svg width="18" height="18" viewBox="0 0 20 20" fill="none"><path d="M5 5l10 10M15 5L5 15" stroke="#fff" strokeWidth="2.2" strokeLinecap="round"/></svg>
-            : <svg width="24" height="24" viewBox="0 0 24 24" fill="white">
-                <path d="M20 2H4C2.9 2 2 2.9 2 4v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z"/>
-                <circle cx="8" cy="11" r="1" fill={accent === '#FF9933' ? '#FF9933' : '#378ADD'} opacity="0.6"/>
-                <circle cx="12" cy="11" r="1" fill={accent === '#FF9933' ? '#FF9933' : '#378ADD'} opacity="0.6"/>
-                <circle cx="16" cy="11" r="1" fill={accent === '#FF9933' ? '#FF9933' : '#378ADD'} opacity="0.6"/>
-              </svg>
-          }
-        </button>
-        {!open && (
-          <span style={{ color: 'rgba(255,255,255,.75)', fontSize: 10, fontWeight: 700, fontFamily: f.heading, letterSpacing: '0.3px', textShadow: '0 1px 4px rgba(0,0,0,.5)' }}>
-            Kira AI
-          </span>
-        )}
-      </div>
+      <button className="kira-fab" onClick={() => setOpen(o => !o)}
+        title="Chat with Kira"
+        style={{ position: 'fixed', bottom: 20, right: 20, zIndex: 9999, width: 54, height: 54, borderRadius: '50%', border: 'none',
+          background: 'linear-gradient(135deg,#6D28D9,#378ADD)',
+          cursor: 'pointer', boxShadow: '0 4px 22px rgba(109,40,217,.55)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'transform .2s',
+        }}>
+        {open
+          ? <svg width="18" height="18" viewBox="0 0 20 20" fill="none"><path d="M5 5l10 10M15 5L5 15" stroke="#fff" strokeWidth="2.2" strokeLinecap="round"/></svg>
+          : <span style={{ fontFamily: f.heading, fontSize: 15, fontWeight: 800, color: '#fff', letterSpacing: '-.5px' }}>Ki</span>
+        }
+      </button>
     </>
   )
 }
