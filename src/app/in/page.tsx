@@ -161,28 +161,25 @@ export default async function IndiaHomePage() {
 
               {/* Kira hero teaser */}
               <a href="#kira-demo" style={{
-                display: 'inline-flex', alignItems: 'center', gap: 12, marginTop: 28,
-                background: 'rgba(255,153,51,0.1)', border: '1px solid rgba(255,153,51,0.28)',
-                borderRadius: 16, padding: '11px 16px 11px 11px', textDecoration: 'none',
-                maxWidth: 420,
+                display: 'inline-flex', alignItems: 'center', gap: 14, marginTop: 32,
+                background: 'linear-gradient(135deg,rgba(255,153,51,0.14),rgba(109,40,217,0.12))',
+                border: '1px solid rgba(255,255,255,0.14)',
+                borderRadius: 20, padding: '14px 18px 14px 14px', textDecoration: 'none',
+                maxWidth: 440, backdropFilter: 'blur(12px)',
               }}>
-                <div style={{ width: 38, height: 38, borderRadius: '50%', background: 'linear-gradient(135deg, #FF993388, #FF993344)', border: '1px solid rgba(255,153,51,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                  <svg width="17" height="17" viewBox="0 0 44 44">
-                    <circle cx="20" cy="20" r="13" fill="none" stroke={saffron} strokeWidth="2.8"/>
-                    <circle cx="20" cy="20" r="3" fill={saffron}/>
-                    <line x1="28" y1="28" x2="36" y2="36" stroke={saffron} strokeWidth="3.5" strokeLinecap="round"/>
-                  </svg>
+                <div style={{ position: 'relative', flexShrink: 0 }}>
+                  <div style={{ width: 44, height: 44, borderRadius: '50%', background: `linear-gradient(135deg,${saffron},#6D28D9)`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10a7 7 0 0 0 14 0"/><line x1="12" y1="19" x2="12" y2="22"/></svg>
+                  </div>
+                  <span style={{ position: 'absolute', bottom: 1, right: 1, width: 10, height: 10, borderRadius: '50%', background: '#22c55e', border: '2px solid #0a1520' }} />
                 </div>
                 <div style={{ textAlign: 'left', flex: 1 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 3 }}>
-                    <span style={{ fontSize: 11, fontWeight: 700, color: saffron, fontFamily: "'Outfit',sans-serif" }}>Kira AI</span>
-                    <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#22c55e', display: 'inline-block' }} />
-                  </div>
-                  <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.65)', lineHeight: 1.45, fontFamily: "'DM Sans',sans-serif" }}>
-                    &ldquo;I scan your CV, find ATS gaps and fix them for every job you apply to.&rdquo;
+                  <div style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.45)', letterSpacing: 0.8, textTransform: 'uppercase' as const, marginBottom: 4, fontFamily: "'Outfit',sans-serif" }}>Kira AI · Online now</div>
+                  <div style={{ fontSize: 14, fontWeight: 600, color: white, lineHeight: 1.4, fontFamily: "'Outfit',sans-serif" }}>
+                    Your next job is a conversation away.
                   </div>
                 </div>
-                <div style={{ flexShrink: 0, padding: '7px 13px', borderRadius: 10, background: saffron, color: white, fontSize: 12, fontWeight: 700, fontFamily: "'Outfit',sans-serif", whiteSpace: 'nowrap' as const }}>
+                <div style={{ flexShrink: 0, padding: '8px 16px', borderRadius: 10, background: `linear-gradient(135deg,${saffron},#e67300)`, color: white, fontSize: 12, fontWeight: 700, fontFamily: "'Outfit',sans-serif", whiteSpace: 'nowrap' as const, boxShadow: `0 4px 12px rgba(255,153,51,0.4)` }}>
                   Meet Kira ↓
                 </div>
               </a>
@@ -348,17 +345,63 @@ export default async function IndiaHomePage() {
         </div>
       </section>
 
-      {/* KIRA DEMO */}
-      <section id="kira-demo" style={{ background: white, padding: '72px 24px', borderTop: `1px solid #edf1f6` }}>
-        <div style={{ maxWidth: 860, margin: '0 auto', textAlign: 'center' }}>
-          <div style={{ fontSize: 12, fontWeight: 700, color: saffron, letterSpacing: 2, textTransform: 'uppercase', marginBottom: 12 }}>Kira Preview</div>
-          <h2 style={{ fontFamily: "'Outfit',sans-serif", fontSize: 30, fontWeight: 800, color: navy, marginBottom: 12 }}>
-            Meet Kira — your AI career coach
-          </h2>
-          <p style={{ fontSize: 15, color: '#6b7c93', maxWidth: 480, margin: '0 auto 40px', lineHeight: 1.7 }}>
-            Kira scans your CV, matches it against jobs and tells you exactly how to beat ATS. See a live demo below.
-          </p>
-          <KiraDemoWidget market="in" lang="EN" />
+      {/* KIRA SECTION */}
+      <section id="kira-demo" style={{ background: white, padding: '72px 24px 80px', borderTop: `1px solid #edf1f6` }}>
+        <div style={{ maxWidth: 900, margin: '0 auto' }}>
+          <div style={{
+            background: 'linear-gradient(160deg,#0c1c30 0%,#08121f 100%)',
+            borderRadius: 24, padding: '64px 32px 52px',
+            position: 'relative', overflow: 'hidden',
+          }}>
+            {/* Background glows */}
+            <div style={{ position: 'absolute', top: -80, left: '50%', transform: 'translateX(-50%)', width: 600, height: 320, background: `radial-gradient(ellipse, rgba(255,153,51,0.16) 0%, rgba(109,40,217,0.1) 45%, transparent 70%)`, pointerEvents: 'none' }} />
+            <div style={{ position: 'absolute', bottom: -40, left: '15%', width: 280, height: 180, background: 'radial-gradient(ellipse, rgba(0,200,200,0.07) 0%, transparent 70%)', pointerEvents: 'none' }} />
+            <div style={{ position: 'absolute', bottom: -40, right: '12%', width: 260, height: 160, background: 'radial-gradient(ellipse, rgba(255,20,160,0.07) 0%, transparent 70%)', pointerEvents: 'none' }} />
+
+            <div style={{ position: 'relative', zIndex: 1, textAlign: 'center', marginBottom: 48 }}>
+              {/* Tag */}
+              <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, marginBottom: 22 }}>
+                <div style={{ width: 28, height: 28, borderRadius: '50%', background: `linear-gradient(135deg,${saffron},#6D28D9)`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10a7 7 0 0 0 14 0"/><line x1="12" y1="19" x2="12" y2="22"/></svg>
+                </div>
+                <span style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.45)', letterSpacing: 1.5, textTransform: 'uppercase' as const, fontFamily: "'Outfit',sans-serif" }}>
+                  Meet Kira — AI Career Assistant
+                </span>
+              </div>
+
+              {/* Headline */}
+              <h2 style={{ fontFamily: "'Outfit',sans-serif", fontSize: 'clamp(28px,4.5vw,50px)', fontWeight: 800, color: white, margin: '0 0 20px', lineHeight: 1.12, letterSpacing: -0.8 }}>
+                Your next job is a{' '}
+                <span style={{ background: `linear-gradient(90deg,#00e8d0,${saffron},#a855f7)`, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>
+                  conversation away.
+                </span>
+              </h2>
+
+              {/* Sub */}
+              <p style={{ fontSize: 16, color: 'rgba(255,255,255,0.5)', maxWidth: 520, margin: '0 auto 40px', lineHeight: 1.8, fontWeight: 400, fontFamily: "'DM Sans',sans-serif" }}>
+                Kira knows the Indian job market — Bangalore, Hyderabad, Mumbai and beyond. Ask about live jobs, ATS scores, salary in LPA — all in a natural voice conversation. No forms. No filters. Just results.
+              </p>
+
+              {/* Feature pills */}
+              <div style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap' }}>
+                {[
+                  { icon: '🎙', label: 'Voice-first', desc: 'Just speak — Kira listens' },
+                  { icon: '🔍', label: 'Live job search', desc: 'Real roles across India' },
+                  { icon: '📄', label: 'ATS insight', desc: 'Score, gaps & fixes' },
+                ].map(feat => (
+                  <div key={feat.label} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 18px', borderRadius: 14, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)' }}>
+                    <span style={{ fontSize: 20, lineHeight: 1 }}>{feat.icon}</span>
+                    <div style={{ textAlign: 'left' }}>
+                      <div style={{ fontSize: 12, fontWeight: 700, color: white, fontFamily: "'Outfit',sans-serif" }}>{feat.label}</div>
+                      <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.38)', marginTop: 1, fontFamily: "'DM Sans',sans-serif" }}>{feat.desc}</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <KiraDemoWidget market="in" lang="EN" />
+          </div>
         </div>
       </section>
 
