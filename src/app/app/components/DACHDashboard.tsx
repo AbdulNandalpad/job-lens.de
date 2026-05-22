@@ -243,9 +243,7 @@ export default function DACHDashboard() {
   const [sectorsExpanded, setSectorsExpanded] = useState(false)
   const [salaryExpanded,  setSalaryExpanded]  = useState(false)
   const [aiExpanded,      setAiExpanded]      = useState(false)
-  const [customiseOpen,   setCustomiseOpen]   = useState(false)
-
-  const { widgets, isVisible, toggle, resetDefaults } = useDashWidgets(MARKET.eu)
+  const { isVisible } = useDashWidgets(MARKET.eu)
 
   const t = (de: string, en: string) => lang === 'DE' ? de : en
 
@@ -446,12 +444,6 @@ export default function DACHDashboard() {
                 {t('Zur App', 'Go to App')}
               </button>
 
-              {/* Customise widgets */}
-              <button onClick={() => setCustomiseOpen(o => !o)}
-                style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '10px 16px', borderRadius: 12, border: `1px solid ${customiseOpen ? blue : 'rgba(255,255,255,.18)'}`, background: customiseOpen ? blue + '22' : 'rgba(255,255,255,.06)', color: customiseOpen ? blue : txt2, fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: "'DM Sans',sans-serif", transition: 'all .2s' }}>
-                ⚙ {t('Widgets', 'Widgets')}
-              </button>
-
               {/* Sign Out */}
               <button onClick={signOut}
                 style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '10px 16px', borderRadius: 12, border: '1px solid rgba(255,255,255,.12)', background: 'rgba(255,255,255,.04)', color: txt3, fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: "'DM Sans',sans-serif", transition: 'all .2s' }}>
@@ -461,31 +453,6 @@ export default function DACHDashboard() {
           </div>
         </div>
       </div>
-
-      {/* ── CUSTOMISE STRIP ── */}
-      {customiseOpen && (
-        <div style={{ background: 'rgba(7,17,31,.96)', borderBottom: `1px solid rgba(255,255,255,.08)`, padding: '16px 28px', backdropFilter: 'blur(12px)' }}>
-          <div style={{ maxWidth: 1100, margin: '0 auto' }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12, flexWrap: 'wrap', gap: 8 }}>
-              <span style={{ fontSize: 12, fontWeight: 700, color: txt2, letterSpacing: 0.5, textTransform: 'uppercase' }}>{t('Widgets anpassen', 'Customise Dashboard')}</span>
-              <button onClick={resetDefaults} style={{ fontSize: 11, color: txt3, background: 'none', border: '1px solid rgba(255,255,255,.1)', borderRadius: 6, padding: '4px 10px', cursor: 'pointer', fontFamily: "'DM Sans',sans-serif" }}>{t('Zurücksetzen', 'Reset defaults')}</button>
-            </div>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-              {widgets.map(w => {
-                const on = isVisible(w.id)
-                return (
-                  <button key={w.id} onClick={() => toggle(w.id)}
-                    style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '7px 14px', borderRadius: 20, border: `1px solid ${on ? blue : 'rgba(255,255,255,.1)'}`, background: on ? blue + '18' : 'transparent', color: on ? blue : txt3, fontSize: 12, fontWeight: on ? 700 : 400, cursor: 'pointer', fontFamily: "'DM Sans',sans-serif", transition: 'all .15s' }}>
-                    <span>{w.icon}</span>
-                    <span>{w.label}</span>
-                    <span style={{ fontSize: 10, opacity: 0.7 }}>{on ? '✓' : '+'}</span>
-                  </button>
-                )
-              })}
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* ── ANALYTICS BODY ───────────────────────────── */}
       <div className="dash-page" style={{ maxWidth: 1100, margin: '0 auto', padding: '28px 20px 80px' }}>
