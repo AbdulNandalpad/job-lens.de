@@ -107,13 +107,14 @@ function mapJobs(results: Record<string, unknown>[], fallbackCity: string, count
     const areas   = loc?.area as string[] | undefined
     const company = j.company as Record<string, unknown> | undefined
     return {
-      title:      String(j.title || ''),
-      company:    String(company?.display_name || ''),
-      location:   areas?.[areas.length - 1] || fallbackCity || country.toUpperCase(),
-      posted:     String(j.created || ''),
-      salary_min: (j.salary_min as number) || null,
-      salary_max: (j.salary_max as number) || null,
-      apply_url:  String(j.redirect_url || ''),
+      title:       String(j.title || ''),
+      company:     String(company?.display_name || ''),
+      location:    areas?.[areas.length - 1] || fallbackCity || country.toUpperCase(),
+      posted:      String(j.created || ''),
+      salary_min:  (j.salary_min as number) || null,
+      salary_max:  (j.salary_max as number) || null,
+      apply_url:   String(j.redirect_url || ''),
+      description: String(j.description || '').slice(0, 400),
     }
   }).sort((a, b) => new Date(b.posted).getTime() - new Date(a.posted).getTime())
 }
@@ -261,10 +262,11 @@ export async function POST(req: NextRequest) {
                 let result: string
 
                 if (tb.name === 'search_jobs') {
-                  result = await searchJobs(tb.input as SearchInput, market)
+                  const inp = tb.input as SearchInput
+                  result = await searchJobs(inp, market)
                   const parsed = JSON.parse(result) as { jobs?: unknown[]; total?: number; error?: string }
                   if (parsed.jobs && parsed.jobs.length > 0) {
-                    safeSend({ jobs: parsed.jobs, total: parsed.total ?? parsed.jobs.length })
+                    safeSend({ jobs: parsed.jobs, total: parsed.total ?? parsed.jobs.length, query: inp.query, location: inp.location || '' })
                   }
 
                 } else if (tb.name === 'suggest_feature') {

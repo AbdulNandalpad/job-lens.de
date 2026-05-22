@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { theme } from '@/lib/theme'
 import { SS, API } from '@/lib/constants'
 import { useLanguage } from '@/lib/i18n'
@@ -11,10 +12,11 @@ const { colors: c, fonts: f, gradients: g } = theme
 interface Job {
   title: string; company: string; location: string
   salary_min: number | null; salary_max: number | null
-  apply_url: string; posted: string
+  apply_url: string; posted: string; description: string
 }
 interface FeatureAction { feature: string; label: string; href: string; reason: string }
-interface Msg { role: 'user' | 'assistant'; content: string; status?: string; jobs?: Job[]; jobsTotal?: number; action?: FeatureAction }
+interface JobsSearch { q: string; location: string }
+interface Msg { role: 'user' | 'assistant'; content: string; status?: string; jobs?: Job[]; jobsTotal?: number; jobsSearch?: JobsSearch; action?: FeatureAction }
 
 const AGENT = 'Kira'
 
@@ -61,7 +63,8 @@ function fmtSalary(min: number | null, max: number | null, market: 'eu' | 'in'):
 }
 
 export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
-  const { lang } = useLanguage()
+  const { lang }   = useLanguage()
+  const router     = useRouter()
   const key    = market === 'in' ? 'in_EN' : `eu_${lang}`
   const accent = market === 'in' ? '#FF9933' : c.accent
 
@@ -91,6 +94,25 @@ export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
   useEffect(() => {
     if (open) setTimeout(() => inputRef.current?.focus(), 50)
   }, [open])
+
+  function tailorCv(job: Job) {
+    if (!cvRef.current) {
+      setMsgs(prev => [...prev,
+        { role: 'assistant', content: lang === 'DE'
+            ? 'Lade zuerst deinen Lebenslauf über Career Scan hoch — dann kann ich ihn für diese Stelle anpassen.'
+            : 'Upload your CV via Career Scan first — then I can tailor it for this role.' }
+      ])
+      return
+    }
+    sessionStorage.setItem(SS.cvbJob, JSON.stringify({
+      job_title:       job.title,
+      employer_name:   job.company,
+      job_city:        job.location,
+      job_description: job.description,
+      job_apply_link:  job.apply_url,
+    }))
+    router.push(market === 'in' ? '/in/cv-builder' : '/app/cv-builder')
+  }
 
   async function send(text: string) {
     if (!text.trim() || loading) return
@@ -143,7 +165,7 @@ export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
             } else if (evt.jobs) {
               setMsgs(prev => {
                 const cp = [...prev]
-                cp[idx] = { ...cp[idx], jobs: evt.jobs as Job[], jobsTotal: evt.total as number | undefined, status: undefined }
+                cp[idx] = { ...cp[idx], jobs: evt.jobs as Job[], jobsTotal: evt.total as number | undefined, jobsSearch: { q: String(evt.query || ''), location: String(evt.location || '') }, status: undefined }
                 return cp
               })
             } else if (evt.action) {
@@ -308,19 +330,36 @@ export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
                               <div style={{ fontWeight: 700, fontSize: 12, color: '#fff', fontFamily: f.heading, lineHeight: 1.3 }}>{job.title}</div>
                               <div style={{ fontSize: 11, color: 'rgba(255,255,255,.5)', marginTop: 3, fontFamily: f.body }}>{job.company} · {job.location}</div>
                               {salary && <div style={{ fontSize: 11, color: accent, marginTop: 3, fontWeight: 600 }}>{salary}</div>}
-                              {job.apply_url && (
-                                <a href={job.apply_url} target="_blank" rel="noopener noreferrer" className="kira-apply"
-                                  style={{ display: 'inline-block', marginTop: 7, fontSize: 11, padding: '4px 10px', borderRadius: 6, background: accent, color: '#fff', textDecoration: 'none', fontWeight: 600, transition: 'opacity .15s' }}>
-                                  View Job →
-                                </a>
-                              )}
+                              <div style={{ display: 'flex', gap: 6, marginTop: 7, flexWrap: 'wrap' }}>
+                                {job.apply_url && (
+                                  <a href={job.apply_url} target="_blank" rel="noopener noreferrer" className="kira-apply"
+                                    style={{ fontSize: 11, padding: '4px 10px', borderRadius: 6, background: accent, color: '#fff', textDecoration: 'none', fontWeight: 600, transition: 'opacity .15s' }}>
+                                    View Job →
+                                  </a>
+                                )}
+                                <button onClick={() => tailorCv(job)}
+                                  style={{ fontSize: 11, padding: '4px 10px', borderRadius: 6, background: 'rgba(255,255,255,.1)', border: `1px solid ${accent}55`, color: '#fff', cursor: 'pointer', fontWeight: 600, fontFamily: f.body }}>
+                                  Tailor CV
+                                </button>
+                              </div>
                             </div>
                           )
                         })}
-                        <Link href={market === 'in' ? '/in/jobs' : '/app/jobs'}
-                          style={{ display: 'block', marginTop: 2, padding: '7px 12px', borderRadius: 8, border: `1px solid ${accent}44`, color: accent, textDecoration: 'none', fontSize: 11, fontWeight: 600, textAlign: 'center', fontFamily: f.heading }}>
-                          Browse all jobs →
-                        </Link>
+                        {(() => {
+                          const q   = m.jobsSearch?.q || ''
+                          const loc = m.jobsSearch?.location || ''
+                          const base = market === 'in' ? '/in/jobs' : '/app/jobs'
+                          const params = new URLSearchParams()
+                          if (q)   params.set('q', q)
+                          if (loc && market === 'in') params.set('location', loc)
+                          const href = params.toString() ? `${base}?${params}` : base
+                          return (
+                            <Link href={href}
+                              style={{ display: 'block', marginTop: 2, padding: '7px 12px', borderRadius: 8, border: `1px solid ${accent}44`, color: accent, textDecoration: 'none', fontSize: 11, fontWeight: 600, textAlign: 'center', fontFamily: f.heading }}>
+                              Browse all {q ? `"${q}"` : ''} jobs →
+                            </Link>
+                          )
+                        })()}
                       </div>
                     )}
 
