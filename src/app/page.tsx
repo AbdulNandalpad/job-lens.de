@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { useState, useEffect, useRef, type ReactNode } from 'react'
+import { useState, useEffect, type ReactNode } from 'react'
 import { createClient } from '@/lib/supabase'
 import { theme } from '@/lib/theme'
 import { useLanguage, DEFlag, GBFlag } from '@/lib/i18n'
@@ -167,27 +167,11 @@ const translations = {
 export default function HomePage() {
   const [user, setUser] = useState<{ name: string } | null>(null)
   const [loading, setLoading] = useState(true)
-  const [visibleCards, setVisibleCards] = useState<number[]>([])
   const [langOpen, setLangOpen] = useState(false)
-  const cardsRef = useRef<HTMLDivElement>(null)
   const { lang, setLang, t: _ctxT } = useLanguage()
 
   // Use local translations object for homepage-specific strings (matches existing structure)
   const t = translations[lang]
-
-  useEffect(() => {
-    const observer = new IntersectionObserver(
-      entries => entries.forEach(e => {
-        if (e.isIntersecting) {
-          const idx = parseInt(e.target.getAttribute('data-idx') || '0')
-          setVisibleCards(prev => [...new Set([...prev, idx])])
-        }
-      }),
-      { threshold: 0.1 }
-    )
-    document.querySelectorAll('.jl-card').forEach(card => observer.observe(card))
-    return () => observer.disconnect()
-  }, [])
 
   useEffect(() => {
     const supabase = createClient()
@@ -243,8 +227,7 @@ export default function HomePage() {
           background: rgba(255,255,255,0.14);
           transform: translateY(-1px);
         }
-        .jl-card { opacity:0; transform:translateY(28px); }
-        .jl-card.visible { animation: slideCard 0.5s ease forwards; }
+        .jl-card { animation: slideCard 0.5s ease both; }
 
         .jl-feat-card {
           background: #fff;
@@ -459,12 +442,11 @@ export default function HomePage() {
           </div>
         </div>
 
-        <div className="jl-feature-grid" ref={cardsRef}>
+        <div className="jl-feature-grid">
           {t.features.map((feat, idx) => (
             <div
               key={feat.title}
-              data-idx={idx}
-              className={`jl-card jl-feat-card${visibleCards.includes(idx) ? ' visible' : ''}`}
+              className="jl-card jl-feat-card"
               style={{ animationDelay: `${idx * 0.12}s` }}
             >
               <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
