@@ -1,7 +1,7 @@
 import { NextRequest } from 'next/server'
 import Anthropic from '@anthropic-ai/sdk'
-import { createServerSupabase } from '@/lib/supabase-server'
-import { MARKET } from '@/lib/constants'
+import { createServerSupabase, createAdminSupabase, checkAndDeductCredits } from '@/lib/supabase-server'
+import { MARKET, CREDIT_COST, AI_CHAT_FREE_MESSAGES } from '@/lib/constants'
 
 const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
 
@@ -281,6 +281,29 @@ export async function POST(req: NextRequest) {
         }
 
         safeSend({ done: true })
+
+        // Track message count — charge 1 credit per AI_CHAT_FREE_MESSAGES block after free tier
+        const adminEmails = (process.env.ADMIN_EMAILS || '').split(',').map(e => e.trim().toLowerCase())
+        if (!adminEmails.includes((user.email ?? '').toLowerCase())) {
+          try {
+            const admin = createAdminSupabase()
+            const { data } = await admin
+              .from('profiles')
+              .select('ai_message_count')
+              .eq('id', user.id)
+              .single()
+
+            const newCount = (data?.ai_message_count ?? 0) + 1
+            await admin.from('profiles').update({ ai_message_count: newCount }).eq('id', user.id)
+
+            // Charge at message 21, 41, 61 … (first of each paid block)
+            if (newCount > AI_CHAT_FREE_MESSAGES && (newCount - 1) % AI_CHAT_FREE_MESSAGES === 0) {
+              await checkAndDeductCredits(user.id, CREDIT_COST.aiChat, 'ai_chat', user.email ?? '', market)
+            }
+          } catch (err) {
+            console.error('[Kira credits]', err)
+          }
+        }
 
       } catch (err) {
         console.error('[Kira]', err)

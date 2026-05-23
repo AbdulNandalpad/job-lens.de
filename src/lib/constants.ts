@@ -9,7 +9,11 @@ export const CREDIT_COST = {
   autoApply:       3,  // /api/auto-apply/analyze
   zeugnisDecoder:  1,  // /api/zeugnis — decode Arbeitszeugnis
   visaCheck:       1,  // /api/visa — Fachkräfte eligibility analysis
+  aiChat:          1,  // /api/ai/chat — 1 credit per AI_CHAT_FREE_MESSAGES block after free tier
 } as const
+
+// First N Kira messages are free; 1 credit charged per N messages after that
+export const AI_CHAT_FREE_MESSAGES = 20
 
 // ── UI threshold — show low-credit warning when credits fall to or below this
 export const LOW_CREDIT_WARN = 2
