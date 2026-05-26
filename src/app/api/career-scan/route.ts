@@ -104,7 +104,11 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    const { cvText, role, market, lang } = await req.json()
+    const body = await req.json()
+    const cvText = typeof body.cvText === 'string' ? body.cvText : ''
+    const role   = typeof body.role   === 'string' ? body.role.slice(0, 200)   : ''
+    const market = typeof body.market === 'string' ? body.market.slice(0, 50)  : ''
+    const lang   = typeof body.lang   === 'string' ? body.lang.slice(0, 5)     : ''
     if (!cvText?.trim()) {
       await refundCredits(user.id, COST, 'career_scan')
       return NextResponse.json({ error: 'CV text is required' }, { status: 400 })

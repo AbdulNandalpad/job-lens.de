@@ -9,7 +9,9 @@ export async function POST(req: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const { cvText, jobDescription } = await req.json()
+  const body = await req.json()
+  const cvText         = typeof body.cvText         === 'string' ? body.cvText         : ''
+  const jobDescription = typeof body.jobDescription === 'string' ? body.jobDescription : ''
   if (!cvText || !jobDescription) return NextResponse.json({ matching: [], missing: [] })
 
   try {

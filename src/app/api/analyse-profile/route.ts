@@ -24,8 +24,11 @@ export async function POST(req: NextRequest) {
   let targetRole = ''
   try {
     const body = await req.json()
-    const { linkedinText, cvText, experience, jobTypes } = body
-    targetRole = body.targetRole || ''
+    const linkedinText = typeof body.linkedinText === 'string' ? body.linkedinText : ''
+    const cvText       = typeof body.cvText       === 'string' ? body.cvText       : ''
+    const experience   = typeof body.experience   === 'string' ? body.experience.slice(0, 50)   : ''
+    const jobTypes     = Array.isArray(body.jobTypes) ? body.jobTypes.slice(0, 5).map((t: unknown) => String(t).slice(0, 50)) : []
+    targetRole = typeof body.targetRole === 'string' ? body.targetRole.slice(0, 200) : ''
     const profileText = (linkedinText || cvText || '').trim()
 
     // No profile and no role — nothing to work with

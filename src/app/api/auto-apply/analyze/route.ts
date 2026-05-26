@@ -18,10 +18,18 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    const { jobUrl, cvText, coverLetter } = await req.json()
+    const body = await req.json()
+    const jobUrl     = typeof body.jobUrl     === 'string' ? body.jobUrl     : ''
+    const cvText     = typeof body.cvText     === 'string' ? body.cvText     : ''
+    const coverLetter = typeof body.coverLetter === 'string' ? body.coverLetter : undefined
 
     if (!jobUrl || !cvText) {
       return NextResponse.json({ error: 'jobUrl and cvText are required' }, { status: 400 })
+    }
+
+    // Only allow https:// job URLs — prevents SSRF to internal/local addresses
+    if (!jobUrl.startsWith('https://')) {
+      return NextResponse.json({ error: 'jobUrl must be a valid https URL' }, { status: 400 })
     }
 
     const result = await analyzeForm(jobUrl, cvText, coverLetter ?? undefined, anthropic)

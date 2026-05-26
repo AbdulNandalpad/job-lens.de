@@ -10,7 +10,22 @@ export async function POST(req: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const body = await req.json()
+  const raw = await req.json()
+  // Sanitise every field — never inject unsanitised client input into an LLM prompt
+  const body = {
+    citizenship:          typeof raw.citizenship          === 'string' ? raw.citizenship.slice(0, 100)          : '',
+    isEU:                 Boolean(raw.isEU),
+    qualification:        typeof raw.qualification        === 'string' ? raw.qualification.slice(0, 100)        : '',
+    qualificationField:   typeof raw.qualificationField   === 'string' ? raw.qualificationField.slice(0, 100)   : '',
+    qualificationCountry: typeof raw.qualificationCountry === 'string' ? raw.qualificationCountry.slice(0, 100) : '',
+    germanLevel:          typeof raw.germanLevel          === 'string' ? raw.germanLevel.slice(0, 20)           : '',
+    experience:           typeof raw.experience           === 'string' ? raw.experience.slice(0, 50)            : '',
+    hasJobOffer:          typeof raw.hasJobOffer          === 'string' ? raw.hasJobOffer.slice(0, 20)           : '',
+    offeredSalary:        typeof raw.offeredSalary        === 'string' ? raw.offeredSalary.slice(0, 20)         : '',
+    targetField:          typeof raw.targetField          === 'string' ? raw.targetField.slice(0, 100)          : '',
+    germanyConnection:    typeof raw.germanyConnection    === 'string' ? raw.germanyConnection.slice(0, 100)    : '',
+    age:                  typeof raw.age                  === 'string' ? raw.age.slice(0, 10)                   : '',
+  }
   const credits = await checkAndDeductCredits(
     user.id, CREDIT_COST.visaCheck, 'visa_check', user.email ?? '', MARKET.eu
   )

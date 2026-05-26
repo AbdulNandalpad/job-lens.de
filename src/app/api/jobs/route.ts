@@ -15,7 +15,8 @@ export async function GET(req: NextRequest) {
   const location = searchParams.get('location') || ''
   const countryRaw = searchParams.get('country') || 'de'
   const maxDaysOld = searchParams.get('max_days_old') || ''
-  const page = searchParams.get('page') || '1'
+  const pageRaw = parseInt(searchParams.get('page') || '1', 10)
+  const page = String(Number.isFinite(pageRaw) && pageRaw > 0 ? Math.min(pageRaw, 50) : 1)
 
   // Validate country against allowlist to prevent unintended Adzuna endpoint usage
   const country = ALLOWED_COUNTRIES.has(countryRaw.toLowerCase()) ? countryRaw.toLowerCase() : 'de'

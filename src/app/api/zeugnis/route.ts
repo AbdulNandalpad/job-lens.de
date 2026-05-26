@@ -10,8 +10,9 @@ export async function POST(req: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const { zeugnisText } = await req.json()
-  if (!zeugnisText?.trim()) {
+  const body = await req.json()
+  const zeugnisText = typeof body.zeugnisText === 'string' ? body.zeugnisText.slice(0, 8000) : ''
+  if (!zeugnisText.trim()) {
     return NextResponse.json({ error: 'No Zeugnis text provided' }, { status: 400 })
   }
 

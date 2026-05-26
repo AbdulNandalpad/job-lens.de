@@ -12,7 +12,10 @@ export async function POST(req: NextRequest) {
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const body = await req.json()
-  const { cvText, job, tone, length, lang, feedback, currentLetter, market } = body
+  const cvText        = typeof body.cvText        === 'string' ? body.cvText        : ''
+  const feedback      = typeof body.feedback      === 'string' ? body.feedback.slice(0, 500)  : ''
+  const currentLetter = typeof body.currentLetter === 'string' ? body.currentLetter.slice(0, 3000) : ''
+  const { job, tone, length, lang, market } = body
   const resolvedMarket: 'eu' | 'in' = market === MARKET.in ? MARKET.in : MARKET.eu
 
   const credits = await checkAndDeductCredits(user.id, COST, 'cover_letter', user.email ?? '', resolvedMarket)

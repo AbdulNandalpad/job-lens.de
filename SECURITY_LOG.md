@@ -58,6 +58,25 @@
 
 ---
 
+## 2026-05-26 — Full API Route Audit
+
+**Files:** all routes under `src/app/api/`
+
+| Severity | Route | Issue | Fix |
+|---|---|---|---|
+| 🔴 HIGH | `/api/geo` | No auth — IP geolocation exposed to anonymous requests | Added auth check |
+| 🔴 HIGH | `/api/visa` | All 10 body fields injected raw into LLM prompt — no type check, no length cap | Sanitised all fields with type check + slice caps |
+| 🔴 HIGH | `/api/tailor-cv` | Client-controlled `systemPrompt` passed directly to Claude — any auth'd user could inject any system prompt | Capped to 8,000 chars |
+| 🟡 MEDIUM | `/api/cover-letter` | `feedback` (unbounded) and `currentLetter` (unbounded) in prompt | Capped: feedback 500, currentLetter 3,000 |
+| 🟡 MEDIUM | `/api/zeugnis` | `zeugnisText` had no length cap in prompt | Capped to 8,000 chars |
+| 🟡 MEDIUM | `/api/analyse-profile` | `targetRole`, `experience`, `jobTypes` unsanitised in prompt | Type-checked + length-capped all fields |
+| 🟡 MEDIUM | `/api/career-scan` | `role` and `market` unsanitised in prompt | Type-checked + capped: role 200, market 50 |
+| 🟡 MEDIUM | `/api/jobs` | `page` param passed to Adzuna URL without integer validation | Parsed as int, clamped 1–50 |
+| 🟡 MEDIUM | `/api/auto-apply/analyze` | `jobUrl` not protocol-validated — SSRF risk to internal addresses | Reject if not `https://` |
+| 🟢 LOW | `/api/cv/skill-gap` | `cvText`/`jobDescription` not type-checked as strings before slice | Type-checked both fields |
+
+---
+
 ## Known Open Items (not yet built)
 
 | Item | Notes |
@@ -65,4 +84,6 @@
 | Rate limiting on `/api/ai/*` | Needs Redis / Upstash — no per-minute request cap currently |
 | TTS usage tracking | Voice calls not counted toward credit usage — potential cost exposure |
 | Conversation history trim (client) | Full history sent each turn; should trim to last 30 client-side |
-| `checkAndDeductCredits` read-then-write | Credit deduction in `supabase-server.ts` is still read-then-write — low risk since it's guarded by auth + blocked status check |
+| `checkAndDeductCredits` read-then-write | Credit deduction in `supabase-server.ts` is still read-then-write — needs atomic SQL RPC `deduct_credits(user_id, cost, market, action)` spanning 3 pools. Low abuse risk today (free credits only), but must fix before Razorpay goes live. |
+| `refundCredits` read-then-write | Same pattern — reads then writes credits. Low impact since it's only triggered on AI error paths. |
+| `tailor-cv` systemPrompt | Still client-controlled (just capped at 8,000 chars). Ideal fix: move all CV templates server-side so client sends a template ID, not the prompt itself. |
