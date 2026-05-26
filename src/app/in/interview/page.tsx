@@ -1,7 +1,6 @@
 'use client'
 
 import { useState, useRef } from 'react'
-import NavbarIndia from '../components/NavbarIndia'
 import { API, CREDIT_COST, MARKET } from '@/lib/constants'
 
 const accent = '#FF9933'
@@ -115,8 +114,6 @@ export default function IndiaInterviewPage() {
         @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.5} }
         .recording-dot { animation: pulse 1s ease-in-out infinite; }
       `}</style>
-      <NavbarIndia />
-
       <div style={{ maxWidth: 860, margin: '0 auto', padding: '24px 16px' }}>
 
         <div style={{ paddingLeft: 14, borderLeft: `3px solid ${accent}`, marginBottom: 28 }}>
