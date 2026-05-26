@@ -33,7 +33,7 @@ export async function GET(_req: NextRequest) {
   // Ensure profile exists
   const { data: profile } = await admin
     .from('profiles')
-    .select('credits, eu_credits, in_credits, status, created_at')
+    .select('credits, eu_credits, in_credits, status, created_at, signup_country')
     .eq('id', user.id)
     .single()
 
@@ -41,6 +41,14 @@ export async function GET(_req: NextRequest) {
     // Profile should have been created by the auth callback with fraud checks.
     // If missing here, create a shell with 0 credits — admin can top up if legitimate.
     await admin.from('profiles').insert({ id: user.id, email: user.email, full_name: user.user_metadata?.full_name, avatar_url: user.user_metadata?.avatar_url, credits: 0, eu_credits: 0, in_credits: 0 })
+  }
+
+  // Passively record signup country once — Vercel injects this header on every request
+  if (!profile?.signup_country) {
+    const country = _req.headers.get('x-vercel-ip-country')
+    if (country) {
+      await admin.from('profiles').update({ signup_country: country.slice(0, 2).toUpperCase() }).eq('id', user.id)
+    }
   }
 
   const { data: events } = await admin

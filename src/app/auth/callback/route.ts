@@ -74,12 +74,15 @@ export async function GET(request: Request) {
         .eq('id', data.user.id)
         .maybeSingle()
 
+      const signupCountry = (request.headers.get('x-vercel-ip-country') ?? '').slice(0, 2).toUpperCase() || null
+
       if (existingProfile) {
         // Returning user — refresh market stamp and backfill normalized_email
         // if it was missing (accounts created before this feature shipped).
+        // Also backfill signup_country if still null (captures existing users on next login).
         await admin
           .from('profiles')
-          .update({ market, normalized_email: normalized })
+          .update({ market, normalized_email: normalized, ...(signupCountry ? { signup_country: signupCountry } : {}) })
           .eq('id', data.user.id)
 
       } else {
@@ -127,6 +130,7 @@ export async function GET(request: Request) {
           full_name:        data.user.user_metadata?.full_name  ?? null,
           avatar_url:       data.user.user_metadata?.avatar_url ?? null,
           market,
+          signup_country:   signupCountry,
           credits:          freeCredits,
           eu_credits:       0,
           in_credits:       0,

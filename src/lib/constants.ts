@@ -96,4 +96,5 @@ export const API = {
   aiChat:               '/api/ai/chat',
   aiTts:                '/api/ai/tts',
   aiStt:                '/api/ai/stt',
+  careerProfile:        '/api/profile/career',
 } as const

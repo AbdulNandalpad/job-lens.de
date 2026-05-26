@@ -13,6 +13,7 @@ interface Job {
   title: string; company: string; location: string
   salary_min: number | null; salary_max: number | null
   apply_url: string; posted: string; description: string
+  match_score?: number | null; matching_skills?: string[]; missing_skills?: string[]
 }
 interface FeatureAction { feature: string; label: string; href: string; reason: string }
 interface JobsSearch { q: string; location: string }
@@ -32,9 +33,9 @@ const SUGGESTIONS: Record<string, string[]> = {
 }
 
 const STATUS_LABELS: Record<string, Record<string, string>> = {
-  eu_DE: { search_jobs: 'Suche Jobs...' },
-  eu_EN: { search_jobs: 'Searching jobs...' },
-  in_EN: { search_jobs: 'Searching jobs...' },
+  eu_DE: { search_jobs: 'Suche Jobs...', score_jobs: 'Bewerte Übereinstimmung...' },
+  eu_EN: { search_jobs: 'Searching jobs...', score_jobs: 'Scoring match...' },
+  in_EN: { search_jobs: 'Searching jobs...', score_jobs: 'Scoring match...' },
 }
 
 const VOICE_LABELS: Record<VoiceState, Record<string, string>> = {
@@ -364,6 +365,13 @@ export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
       setMsgs(prev => [...prev, { role: 'assistant', content: lang === 'DE'
         ? `Lebenslauf "${label}" geladen! Ich kann jetzt Jobs für dich bewerten.`
         : `Got your CV! I can now score job matches and tailor your applications.` }])
+
+      // Extract and persist career profile in background — fire and forget
+      void fetch(API.careerProfile, {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({ cvText: text.slice(0, 6000), market }),
+      })
     } catch {
       setMsgs(prev => [...prev, { role: 'assistant', content: 'Could not read that file. Try a PDF, Word doc, or text file.' }])
     }
@@ -967,9 +975,33 @@ export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
                         const salary = fmtSalary(job.salary_min, job.salary_max, market)
                         return (
                           <div key={ji} className="kira-job-card" style={{ background: 'rgba(255,255,255,.05)', border: '1px solid rgba(255,255,255,.08)', borderRadius: 10, padding: '10px 12px', transition: 'all .15s' }}>
-                            <div style={{ fontWeight: 700, fontSize: 12, color: '#fff', fontFamily: f.heading, lineHeight: 1.3 }}>{job.title}</div>
+                            {/* Title row with optional match badge */}
+                            <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 6 }}>
+                              <div style={{ fontWeight: 700, fontSize: 12, color: '#fff', fontFamily: f.heading, lineHeight: 1.3, flex: 1 }}>{job.title}</div>
+                              {job.match_score != null && (
+                                <span style={{
+                                  fontSize: 10, fontWeight: 700, padding: '2px 7px', borderRadius: 8, whiteSpace: 'nowrap' as const, flexShrink: 0,
+                                  background: job.match_score >= 80 ? '#10b98120' : job.match_score >= 60 ? '#f59e0b20' : '#94a3b820',
+                                  color:      job.match_score >= 80 ? '#10b981'   : job.match_score >= 60 ? '#f59e0b'   : '#94a3b8',
+                                  border:     `1px solid ${job.match_score >= 80 ? '#10b98140' : job.match_score >= 60 ? '#f59e0b40' : '#94a3b840'}`,
+                                }}>
+                                  {job.match_score}%
+                                </span>
+                              )}
+                            </div>
                             <div style={{ fontSize: 11, color: 'rgba(255,255,255,.5)', marginTop: 3 }}>{job.company} · {job.location}</div>
                             {salary && <div style={{ fontSize: 11, color: accent, marginTop: 3, fontWeight: 600 }}>{salary}</div>}
+                            {/* Skill pills — only when scoring ran */}
+                            {((job.matching_skills?.length ?? 0) > 0 || (job.missing_skills?.length ?? 0) > 0) && (
+                              <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' as const, marginTop: 6 }}>
+                                {job.matching_skills?.map((s, i) => (
+                                  <span key={i} style={{ fontSize: 10, padding: '2px 6px', borderRadius: 5, background: '#10b98118', color: '#10b981', border: '1px solid #10b98130' }}>✓ {s}</span>
+                                ))}
+                                {job.missing_skills?.slice(0, 1).map((s, i) => (
+                                  <span key={i} style={{ fontSize: 10, padding: '2px 6px', borderRadius: 5, background: '#f59e0b12', color: '#f59e0b', border: '1px solid #f59e0b30' }}>↑ {s}</span>
+                                ))}
+                              </div>
+                            )}
                             <div style={{ display: 'flex', gap: 6, marginTop: 7, flexWrap: 'wrap' }}>
                               {job.apply_url && (
                                 <a href={job.apply_url} target="_blank" rel="noopener noreferrer" className="kira-apply"

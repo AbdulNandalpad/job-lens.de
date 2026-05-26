@@ -14,12 +14,21 @@ PERSONALITY:
 - React naturally: "Oh nice!", "Got it —", "Found some good ones."
 - Never sound like a report or a list of bullet points.
 
-WHAT YOU DO — only these three things:
+WHAT YOU DO:
 1. Find live jobs — call search_jobs immediately when asked. Never invent listings.
 2. Salary guidance — give specific ranges. DACH: entry €45-65k, mid €65-90k, senior €90-130k+ (Munich 15-20% higher). India: entry 4-8 LPA, mid 8-20 LPA, senior 20-50 LPA.
-3. CV scoring — score /10 with 2 specific strengths and 2 gaps. Reference the actual CV. Ask one question at a time when doing a CV review.
+3. Quick CV snapshot — when asked to scan/review/analyse a CV: give a score /10, one strength, one gap in 2 sentences max. Then call suggest_feature with feature="career_scan" so the user can get the full ATS report and career path.
+4. Feature suggestions — call suggest_feature when a Job-Lens tool fits better than a chat answer.
+
+SUGGEST_FEATURE RULES — call it after your text reply when:
+- User asks for CV scan / career scan / analyse my CV / review my profile → suggest "career_scan"
+- User asks to tailor CV for a job / rewrite CV → suggest "cv_builder"
+- User asks to write a cover letter → suggest "cover_letter"
+- Never suggest a feature without giving a short answer first.
+- Never suggest more than one feature per turn.
 
 SEARCH_JOBS RULES:
+- Only call search_jobs when the user explicitly asks to find or see jobs. Never call it during a CV scan, career scan, or feature suggestion flow.
 - query: job title/skills only — strip location words
 - location: city extracted separately
 - country: de/at/ch/in based on city; default de for DACH, in for India
@@ -45,13 +54,49 @@ const tools: Anthropic.Messages.Tool[] = [
       required: ['query'],
     },
   },
+  {
+    name: 'suggest_feature',
+    description: 'Show a Job-Lens feature card after your text reply. Use when a dedicated tool would give the user a much better result than chat alone.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        feature: {
+          type: 'string',
+          enum: ['career_scan', 'cv_builder', 'cover_letter'],
+          description: 'Which Job-Lens feature to suggest',
+        },
+        reason: {
+          type: 'string',
+          description: 'One short sentence explaining what the full tool adds beyond what you just said',
+        },
+      },
+      required: ['feature'],
+    },
+  },
 ]
+
+// ── Feature suggestion map ────────────────────────────────────────────────────
+interface FeatureDef { label: string; href: (market: string) => string }
+const FEATURE_MAP: Record<string, FeatureDef> = {
+  career_scan:  { label: 'Run Full Career Scan',    href: m => m === 'in' ? '/in/career-scan'  : '/app/career-scan'  },
+  cv_builder:   { label: 'Tailor My CV',            href: m => m === 'in' ? '/in/cv-builder'   : '/app/cv-builder'   },
+  cover_letter: { label: 'Write Cover Letter',      href: m => m === 'in' ? '/in/cover-letter' : '/app/cover-letter' },
+}
 
 // ── Adzuna job search ─────────────────────────────────────────────────────────
 
 interface SearchInput { query: string; location?: string; country?: string }
 
-function mapJobs(results: Record<string, unknown>[], fallbackCity: string, country: string) {
+interface MappedJob {
+  title: string; company: string; location: string; posted: string
+  salary_min: number | null; salary_max: number | null
+  apply_url: string; description: string
+  match_score?: number | null; matching_skills?: string[]; missing_skills?: string[]
+}
+
+interface JobScore { score: number; matching: string[]; missing: string[] }
+
+function mapJobs(results: Record<string, unknown>[], fallbackCity: string, country: string): MappedJob[] {
   return results.map(j => {
     const loc     = j.location as Record<string, unknown> | undefined
     const areas   = loc?.area as string[] | undefined
@@ -63,10 +108,35 @@ function mapJobs(results: Record<string, unknown>[], fallbackCity: string, count
       posted:      String(j.created || ''),
       salary_min:  (j.salary_min as number) || null,
       salary_max:  (j.salary_max as number) || null,
-      apply_url:   String(j.redirect_url || ''),
+      apply_url:   (() => { const u = String(j.redirect_url || ''); return u.startsWith('https://') || u.startsWith('http://') ? u : '' })(),
       description: String(j.description || '').slice(0, 400),
     }
   }).sort((a, b) => new Date(b.posted).getTime() - new Date(a.posted).getTime())
+}
+
+async function scoreJobsAgainstCv(jobs: MappedJob[], cvText: string): Promise<JobScore[]> {
+  const jobList = jobs.map((j, i) =>
+    `Job ${i + 1}: ${j.title} at ${j.company}\n${j.description.slice(0, 300)}`
+  ).join('\n---\n')
+
+  try {
+    const res = await client.messages.create({
+      model:      'claude-haiku-4-5-20251001',
+      max_tokens: 400,
+      system:     'You score CV-to-job match. Respond ONLY with a valid JSON array — no prose, no markdown.',
+      messages:   [{
+        role:    'user',
+        content: `CV:\n${cvText.slice(0, 2500)}\n\nJobs:\n${jobList}\n\nFor each job return score (0-100 integer), matching (up to 3 key matching skills as short strings), missing (up to 2 key gaps as short strings). Be realistic — a perfect match is rare.\n\nFormat: [{"score":82,"matching":["React","TypeScript"],"missing":["AWS"]},...]`,
+      }],
+    })
+
+    const text  = res.content[0]?.type === 'text' ? res.content[0].text : ''
+    const found = text.match(/\[[\s\S]*\]/)
+    if (!found) return jobs.map(() => ({ score: 0, matching: [], missing: [] }))
+    return JSON.parse(found[0]) as JobScore[]
+  } catch {
+    return jobs.map(() => ({ score: 0, matching: [], missing: [] }))
+  }
 }
 
 async function fetchAdzuna(
@@ -164,12 +234,24 @@ export async function POST(req: NextRequest) {
   if (!user) return new Response('Unauthorized', { status: 401 })
 
   // Parse body
-  const body                       = await req.json()
-  const messages: ChatMessage[]    = body.messages || []
-  const cvText: string             = body.cvText   || ''
-  const market: 'eu' | 'in'       = body.market   || MARKET.eu
-  const mode: string               = body.mode     || ''
-  const isVoice: boolean           = !!body.isVoice
+  const body = await req.json()
+
+  // Validate market at runtime — TypeScript types don't protect against crafted requests
+  const rawMarket = body.market
+  const market: 'eu' | 'in' = rawMarket === MARKET.in ? MARKET.in : MARKET.eu
+
+  const mode: string     = body.mode === 'cv_discuss' ? 'cv_discuss' : ''
+  const isVoice: boolean = !!body.isVoice
+
+  // Cap CV text server-side (client may send full file)
+  const cvText: string = typeof body.cvText === 'string' ? body.cvText.slice(0, 8000) : ''
+
+  // Cap message history — prevent context explosion and API abuse
+  const rawMessages: ChatMessage[] = Array.isArray(body.messages) ? body.messages : []
+  const messages = rawMessages
+    .slice(-40)                                                // last 40 messages max
+    .filter(m => m.role === 'user' || m.role === 'assistant') // only valid roles
+    .map(m => ({ role: m.role, content: String(m.content ?? '').slice(0, 4000) })) // cap per message
 
   if (!messages.length) return new Response('No messages', { status: 400 })
 
@@ -246,10 +328,38 @@ export async function POST(req: NextRequest) {
                 if (tb.name === 'search_jobs') {
                   const inp = tb.input as SearchInput
                   result = await searchJobs(inp, market)
-                  const parsed = JSON.parse(result) as { jobs?: unknown[]; total?: number; error?: string }
+                  const parsed = JSON.parse(result) as { jobs?: MappedJob[]; total?: number; error?: string }
                   if (parsed.jobs && parsed.jobs.length > 0) {
-                    safeSend({ jobs: parsed.jobs, total: parsed.total ?? parsed.jobs.length, query: inp.query, location: inp.location || '' })
+                    let jobs = parsed.jobs
+
+                    // Score against CV when available — single fast Haiku call
+                    if (cvText) {
+                      safeSend({ status: 'score_jobs' })
+                      const scores = await scoreJobsAgainstCv(jobs, cvText)
+                      jobs = jobs.map((j, i) => ({
+                        ...j,
+                        match_score:     scores[i]?.score    ?? null,
+                        matching_skills: scores[i]?.matching ?? [],
+                        missing_skills:  scores[i]?.missing  ?? [],
+                      }))
+                    }
+
+                    safeSend({ jobs, total: parsed.total ?? jobs.length, query: inp.query, location: inp.location || '' })
                   }
+                } else if (tb.name === 'suggest_feature') {
+                  const inp    = tb.input as { feature: string; reason?: string }
+                  const def    = FEATURE_MAP[inp.feature]
+                  if (def) {
+                    safeSend({
+                      action: {
+                        feature: inp.feature,
+                        label:   def.label,
+                        href:    def.href(market),
+                        reason:  inp.reason ?? '',
+                      },
+                    })
+                  }
+                  result = JSON.stringify({ ok: true })
                 } else {
                   result = JSON.stringify({ error: 'Unknown tool' })
                 }
@@ -282,19 +392,15 @@ export async function POST(req: NextRequest) {
 
         safeSend({ done: true })
 
-        // Track message count — charge 1 credit per AI_CHAT_FREE_MESSAGES block after free tier
+        // Track message count — atomic increment, charge 1 credit per AI_CHAT_FREE_MESSAGES block
         const adminEmails = (process.env.ADMIN_EMAILS || '').split(',').map(e => e.trim().toLowerCase())
         if (!adminEmails.includes((user.email ?? '').toLowerCase())) {
           try {
             const admin = createAdminSupabase()
-            const { data } = await admin
-              .from('profiles')
-              .select('ai_message_count')
-              .eq('id', user.id)
-              .single()
+            const { data: newCount, error: rpcErr } = await admin
+              .rpc('increment_ai_message_count', { p_user_id: user.id })
 
-            const newCount = (data?.ai_message_count ?? 0) + 1
-            await admin.from('profiles').update({ ai_message_count: newCount }).eq('id', user.id)
+            if (rpcErr) throw rpcErr
 
             // Charge at message 21, 41, 61 … (first of each paid block)
             if (newCount > AI_CHAT_FREE_MESSAGES && (newCount - 1) % AI_CHAT_FREE_MESSAGES === 0) {

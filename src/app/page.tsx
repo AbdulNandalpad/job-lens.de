@@ -721,6 +721,8 @@ export default function HomePage() {
             <span style={{ fontSize: 11, color: c.border }}>·</span>
             <Link href="/datenschutz" style={{ fontSize: 11, color: c.textFaint, textDecoration: 'none' }}>Datenschutzerklärung</Link>
             <span style={{ fontSize: 11, color: c.border }}>·</span>
+            <Link href="/privacy" style={{ fontSize: 11, color: c.textFaint, textDecoration: 'none' }}>Privacy Policy</Link>
+            <span style={{ fontSize: 11, color: c.border }}>·</span>
             <Link href="/agb" style={{ fontSize: 11, color: c.textFaint, textDecoration: 'none' }}>AGB</Link>
           </div>
         </div>

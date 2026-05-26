@@ -21,6 +21,7 @@ interface AdminUser {
   isAdmin: boolean
   created_at: string
   last_sign_in: string
+  signup_country: string | null
 }
 
 interface Purchase {
@@ -36,8 +37,17 @@ interface Purchase {
 
 type Tab = 'users' | 'purchases'
 
-// grid columns: User | Provider | Free | IN | EU | Spent | Status | Actions
-const COLS = '2fr 100px 60px 60px 60px 60px 80px 110px'
+// grid columns: User | Provider | Country | Free | IN | EU | Spent | Status | Actions
+const COLS = '2fr 100px 52px 60px 60px 60px 60px 80px 110px'
+
+// Convert ISO 3166-1 alpha-2 code (or market string) to flag emoji
+const toFlag = (code: string | null) => {
+  if (!code) return '🌍'
+  // Map market identifiers to country codes
+  const normalised = code.toLowerCase() === 'eu' ? 'DE' : code.toLowerCase() === 'in' ? 'IN' : code.toUpperCase()
+  if (normalised.length !== 2) return '🌍'
+  return String.fromCodePoint(...[...normalised].map(c => 0x1F1E0 + c.charCodeAt(0) - 65))
+}
 
 export default function AdminPage() {
   const router = useRouter()
@@ -205,7 +215,7 @@ export default function AdminPage() {
 
                   {/* Desktop header */}
                   <div className="adm-thead">
-                    {['User', 'Provider', 'Free', 'IN', 'EU', 'Spent', 'Status', 'Actions'].map(h => (
+                    {['User', 'Provider', 'Country', 'Free', 'IN', 'EU', 'Spent', 'Status', 'Actions'].map(h => (
                       <div key={h} style={{ fontSize: 10, fontWeight: 700, color: c.textMuted, textTransform: 'uppercase' as const, letterSpacing: 0.5 }}>{h}</div>
                     ))}
                   </div>
@@ -221,13 +231,18 @@ export default function AdminPage() {
                             {user.isAdmin && <span style={{ fontSize: 10, fontWeight: 700, color: c.accent, background: `${c.accent}18`, padding: '1px 6px', borderRadius: 8 }}>👑 ADMIN</span>}
                           </div>
                           <div style={{ fontSize: 11, color: c.textMuted }}>{user.email}</div>
-                          <div style={{ fontSize: 10, color: c.textFaint }}>{user.last_sign_in ? `Last: ${fmtShort(user.last_sign_in)}` : 'Never signed in'}</div>
+                          <div style={{ fontSize: 10, color: c.textFaint }}>Joined: {fmtShort(user.created_at)}</div>
+                          <div style={{ fontSize: 10, color: c.textFaint }}>Last in: {user.last_sign_in ? fmtShort(user.last_sign_in) : '—'}</div>
                         </div>
                         {/* Provider */}
                         <div>
                           <span style={{ fontSize: 11, fontWeight: 600, color: user.provider === 'google' ? '#EA4335' : '#0A66C2', background: user.provider === 'google' ? '#EA433515' : '#0A66C215', padding: '3px 8px', borderRadius: 10 }}>
                             {user.provider === 'linkedin_oidc' ? 'LinkedIn' : 'Google'}
                           </span>
+                        </div>
+                        {/* Country */}
+                        <div title={user.signup_country ?? 'Unknown'} style={{ fontSize: 18, lineHeight: 1 }}>
+                          {toFlag(user.signup_country)}
                         </div>
                         {/* Free credits (editable) */}
                         <div>
@@ -286,16 +301,22 @@ export default function AdminPage() {
                             {user.isAdmin && <span style={{ fontSize: 10, fontWeight: 700, color: c.accent, background: `${c.accent}18`, padding: '1px 6px', borderRadius: 8 }}>👑 ADMIN</span>}
                           </div>
                           <div style={{ fontSize: 12, color: c.textMuted, marginTop: 2 }}>{user.email}</div>
-                          <div style={{ fontSize: 11, color: c.textFaint, marginTop: 2 }}>{user.last_sign_in ? `Last: ${fmtShort(user.last_sign_in)}` : 'Never signed in'}</div>
+                          <div style={{ fontSize: 11, color: c.textFaint, marginTop: 2 }}>Joined: {fmtShort(user.created_at)}</div>
+                          <div style={{ fontSize: 11, color: c.textFaint }}>Last in: {user.last_sign_in ? fmtShort(user.last_sign_in) : '—'}</div>
                         </div>
                         {/* Badges row */}
-                        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' as const }}>
+                        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' as const, alignItems: 'center' }}>
                           <span style={{ fontSize: 11, fontWeight: 600, color: user.provider === 'google' ? '#EA4335' : '#0A66C2', background: user.provider === 'google' ? '#EA433515' : '#0A66C215', padding: '3px 8px', borderRadius: 10 }}>
                             {user.provider === 'linkedin_oidc' ? 'LinkedIn' : 'Google'}
                           </span>
                           <span style={{ fontSize: 11, fontWeight: 700, color: user.isAdmin ? c.accent : user.status === 'active' ? c.success : c.danger, background: user.isAdmin ? `${c.accent}15` : user.status === 'active' ? c.successLight : `${c.danger}15`, padding: '3px 8px', borderRadius: 10 }}>
                             {user.isAdmin ? 'admin' : user.status}
                           </span>
+                          {user.signup_country && (
+                            <span title={user.signup_country} style={{ fontSize: 16, lineHeight: 1 }}>
+                              {toFlag(user.signup_country)}
+                            </span>
+                          )}
                         </div>
                         {/* Credit pools */}
                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8 }}>

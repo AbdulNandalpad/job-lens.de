@@ -22,7 +22,7 @@ export async function GET(req: NextRequest) {
   const ids = users.map(u => u.id)
   const { data: profiles } = await admin
     .from('profiles')
-    .select('id, credits, eu_credits, in_credits, status, created_at')
+    .select('id, credits, eu_credits, in_credits, status, created_at, signup_country, market')
     .in('id', ids)
 
   const { data: usageRaw } = await admin
@@ -57,6 +57,7 @@ export async function GET(req: NextRequest) {
       isAdmin: ADMIN_EMAILS.includes((u.email || '').toLowerCase()),
       created_at: u.created_at,
       last_sign_in: u.last_sign_in_at,
+      signup_country: p?.signup_country ?? p?.market ?? null,
     }
   })
 

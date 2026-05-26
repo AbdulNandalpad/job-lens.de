@@ -13,7 +13,21 @@ export async function POST(req: NextRequest) {
   const file = form.get('file') as File | null
   if (!file) return NextResponse.json({ error: 'No audio file' }, { status: 400 })
 
-  const language = form.get('language') as string | null
+  // Reject oversized files — OpenAI Whisper limit is 25MB, we cap at 10MB
+  if (file.size > 10 * 1024 * 1024) {
+    return NextResponse.json({ error: 'Audio file too large' }, { status: 413 })
+  }
+
+  // Only accept known audio MIME types that Whisper supports
+  const ALLOWED_TYPES = ['audio/webm', 'audio/mp4', 'audio/mpeg', 'audio/ogg', 'audio/wav', 'audio/flac', 'audio/x-m4a']
+  const mimeBase = (file.type || '').split(';')[0].trim().toLowerCase()
+  if (mimeBase && !ALLOWED_TYPES.some(t => mimeBase.startsWith(t.split('/')[0] + '/audio') || mimeBase === t)) {
+    return NextResponse.json({ error: 'Invalid audio format' }, { status: 415 })
+  }
+
+  // Sanitise language — only allow 2-letter ISO codes
+  const rawLang = form.get('language') as string | null
+  const language = rawLang && /^[a-z]{2}$/.test(rawLang) ? rawLang : null
 
   const outForm = new FormData()
   outForm.append('file', file, file.name || 'audio.webm')

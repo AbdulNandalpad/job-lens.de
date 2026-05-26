@@ -41,6 +41,14 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: true, skipped: true })
     }
 
+    // Verify payment was made to OUR merchant account — critical against IPN replay attacks
+    const receiverEmail = params.get('receiver_email') ?? ''
+    const expectedEmail = (process.env.NEXT_PUBLIC_PAYPAL_EMAIL ?? '').toLowerCase()
+    if (!expectedEmail || receiverEmail.toLowerCase() !== expectedEmail) {
+      console.warn('[paypal] receiver_email mismatch — possible replay attack:', receiverEmail)
+      return NextResponse.json({ ok: false }, { status: 400 })
+    }
+
     if (!userId || !currency || currency !== 'EUR') {
       console.warn('[paypal] Missing userId or wrong currency')
       return NextResponse.json({ ok: false }, { status: 400 })
@@ -50,6 +58,12 @@ export async function POST(req: NextRequest) {
     const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
     if (!UUID_RE.test(userId)) {
       console.warn('[paypal] Invalid userId format:', userId)
+      return NextResponse.json({ ok: false }, { status: 400 })
+    }
+
+    // Require txn_id — never proceed without it (no idempotency key = unsafe)
+    if (!txnId) {
+      console.warn('[paypal] Missing txn_id — rejecting')
       return NextResponse.json({ ok: false }, { status: 400 })
     }
 
@@ -63,23 +77,10 @@ export async function POST(req: NextRequest) {
 
     const admin = createAdminSupabase()
 
-    // Idempotency: skip if this txn_id was already processed (PayPal retries IPN delivery)
-    if (txnId) {
-      const { count } = await admin
-        .from('purchase_events')
-        .select('*', { count: 'exact', head: true })
-        .eq('paypal_txn_id', txnId)
-
-      if ((count ?? 0) > 0) {
-        console.warn(`[paypal] txn_id ${txnId} already processed — skipping duplicate`)
-        return NextResponse.json({ ok: true, skipped: true })
-      }
-    }
-
-    // Verify the user actually exists before adding credits
+    // Verify the user actually exists before touching credits
     const { data: profile } = await admin
       .from('profiles')
-      .select('eu_credits')
+      .select('id')
       .eq('id', userId)
       .single()
 
@@ -88,29 +89,35 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: false }, { status: 400 })
     }
 
-    const current = profile.eu_credits ?? 0
-
-    // Add credits to eu_credits pool (PayPal is EU-only)
-    await admin.from('profiles').upsert({
-      id: userId,
-      eu_credits: current + creditsToAdd,
-      paypal_payer_email: payerEmail || undefined,
+    // Insert purchase record FIRST — unique txn_id constraint is the deduplication gate.
+    // If PayPal retries the IPN, this insert fails before credits are touched.
+    const { error: insertErr } = await admin.from('purchase_events').insert({
+      user_id:             userId,
+      paypal_txn_id:       txnId,
+      paypal_payer_email:  payerEmail || null,
+      amount_eur:          parseFloat(normalised),
+      credits_added:       creditsToAdd,
     })
 
-    // Record purchase for audit
-    try {
-      await admin.from('purchase_events').insert({
-        user_id: userId,
-        paypal_txn_id: txnId || null,
-        paypal_payer_email: payerEmail || null,
-        amount_eur: parseFloat(normalised),
-        credits_added: creditsToAdd,
-      })
-    } catch (auditErr) {
-      console.warn('[paypal] Could not write purchase_events (table may not exist):', auditErr)
+    if (insertErr) {
+      // Unique constraint violation = already processed — safe to ack
+      if (insertErr.code === '23505') {
+        console.warn(`[paypal] txn_id ${txnId} already processed — skipping duplicate`)
+        return NextResponse.json({ ok: true, skipped: true })
+      }
+      console.warn('[paypal] purchase_events insert failed:', insertErr.message)
+      // Table may not exist — fall through and still add credits (audit loss, not credit loss)
     }
 
-    console.log(`[paypal] +${creditsToAdd} credits → user ${userId} (was ${current})`)
+    // Atomic increment — no read-then-write race condition
+    await admin.rpc('increment_eu_credits', { user_id: userId, amount: creditsToAdd })
+
+    // Store payer email separately (non-critical, best-effort)
+    if (payerEmail) {
+      await admin.from('profiles').update({ paypal_payer_email: payerEmail }).eq('id', userId)
+    }
+
+    console.log(`[paypal] +${creditsToAdd} eu_credits → user ${userId}`)
     return NextResponse.json({ ok: true, credits_added: creditsToAdd })
 
   } catch (err) {
