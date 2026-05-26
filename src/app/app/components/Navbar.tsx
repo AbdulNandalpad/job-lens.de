@@ -62,6 +62,7 @@ export default function Navbar() {
     { label: t.navbar.autoApply,   href: '/app/auto-apply' },
     { label: t.navbar.zeugnis,     href: '/app/zeugnis' },
     { label: t.navbar.tracker,     href: '/app/tracker' },
+    { label: t.navbar.interview,   href: '/app/interview' },
     { label: t.navbar.account,     href: '/app/account' },
   ]
 

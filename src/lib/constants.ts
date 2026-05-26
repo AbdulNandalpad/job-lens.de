@@ -10,6 +10,7 @@ export const CREDIT_COST = {
   zeugnisDecoder:  1,  // /api/zeugnis — decode Arbeitszeugnis
   visaCheck:       1,  // /api/visa — Fachkräfte eligibility analysis
   aiChat:          1,  // /api/ai/chat — 1 credit per AI_CHAT_FREE_MESSAGES block after free tier
+  interviewPrep:   1,  // /api/interview/questions — generate 5 interview questions
 } as const
 
 // First N Kira messages are free; 1 credit charged per N messages after that
@@ -98,4 +99,6 @@ export const API = {
   aiStt:                '/api/ai/stt',
   careerProfile:        '/api/profile/career',
   applications:         '/api/applications',
+  interviewQuestions:   '/api/interview/questions',
+  interviewFeedback:    '/api/interview/feedback',
 } as const

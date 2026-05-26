@@ -35,6 +35,8 @@ const translations = {
       { title: 'Career Scan', desc: 'Lade deinen Lebenslauf hoch und erhalte eine ehrliche KI-Analyse — Stärken, Lücken, Gehaltsschätzung und Quick-Wins in 30 Sekunden.', cta: 'Profil scannen' },
       { title: 'Intelligente Jobsuche', desc: 'Die KI liest deinen Lebenslauf und findet die besten passenden Stellen in Deutschland und der Schweiz. Aktuelle Angebote, echte Unternehmen.', cta: 'Passende Jobs finden' },
       { title: 'Lebenslauf & Anschreiben', desc: 'Ein Klick, um einen maßgeschneiderten Lebenslauf und ein Anschreiben zu erstellen. Optimiert für ATS und DACH-Personalverantwortliche.', cta: 'Lebenslauf anpassen' },
+      { title: 'Interview-Training', desc: '5 rollenspezifische Fragen — Verhalten, Fachkompetenz, Situationsverständnis. Antworte per Sprache oder Text, erhalte sofortiges KI-Feedback und einen Score.', cta: 'Interview üben' },
+      { title: 'Bewerbungs-Tracker', desc: 'Behalte alle Bewerbungen im Blick — von "Gespeichert" bis "Angebot". Aktualisiere den Status mit einem Klick, verfolge Vorstellungsgespräche und Angebote.', cta: 'Tracker öffnen' },
       { title: 'Auto-Bewerbung', desc: 'Zeige auf eine Stellenanzeige und die KI füllt das gesamte Bewerbungsformular — Felder, Anschreiben, Datei-Uploads. Du überprüfst nur und klickst auf Senden.', cta: 'Auto-Bewerbung testen' },
     ],
     howTitle: 'So funktioniert es',
@@ -110,6 +112,8 @@ const translations = {
       { title: 'Career Scan', desc: 'Upload your CV and get an honest AI analysis — strengths, gaps, salary estimate, and quick wins in 30 seconds.', cta: 'Scan my profile' },
       { title: 'Smart Job Search', desc: 'AI reads your CV and finds the best matching jobs across Germany and Switzerland. Live postings, real companies.', cta: 'Find matching jobs' },
       { title: 'CV & Cover Letter', desc: 'One click to generate a tailored CV and cover letter for any job. Optimised for ATS and DACH hiring managers.', cta: 'Tailor my CV' },
+      { title: 'Interview Prep', desc: '5 role-specific questions — behavioural, technical, situational. Answer by voice or text, get instant AI feedback with a score and a model answer.', cta: 'Practice interviews' },
+      { title: 'Application Tracker', desc: 'Track every application from Saved to Offer. Update status in one click, monitor interviews and offers — all synced to your account.', cta: 'Open tracker' },
       { title: 'Auto Apply', desc: 'Point it at any job listing and AI fills the whole application form for you — fields, cover letter, file uploads. You just review and hit submit.', cta: 'Try Auto Apply' },
     ],
     howTitle: 'How it works',
@@ -186,11 +190,11 @@ export default function HomePage() {
 
   const go = (path: string) => user ? path : '/login'
 
-  const featureIcons = ['◎', '🔍', '📄', '⚡']
-  const featureBgs = [c.primaryLight, c.successLight, c.warningLight, c.aiLight]
-  const featureColors = [c.navy, c.success, c.warning, c.ai]
-  const featureBadges = [null, null, null, lang === 'DE' ? 'Beta' : 'Beta']
-  const featureHrefs = [go('/app/career-scan'), go('/app/jobs'), go('/app/cv-builder'), go('/app/auto-apply')]
+  const featureIcons = ['◎', '🔍', '📄', '🎙', '📋', '⚡']
+  const featureBgs = [c.primaryLight, c.successLight, c.warningLight, c.primaryLight, c.successLight, c.aiLight]
+  const featureColors = [c.navy, c.success, c.warning, c.accent, c.success, c.ai]
+  const featureBadges = [null, null, null, null, null, lang === 'DE' ? 'Beta' : 'Beta']
+  const featureHrefs = [go('/app/career-scan'), go('/app/jobs'), go('/app/cv-builder'), go('/app/interview'), go('/app/tracker'), go('/app/auto-apply')]
 
   const stats = t.statsLabels.map((v, i) => ({ value: v, label: t.statsDescs[i] }))
 
@@ -246,8 +250,9 @@ export default function HomePage() {
           transform: translateY(-3px);
         }
 
-        .jl-feature-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; }
-        @media (max-width: 768px) { .jl-feature-grid { grid-template-columns: 1fr; } }
+        .jl-feature-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+        @media (max-width: 900px) { .jl-feature-grid { grid-template-columns: repeat(2, 1fr); } }
+        @media (max-width: 560px) { .jl-feature-grid { grid-template-columns: 1fr; } }
         .jl-pricing-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; max-width: 900px; margin: 0 auto; align-items: start; }
         @media (max-width: 700px) { .jl-pricing-grid { grid-template-columns: 1fr; } }
         @media (max-width: 700px) { .jl-pricing-grid > *:nth-child(2) { margin-top: 0 !important; } }
