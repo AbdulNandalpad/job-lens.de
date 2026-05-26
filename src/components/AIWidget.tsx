@@ -70,7 +70,7 @@ function MicIcon({ size = 16, color = 'currentColor' }: { size?: number; color?:
 }
 
 // ── Voice orb — canvas wave animation ────────────────────────────────────────
-function VoiceOrb({ state }: { state: VoiceState }) {
+function VoiceOrb({ state, large = false }: { state: VoiceState; large?: boolean }) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const rafRef    = useRef<number>(0)
   const timeRef   = useRef(0)
@@ -235,7 +235,7 @@ function VoiceOrb({ state }: { state: VoiceState }) {
   }, [])
 
   return (
-    <div style={{ position: 'relative', width: '100%', maxWidth: 320 }}>
+    <div style={{ position: 'relative', width: '100%', maxWidth: large ? 560 : 320 }}>
       <canvas ref={canvasRef} style={{ width: '100%', aspectRatio: '2 / 1', display: 'block' }} />
       <div style={{ position: 'absolute', left: '50%', top: '50%', transform: 'translate(-50%, -50%)', pointerEvents: 'none', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
         {state === 'processing'
@@ -258,6 +258,7 @@ export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
 
   // ── Chat state ───────────────────────────────────────────────────────────
   const [open,        setOpen]        = useState(false)
+  const [maximized,   setMaximized]   = useState(false)
   const [msgs,        setMsgs]        = useState<Msg[]>([])
   const [input,       setInput]       = useState('')
   const [loading,     setLoading]     = useState(false)
@@ -786,25 +787,30 @@ export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
         .kira-job-card:hover       { border-color:${accent}66 !important;background:rgba(255,255,255,.08) !important }
         .kira-apply:hover          { opacity:.85 }
         .kira-mic-btn:hover        { background:rgba(255,255,255,.12) !important }
+        .kira-expand:hover         { background:rgba(255,255,255,.15) !important }
+        .kira-panel                { transition: width .22s ease, height .22s ease, bottom .22s ease, right .22s ease, border-radius .22s ease; }
+        .kira-panel-max            { position:fixed !important;inset:12px !important;width:auto !important;height:auto !important;bottom:12px !important;right:12px !important;border-radius:20px !important; }
         @media (max-width:480px) {
-          .kira-panel { width:calc(100vw - 24px) !important;right:12px !important;left:12px !important;height:72dvh !important;bottom:74px !important }
+          .kira-panel:not(.kira-panel-max) { width:calc(100vw - 24px) !important;right:12px !important;left:12px !important;height:72dvh !important;bottom:74px !important }
+          .kira-panel-max { inset:0 !important;border-radius:0 !important; }
         }
         @media (max-height:500px) {
-          .kira-panel { height:calc(100dvh - 76px) !important;bottom:68px !important;max-height:calc(100dvh - 76px) !important }
+          .kira-panel:not(.kira-panel-max) { height:calc(100dvh - 76px) !important;bottom:68px !important;max-height:calc(100dvh - 76px) !important }
           .kira-fab   { bottom:12px !important }
         }
         @media (max-height:500px) and (max-width:900px) {
-          .kira-panel { width:calc(100vw - 24px) !important;right:12px !important;left:12px !important }
+          .kira-panel:not(.kira-panel-max) { width:calc(100vw - 24px) !important;right:12px !important;left:12px !important }
         }
       `}</style>
 
       {/* ── Panel ── */}
       {open && (
-        <div className="kira-panel" style={{
-          position: 'fixed', bottom: 80, right: 20, zIndex: 9999,
-          width: 360, height: 520,
+        <div className={`kira-panel${maximized ? ' kira-panel-max' : ''}`} style={{
+          position: 'fixed', bottom: maximized ? 12 : 80, right: 20, zIndex: 9999,
+          width: maximized ? 'auto' : 360, height: maximized ? 'auto' : 520,
+          inset: maximized ? 12 : undefined,
           background: 'linear-gradient(160deg,#0f1f33 0%,#0a1520 100%)',
-          border: '1px solid rgba(255,255,255,.1)', borderRadius: 18,
+          border: '1px solid rgba(255,255,255,.1)', borderRadius: maximized ? 20 : 18,
           boxShadow: '0 20px 60px rgba(0,0,0,.5)',
           display: 'flex', flexDirection: 'column',
           animation: 'kira-slide .2s ease', overflow: 'hidden',
@@ -878,7 +884,25 @@ export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
               </button>
             )}
 
-            <button className="kira-close" onClick={() => { setOpen(false); stopAudio(); if (voiceMode) exitVoiceMode() }}
+            {/* Expand / collapse */}
+            <button
+              className="kira-expand"
+              title={maximized ? 'Collapse' : 'Expand'}
+              onClick={() => setMaximized(m => !m)}
+              style={{ width: 24, height: 24, borderRadius: 6, border: 'none', background: 'rgba(255,255,255,.08)', cursor: 'pointer', color: 'rgba(255,255,255,.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, transition: 'background .15s' }}>
+              {maximized
+                ? /* collapse — arrows pointing inward */
+                  <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round">
+                    <path d="M10 1v5h5M6 15v-5H1M1 6l5 5M15 10l-5-5"/>
+                  </svg>
+                : /* expand — arrows pointing outward */
+                  <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round">
+                    <path d="M10 1h5v5M6 15H1v-5M15 1l-5 5M1 15l5-5"/>
+                  </svg>
+              }
+            </button>
+
+            <button className="kira-close" onClick={() => { setOpen(false); setMaximized(false); stopAudio(); if (voiceMode) exitVoiceMode() }}
               style={{ width: 24, height: 24, borderRadius: 6, border: 'none', background: 'rgba(255,255,255,.08)', cursor: 'pointer', color: 'rgba(255,255,255,.6)', fontSize: 14, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
               ✕
             </button>
@@ -886,13 +910,13 @@ export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
 
           {/* ── Voice overlay ── */}
           {voiceMode ? (
-            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 16, padding: '16px 20px', overflowY: 'auto' }}>
+            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: maximized ? 24 : 16, padding: maximized ? '32px 40px' : '16px 20px', overflowY: 'auto' }}>
               {cvDiscussMode && (
                 <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: 1, color: accent, textTransform: 'uppercase', opacity: .8 }}>
                   {lang === 'DE' ? 'CV-Gespräch' : 'CV Discussion'}
                 </div>
               )}
-              <VoiceOrb state={voiceState}/>
+              <VoiceOrb state={voiceState} large={maximized}/>
 
               <div style={{ fontSize: 13, color: voiceState === 'idle' ? 'rgba(255,255,255,.35)' : 'rgba(255,255,255,.6)', fontFamily: f.body, textAlign: 'center', letterSpacing: .2 }}>
                 {voiceLabel}
@@ -1091,8 +1115,8 @@ export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
         </div>
       )}
 
-      {/* ── FAB ── */}
-      <button className="kira-fab" onClick={() => {
+      {/* ── FAB — hidden while maximized ── */}
+      {!maximized && <button className="kira-fab" onClick={() => {
         const nowOpening = !open
         setOpen(o => !o)
         if (nowOpening && !greetedRef.current) {
@@ -1119,7 +1143,7 @@ export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
           ? <svg width="18" height="18" viewBox="0 0 20 20" fill="none"><path d="M5 5l10 10M15 5L5 15" stroke="#fff" strokeWidth="2.2" strokeLinecap="round"/></svg>
           : <span style={{ fontFamily: f.heading, fontSize: 15, fontWeight: 800, color: '#fff', letterSpacing: '-.5px' }}>Ki</span>
         }
-      </button>
+      </button>}
     </>
   )
 }
