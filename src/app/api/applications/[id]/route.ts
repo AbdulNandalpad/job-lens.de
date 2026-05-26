@@ -4,12 +4,12 @@ import { createServerSupabase, createAdminSupabase } from '@/lib/supabase-server
 const VALID_STATUSES = new Set(['saved', 'applied', 'interview', 'offer', 'rejected'])
 
 // PATCH — update status or notes on an application the user owns
-export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
+export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const supabase = await createServerSupabase()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const id = params.id
+  const { id } = await params
   const body = await req.json()
 
   const patch: Record<string, unknown> = { updated_at: new Date().toISOString() }
@@ -54,18 +54,19 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
 }
 
 // DELETE — remove an application the user owns
-export async function DELETE(_req: NextRequest, { params }: { params: { id: string } }) {
+export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const supabase = await createServerSupabase()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
+  const { id } = await params
   const admin = createAdminSupabase()
 
   // Verify ownership before delete
   const { data: existing } = await admin
     .from('applications')
     .select('id')
-    .eq('id', params.id)
+    .eq('id', id)
     .eq('user_id', user.id)
     .single()
 
@@ -74,7 +75,7 @@ export async function DELETE(_req: NextRequest, { params }: { params: { id: stri
   const { error } = await admin
     .from('applications')
     .delete()
-    .eq('id', params.id)
+    .eq('id', id)
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
   return NextResponse.json({ ok: true })
