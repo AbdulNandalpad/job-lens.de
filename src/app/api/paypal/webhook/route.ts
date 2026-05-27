@@ -10,8 +10,9 @@ const CREDIT_PACKS: Record<string, number> = {
 
 export async function POST(req: NextRequest) {
   try {
-    const body = await req.text()
-    const params = new URLSearchParams(body)
+    const rawBody = await req.text()
+    const body    = rawBody.trim()
+    const params  = new URLSearchParams(body)
 
     const paymentStatus = params.get('payment_status')
     const userId        = params.get('custom')
@@ -20,6 +21,8 @@ export async function POST(req: NextRequest) {
     const txnId         = params.get('txn_id') ?? ''
     const payerEmail    = params.get('payer_email') ?? ''
 
+    console.log('[paypal] IPN received — status:', paymentStatus, 'amount:', grossAmount, 'currency:', currency, 'txn:', txnId, 'userId:', userId)
+
     // Verify IPN with PayPal before trusting any payload field
     const verifyUrl = process.env.PAYPAL_SANDBOX === 'true'
       ? 'https://ipnpb.sandbox.paypal.com/cgi-bin/webscr'
@@ -27,14 +30,16 @@ export async function POST(req: NextRequest) {
 
     const verifyRes = await fetch(verifyUrl, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded; charset=utf-8' },
       body: 'cmd=_notify-validate&' + body,
     })
     const verifyText = await verifyRes.text()
 
-    if (verifyText !== 'VERIFIED') {
-      console.warn('[paypal] IPN not verified:', verifyText)
-      return NextResponse.json({ ok: false }, { status: 400 })
+    console.log('[paypal] verify response:', verifyText.trim(), '| verifyUrl:', verifyUrl)
+
+    if (verifyText.trim() !== 'VERIFIED') {
+      console.error('[paypal] IPN not verified:', verifyText, '| body length:', body.length, '| first 300:', body.substring(0, 300))
+      return NextResponse.json({ ok: false }, { status: 200 }) // 200 so PayPal stops retrying
     }
 
     if (paymentStatus !== 'Completed') {

@@ -199,7 +199,6 @@ export default function AccountPage() {
                       <input type="hidden" name="notify_url" value={`${process.env.NEXT_PUBLIC_APP_URL || ''}/api/paypal/webhook`} />
                       <input type="hidden" name="return" value={`${process.env.NEXT_PUBLIC_APP_URL || ''}/app/account?payment=success`} />
                       <input type="hidden" name="cancel_return" value={`${process.env.NEXT_PUBLIC_APP_URL || ''}/app/account?payment=cancelled`} />
-                      <input type="hidden" name="rm" value="2" />
                       <input type="hidden" name="custom" value={profile.id} />
                       <input type="hidden" name="no_shipping" value="1" />
                       <button type="submit" style={{ width: '100%', padding: '8px 0', borderRadius: 7, border: 'none', background: pack.popular ? g.primaryBtn : c.primaryLight, color: pack.popular ? '#fff' : c.navy, fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: f.heading }}>
