@@ -21,24 +21,31 @@ export async function POST(req: NextRequest) {
     const txnId         = params.get('txn_id') ?? ''
     const payerEmail    = params.get('payer_email') ?? ''
 
-    console.log('[paypal] IPN received — status:', paymentStatus, 'amount:', grossAmount, 'currency:', currency, 'txn:', txnId, 'userId:', userId)
+    console.log('[paypal] IPN received — status:', paymentStatus, 'amount:', grossAmount, 'currency:', currency, 'txn:', txnId, 'userId:', userId, 'bodyLen:', rawBody.length)
 
-    // Verify IPN with PayPal before trusting any payload field
+    // Verify IPN with PayPal — send rawBody (untrimmed) exactly as received
     const verifyUrl = process.env.PAYPAL_SANDBOX === 'true'
       ? 'https://ipnpb.sandbox.paypal.com/cgi-bin/webscr'
       : 'https://ipnpb.paypal.com/cgi-bin/webscr'
 
-    const verifyRes = await fetch(verifyUrl, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded; charset=utf-8' },
-      body: 'cmd=_notify-validate&' + body,
-    })
-    const verifyText = await verifyRes.text()
+    let verifyText = 'FETCH_ERROR'
+    let verifyStatus = 0
+    try {
+      const verifyRes = await fetch(verifyUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: 'cmd=_notify-validate&' + rawBody,
+      })
+      verifyStatus = verifyRes.status
+      verifyText = await verifyRes.text()
+    } catch (fetchErr) {
+      console.error('[paypal] verify fetch failed:', fetchErr)
+    }
 
-    console.log('[paypal] verify response:', verifyText.trim(), '| verifyUrl:', verifyUrl)
+    console.log('[paypal] verify result:', verifyText.trim(), '| httpStatus:', verifyStatus, '| url:', verifyUrl, '| first300:', body.substring(0, 300))
 
     if (verifyText.trim() !== 'VERIFIED') {
-      console.error('[paypal] IPN not verified:', verifyText, '| body length:', body.length, '| first 300:', body.substring(0, 300))
+      console.error('[paypal] IPN not verified — body dump:', body)
       return NextResponse.json({ ok: false }, { status: 200 }) // 200 so PayPal stops retrying
     }
 

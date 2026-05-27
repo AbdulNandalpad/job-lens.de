@@ -190,7 +190,7 @@ export default function AccountPage() {
                     <div style={{ fontSize: 11, color: c.textMuted, marginBottom: 8, lineHeight: 1.4 }}>{pack.desc}</div>
                     <div style={{ fontSize: 20, fontWeight: 700, color: c.accent, fontFamily: f.heading, marginBottom: 2 }}>{pack.price}</div>
                     <div style={{ fontSize: 11, color: c.textMuted, marginBottom: 12 }}>{pack.credits} credits</div>
-                    <form action="https://www.paypal.com/cgi-bin/webscr" method="post" target="_blank">
+                    <form action="https://www.paypal.com/cgi-bin/webscr" method="post">
                       <input type="hidden" name="cmd" value="_xclick" />
                       <input type="hidden" name="business" value={process.env.NEXT_PUBLIC_PAYPAL_EMAIL || 'your@paypal.com'} />
                       <input type="hidden" name="item_name" value={pack.itemName} />
