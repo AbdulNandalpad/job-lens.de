@@ -197,13 +197,69 @@ export default function HomePage() {
   const go = (path: string) => user ? path : '/login'
 
   // Order: Career Scan, Job Search, CV+CL, Interview, Salary Sim, Career Card, Tracker, Auto Apply
-  const featureIcons  = ['◎',           '🔍',            '📄',           '🎙',        '💰',           '🎴',          '📋',       '⚡']
   const featureBgs    = [c.primaryLight, c.successLight,  c.warningLight, c.primaryLight, c.successLight, c.aiLight, c.warningLight, c.aiLight]
   const featureColors = [c.navy,         c.success,       c.warning,      c.accent,       c.success,      c.ai,      c.warning,     c.ai]
   const featureBadges: (string | null)[] = [null, null, null, null, null, null, null, lang === 'DE' ? 'Beta' : 'Beta']
   const featureHrefs  = [
     go('/app/career-scan'), go('/app/jobs'), go('/app/cv-builder'), go('/app/interview'),
     go('/app/salary-sim'),  go('/app/career-scan'), go('/app/tracker'), go('/app/auto-apply'),
+  ]
+  // SVG icons — stroke="currentColor" picks up color from wrapper div
+  const featureIcons: ReactNode[] = [
+    // Career Scan — radar rings
+    <svg key={0} width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="12" r="9"/>
+      <circle cx="12" cy="12" r="5"/>
+      <circle cx="12" cy="12" r="1.5" fill="currentColor" stroke="none"/>
+    </svg>,
+    // Job Search — briefcase + magnifier
+    <svg key={1} width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="2" y="7" width="13" height="11" rx="2"/>
+      <path d="M9 7V5a2 2 0 0 1 4 0v2"/>
+      <circle cx="18.5" cy="9.5" r="3"/>
+      <line x1="20.6" y1="11.6" x2="22.5" y2="13.5"/>
+    </svg>,
+    // CV & Cover Letter — document with fold
+    <svg key={2} width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+      <polyline points="14 2 14 8 20 8"/>
+      <line x1="8" y1="13" x2="16" y2="13"/>
+      <line x1="8" y1="17" x2="12" y2="17"/>
+    </svg>,
+    // Interview Prep — microphone + stand
+    <svg key={3} width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="9" y="2" width="6" height="11" rx="3"/>
+      <path d="M5 10a7 7 0 0 0 14 0"/>
+      <line x1="12" y1="17" x2="12" y2="21"/>
+      <line x1="9" y1="21" x2="15" y2="21"/>
+    </svg>,
+    // Salary Sim — coin with currency paths
+    <svg key={4} width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="12" r="9"/>
+      <line x1="12" y1="6" x2="12" y2="18"/>
+      <path d="M15 9H10.5a2.5 2.5 0 0 0 0 5h3a2.5 2.5 0 0 1 0 5H9"/>
+    </svg>,
+    // Career Card — ID card with avatar line
+    <svg key={5} width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="2" y="5" width="20" height="15" rx="2"/>
+      <circle cx="8.5" cy="12" r="2.5"/>
+      <line x1="13" y1="10.5" x2="19.5" y2="10.5"/>
+      <line x1="13" y1="14" x2="17" y2="14"/>
+    </svg>,
+    // Application Tracker — kanban board
+    <svg key={6} width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="3" y="3" width="18" height="18" rx="2"/>
+      <line x1="9" y1="3" x2="9" y2="21"/>
+      <line x1="15" y1="3" x2="15" y2="21"/>
+      <rect x="4.5" y="6.5" width="3" height="2.5" rx="0.5" fill="currentColor" stroke="none" fillOpacity="0.5"/>
+      <rect x="10.5" y="8.5" width="3" height="2.5" rx="0.5" fill="currentColor" stroke="none" fillOpacity="0.5"/>
+      <rect x="16.5" y="6.5" width="3" height="2.5" rx="0.5" fill="currentColor" stroke="none" fillOpacity="0.5"/>
+      <rect x="4.5" y="12" width="3" height="2.5" rx="0.5" fill="currentColor" stroke="none" fillOpacity="0.3"/>
+    </svg>,
+    // Auto Apply — lightning bolt
+    <svg key={7} width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" fill="currentColor" fillOpacity="0.15"/>
+    </svg>,
   ]
 
   const stats = t.statsLabels.map((v, i) => ({ value: v, label: t.statsDescs[i] }))
@@ -491,7 +547,7 @@ export default function HomePage() {
               style={{ animationDelay: `${idx * 0.12}s`, textDecoration: 'none', display: 'flex', flexDirection: 'column' as const, gap: 10 }}
             >
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <div style={{ width: 44, height: 44, borderRadius: 12, background: featureBgs[idx], display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22 }}>
+                <div style={{ width: 44, height: 44, borderRadius: 12, background: featureBgs[idx], color: featureColors[idx], display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                   {featureIcons[idx]}
                 </div>
                 {featureBadges[idx] && (

@@ -81,6 +81,11 @@ export default async function IndiaHomePage() {
         .in-hero-grid { display: grid; grid-template-columns: 1fr auto; gap: 48px; align-items: center; }
         .in-steps-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 32px; position: relative; }
         .in-pricing-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; align-items: start; }
+        .in-feat-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; }
+        @media (max-width: 1000px) { .in-feat-grid { grid-template-columns: repeat(2, 1fr); } }
+        @media (max-width: 560px)  { .in-feat-grid { grid-template-columns: 1fr; } }
+        .in-feat-card { background: #fff; border: 1.5px solid #edf1f6; border-radius: 14px; padding: 20px; display: flex; flex-direction: column; gap: 9px; text-decoration: none; transition: border-color .2s, box-shadow .2s, transform .2s; cursor: pointer; }
+        .in-feat-card:hover { border-color: ${saffron}; box-shadow: 0 8px 28px rgba(255,153,51,0.14); transform: translateY(-2px); }
         @media (max-width: 768px) {
           .in-hero-grid { grid-template-columns: 1fr !important; gap: 0 !important; }
           .in-hero-score { display: none !important; }
@@ -381,6 +386,56 @@ export default async function IndiaHomePage() {
             }}>
               Get Started Free
             </Link>
+          </div>
+        </div>
+      </section>
+
+      {/* FEATURES GRID */}
+      <section style={{ background: '#f8fafc', padding: '64px 24px' }}>
+        <div style={{ maxWidth: 1100, margin: '0 auto' }}>
+          <div style={{ textAlign: 'center', marginBottom: 40 }}>
+            <div style={{ fontSize: 11, fontWeight: 700, color: saffron, letterSpacing: 2, textTransform: 'uppercase', marginBottom: 10 }}>Full Toolkit</div>
+            <h2 style={{ fontFamily: "'Outfit',sans-serif", fontSize: 28, fontWeight: 800, color: navy, marginBottom: 10, lineHeight: 1.2 }}>
+              Everything you need to land your next role
+            </h2>
+            <p style={{ fontSize: 14, color: '#6b7c93', maxWidth: 420, margin: '0 auto' }}>
+              Built for Naukri, LinkedIn, and every company portal in India
+            </p>
+          </div>
+
+          <div className="in-feat-grid">
+            {([
+              { title: 'Profile Analysis',    desc: 'ATS score, keyword gaps and a fix plan — in 30 seconds.',      icon: 0, color: navy,       bg: '#E6F1FB', href: '/in/profile-analysis' },
+              { title: 'Smart Job Search',    desc: 'Best-matched jobs across Bangalore, Hyderabad, Mumbai.',       icon: 1, color: indiaGreen,  bg: '#E1F5EE', href: '/in/jobs' },
+              { title: 'CV & Cover Letter',   desc: 'ATS-optimised, tailored to every job description.',            icon: 2, color: '#D97706',   bg: '#FFF8EC', href: '/in/cv-builder' },
+              { title: 'Interview Prep',      desc: 'Role-specific questions with instant AI feedback.',            icon: 3, color: '#378ADD',   bg: '#E6F1FB', href: '/in/interview' },
+              { title: 'Salary Simulator',    desc: 'Practice negotiating in LPA with an AI HR manager.',          icon: 4, color: indiaGreen,  bg: '#E1F5EE', href: '/in/salary-sim' },
+              { title: 'Career Card',         desc: 'Share your ATS score as a card on LinkedIn.',                 icon: 5, color: '#6D28D9',   bg: '#F0EEFF', href: '/in/profile-analysis' },
+              { title: 'Application Tracker', desc: 'Track every application from Saved to Offer.',                icon: 6, color: '#D97706',   bg: '#FFF8EC', href: '/in/tracker' },
+              { title: 'Auto Apply',          desc: 'AI fills the entire application form automatically.',         icon: 7, color: '#6D28D9',   bg: '#F0EEFF', href: '/in/jobs', badge: 'Beta' },
+            ] as { title: string; desc: string; icon: number; color: string; bg: string; href: string; badge?: string }[]).map((feat) => (
+              <Link key={feat.title} href={feat.href} className="in-feat-card">
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <div style={{ width: 42, height: 42, borderRadius: 11, background: feat.bg, color: feat.color, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                    {feat.icon === 0 && <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1.5" fill="currentColor" stroke="none"/></svg>}
+                    {feat.icon === 1 && <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="7" width="13" height="11" rx="2"/><path d="M9 7V5a2 2 0 0 1 4 0v2"/><circle cx="18.5" cy="9.5" r="3"/><line x1="20.6" y1="11.6" x2="22.5" y2="13.5"/></svg>}
+                    {feat.icon === 2 && <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="12" y2="17"/></svg>}
+                    {feat.icon === 3 && <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="9" y="2" width="6" height="11" rx="3"/><path d="M5 10a7 7 0 0 0 14 0"/><line x1="12" y1="17" x2="12" y2="21"/><line x1="9" y1="21" x2="15" y2="21"/></svg>}
+                    {feat.icon === 4 && <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="9"/><line x1="12" y1="6" x2="12" y2="18"/><path d="M15 9H10.5a2.5 2.5 0 0 0 0 5h3a2.5 2.5 0 0 1 0 5H9"/></svg>}
+                    {feat.icon === 5 && <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="5" width="20" height="15" rx="2"/><circle cx="8.5" cy="12" r="2.5"/><line x1="13" y1="10.5" x2="19.5" y2="10.5"/><line x1="13" y1="14" x2="17" y2="14"/></svg>}
+                    {feat.icon === 6 && <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="9" y1="3" x2="9" y2="21"/><line x1="15" y1="3" x2="15" y2="21"/><rect x="4.5" y="6.5" width="3" height="2.5" rx="0.5" fill="currentColor" stroke="none" fillOpacity="0.5"/><rect x="10.5" y="8.5" width="3" height="2.5" rx="0.5" fill="currentColor" stroke="none" fillOpacity="0.5"/><rect x="16.5" y="6.5" width="3" height="2.5" rx="0.5" fill="currentColor" stroke="none" fillOpacity="0.5"/></svg>}
+                    {feat.icon === 7 && <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" fill="currentColor" fillOpacity="0.15"/></svg>}
+                  </div>
+                  {feat.badge && (
+                    <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: 0.5, textTransform: 'uppercase' as const, background: feat.bg, color: feat.color, padding: '3px 9px', borderRadius: 20 }}>
+                      {feat.badge}
+                    </span>
+                  )}
+                </div>
+                <div style={{ fontFamily: "'Outfit',sans-serif", fontSize: 14, fontWeight: 700, color: navy }}>{feat.title}</div>
+                <div style={{ fontSize: 12, color: '#6b7c93', lineHeight: 1.55 }}>{feat.desc}</div>
+              </Link>
+            ))}
           </div>
         </div>
       </section>
