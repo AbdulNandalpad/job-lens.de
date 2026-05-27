@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useRef, useEffect } from 'react'
+import { createPortal } from 'react-dom'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { theme } from '@/lib/theme'
@@ -272,6 +273,7 @@ export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
   const [voiceState,    setVoiceState]    = useState<VoiceState>('idle')
   const [cvDiscussMode, setCvDiscussMode] = useState(false)
   const [isMobile,      setIsMobile]      = useState(false)
+  const [mounted,       setMounted]       = useState(false)
 
   // ── Refs ─────────────────────────────────────────────────────────────────
   const bottomRef        = useRef<HTMLDivElement>(null)
@@ -299,6 +301,7 @@ export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
   // ── Init: CV, saved messages, user name ─────────────────────────────────
   useEffect(() => {
     setIsMobile(window.innerWidth <= 768 || /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent))
+    setMounted(true)
 
     const cv = sessionStorage.getItem(SS.cvText) || ''
     cvRef.current = cv
@@ -773,7 +776,9 @@ export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
   // Show suggestion chips after the opening greeting, or when msgs is empty
   const showSuggestions = msgs.length <= 1 && !loading
 
-  return (
+  if (!mounted) return null
+
+  return createPortal(
     <>
       <style>{`
         @keyframes kira-slide         { from{opacity:0;transform:translateY(12px) scale(.97)} to{opacity:1;transform:none} }
@@ -789,7 +794,7 @@ export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
         .kira-apply:hover          { opacity:.85 }
         .kira-mic-btn:hover        { background:rgba(255,255,255,.12) !important }
         .kira-expand:hover         { background:rgba(255,255,255,.15) !important }
-        .kira-panel                { transition: width .22s ease, height .22s ease, bottom .22s ease, right .22s ease, border-radius .22s ease; }
+        .kira-panel                { transition: width .22s ease, height .22s ease, border-radius .22s ease; }
         .kira-panel-max            { position:fixed !important;inset:12px !important;width:auto !important;height:auto !important;bottom:12px !important;right:12px !important;border-radius:20px !important; }
         @media (max-width:480px) {
           .kira-panel:not(.kira-panel-max) { width:calc(100vw - 24px) !important;right:12px !important;left:12px !important;height:72dvh !important;bottom:74px !important }
@@ -1145,6 +1150,7 @@ export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
           : <span style={{ fontFamily: f.heading, fontSize: 15, fontWeight: 800, color: '#fff', letterSpacing: '-.5px' }}>Ki</span>
         }
       </button>}
-    </>
+    </>,
+    document.body
   )
 }
