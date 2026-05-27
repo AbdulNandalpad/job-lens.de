@@ -1038,7 +1038,12 @@ ${atsSuggestions?.section_gaps?.length ? `- ATS SECTION GAPS to address: ${atsSu
           <div style={{ padding: '20px 20px 16px', borderBottom: '1px solid rgba(255,255,255,0.08)', flexShrink: 0 }}>
             <button onClick={() => router.push('/in/career-scan')} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.4)', fontSize: 11, cursor: 'pointer', fontFamily: 'inherit', padding: 0, marginBottom: 14, display: 'flex', alignItems: 'center', gap: 4 }}>{'<'}- Back to ATS Score</button>
             <div style={{ fontSize: 18, fontWeight: 700, color: '#fff', fontFamily: "'Outfit', sans-serif" }}>CV Studio</div>
-            <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)', marginTop: 2 }}>Design your perfect CV</div>
+            <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)', marginTop: 2, display: 'flex', alignItems: 'center', gap: 8 }}>
+              Design your perfect CV
+              <span style={{ fontSize: 10, fontWeight: 700, color: '#FF9933', background: 'rgba(255,153,51,0.15)', padding: '2px 7px', borderRadius: 20, whiteSpace: 'nowrap' as const }}>
+                {CREDIT_COST.tailorCv} credit
+              </span>
+            </div>
             {jobLabel && <div style={{ marginTop: 12, padding: '8px 10px', background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 8 }}><div style={{ fontSize: 9, color: accent, fontWeight: 700, letterSpacing: 0.8, textTransform: 'uppercase', marginBottom: 3 }}>Tailoring for</div><div style={{ fontSize: 11, color: 'rgba(255,255,255,0.8)', lineHeight: 1.4 }}>{jobLabel}</div></div>}
             <input ref={fileInputRef} type="file" accept=".pdf,.doc,.docx,.txt" style={{ display: 'none' }} onChange={e => e.target.files?.[0] && handleCvFile(e.target.files[0])} />
             {!cvText ? (

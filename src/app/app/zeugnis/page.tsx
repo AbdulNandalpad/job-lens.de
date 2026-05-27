@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import Navbar from '../components/Navbar'
-import { SS } from '@/lib/constants'
+import { SS, CREDIT_COST } from '@/lib/constants'
 
 const blue   = '#378ADD'
 const navy   = '#042C53'
@@ -306,6 +306,9 @@ export default function ZeugnisPage() {
             </h1>
             <p style={{ fontSize: 13, color: '#6b7c93', margin: '4px 0 0' }}>
               Decode the hidden language in your German work reference — then request or correct it
+              <span style={{ marginLeft: 10, fontSize: 11, fontWeight: 700, color: blue, background: 'rgba(55,138,221,0.12)', padding: '2px 8px', borderRadius: 20 }}>
+                {CREDIT_COST.zeugnisDecoder} credit
+              </span>
             </p>
           </div>
 

@@ -194,6 +194,9 @@ export default function ProfileAnalysisPage() {
             <h1 style={{ fontFamily: "'Outfit',sans-serif", fontSize: 22, fontWeight: 700, color: navy, margin: 0 }}>Career Scan</h1>
             <p style={{ fontSize: 13, color: '#6b7c93', margin: '4px 0 0' }}>
               Upload your CV, pick a target role — get salary benchmarks, AI risk exposure, and a 3-month career roadmap.
+              <span style={{ marginLeft: 10, fontSize: 11, fontWeight: 700, color: '#FF9933', background: 'rgba(255,153,51,0.15)', padding: '2px 8px', borderRadius: 20 }}>
+                2 credits
+              </span>
             </p>
           </div>
 

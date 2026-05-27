@@ -305,6 +305,27 @@ export default function AutoApplyPage() {
 
       <Navbar />
 
+      {/* ── Under Construction ── */}
+      <div style={{
+        position: 'fixed', inset: 0, zIndex: 500,
+        background: 'rgba(4,44,83,0.96)', backdropFilter: 'blur(8px)',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        padding: 24,
+      }}>
+        <div style={{ textAlign: 'center', maxWidth: 400 }}>
+          <div style={{ fontSize: 52, marginBottom: 16 }}>🚧</div>
+          <div style={{ fontFamily: "'Outfit', sans-serif", fontSize: 22, fontWeight: 700, color: '#fff', marginBottom: 10 }}>
+            Auto Apply — Coming Soon
+          </div>
+          <div style={{ fontSize: 14, color: 'rgba(255,255,255,0.55)', lineHeight: 1.7, marginBottom: 28 }}>
+            We're putting the finishing touches on Auto Apply. It will automatically fill entire job application forms for you — fields, cover letter, file uploads — using your CV and job description. Check back soon.
+          </div>
+          <a href="/app/career-scan" style={{ display: 'inline-block', padding: '12px 28px', borderRadius: 10, background: 'linear-gradient(135deg, #378ADD, #185FA5)', color: '#fff', textDecoration: 'none', fontWeight: 700, fontSize: 14, fontFamily: "'Outfit', sans-serif" }}>
+            Try Career Scan instead →
+          </a>
+        </div>
+      </div>
+
       <div style={{ maxWidth: 1240, margin: '0 auto', padding: '24px 20px' }}>
 
         {/* Page header */}

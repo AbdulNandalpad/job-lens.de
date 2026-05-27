@@ -267,7 +267,12 @@ export default function CareerScanPage() {
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
       <div style={{ textAlign: 'center', paddingBottom: 16, borderBottom: '1px solid rgba(255,255,255,0.15)' }}>
         <div style={{ fontSize: 18, fontWeight: 700, color: '#fff', fontFamily: f.heading }}>{cs.sidebar.title}</div>
-        <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.6)', marginTop: 3 }}>{cs.sidebar.subtitle}</div>
+        <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.6)', marginTop: 3, display: 'flex', alignItems: 'center', gap: 8 }}>
+          {cs.sidebar.subtitle}
+          <span style={{ fontSize: 10, fontWeight: 700, color: '#378ADD', background: 'rgba(55,138,221,0.18)', padding: '2px 7px', borderRadius: 20, whiteSpace: 'nowrap' as const }}>
+            {CREDIT_COST.careerScan} credits
+          </span>
+        </div>
       </div>
 
       <UploadBox label={cs.sidebar.cvLabel} sublabel={cs.sidebar.cvSub} fileName={fileName} inputRef={fileInputRef} onFile={handleFile} onClear={clearCvFile} accept=".pdf,.txt,.doc,.docx" />

@@ -1,13 +1,13 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import React, { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Navbar from '../components/Navbar'
 import { createClient } from '@/lib/supabase'
 import { theme } from '@/lib/theme'
 import { useLanguage } from '@/lib/i18n'
 import { useDashWidgets } from '@/lib/useDashWidgets'
-import { MARKET } from '@/lib/constants'
+import { MARKET, CREDIT_COST, AI_CHAT_FREE_MESSAGES } from '@/lib/constants'
 
 const { colors: c, gradients: g, fonts: f } = theme
 
@@ -183,6 +183,41 @@ export default function AccountPage() {
                       </button>
                     </form>
                   </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Features & Credit Costs */}
+            <div style={{ marginTop: 24, background: c.bg, border: `1px solid ${c.border}`, borderRadius: 12, padding: '20px 22px' }}>
+              <div style={{ fontSize: 13, fontWeight: 700, color: c.primary, marginBottom: 16, fontFamily: f.heading }}>
+                Features & Credit Costs
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: '10px 16px', alignItems: 'center' }}>
+                {[
+                  { name: 'Career Scan',             cost: 2,    note: 'Full AI analysis' },
+                  { name: 'CV Tailoring',            cost: 1,    note: 'Per job application' },
+                  { name: 'Cover Letter',            cost: 1,    note: 'Per job application' },
+                  { name: 'Interview Prep',          cost: 1,    note: '5 questions + feedback' },
+                  { name: 'Salary Simulator',        cost: 1,    note: 'Full session + debrief' },
+                  { name: 'Zeugnis Decoder',         cost: 1,    note: 'DACH only' },
+                  { name: 'Kira AI Chat',            cost: 1,    note: `Per ${AI_CHAT_FREE_MESSAGES} messages` },
+                  { name: 'Auto Apply',              cost: 5,    note: 'Coming soon · Premium' },
+                  { name: 'Job Search',              cost: 0,    note: 'Always free' },
+                ].map(feat => (
+                  <React.Fragment key={feat.name}>
+                    <div>
+                      <span style={{ fontSize: 13, color: c.text }}>{feat.name}</span>
+                      <span style={{ fontSize: 11, color: c.textMuted, marginLeft: 8 }}>{feat.note}</span>
+                    </div>
+                    <div style={{
+                      fontSize: 11, fontWeight: 700, padding: '2px 10px', borderRadius: 20,
+                      background: feat.cost === 0 ? c.successLight : feat.cost >= 3 ? c.warningLight : c.primaryLight,
+                      color: feat.cost === 0 ? c.success : feat.cost >= 3 ? c.warning : c.accent,
+                      whiteSpace: 'nowrap' as const,
+                    }}>
+                      {feat.cost === 0 ? 'Free' : `${feat.cost} credit${feat.cost > 1 ? 's' : ''}`}
+                    </div>
+                  </React.Fragment>
                 ))}
               </div>
             </div>

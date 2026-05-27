@@ -6,7 +6,7 @@ export const CREDIT_COST = {
   careerScan:      2,  // /api/career-scan + /api/india/career-scan
   tailorCv:        1,  // /api/tailor-cv
   coverLetter:     1,  // /api/cover-letter
-  autoApply:       3,  // /api/auto-apply/analyze
+  autoApply:       5,  // /api/auto-apply/analyze
   zeugnisDecoder:  1,  // /api/zeugnis — decode Arbeitszeugnis
   visaCheck:       1,  // /api/visa — Fachkräfte eligibility analysis
   aiChat:          1,  // /api/ai/chat — 1 credit per AI_CHAT_FREE_MESSAGES block after free tier

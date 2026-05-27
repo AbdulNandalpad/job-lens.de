@@ -372,7 +372,12 @@ export default function CoverLetterPage() {
               {t.coverLetter.sidebar.backToCv}
             </button>
             <div style={{ fontSize: 18, fontWeight: 700, color: '#fff', fontFamily: "'Outfit', sans-serif" }}>{t.coverLetter.sidebar.title}</div>
-            <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)', marginTop: 2 }}>{t.coverLetter.sidebar.subtitle}</div>
+            <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)', marginTop: 2, display: 'flex', alignItems: 'center', gap: 8 }}>
+              {t.coverLetter.sidebar.subtitle}
+              <span style={{ fontSize: 10, fontWeight: 700, color: '#378ADD', background: 'rgba(55,138,221,0.18)', padding: '2px 7px', borderRadius: 20, whiteSpace: 'nowrap' as const }}>
+                {CREDIT_COST.coverLetter} credit
+              </span>
+            </div>
             {jobLabel && (
               <div style={{ marginTop: 12, padding: '8px 10px', background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 8 }}>
                 <div style={{ fontSize: 9, color: accentColor, fontWeight: 700, letterSpacing: 0.8, textTransform: 'uppercase', marginBottom: 3 }}>{t.coverLetter.sidebar.tailoringFor}</div>
