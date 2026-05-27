@@ -37,6 +37,8 @@ const translations = {
       { title: 'Intelligente Jobsuche', desc: 'Passende DACH-Stellen, abgestimmt auf deinen Lebenslauf.' },
       { title: 'Lebenslauf & Anschreiben', desc: 'Maßgeschneidert für jede Stelle, ATS-optimiert.' },
       { title: 'Interview-Training', desc: 'Rollenspezifische Fragen mit sofortigem KI-Feedback.' },
+      { title: 'Gehaltsverhandlung', desc: 'Übe mit einem KI-HR-Manager — Debrief inklusive.' },
+      { title: 'Career Card', desc: 'Teile deinen Score als Karte auf LinkedIn oder WhatsApp.' },
       { title: 'Bewerbungs-Tracker', desc: 'Alle Bewerbungen im Blick — von Gespeichert bis Angebot.' },
       { title: 'Auto-Bewerbung', desc: 'KI füllt das gesamte Bewerbungsformular automatisch aus.' },
     ],
@@ -115,6 +117,8 @@ const translations = {
       { title: 'Smart Job Search', desc: 'Best-matched DACH jobs pulled from your CV automatically.' },
       { title: 'CV & Cover Letter', desc: 'One-click tailored CV and cover letter, ATS-optimised.' },
       { title: 'Interview Prep', desc: 'Role-specific questions with instant AI feedback and scoring.' },
+      { title: 'Salary Simulator', desc: 'Practice negotiating with an AI hiring manager. Get a debrief.' },
+      { title: 'Career Card', desc: 'Share your score as a card on LinkedIn, Twitter or WhatsApp.' },
       { title: 'Application Tracker', desc: 'Track every application from Saved to Offer in one place.' },
       { title: 'Auto Apply', desc: 'AI fills the entire application form for you automatically.' },
     ],
@@ -192,11 +196,15 @@ export default function HomePage() {
 
   const go = (path: string) => user ? path : '/login'
 
-  const featureIcons = ['◎', '🔍', '📄', '🎙', '📋', '⚡']
-  const featureBgs = [c.primaryLight, c.successLight, c.warningLight, c.primaryLight, c.successLight, c.aiLight]
-  const featureColors = [c.navy, c.success, c.warning, c.accent, c.success, c.ai]
-  const featureBadges = [null, null, null, null, null, lang === 'DE' ? 'Beta' : 'Beta']
-  const featureHrefs = [go('/app/career-scan'), go('/app/jobs'), go('/app/cv-builder'), go('/app/interview'), go('/app/tracker'), go('/app/auto-apply')]
+  // Order: Career Scan, Job Search, CV+CL, Interview, Salary Sim, Career Card, Tracker, Auto Apply
+  const featureIcons  = ['◎',           '🔍',            '📄',           '🎙',        '💰',           '🎴',          '📋',       '⚡']
+  const featureBgs    = [c.primaryLight, c.successLight,  c.warningLight, c.primaryLight, c.successLight, c.aiLight, c.warningLight, c.aiLight]
+  const featureColors = [c.navy,         c.success,       c.warning,      c.accent,       c.success,      c.ai,      c.warning,     c.ai]
+  const featureBadges: (string | null)[] = [null, null, null, null, null, null, null, lang === 'DE' ? 'Beta' : 'Beta']
+  const featureHrefs  = [
+    go('/app/career-scan'), go('/app/jobs'), go('/app/cv-builder'), go('/app/interview'),
+    go('/app/salary-sim'),  go('/app/career-scan'), go('/app/tracker'), go('/app/auto-apply'),
+  ]
 
   const stats = t.statsLabels.map((v, i) => ({ value: v, label: t.statsDescs[i] }))
 
@@ -249,8 +257,8 @@ export default function HomePage() {
           transform: translateY(-3px);
         }
 
-        .jl-feature-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
-        @media (max-width: 900px) { .jl-feature-grid { grid-template-columns: repeat(2, 1fr); } }
+        .jl-feature-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
+        @media (max-width: 1000px) { .jl-feature-grid { grid-template-columns: repeat(2, 1fr); } }
         @media (max-width: 560px) { .jl-feature-grid { grid-template-columns: 1fr; } }
         .jl-pricing-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; max-width: 900px; margin: 0 auto; align-items: start; }
         @media (max-width: 700px) { .jl-pricing-grid { grid-template-columns: 1fr; } }
@@ -468,13 +476,6 @@ export default function HomePage() {
               <div style={{ fontSize: 13, color: c.textMuted, lineHeight: 1.6 }}>{feat.desc}</div>
             </Link>
           ))}
-        </div>
-
-        {/* Single explore CTA */}
-        <div style={{ textAlign: 'center', marginTop: 32 }}>
-          <Link href={go('/app/career-scan')} style={{ fontSize: 14, fontWeight: 600, color: c.accent, textDecoration: 'none', fontFamily: f.heading }}>
-            {t.featuresExplore}
-          </Link>
         </div>
 
         {/* ── How it works ── */}
