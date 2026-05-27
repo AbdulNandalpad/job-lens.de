@@ -4,6 +4,7 @@ import React, { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useLanguage } from '@/lib/i18n'
 import CareerIntelPanel from '@/components/CareerIntelPanel'
+import SvgIcon, { getIcon, type IconName } from '@/components/SvgIcon'
 import { createClient } from '@/lib/supabase'
 import { useDashWidgets } from '@/lib/useDashWidgets'
 import { MARKET } from '@/lib/constants'
@@ -27,78 +28,83 @@ const txt3    = '#7a8fa8'
 type Country = 'de' | 'ch' | 'at'
 
 // ── Static market data ───────────────────────────────────────
-const COUNTRY_META: Record<Country, { flag: string; name: string; currency: string }> = {
-  de: { flag: '🇩🇪', name: 'Deutschland', currency: 'EUR' },
-  ch: { flag: '🇨🇭', name: 'Schweiz',     currency: 'CHF' },
-  at: { flag: '🇦🇹', name: 'Österreich',  currency: 'EUR' },
+const COUNTRY_META: Record<Country, { flag: IconName; name: string; currency: string }> = {
+  de: { flag: 'flag-de', name: 'Deutschland', currency: 'EUR' },
+  ch: { flag: 'flag-ch', name: 'Schweiz',     currency: 'CHF' },
+  at: { flag: 'flag-at', name: 'Österreich',  currency: 'EUR' },
 }
+const COUNTRIES: { code: Country; flag: IconName; name: string }[] = [
+  { code: 'de', flag: 'flag-de', name: 'Deutschland' },
+  { code: 'ch', flag: 'flag-ch', name: 'Schweiz'     },
+  { code: 'at', flag: 'flag-at', name: 'Österreich'  },
+]
 
-const KPI_DATA: Record<Country, { label: string; value: string; sub: string; color: string; icon: string }[]> = {
+const KPI_DATA: Record<Country, { label: string; value: string; sub: string; color: string; icon: IconName }[]> = {
   de: [
-    { label: 'Open Roles',     value: '186k',      sub: 'Adzuna Deutschland', color: blue,    icon: '📋' },
-    { label: 'Hottest Sector', value: 'IT & Tech', sub: '42k listings',       color: cyan,    icon: '🔥' },
-    { label: 'Top City',       value: 'Berlin',    sub: '28k openings',       color: emerald, icon: '📍' },
-    { label: 'Fastest Rising', value: 'KI-Ing.',   sub: 'trending role 2026', color: purple,  icon: '⭐' },
+    { label: 'Open Roles',     value: '186k',      sub: 'Adzuna Deutschland', color: blue,    icon: 'clipboard' },
+    { label: 'Hottest Sector', value: 'IT & Tech', sub: '42k listings',       color: cyan,    icon: 'flame'     },
+    { label: 'Top City',       value: 'Berlin',    sub: '28k openings',       color: emerald, icon: 'pin'       },
+    { label: 'Fastest Rising', value: 'KI-Ing.',   sub: 'trending role 2026', color: purple,  icon: 'star'      },
   ],
   ch: [
-    { label: 'Open Roles',     value: '67k',      sub: 'Adzuna Schweiz',     color: blue,    icon: '📋' },
-    { label: 'Hottest Sector', value: 'Finance',  sub: '18k listings',       color: cyan,    icon: '🔥' },
-    { label: 'Top City',       value: 'Zürich',   sub: '22k openings',       color: emerald, icon: '📍' },
-    { label: 'Fastest Rising', value: 'Cloud',    sub: 'trending role 2026', color: purple,  icon: '⭐' },
+    { label: 'Open Roles',     value: '67k',      sub: 'Adzuna Schweiz',     color: blue,    icon: 'clipboard' },
+    { label: 'Hottest Sector', value: 'Finance',  sub: '18k listings',       color: cyan,    icon: 'flame'     },
+    { label: 'Top City',       value: 'Zürich',   sub: '22k openings',       color: emerald, icon: 'pin'       },
+    { label: 'Fastest Rising', value: 'Cloud',    sub: 'trending role 2026', color: purple,  icon: 'star'      },
   ],
   at: [
-    { label: 'Open Roles',     value: '45k',        sub: 'Adzuna Österreich',  color: blue,    icon: '📋' },
-    { label: 'Hottest Sector', value: 'Engineering', sub: '14k listings',       color: cyan,    icon: '🔥' },
-    { label: 'Top City',       value: 'Wien',        sub: '18k openings',       color: emerald, icon: '📍' },
-    { label: 'Fastest Rising', value: 'DevOps',      sub: 'trending role 2026', color: purple,  icon: '⭐' },
-  ],
-}
-
-const SECTOR_DATA: Record<Country, { label: string; count: number; color: string; emoji: string }[]> = {
-  de: [
-    { label: 'IT & Software',     count: 42000, color: blue,    emoji: '💻' },
-    { label: 'Engineering',       count: 38000, color: emerald, emoji: '⚙️' },
-    { label: 'Healthcare',        count: 29000, color: red,     emoji: '🏥' },
-    { label: 'Finance & Banking', count: 21000, color: orange,  emoji: '💰' },
-    { label: 'Sales & Marketing', count: 18000, color: cyan,    emoji: '📣' },
-    { label: 'HR & Operations',   count: 12000, color: purple,  emoji: '👥' },
-  ],
-  ch: [
-    { label: 'Finance & Banking',  count: 18000, color: orange,  emoji: '💰' },
-    { label: 'IT & Software',      count: 16000, color: blue,    emoji: '💻' },
-    { label: 'Healthcare',         count: 11000, color: red,     emoji: '🏥' },
-    { label: 'Engineering',        count: 9000,  color: emerald, emoji: '⚙️' },
-    { label: 'Pharma & Life Sci.', count: 7000,  color: cyan,    emoji: '🧬' },
-    { label: 'Operations',         count: 5000,  color: purple,  emoji: '🏭' },
-  ],
-  at: [
-    { label: 'Engineering',      count: 14000, color: emerald, emoji: '⚙️' },
-    { label: 'IT & Software',    count: 12000, color: blue,    emoji: '💻' },
-    { label: 'Healthcare',       count: 8000,  color: red,     emoji: '🏥' },
-    { label: 'Tourism & Hosp.', count: 6000,  color: orange,  emoji: '🏨' },
-    { label: 'Finance',          count: 5000,  color: cyan,    emoji: '💰' },
-    { label: 'Logistics',        count: 4000,  color: purple,  emoji: '🚚' },
+    { label: 'Open Roles',     value: '45k',        sub: 'Adzuna Österreich',  color: blue,    icon: 'clipboard' },
+    { label: 'Hottest Sector', value: 'Engineering', sub: '14k listings',       color: cyan,    icon: 'flame'     },
+    { label: 'Top City',       value: 'Wien',        sub: '18k openings',       color: emerald, icon: 'pin'       },
+    { label: 'Fastest Rising', value: 'DevOps',      sub: 'trending role 2026', color: purple,  icon: 'star'      },
   ],
 }
 
-const MACRO_DATA: Record<Country, { icon: string; label: string; value: string; unit: string; trend: 'up' | 'down' | 'flat'; year: string }[]> = {
+const SECTOR_DATA: Record<Country, { label: string; count: number; color: string }[]> = {
   de: [
-    { icon: '👷', label: 'Unemployment',  value: '5.5', unit: '%', trend: 'down', year: 'Q1 2026' },
-    { icon: '📈', label: 'GDP Growth',    value: '1.2', unit: '%', trend: 'up',   year: '2025' },
-    { icon: '💶', label: 'Salary Growth', value: '4.2', unit: '%', trend: 'up',   year: '2025' },
-    { icon: '🏠', label: 'Remote Share',  value: '34',  unit: '%', trend: 'up',   year: 'Q1 2026' },
+    { label: 'IT & Software',     count: 42000, color: blue    },
+    { label: 'Engineering',       count: 38000, color: emerald },
+    { label: 'Healthcare',        count: 29000, color: red     },
+    { label: 'Finance & Banking', count: 21000, color: orange  },
+    { label: 'Sales & Marketing', count: 18000, color: cyan    },
+    { label: 'HR & Operations',   count: 12000, color: purple  },
   ],
   ch: [
-    { icon: '👷', label: 'Unemployment',  value: '2.3', unit: '%', trend: 'down', year: 'Q1 2026' },
-    { icon: '📈', label: 'GDP Growth',    value: '1.6', unit: '%', trend: 'up',   year: '2025' },
-    { icon: '💶', label: 'Salary Growth', value: '3.1', unit: '%', trend: 'up',   year: '2025' },
-    { icon: '🏠', label: 'Remote Share',  value: '41',  unit: '%', trend: 'up',   year: 'Q1 2026' },
+    { label: 'Finance & Banking',  count: 18000, color: orange  },
+    { label: 'IT & Software',      count: 16000, color: blue    },
+    { label: 'Healthcare',         count: 11000, color: red     },
+    { label: 'Engineering',        count: 9000,  color: emerald },
+    { label: 'Pharma & Life Sci.', count: 7000,  color: cyan    },
+    { label: 'Operations',         count: 5000,  color: purple  },
   ],
   at: [
-    { icon: '👷', label: 'Unemployment',  value: '6.1', unit: '%', trend: 'flat', year: 'Q1 2026' },
-    { icon: '📈', label: 'GDP Growth',    value: '0.9', unit: '%', trend: 'up',   year: '2025' },
-    { icon: '💶', label: 'Salary Growth', value: '3.8', unit: '%', trend: 'up',   year: '2025' },
-    { icon: '🏠', label: 'Remote Share',  value: '28',  unit: '%', trend: 'up',   year: 'Q1 2026' },
+    { label: 'Engineering',      count: 14000, color: emerald },
+    { label: 'IT & Software',    count: 12000, color: blue    },
+    { label: 'Healthcare',       count: 8000,  color: red     },
+    { label: 'Tourism & Hosp.', count: 6000,  color: orange  },
+    { label: 'Finance',          count: 5000,  color: cyan    },
+    { label: 'Logistics',        count: 4000,  color: purple  },
+  ],
+}
+
+const MACRO_DATA: Record<Country, { icon: IconName; label: string; value: string; unit: string; trend: 'up' | 'down' | 'flat'; year: string }[]> = {
+  de: [
+    { icon: 'worker',       label: 'Unemployment',  value: '5.5', unit: '%', trend: 'down', year: 'Q1 2026' },
+    { icon: 'trending-up',  label: 'GDP Growth',    value: '1.2', unit: '%', trend: 'up',   year: '2025' },
+    { icon: 'euro',         label: 'Salary Growth', value: '4.2', unit: '%', trend: 'up',   year: '2025' },
+    { icon: 'home',         label: 'Remote Share',  value: '34',  unit: '%', trend: 'up',   year: 'Q1 2026' },
+  ],
+  ch: [
+    { icon: 'worker',       label: 'Unemployment',  value: '2.3', unit: '%', trend: 'down', year: 'Q1 2026' },
+    { icon: 'trending-up',  label: 'GDP Growth',    value: '1.6', unit: '%', trend: 'up',   year: '2025' },
+    { icon: 'euro',         label: 'Salary Growth', value: '3.1', unit: '%', trend: 'up',   year: '2025' },
+    { icon: 'home',         label: 'Remote Share',  value: '41',  unit: '%', trend: 'up',   year: 'Q1 2026' },
+  ],
+  at: [
+    { icon: 'worker',       label: 'Unemployment',  value: '6.1', unit: '%', trend: 'flat', year: 'Q1 2026' },
+    { icon: 'trending-up',  label: 'GDP Growth',    value: '0.9', unit: '%', trend: 'up',   year: '2025' },
+    { icon: 'euro',         label: 'Salary Growth', value: '3.8', unit: '%', trend: 'up',   year: '2025' },
+    { icon: 'home',         label: 'Remote Share',  value: '28',  unit: '%', trend: 'up',   year: 'Q1 2026' },
   ],
 }
 
@@ -129,15 +135,15 @@ const SALARY_DATA: Record<Country, { role: string; min: number; max: number; avg
   ],
 }
 
-const AI_IMPACT = [
-  { sector: 'Software & IT',    emoji: '💻', impact: 'creating',   score: 85, headline: 'KI-Engineering +180% YoY',              color: emerald },
-  { sector: 'Data & Analytics', emoji: '📊', impact: 'creating',   score: 80, headline: 'MLOps & Data Engineers top-demanded',    color: emerald },
-  { sector: 'MedTech & Health', emoji: '🏥', impact: 'creating',   score: 68, headline: 'AI diagnostics boom — DACH leads',       color: emerald },
-  { sector: 'Automotive',       emoji: '🚗', impact: 'mixed',      score: 58, headline: 'EV creates roles, disrupts legacy',      color: orange  },
-  { sector: 'Finance & Banking',emoji: '🏦', impact: 'mixed',      score: 52, headline: 'Analysts valued, back-office automated', color: orange  },
-  { sector: 'Marketing',        emoji: '📣', impact: 'mixed',      score: 45, headline: 'GenAI copilots reshape every role',      color: orange  },
-  { sector: 'Shared Services',  emoji: '🎧', impact: 'disrupting', score: 74, headline: 'LLMs automating routine tasks fast',     color: red     },
-  { sector: 'Logistics & Mfg.', emoji: '🏭', impact: 'disrupting', score: 62, headline: 'Robotics displacing manual roles',       color: red     },
+const AI_IMPACT: { sector: string; icon: IconName; impact: string; score: number; headline: string; color: string }[] = [
+  { sector: 'Software & IT',    icon: 'laptop',      impact: 'creating',   score: 85, headline: 'KI-Engineering +180% YoY',              color: emerald },
+  { sector: 'Data & Analytics', icon: 'chart-bar',   impact: 'creating',   score: 80, headline: 'MLOps & Data Engineers top-demanded',    color: emerald },
+  { sector: 'MedTech & Health', icon: 'hospital',    impact: 'creating',   score: 68, headline: 'AI diagnostics boom — DACH leads',       color: emerald },
+  { sector: 'Automotive',       icon: 'gear',        impact: 'mixed',      score: 58, headline: 'EV creates roles, disrupts legacy',      color: orange  },
+  { sector: 'Finance & Banking',icon: 'coin',        impact: 'mixed',      score: 52, headline: 'Analysts valued, back-office automated', color: orange  },
+  { sector: 'Marketing',        icon: 'megaphone',   impact: 'mixed',      score: 45, headline: 'GenAI copilots reshape every role',      color: orange  },
+  { sector: 'Shared Services',  icon: 'headphone',   impact: 'disrupting', score: 74, headline: 'LLMs automating routine tasks fast',     color: red     },
+  { sector: 'Logistics & Mfg.', icon: 'factory',     impact: 'disrupting', score: 62, headline: 'Robotics displacing manual roles',       color: red     },
 ]
 
 const RISING_SKILLS = [
@@ -174,7 +180,10 @@ function SectionHeader({ icon, title, sub }: { icon: string; title: string; sub:
     <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 20 }}>
       <GlowDot color={blue} />
       <div>
-        <div style={{ fontFamily: "'Outfit',sans-serif", fontSize: 14, fontWeight: 700, color: '#fff' }}>{icon} {title}</div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 7, fontFamily: "'Outfit',sans-serif", fontSize: 14, fontWeight: 700, color: '#fff' }}>
+          {getIcon(icon, 14, '#fff')}
+          {title}
+        </div>
         <div style={{ fontSize: 11, color: txt3, marginTop: 1 }}>{sub}</div>
       </div>
     </div>
@@ -182,7 +191,7 @@ function SectionHeader({ icon, title, sub }: { icon: string; title: string; sub:
 }
 
 // ── SVG Horizontal Bar Chart ─────────────────────────────────
-function BarChart({ data }: { data: { label: string; count: number; color: string; emoji: string }[] }) {
+function BarChart({ data }: { data: { label: string; count: number; color: string }[] }) {
   const max = Math.max(...data.map(d => d.count))
   const ROW = 38, LEFT = 118, BAR = 170
   const h = data.length * ROW + 16
@@ -194,7 +203,7 @@ function BarChart({ data }: { data: { label: string; count: number; color: strin
         return (
           <g key={d.label}>
             <text x={LEFT - 8} y={y + 14} fontSize="11.5" fill={txt2} textAnchor="end" dominantBaseline="middle">
-              {d.emoji} {d.label}
+              {d.label}
             </text>
             <rect x={LEFT} y={y + 6} width={BAR} height={16} rx={8} fill="rgba(255,255,255,0.04)" />
             <rect x={LEFT} y={y + 6} width={0} height={16} rx={8} fill={d.color} opacity={0.75}>
@@ -273,11 +282,7 @@ export default function DACHDashboard() {
   const sym      = meta.currency === 'CHF' ? 'Fr.' : '€'
   const scaleMax = meta.currency === 'CHF' ? 200 : 155
 
-  const COUNTRIES = [
-    { code: 'de' as Country, flag: '🇩🇪', name: 'DE' },
-    { code: 'ch' as Country, flag: '🇨🇭', name: 'CH' },
-    { code: 'at' as Country, flag: '🇦🇹', name: 'AT' },
-  ]
+  // COUNTRIES defined at module level (above)
 
   const creating   = AI_IMPACT.filter(x => x.impact === 'creating')
   const mixed      = AI_IMPACT.filter(x => x.impact === 'mixed')
@@ -392,7 +397,7 @@ export default function DACHDashboard() {
                 </span>
               </div>
               <h1 style={{ margin: 0, fontFamily: "'Outfit',sans-serif", fontSize: 'clamp(20px,4.5vw,30px)', fontWeight: 800, color: '#fff', letterSpacing: -0.5 }}>
-                {greeting}{firstName ? `, ${firstName}` : ''} 👋
+                {greeting}{firstName ? `, ${firstName}` : ''}
               </h1>
               <p style={{ margin: '5px 0 0', fontSize: 13, color: txt2 }}>
                 {t('Dein DACH-Karriere-Intelligence-Dashboard', 'Your DACH career intelligence dashboard')}
@@ -405,8 +410,9 @@ export default function DACHDashboard() {
               <div className="country-pills-desktop" style={{ display: 'flex', gap: 4, background: 'rgba(255,255,255,.04)', border: `1px solid ${border}`, borderRadius: 12, padding: 4 }}>
                 {COUNTRIES.map(c => (
                   <button key={c.code} className="country-pill" onClick={() => setCountry(c.code)}
-                    style={{ padding: '7px 13px', borderRadius: 8, border: `1px solid ${country === c.code ? blue : 'transparent'}`, background: country === c.code ? blue + '22' : 'transparent', color: country === c.code ? '#fff' : txt2, fontSize: 12, fontWeight: country === c.code ? 700 : 400, cursor: 'pointer', fontFamily: "'DM Sans',sans-serif" }}>
-                    {c.flag} {c.name}
+                    style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '7px 13px', borderRadius: 8, border: `1px solid ${country === c.code ? blue : 'transparent'}`, background: country === c.code ? blue + '22' : 'transparent', color: country === c.code ? '#fff' : txt2, fontSize: 12, fontWeight: country === c.code ? 700 : 400, cursor: 'pointer', fontFamily: "'DM Sans',sans-serif" }}>
+                    <SvgIcon name={c.flag} size={18} />
+                    {c.name}
                   </button>
                 ))}
               </div>
@@ -417,7 +423,7 @@ export default function DACHDashboard() {
                   style={{ background: 'transparent', border: 'none', color: '#fff', fontSize: 13, fontWeight: 700, fontFamily: "'DM Sans',sans-serif", cursor: 'pointer', outline: 'none', padding: '7px 4px' }}>
                   {COUNTRIES.map(c => (
                     <option key={c.code} value={c.code} style={{ background: '#0e1a28', color: '#fff' }}>
-                      {c.flag} {c.name}
+                      {c.code.toUpperCase()} — {c.name}
                     </option>
                   ))}
                 </select>
@@ -427,7 +433,7 @@ export default function DACHDashboard() {
               {!loadingP && profile && (
                 <div onClick={() => router.push('/app/account')}
                   style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'rgba(55,138,221,.1)', border: '1px solid rgba(55,138,221,.28)', borderRadius: 12, padding: '8px 16px', cursor: 'pointer', animation: 'glow 3s infinite' }}>
-                  <span style={{ fontSize: 18 }}>⚡</span>
+                  <SvgIcon name="lightning" size={18} color={blue} />
                   <div>
                     <div style={{ fontFamily: "'Outfit',sans-serif", fontSize: 20, fontWeight: 800, color: blue, lineHeight: 1 }}>{totalCredits}</div>
                     <div style={{ fontSize: 10, color: 'rgba(55,138,221,.55)', letterSpacing: 0.5 }}>CREDITS</div>
@@ -460,21 +466,21 @@ export default function DACHDashboard() {
         {/* ── Quick Actions ── */}
         {isVisible('quick_actions') && (
           <div style={{ ...cardStyle, marginBottom: 20 }}>
-            <SectionHeader icon="⚡" title={t('Schnellzugriff', 'Quick Actions')} sub={t('Direkt zu deinen Tools', 'Jump straight to your tools')} />
+            <SectionHeader icon="lightning" title={t('Schnellzugriff', 'Quick Actions')} sub={t('Direkt zu deinen Tools', 'Jump straight to your tools')} />
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: 10 }}>
-              {[
-                { label: t('Career Scan', 'Career Scan'),      icon: '🎯', href: '/app/career-scan'  },
-                { label: t('Job-Suche', 'Job Search'),          icon: '🔍', href: '/app/jobs'          },
-                { label: t('Lebenslauf', 'CV Builder'),         icon: '📄', href: '/app/cv-builder'    },
-                { label: t('Anschreiben', 'Cover Letter'),      icon: '✉️', href: '/app/cover-letter'  },
-                { label: t('Auto Apply', 'Auto Apply'),         icon: '🤖', href: '/app/auto-apply'    },
-                { label: t('Zeugnis-Decoder', 'Zeugnis Decoder'), icon: '🇩🇪', href: '/app/zeugnis'   },
-              ].map(a => (
+              {([
+                { label: t('Career Scan', 'Career Scan'),          icon: 'target'    as IconName, href: '/app/career-scan'  },
+                { label: t('Job-Suche', 'Job Search'),              icon: 'search'    as IconName, href: '/app/jobs'          },
+                { label: t('Lebenslauf', 'CV Builder'),             icon: 'document'  as IconName, href: '/app/cv-builder'    },
+                { label: t('Anschreiben', 'Cover Letter'),          icon: 'email'     as IconName, href: '/app/cover-letter'  },
+                { label: t('Auto Apply', 'Auto Apply'),             icon: 'bot'       as IconName, href: '/app/auto-apply'    },
+                { label: t('Zeugnis-Decoder', 'Zeugnis Decoder'),   icon: 'flag-de'   as IconName, href: '/app/zeugnis'       },
+              ] as { label: string; icon: IconName; href: string }[]).map(a => (
                 <button key={a.href} onClick={() => router.push(a.href)}
                   style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '11px 14px', borderRadius: 12, border: `1px solid ${border}`, background: 'rgba(255,255,255,.04)', color: txt2, fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: "'DM Sans',sans-serif", transition: 'all .15s', textAlign: 'left' }}
                   onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.borderColor = blue + '60'; (e.currentTarget as HTMLButtonElement).style.color = '#fff' }}
                   onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.borderColor = border; (e.currentTarget as HTMLButtonElement).style.color = txt2 }}>
-                  <span style={{ fontSize: 16 }}>{a.icon}</span>
+                  <SvgIcon name={a.icon} size={16} color="currentColor" />
                   <span>{a.label}</span>
                 </button>
               ))}
@@ -492,7 +498,7 @@ export default function DACHDashboard() {
               <div key={k.label} className="kpi-card" style={{ animation: `fadeUp .45s ease ${i * 0.07}s both` }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
                   <span style={{ fontSize: 10, fontWeight: 600, color: txt3, letterSpacing: 0.7, textTransform: 'uppercase' }}>{k.label}</span>
-                  <div style={{ width: 32, height: 32, borderRadius: 9, background: `${k.color}15`, border: `1px solid ${k.color}28`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 15 }}>{k.icon}</div>
+                  <div style={{ width: 32, height: 32, borderRadius: 9, background: `${k.color}15`, border: `1px solid ${k.color}28`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><SvgIcon name={k.icon} size={15} color={k.color} /></div>
                 </div>
                 <div style={{ fontFamily: "'Outfit',sans-serif", fontSize: 26, fontWeight: 800, color: k.color, lineHeight: 1, letterSpacing: -0.5 }}>{k.value}</div>
                 <div style={{ fontSize: 11, color: txt3, marginTop: 6 }}>{k.sub}</div>
@@ -506,7 +512,7 @@ export default function DACHDashboard() {
           <div className="skills-cols">
             {/* Rising */}
             <div style={cardStyle}>
-              <SectionHeader icon="🚀" title={t('Wachsende Skills', 'Rising Skills')} sub={t('Nachfrage-Anstieg YoY · DACH', 'YoY demand growth · DACH market')} />
+              <SectionHeader icon="rocket" title={t('Wachsende Skills', 'Rising Skills')} sub={t('Nachfrage-Anstieg YoY · DACH', 'YoY demand growth · DACH market')} />
               {RISING_SKILLS.map(s => (
                 <div key={s.skill} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '9px 0', borderBottom: `1px solid rgba(255,255,255,.05)` }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -519,7 +525,7 @@ export default function DACHDashboard() {
             </div>
             {/* Declining */}
             <div style={cardStyle}>
-              <SectionHeader icon="📉" title={t('Sinkende Skills', 'Declining Skills')} sub={t('Rückgang der Jobnachfrage · DACH', 'Drop in job demand · DACH market')} />
+              <SectionHeader icon="trending-down" title={t('Sinkende Skills', 'Declining Skills')} sub={t('Rückgang der Jobnachfrage · DACH', 'Drop in job demand · DACH market')} />
               {DECLINING_SKILLS.map(s => (
                 <div key={s.skill} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '9px 0', borderBottom: `1px solid rgba(255,255,255,.05)` }}>
                   <span style={{ fontSize: 13, color: txt2 }}>{s.skill}</span>
@@ -535,7 +541,7 @@ export default function DACHDashboard() {
           <div className="two-col">
             {/* Jobs by Sector */}
             <div style={cardStyle}>
-              <SectionHeader icon={meta.flag} title={t('Jobs nach Branche', 'Jobs by Sector')} sub={`Adzuna ${meta.name} · ${t('Top 5 Branchen', 'Top 5 sectors')}`} />
+              <SectionHeader icon="clipboard" title={t('Jobs nach Branche', 'Jobs by Sector')} sub={`Adzuna ${meta.name} · ${t('Top 5 Branchen', 'Top 5 sectors')}`} />
               <BarChart data={visibleSectors} />
               {sectors.length > 5 && (
                 <button className="expand-btn" onClick={() => setSectorsExpanded(p => !p)}>
@@ -546,7 +552,7 @@ export default function DACHDashboard() {
 
             {/* Salary Ranges */}
             <div style={cardStyle}>
-              <SectionHeader icon="💶" title={t('Gehaltsspannen 2026', 'Salary Ranges 2026')} sub={`${t('Bruttojahresgehalt in', 'Annual gross in')} ${meta.currency} · min ● avg ● max`} />
+              <SectionHeader icon="euro" title={t('Gehaltsspannen 2026', 'Salary Ranges 2026')} sub={`${t('Bruttojahresgehalt in', 'Annual gross in')} ${meta.currency} · min ● avg ● max`} />
               {visibleSalaries.map(s => (
                 <SalaryBar key={s.role} role={s.role} min={s.min} max={s.max} avg={s.avg} sym={sym} scaleMax={scaleMax} />
               ))}
@@ -561,7 +567,7 @@ export default function DACHDashboard() {
 
         {/* ── 3. Macro Indicators ── */}
         {isVisible('macro') && <div style={{ ...cardStyle, marginBottom: 20 }}>
-          <SectionHeader icon={meta.flag} title={`${meta.name} — ${t('Makro-Indikatoren', 'Macro Indicators')}`} sub={`Eurostat · ${t('aktualisiert jährlich', 'updated annually')}`} />
+          <SectionHeader icon="globe" title={`${meta.name} — ${t('Makro-Indikatoren', 'Macro Indicators')}`} sub={`Eurostat · ${t('aktualisiert jährlich', 'updated annually')}`} />
           <div className="macro-grid">
             {macro.map(ind => {
               const good = ind.label === 'Unemployment' ? ind.trend === 'down' : ind.trend === 'up'
@@ -570,7 +576,7 @@ export default function DACHDashboard() {
               return (
                 <div key={ind.label} style={{ background: cardHov, border: `1px solid ${border}`, borderRadius: 14, padding: '16px 18px', borderTop: `2px solid ${tc}` }}>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
-                    <span style={{ fontSize: 22 }}>{ind.icon}</span>
+                    <SvgIcon name={ind.icon} size={22} color={tc} />
                     <span style={{ fontSize: 12, fontWeight: 700, color: tc, background: `${tc}18`, padding: '2px 8px', borderRadius: 20 }}>{arr}</span>
                   </div>
                   <div style={{ fontFamily: "'Outfit',sans-serif", fontSize: 28, fontWeight: 800, color: tc, lineHeight: 1 }}>{ind.value}{ind.unit}</div>
@@ -586,7 +592,7 @@ export default function DACHDashboard() {
         {isVisible('ai_impact') && <div style={{ ...cardStyle, marginBottom: 20 }}>
           {/* Collapsible header */}
           <div onClick={() => setAiExpanded(p => !p)} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer', userSelect: 'none' }}>
-            <SectionHeader icon="🤖" title={t('KI-Auswirkung nach Sektor', 'AI Impact by Sector')} sub={t('DACH-Markt 2026 · Grün = schafft Jobs · Rot = verdrängt Jobs', 'DACH 2026 · Green = creating jobs · Red = disrupting roles')} />
+            <SectionHeader icon="bot" title={t('KI-Auswirkung nach Sektor', 'AI Impact by Sector')} sub={t('DACH-Markt 2026 · Grün = schafft Jobs · Rot = verdrängt Jobs', 'DACH 2026 · Green = creating jobs · Red = disrupting roles')} />
             <span style={{ fontSize: 18, color: txt2, marginTop: -12, flexShrink: 0 }}>{aiExpanded ? '▲' : '▼'}</span>
           </div>
           {aiExpanded && (
@@ -601,7 +607,7 @@ export default function DACHDashboard() {
                   {creating.map(x => (
                     <div key={x.sector} style={{ background: `${emerald}08`, border: `1px solid ${emerald}28`, borderRadius: 12, padding: '11px 13px' }}>
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
-                        <span style={{ fontSize: 14 }}>{x.emoji}</span>
+                        <SvgIcon name={x.icon} size={16} color={x.color} />
                         <div style={{ display: 'flex', gap: 3 }}>
                           {Array.from({ length: 5 }).map((_, i) => (
                             <div key={i} style={{ width: 6, height: 6, borderRadius: 1, background: i < Math.round(x.score / 20) ? emerald : 'rgba(255,255,255,.1)' }} />
@@ -625,7 +631,7 @@ export default function DACHDashboard() {
                   {mixed.map(x => (
                     <div key={x.sector} style={{ background: `${orange}08`, border: `1px solid ${orange}28`, borderRadius: 12, padding: '11px 13px' }}>
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
-                        <span style={{ fontSize: 14 }}>{x.emoji}</span>
+                        <SvgIcon name={x.icon} size={16} color={x.color} />
                         <div style={{ display: 'flex', gap: 3 }}>
                           {Array.from({ length: 5 }).map((_, i) => (
                             <div key={i} style={{ width: 6, height: 6, borderRadius: 1, background: i < Math.round(x.score / 20) ? orange : 'rgba(255,255,255,.1)' }} />
@@ -649,7 +655,7 @@ export default function DACHDashboard() {
                   {disrupting.map(x => (
                     <div key={x.sector} style={{ background: `${red}08`, border: `1px solid ${red}28`, borderRadius: 12, padding: '11px 13px' }}>
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
-                        <span style={{ fontSize: 14 }}>{x.emoji}</span>
+                        <SvgIcon name={x.icon} size={16} color={x.color} />
                         <div style={{ display: 'flex', gap: 3 }}>
                           {Array.from({ length: 5 }).map((_, i) => (
                             <div key={i} style={{ width: 6, height: 6, borderRadius: 1, background: i < Math.round(x.score / 20) ? red : 'rgba(255,255,255,.1)' }} />

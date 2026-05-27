@@ -1,6 +1,7 @@
 'use client'
 
 import { useRef, useState } from 'react'
+import SvgIcon from '@/components/SvgIcon'
 
 export interface CareerCardData {
   score: number
@@ -30,7 +31,8 @@ function CardVisual({ data }: { data: CareerCardData }) {
   const salaryStr = data.salaryMin && data.salaryMax
     ? `${fmtSalary(data.salaryMin, data.salaryCurrency, data.market)} – ${fmtSalary(data.salaryMax, data.salaryCurrency, data.market)}`
     : null
-  const flag = data.market === 'in' ? '🇮🇳 India' : '🇩🇪 DACH'
+  const flagIcon = data.market === 'in' ? 'flag-in' : 'flag-de'
+  const flagLabel = data.market === 'in' ? 'India' : 'DACH'
   const circ = 2 * Math.PI * 38
   const dash = (data.score / 100) * circ
 
@@ -74,7 +76,7 @@ function CardVisual({ data }: { data: CareerCardData }) {
           fontSize: 11, fontWeight: 700, padding: '4px 12px', borderRadius: 20,
           background: 'rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.7)',
           letterSpacing: 0.5,
-        }}>{flag}</span>
+        }}>{flagLabel}</span>
       </div>
 
       {/* Middle: score ring + role info */}
@@ -194,7 +196,7 @@ export default function CareerCard({ data, accentColor }: { data: CareerCardData
           color: accent, fontSize: 13, fontWeight: 700,
           cursor: 'pointer', fontFamily: 'inherit', transition: 'all .15s',
         }}>
-        🎴 Share Career Card
+        Share Career Card
       </button>
 
       {/* Modal */}
@@ -258,7 +260,7 @@ export default function CareerCard({ data, accentColor }: { data: CareerCardData
                   fontSize: 13, fontWeight: 600, cursor: 'pointer',
                   fontFamily: 'inherit',
                 }}>
-                {copied ? '✓ Copied!' : '📋 Copy'}
+                {copied ? '✓ Copied!' : 'Copy'}
               </button>
             </div>
 

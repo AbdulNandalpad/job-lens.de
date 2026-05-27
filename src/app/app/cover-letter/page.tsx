@@ -7,6 +7,7 @@ import { useCredits } from '@/lib/useCredits'
 import { useLanguage } from '@/lib/i18n'
 import CrossMarketModal from '@/components/CrossMarketModal'
 import { CREDIT_COST, LOW_CREDIT_WARN, MARKET, SS, API } from '@/lib/constants'
+import SvgIcon from '@/components/SvgIcon'
 
 type Tone = 'confident' | 'formal' | 'warm'
 type Length = 'short' | 'medium' | 'long'
@@ -398,7 +399,7 @@ export default function CoverLetterPage() {
                   </div>
                 ) : (
                   <>
-                    <div style={{ fontSize: 20, marginBottom: 6 }}>📄</div>
+                    <div style={{ marginBottom: 6, display: 'flex', justifyContent: 'center' }}><SvgIcon name="document" size={20} color="rgba(255,255,255,0.5)" /></div>
                     <div style={{ fontSize: 12, fontWeight: 600, color: 'rgba(255,255,255,0.7)' }}>{t.coverLetter.sidebar.uploadCv}</div>
                     <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)', marginTop: 3 }}>{t.coverLetter.sidebar.uploadFormats}</div>
                   </>
@@ -528,7 +529,7 @@ export default function CoverLetterPage() {
               {!cvText && (
                 <div onClick={() => fileInputRef.current?.click()}
                   style={{ padding: '14px 12px', border: '1.5px dashed rgba(255,255,255,0.18)', borderRadius: 9, cursor: 'pointer', textAlign: 'center' }}>
-                  <div style={{ fontSize: 18, marginBottom: 4 }}>📄</div>
+                  <div style={{ marginBottom: 4, display: 'flex', justifyContent: 'center' }}><SvgIcon name="document" size={18} color="rgba(255,255,255,0.5)" /></div>
                   <div style={{ fontSize: 12, fontWeight: 600, color: 'rgba(255,255,255,0.7)' }}>{fileLoading ? t.coverLetter.sidebar.reading : t.coverLetter.sidebar.uploadCv}</div>
                   <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)', marginTop: 2 }}>{t.coverLetter.sidebar.uploadFormats}</div>
                 </div>

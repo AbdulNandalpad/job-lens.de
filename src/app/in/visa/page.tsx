@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { SS } from '@/lib/constants'
+import SvgIcon from '@/components/SvgIcon'
 
 const accent = '#FF9933'
 const navy   = '#042C53'
@@ -268,7 +269,7 @@ export default function VisaPageIndia() {
           {/* Header */}
           <div style={{ marginBottom: 24, paddingLeft: 14, borderLeft: `3px solid ${accent}` }}>
             <h1 style={{ fontFamily: "'Outfit',sans-serif", fontSize: 22, fontWeight: 700, color: navy, margin: 0 }}>
-              Work Visa Guide — Germany 🇩🇪
+              Work Visa Guide — Germany <SvgIcon name="flag-de" size={22} style={{ verticalAlign: 'middle', marginLeft: 6 }} />
             </h1>
             <p style={{ fontSize: 13, color: '#6b7c93', margin: '4px 0 0' }}>
               Fachkräfteeinwanderungsgesetz 2023 · Find your fastest path to working in Germany
@@ -292,7 +293,7 @@ export default function VisaPageIndia() {
           {step === 1 && (
             <>
               <div style={cardStyle}>
-                <span style={secLabel}>🌍 Citizenship & Background</span>
+                <span style={{ ...secLabel, display: 'inline-flex', alignItems: 'center', gap: 6 }}><SvgIcon name="globe" size={14} color="currentColor" /> Citizenship &amp; Background</span>
                 <div className="v-grid2" style={{ marginBottom: 14 }}>
                   <div>
                     <label style={labelStyle}>Country of citizenship *</label>
@@ -314,7 +315,7 @@ export default function VisaPageIndia() {
               </div>
 
               <div style={cardStyle}>
-                <span style={secLabel}>🎓 Qualifications</span>
+                <span style={{ ...secLabel, display: 'inline-flex', alignItems: 'center', gap: 6 }}><SvgIcon name="graduate" size={14} color="currentColor" /> Qualifications</span>
                 <div className="v-grid2" style={{ marginBottom: 14 }}>
                   <div>
                     <label style={labelStyle}>Highest qualification *</label>
@@ -348,7 +349,7 @@ export default function VisaPageIndia() {
               </div>
 
               <div style={cardStyle}>
-                <span style={secLabel}>🇩🇪 Germany Specifics</span>
+                <span style={{ ...secLabel, display: 'inline-flex', alignItems: 'center', gap: 6 }}><SvgIcon name="flag-de" size={14} color="currentColor" /> Germany Specifics</span>
                 <div className="v-grid2" style={{ marginBottom: 14 }}>
                   <div>
                     <label style={labelStyle}>German language level</label>
@@ -406,7 +407,7 @@ export default function VisaPageIndia() {
                 <div style={{ fontSize: 14, fontWeight: 700, color: navy, marginBottom: 16, fontFamily: "'Outfit',sans-serif" }}>Review your profile before analysis</div>
                 <div className="v-grid2" style={{ gap: 10 }}>
                   {[
-                    ['Citizenship', form.citizenship + (form.isEU ? ' 🇪🇺 EU' : '')],
+                    ['Citizenship', form.citizenship + (form.isEU ? ' (EU)' : '')],
                     ['Age', form.age],
                     ['Qualification', QUALIFICATIONS.find(q => q.value === form.qualification)?.label || ''],
                     ['Field of Study', form.qualificationField],
@@ -432,7 +433,7 @@ export default function VisaPageIndia() {
                 </button>
                 <button onClick={analyse} disabled={loading}
                   style={{ padding: '11px 32px', borderRadius: 10, background: loading ? '#ccc' : `linear-gradient(135deg,${accent},#e67300)`, color: loading ? '#888' : '#fff', fontWeight: 700, fontSize: 14, border: 'none', cursor: loading ? 'not-allowed' : 'pointer', fontFamily: "'Outfit',sans-serif" }}>
-                  {loading ? '🔍 Analysing...' : '🔍 Check Eligibility (1 credit) →'}
+                  {loading ? 'Analysing...' : 'Check Eligibility (1 credit) →'}
                 </button>
               </div>
             </>
@@ -443,7 +444,7 @@ export default function VisaPageIndia() {
             <>
               {/* Session banner + download */}
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 16px', borderRadius: 10, background: '#fff8ee', border: '1px solid #fed7aa', marginBottom: 16, gap: 12, flexWrap: 'wrap' }}>
-                <span style={{ fontSize: 12, color: '#92400e', fontWeight: 500 }}>💾 Results saved for this session — they'll be here if you navigate away and come back.</span>
+                <span style={{ fontSize: 12, color: '#92400e', fontWeight: 500 }}>Results saved for this session — they&apos;ll be here if you navigate away and come back.</span>
                 <button onClick={() => downloadVisaReport(result, form)}
                   style={{ padding: '7px 16px', borderRadius: 8, background: `linear-gradient(135deg,${accent},#e67300)`, color: '#fff', fontWeight: 700, fontSize: 12, border: 'none', cursor: 'pointer', whiteSpace: 'nowrap', fontFamily: "'Outfit',sans-serif" }}>
                   ↓ Download PDF Report
@@ -453,18 +454,18 @@ export default function VisaPageIndia() {
               {/* EU fast-track */}
               {result.isEU && (
                 <div style={{ ...cardStyle, borderLeft: `4px solid ${green}`, background: '#f0fdf4' }}>
-                  <div style={{ fontSize: 15, fontWeight: 700, color: green, marginBottom: 6, fontFamily: "'Outfit',sans-serif" }}>🇪🇺 Free Movement — No Visa Required</div>
+                  <div style={{ fontSize: 15, fontWeight: 700, color: green, marginBottom: 6, fontFamily: "'Outfit',sans-serif" }}>Free Movement — No Visa Required</div>
                   <p style={{ fontSize: 13, color: '#374151', margin: 0, lineHeight: 1.65 }}>{result.euNote}</p>
                 </div>
               )}
 
               {/* Summary */}
               <div style={{ ...cardStyle, borderLeft: `4px solid ${accent}` }}>
-                <div style={{ fontSize: 14, fontWeight: 700, color: navy, marginBottom: 8, fontFamily: "'Outfit',sans-serif" }}>📋 Your situation — plain English</div>
+                <div style={{ fontSize: 14, fontWeight: 700, color: navy, marginBottom: 8, fontFamily: "'Outfit',sans-serif", display: 'flex', alignItems: 'center', gap: 7 }}><SvgIcon name="clipboard" size={14} color={navy} /> Your situation — plain English</div>
                 <p style={{ fontSize: 13, color: '#374151', lineHeight: 1.7, margin: 0 }}>{result.summary}</p>
                 {result.chancenkartePoints !== null && (
                   <div style={{ marginTop: 12, display: 'inline-flex', alignItems: 'center', gap: 8, padding: '8px 14px', borderRadius: 10, background: result.chancenkartePoints >= 6 ? '#f0fdf4' : '#fef9ec', border: `1px solid ${result.chancenkartePoints >= 6 ? '#bbf7d0' : '#fde68a'}` }}>
-                    <span style={{ fontSize: 18 }}>⭐</span>
+                    <SvgIcon name="star" size={18} color={result.chancenkartePoints >= 6 ? green : amber} />
                     <span style={{ fontSize: 13, fontWeight: 700, color: result.chancenkartePoints >= 6 ? green : amber }}>
                       Chancenkarte: {result.chancenkartePoints} / 6+ points {result.chancenkartePoints >= 6 ? '✓ Eligible' : '— need more points'}
                     </span>
@@ -475,7 +476,7 @@ export default function VisaPageIndia() {
               {/* Urgent warnings */}
               {result.urgentWarnings?.length > 0 && (
                 <div style={{ ...cardStyle, borderLeft: `4px solid ${red}`, background: '#fff8f8' }}>
-                  <div style={{ fontSize: 13, fontWeight: 700, color: red, marginBottom: 8, fontFamily: "'Outfit',sans-serif" }}>⚠️ Important — read before proceeding</div>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: red, marginBottom: 8, fontFamily: "'Outfit',sans-serif" }}>Important — read before proceeding</div>
                   {result.urgentWarnings.map((w, i) => (
                     <div key={i} style={{ display: 'flex', gap: 8, padding: '5px 0', fontSize: 13, color: '#374151' }}>
                       <span style={{ flexShrink: 0, color: red }}>!</span>{w}
@@ -492,12 +493,12 @@ export default function VisaPageIndia() {
                 return (
                   <div key={opt.id} className="v-visa-card" style={{ ...cardStyle, borderLeft: `4px solid ${cfg.color}`, position: 'relative', ...(isRec ? { border: `2px solid ${accent}`, boxShadow: `0 4px 20px rgba(255,153,51,0.15)` } : {}) }}>
                     {isRec && (
-                      <div style={{ position: 'absolute', top: 14, right: 16, fontSize: 10, fontWeight: 700, color: accent, background: accent + '20', padding: '3px 10px', borderRadius: 20 }}>
-                        ⭐ Recommended path
+                      <div style={{ position: 'absolute', top: 14, right: 16, fontSize: 10, fontWeight: 700, color: accent, background: accent + '20', padding: '3px 10px', borderRadius: 20, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                        <SvgIcon name="star" size={10} color={accent} /> Recommended path
                       </div>
                     )}
                     <div style={{ display: 'flex', alignItems: 'flex-start', gap: 14, flexWrap: 'wrap' }}>
-                      <div style={{ fontSize: 28, flexShrink: 0 }}>{opt.emoji}</div>
+                      <div style={{ flexShrink: 0 }}><SvgIcon name="passport" size={28} color={accent} /></div>
                       <div style={{ flex: 1, minWidth: 200 }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 4, flexWrap: 'wrap' }}>
                           <div style={{ fontFamily: "'Outfit',sans-serif", fontSize: 15, fontWeight: 700, color: navy }}>{opt.title}</div>
@@ -535,7 +536,7 @@ export default function VisaPageIndia() {
                         </div>
 
                         <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', fontSize: 12 }}>
-                          <div style={{ padding: '6px 12px', borderRadius: 8, background: purple + '10', color: purple, fontWeight: 600 }}>💡 {opt.keyAdvantage}</div>
+                          <div style={{ padding: '6px 12px', borderRadius: 8, background: purple + '10', color: purple, fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: 5 }}><SvgIcon name="bulb" size={12} color={purple} /> {opt.keyAdvantage}</div>
                           <div style={{ padding: '6px 12px', borderRadius: 8, background: accent + '15', color: '#c2410c', fontWeight: 600 }}>→ Next: {opt.nextStep}</div>
                         </div>
                       </div>
@@ -547,7 +548,7 @@ export default function VisaPageIndia() {
               {/* Qualification recognition */}
               {result.qualificationRecognitionNeeded && (
                 <div style={{ ...cardStyle, borderLeft: `4px solid ${amber}` }}>
-                  <div style={{ fontSize: 13, fontWeight: 700, color: amber, marginBottom: 6, fontFamily: "'Outfit',sans-serif" }}>📜 Qualification Recognition (Anerkennung) Required</div>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: amber, marginBottom: 6, fontFamily: "'Outfit',sans-serif", display: 'flex', alignItems: 'center', gap: 6 }}><SvgIcon name="graduate" size={13} color={amber} /> Qualification Recognition (Anerkennung) Required</div>
                   <p style={{ fontSize: 13, color: '#374151', margin: '0 0 8px', lineHeight: 1.6 }}>
                     Your qualification needs to be officially recognised in Germany before most visa types can be granted. This is a key first step and can run in parallel with your job search.
                   </p>
@@ -565,7 +566,7 @@ export default function VisaPageIndia() {
               {/* Document checklist */}
               {result.documents?.length > 0 && (
                 <div style={cardStyle}>
-                  <div style={{ fontSize: 14, fontWeight: 700, color: navy, marginBottom: 14, fontFamily: "'Outfit',sans-serif" }}>📁 Your personalised document checklist</div>
+                  <div style={{ fontSize: 14, fontWeight: 700, color: navy, marginBottom: 14, fontFamily: "'Outfit',sans-serif", display: 'flex', alignItems: 'center', gap: 7 }}><SvgIcon name="clipboard" size={14} color={navy} /> Your personalised document checklist</div>
                   {result.documents.map(doc => (
                     <div key={doc.category} style={{ marginBottom: 8, border: '1px solid #edf1f6', borderRadius: 10, overflow: 'hidden' }}>
                       <button onClick={() => setOpenDoc(openDoc === doc.category ? null : doc.category)}
@@ -590,7 +591,7 @@ export default function VisaPageIndia() {
               {/* Useful links */}
               {result.usefulLinks?.length > 0 && (
                 <div style={cardStyle}>
-                  <div style={{ fontSize: 14, fontWeight: 700, color: navy, marginBottom: 12, fontFamily: "'Outfit',sans-serif" }}>🔗 Official resources</div>
+                  <div style={{ fontSize: 14, fontWeight: 700, color: navy, marginBottom: 12, fontFamily: "'Outfit',sans-serif" }}>Official resources</div>
                   <div className="v-grid2" style={{ gap: 8 }}>
                     {result.usefulLinks.map(link => (
                       <a key={link.url} href={link.url} target="_blank" rel="noopener noreferrer"

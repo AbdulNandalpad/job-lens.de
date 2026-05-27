@@ -6,6 +6,7 @@ import Navbar from '../components/Navbar'
 import { theme } from '@/lib/theme'
 import { useLanguage } from '@/lib/i18n'
 import { API } from '@/lib/constants'
+import SvgIcon from '@/components/SvgIcon'
 
 const { colors: c, gradients: g, fonts: f } = theme
 
@@ -27,7 +28,7 @@ const STATUS_CONFIG: Record<Status, { label: string; bg: string; color: string; 
   saved:     { label: 'Saved',     bg: '#f0f4f8',          color: '#6b7c93',  border: '#dce4ef' },
   applied:   { label: 'Applied',   bg: 'rgba(55,138,221,0.1)',  color: '#378ADD',  border: 'rgba(55,138,221,0.3)' },
   interview: { label: 'Interview', bg: 'rgba(237,137,54,0.12)', color: '#c05c00',  border: 'rgba(237,137,54,0.3)' },
-  offer:     { label: 'Offer 🎉',  bg: 'rgba(56,161,105,0.12)', color: '#276749',  border: 'rgba(56,161,105,0.3)' },
+  offer:     { label: 'Offer',     bg: 'rgba(56,161,105,0.12)', color: '#276749',  border: 'rgba(56,161,105,0.3)' },
   rejected:  { label: 'Rejected',  bg: 'rgba(229,62,62,0.08)',  color: '#c53030',  border: 'rgba(229,62,62,0.2)'  },
 }
 
@@ -203,7 +204,7 @@ export default function TrackerPage() {
           <div style={{ background: c.bgCard, border: `1px solid ${c.border}`, borderRadius: 14, padding: '60px 20px', textAlign: 'center', color: c.textMuted, fontSize: 13 }}>Loading…</div>
         ) : filtered.length === 0 ? (
           <div style={{ background: c.bgCard, border: `1px solid ${c.border}`, borderRadius: 14, padding: '60px 20px', textAlign: 'center' }}>
-            <div style={{ fontSize: 32, marginBottom: 16 }}>📋</div>
+            <div style={{ marginBottom: 16, display: 'flex', justifyContent: 'center' }}><SvgIcon name="clipboard" size={32} color={c.textMuted} /></div>
             <div style={{ fontSize: 15, fontWeight: 600, color: c.primary, marginBottom: 8, fontFamily: f.heading }}>
               {activeTab === 'all' ? t.tracker.empty.title : `No ${STATUS_CONFIG[activeTab as Status]?.label} applications`}
             </div>

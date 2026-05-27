@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import NavbarIndia from '../components/NavbarIndia'
 import { API } from '@/lib/constants'
+import SvgIcon from '@/components/SvgIcon'
 
 const accent = '#FF9933'
 const navy   = '#042C53'
@@ -27,7 +28,7 @@ const STATUS_CONFIG: Record<Status, { label: string; bg: string; color: string; 
   saved:     { label: 'Saved',     bg: '#f0f4f8',                    color: '#6b7c93',  border: '#dce4ef' },
   applied:   { label: 'Applied',   bg: 'rgba(255,153,51,0.10)',       color: '#c05c00',  border: 'rgba(255,153,51,0.3)' },
   interview: { label: 'Interview', bg: 'rgba(55,138,221,0.10)',       color: '#1a6db0',  border: 'rgba(55,138,221,0.3)' },
-  offer:     { label: 'Offer 🎉',  bg: 'rgba(19,136,8,0.10)',         color: '#0a6600',  border: 'rgba(19,136,8,0.3)'   },
+  offer:     { label: 'Offer',     bg: 'rgba(19,136,8,0.10)',         color: '#0a6600',  border: 'rgba(19,136,8,0.3)'   },
   rejected:  { label: 'Rejected',  bg: 'rgba(229,62,62,0.08)',        color: '#c53030',  border: 'rgba(229,62,62,0.2)'  },
 }
 
@@ -200,7 +201,7 @@ export default function IndiaTrackerPage() {
           <div style={{ background: '#fff', border: '1px solid #edf1f6', borderRadius: 14, padding: '60px 20px', textAlign: 'center', color: '#6b7c93', fontSize: 13 }}>Loading…</div>
         ) : filtered.length === 0 ? (
           <div style={{ background: '#fff', border: '1px solid #edf1f6', borderRadius: 14, padding: '60px 20px', textAlign: 'center' }}>
-            <div style={{ fontSize: 32, marginBottom: 16, opacity: 0.4 }}>📋</div>
+            <div style={{ marginBottom: 16, display: 'flex', justifyContent: 'center', opacity: 0.4 }}><SvgIcon name="clipboard" size={32} color="#6b7c93" /></div>
             <div style={{ fontSize: 15, fontWeight: 600, color: navy, marginBottom: 8, fontFamily: f.heading }}>
               {activeTab === 'all' ? 'No applications yet' : `No ${STATUS_CONFIG[activeTab as Status]?.label} applications`}
             </div>

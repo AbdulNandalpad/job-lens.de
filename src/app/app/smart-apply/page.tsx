@@ -6,6 +6,7 @@ import { useSearchParams } from 'next/navigation'
 import Navbar from '../components/Navbar'
 import { useLanguage } from '@/lib/i18n'
 import { SS, API } from '@/lib/constants'
+import SvgIcon, { type IconName } from '@/components/SvgIcon'
 
 interface Job {
   job_id: string
@@ -396,10 +397,10 @@ function SmartJobSearchPage() {
         { color: '#F59E0B', borderLabel: 'Amber border', chipLabel: t.smartApply.results.partialMatch, desc: t.smartApply.results.partialMatchDesc },
         { color: '#edf1f6', borderLabel: 'No border', chipLabel: t.smartApply.results.keywordMatch, desc: t.smartApply.results.keywordMatchDesc },
       ]
-      const actions = [
-        { icon: '📄', label: t.smartApply.results.buildCv, desc: t.smartApply.results.buildCvDesc, cost: '1 credit', enabled: !!cvText },
-        { icon: '✉️', label: t.smartApply.results.coverLetter, desc: t.smartApply.results.coverLetterDesc, cost: '1 credit', enabled: !!cvText },
-        { icon: '⚡', label: t.smartApply.results.autoApply, desc: t.smartApply.results.autoApplyDesc, cost: '3 credits', enabled: false },
+      const actions: { icon: IconName; label: string; desc: string; cost: string; enabled: boolean }[] = [
+        { icon: 'document', label: t.smartApply.results.buildCv, desc: t.smartApply.results.buildCvDesc, cost: '1 credit', enabled: !!cvText },
+        { icon: 'email', label: t.smartApply.results.coverLetter, desc: t.smartApply.results.coverLetterDesc, cost: '1 credit', enabled: !!cvText },
+        { icon: 'lightning', label: t.smartApply.results.autoApply, desc: t.smartApply.results.autoApplyDesc, cost: '3 credits', enabled: false },
       ]
       return (
         <div className="jl-right-panel-empty" style={{ background: '#fff', border: '1.5px solid #edf1f6', borderRadius: 16, overflow: 'hidden', boxShadow: '0 4px 24px rgba(4,44,83,0.06)' }}>
@@ -445,7 +446,7 @@ function SmartJobSearchPage() {
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                 {actions.map(a => (
                   <div key={a.label} style={{ display: 'flex', alignItems: 'flex-start', gap: 10, padding: '10px 12px', borderRadius: 10, background: a.enabled ? '#fafbfd' : '#fafbfd', border: `1px solid ${a.enabled ? '#edf1f6' : '#edf1f6'}`, opacity: a.enabled || a.label === 'Auto Apply' ? 1 : 0.6 }}>
-                    <div style={{ fontSize: 18, lineHeight: 1, marginTop: 1, flexShrink: 0 }}>{a.icon}</div>
+                    <div style={{ marginTop: 1, flexShrink: 0 }}><SvgIcon name={a.icon} size={18} color="#378ADD" /></div>
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6, marginBottom: 2 }}>
                         <span style={{ fontSize: 13, fontWeight: 700, color: '#1a2332', fontFamily: "'Outfit', sans-serif" }}>{a.label}</span>
@@ -750,15 +751,15 @@ function SmartJobSearchPage() {
                 <div style={{ fontFamily: "'Outfit', sans-serif", fontSize: 18, fontWeight: 700, color: '#042C53', marginBottom: 6 }}>{t.smartApply.results.howItWorks}</div>
                 <div style={{ fontSize: 13, color: '#8fa3b8', marginBottom: 28, lineHeight: 1.6 }}>{t.smartApply.results.howItWorksSub}</div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                  {[
-                    { step: '01', icon: '📄', title: hasProfile ? t.smartApply.steps.cvLoaded : t.smartApply.steps.uploadCv, desc: hasProfile ? t.smartApply.steps.cvLoadedDesc : t.smartApply.steps.uploadCvDesc, done: hasProfile },
-                    { step: '02', icon: '🎯', title: targetRole ? t.smartApply.steps.searchingFor(targetRole) : t.smartApply.steps.enterRole, desc: targetRole ? t.smartApply.steps.roleDesc : t.smartApply.steps.enterRoleDesc, done: !!targetRole },
-                    { step: '03', icon: '◎', title: t.smartApply.steps.aiAnalyses, desc: t.smartApply.steps.aiAnalysesDesc, done: false },
-                    { step: '04', icon: '✅', title: t.smartApply.steps.dachJobs, desc: t.smartApply.steps.dachJobsDesc, done: false },
-                  ].map((s, i) => (
+                  {([
+                    { step: '01', icon: 'document' as IconName, title: hasProfile ? t.smartApply.steps.cvLoaded : t.smartApply.steps.uploadCv, desc: hasProfile ? t.smartApply.steps.cvLoadedDesc : t.smartApply.steps.uploadCvDesc, done: hasProfile },
+                    { step: '02', icon: 'target' as IconName, title: targetRole ? t.smartApply.steps.searchingFor(targetRole) : t.smartApply.steps.enterRole, desc: targetRole ? t.smartApply.steps.roleDesc : t.smartApply.steps.enterRoleDesc, done: !!targetRole },
+                    { step: '03', icon: 'bot' as IconName, title: t.smartApply.steps.aiAnalyses, desc: t.smartApply.steps.aiAnalysesDesc, done: false },
+                    { step: '04', icon: 'check-circle' as IconName, title: t.smartApply.steps.dachJobs, desc: t.smartApply.steps.dachJobsDesc, done: false },
+                  ]).map((s, i) => (
                     <div key={i} style={{ display: 'flex', gap: 14, padding: '14px 18px', borderRadius: 12, background: s.done ? '#f0fbf6' : '#fff', border: `1px solid ${s.done ? '#b6ecd8' : '#edf1f6'}`, alignItems: 'flex-start' }}>
-                      <div style={{ width: 32, height: 32, borderRadius: '50%', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, background: s.done ? '#1D9E75' : '#f0f4f8', border: `2px solid ${s.done ? '#1D9E75' : '#edf1f6'}` }}>
-                        {s.done ? '✓' : s.icon}
+                      <div style={{ width: 32, height: 32, borderRadius: '50%', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: s.done ? '#1D9E75' : '#f0f4f8', border: `2px solid ${s.done ? '#1D9E75' : '#edf1f6'}` }}>
+                        {s.done ? <SvgIcon name="check-circle" size={16} color="#fff" /> : <SvgIcon name={s.icon} size={16} color="#6b7c93" />}
                       </div>
                       <div>
                         <div style={{ fontSize: 13, fontWeight: 700, color: s.done ? '#0F6E56' : '#042C53', fontFamily: "'Outfit', sans-serif", marginBottom: 2 }}>{s.title}</div>

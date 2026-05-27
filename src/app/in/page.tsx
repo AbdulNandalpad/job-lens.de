@@ -3,6 +3,7 @@ import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 import IndiaDashboard from './components/IndiaDashboard'
 import KiraDemoWidget from '@/components/KiraDemoWidget'
+import SvgIcon, { type IconName } from '@/components/SvgIcon'
 
 const saffron = '#FF9933'
 const indiaGreen = '#138808'
@@ -475,13 +476,13 @@ export default async function IndiaHomePage() {
               </p>
 
               <div style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap' }}>
-                {[
-                  { icon: '🎙', label: 'Voice-first', desc: 'Just speak — Kira listens' },
-                  { icon: '🔍', label: 'Live job search', desc: 'Real roles across India' },
-                  { icon: '📄', label: 'ATS insight', desc: 'Score, gaps & fixes' },
-                ].map(feat => (
+                {([
+                  { icon: 'mic' as IconName, label: 'Voice-first', desc: 'Just speak — Kira listens' },
+                  { icon: 'search' as IconName, label: 'Live job search', desc: 'Real roles across India' },
+                  { icon: 'document' as IconName, label: 'ATS insight', desc: 'Score, gaps & fixes' },
+                ]).map(feat => (
                   <div key={feat.label} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 18px', borderRadius: 14, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)' }}>
-                    <span style={{ fontSize: 20, lineHeight: 1 }}>{feat.icon}</span>
+                    <SvgIcon name={feat.icon} size={20} color="rgba(255,255,255,0.8)" />
                     <div style={{ textAlign: 'left' }}>
                       <div style={{ fontSize: 12, fontWeight: 700, color: white, fontFamily: "'Outfit',sans-serif" }}>{feat.label}</div>
                       <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.38)', marginTop: 1, fontFamily: "'DM Sans',sans-serif" }}>{feat.desc}</div>

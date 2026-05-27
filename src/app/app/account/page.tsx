@@ -8,6 +8,7 @@ import { theme } from '@/lib/theme'
 import { useLanguage } from '@/lib/i18n'
 import { useDashWidgets } from '@/lib/useDashWidgets'
 import { MARKET, CREDIT_COST, AI_CHAT_FREE_MESSAGES } from '@/lib/constants'
+import { getIcon } from '@/components/SvgIcon'
 
 const { colors: c, gradients: g, fonts: f } = theme
 
@@ -226,7 +227,7 @@ export default function AccountPage() {
             {profile.usage.length > 0 && (() => {
               const actionLabels = t.account.actionLabels as Record<string, string>
               const actionIcons: Record<string, string> = {
-                career_scan: '◎', tailor_cv: '📄', cover_letter: '✉', auto_apply: '⚡', india_ats_scan: '◎',
+                career_scan: 'target', tailor_cv: 'document', cover_letter: 'email', auto_apply: 'bot', india_ats_scan: 'target',
               }
               const now = new Date()
               const todayStr = now.toDateString()
@@ -264,7 +265,7 @@ export default function AccountPage() {
                             return (
                               <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '9px 12px', background: c.bgSubtle, borderRadius: 8, border: `1px solid ${c.border}` }}>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                                  <span style={{ fontSize: 14, width: 20, textAlign: 'center', flexShrink: 0 }}>{icon}</span>
+                                  <span style={{ width: 20, display: 'flex', justifyContent: 'center', flexShrink: 0 }}>{getIcon(icon, 14, c.accent)}</span>
                                   <div>
                                     <div style={{ fontSize: 12, color: c.primary, fontWeight: 600 }}>{label}</div>
                                     <div style={{ fontSize: 11, color: c.textFaint, marginTop: 1 }}>{time}</div>
@@ -353,7 +354,7 @@ export default function AccountPage() {
                   const on = isVisible(w.id)
                   return (
                     <div key={w.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 14px', borderRadius: 10, border: `1px solid ${c.border}`, background: on ? c.bgSubtle : 'transparent', transition: 'all .15s' }}>
-                      <span style={{ fontSize: 13, color: on ? c.text : c.textMuted, fontWeight: on ? 600 : 400 }}>{w.icon} {w.label}</span>
+                      <span style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, color: on ? c.text : c.textMuted, fontWeight: on ? 600 : 400 }}>{getIcon(w.icon, 14, on ? c.accent : c.textMuted)} {w.label}</span>
                       <button onClick={() => toggle(w.id)}
                         style={{ width: 42, height: 24, borderRadius: 12, border: 'none', background: on ? c.accent : 'rgba(0,0,0,.12)', cursor: 'pointer', position: 'relative', transition: 'all .2s', flexShrink: 0 }}>
                         <span style={{ position: 'absolute', top: 3, left: on ? 20 : 3, width: 18, height: 18, borderRadius: '50%', background: '#fff', transition: 'left .2s', boxShadow: '0 1px 3px rgba(0,0,0,.2)', display: 'block' }} />

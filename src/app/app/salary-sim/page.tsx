@@ -4,6 +4,7 @@ import { useState, useRef, useEffect } from 'react'
 import Navbar from '../components/Navbar'
 import { theme } from '@/lib/theme'
 import { API, CREDIT_COST, MARKET } from '@/lib/constants'
+import SvgIcon from '@/components/SvgIcon'
 
 const { colors: c, fonts: f, gradients: g } = theme
 
@@ -227,7 +228,7 @@ export default function SalarySimPage() {
             </button>
 
             <div style={{ marginTop: 16, fontSize: 12, color: c.textMuted, lineHeight: 1.6 }}>
-              💡 <strong>Tip:</strong> The AI hiring manager has a hidden budget ceiling — they can go higher than the initial offer, but you have to push for it. Try anchoring high, citing market data, or mentioning competing offers.
+              <SvgIcon name="bulb" size={13} color={c.textMuted} style={{ display: 'inline', marginRight: 4, verticalAlign: 'middle' }} /> <strong>Tip:</strong> The AI hiring manager has a hidden budget ceiling — they can go higher than the initial offer, but you have to push for it. Try anchoring high, citing market data, or mentioning competing offers.
             </div>
           </div>
         )}
@@ -239,7 +240,7 @@ export default function SalarySimPage() {
             {/* Chat header */}
             <div style={{ padding: '14px 20px', borderBottom: `1px solid ${c.border}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: c.primary }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                <div style={{ width: 34, height: 34, borderRadius: '50%', background: g.primaryBtn, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14 }}>👔</div>
+                <div style={{ width: 34, height: 34, borderRadius: '50%', background: g.primaryBtn, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><SvgIcon name="briefcase" size={16} color="#fff" /></div>
                 <div>
                   <div style={{ color: '#fff', fontSize: 13, fontWeight: 700, fontFamily: f.heading }}>Alex · HR Manager{company ? ` @ ${company}` : ''}</div>
                   <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: 11 }}>{role} · Offer: {fmt(offerNum, currency)}/yr · Your target: {fmt(targetNum, currency)}/yr</div>
@@ -256,7 +257,7 @@ export default function SalarySimPage() {
               {msgs.map((m, i) => (
                 <div key={i} style={{ display: 'flex', justifyContent: m.role === 'user' ? 'flex-end' : 'flex-start', marginBottom: 14, gap: 8, alignItems: 'flex-end' }}>
                   {m.role === 'assistant' && (
-                    <div style={{ width: 28, height: 28, borderRadius: '50%', background: g.primaryBtn, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, flexShrink: 0 }}>👔</div>
+                    <div style={{ width: 28, height: 28, borderRadius: '50%', background: g.primaryBtn, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}><SvgIcon name="briefcase" size={13} color="#fff" /></div>
                   )}
                   <div style={{
                     maxWidth: '75%', padding: '10px 14px', fontSize: 14, lineHeight: 1.6,

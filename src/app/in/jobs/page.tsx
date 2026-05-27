@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { SS } from '@/lib/constants'
+import SvgIcon from '@/components/SvgIcon'
 
 const orange = '#ff9933'
 const navy = '#042C53'
@@ -207,7 +208,7 @@ export default function IndiaJobsPage() {
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
               {usedQuery && usedQuery.toLowerCase() !== query.trim().toLowerCase() && (
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px', borderRadius: 10, background: `${orange}0d`, border: `1px solid ${orange}35`, marginBottom: 4 }}>
-                  <span style={{ fontSize: 16 }}>🔍</span>
+                  <SvgIcon name="search" size={16} color="#6b7c93" />
                   <span style={{ fontSize: 13, color: '#6b7c93' }}>
                     No results for <span style={{ fontWeight: 700, color: '#374151' }}>"{query}"</span>
                     {' — '}showing results for <span style={{ fontWeight: 700, color: orange }}>"{usedQuery}"</span>

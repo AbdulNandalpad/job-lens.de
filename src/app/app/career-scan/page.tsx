@@ -10,6 +10,7 @@ import { useLanguage } from '@/lib/i18n'
 import CrossMarketModal from '@/components/CrossMarketModal'
 import CareerCard from '@/components/CareerCard'
 import { CREDIT_COST, LOW_CREDIT_WARN, MARKET, SS, API } from '@/lib/constants'
+import SvgIcon, { type IconName } from '@/components/SvgIcon'
 
 const { colors: c, gradients: g, fonts: f } = theme
 
@@ -66,13 +67,13 @@ function ScoreRing({ value, color, label, size = 80 }: { value: number; color: s
 
 /** Accordion wrapper — toggle button is hidden on desktop; visible on mobile so sections can be collapsed. */
 function MobileSection({ title, icon, defaultOpen = false, children }: {
-  title: string; icon: string; defaultOpen?: boolean; children: React.ReactNode
+  title: string; icon: IconName; defaultOpen?: boolean; children: React.ReactNode
 }) {
   const [open, setOpen] = useState(defaultOpen)
   return (
     <div className="jl-mob-acc">
       <button className="jl-mob-acc-btn" onClick={() => setOpen(o => !o)}>
-        <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}><span>{icon}</span><span>{title}</span></span>
+        <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}><SvgIcon name={icon} size={14} color="currentColor" /><span>{title}</span></span>
         <span style={{ fontSize: 10, transform: open ? 'rotate(180deg)' : 'none', display: 'inline-block', transition: 'transform 0.2s' }}>▼</span>
       </button>
       <div className={open ? 'jl-mob-acc-body' : 'jl-mob-acc-body jl-mob-acc-closed'}>
@@ -398,7 +399,7 @@ export default function CareerScanPage() {
       {result.domain_mismatch && (
         <div style={{ borderRadius: 14, border: `2px solid ${c.danger}`, boxShadow: '0 2px 16px rgba(226,75,74,0.12)', overflow: 'hidden' }}>
           <div style={{ background: c.danger, padding: '18px 24px', display: 'flex', alignItems: 'center', gap: 14 }}>
-            <span style={{ fontSize: 28 }}>🚫</span>
+            <SvgIcon name="megaphone" size={28} color="#fff" />
             <div>
               <div style={{ fontFamily: f.heading, fontSize: 16, fontWeight: 800, color: '#fff' }}>
                 {lang === 'DE' ? 'Falsches Berufsfeld — dieser Lebenslauf passt nicht zur Stelle' : 'Wrong domain — this CV doesn\'t match this role'}
@@ -469,7 +470,7 @@ export default function CareerScanPage() {
           </div>
 
           {/* Strengths + Gaps */}
-          <MobileSection title={cs.results.strengths + ' & ' + cs.results.gaps} icon="✦" defaultOpen={true}>
+          <MobileSection title={cs.results.strengths + ' & ' + cs.results.gaps} icon="sparkle" defaultOpen={true}>
             <div className="jl-cs-grid">
               <div style={{ background: c.successLight, border: `1px solid ${c.successBorder}`, borderRadius: 14, padding: 16 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
@@ -497,7 +498,7 @@ export default function CareerScanPage() {
           </MobileSection>
 
           {/* Best-fit roles */}
-          <MobileSection title={cs.results.bestFitRoles} icon="🎯" defaultOpen={true}>
+          <MobileSection title={cs.results.bestFitRoles} icon="target" defaultOpen={true}>
             <div style={{ background: c.bgCard, border: `1px solid ${c.border}`, borderRadius: 14, padding: 16 }}>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
                 {result.role_suggestions.map(r => (
@@ -510,7 +511,7 @@ export default function CareerScanPage() {
           </MobileSection>
 
           {/* Quick wins */}
-          <MobileSection title={cs.results.quickWins} icon="⚡" defaultOpen={true}>
+          <MobileSection title={cs.results.quickWins} icon="lightning" defaultOpen={true}>
             <div style={{ background: c.bgCard, border: `1px solid ${c.border}`, borderRadius: 14, padding: 16 }}>
               {result.quick_wins.map((w, i) => (
                 <div key={i} style={{ fontSize: 11, color: c.text, padding: '7px 10px', background: c.bgSubtle, borderRadius: 8, marginBottom: 6, lineHeight: 1.55, display: 'flex', gap: 8, alignItems: 'flex-start' }}>
@@ -528,11 +529,11 @@ export default function CareerScanPage() {
 
           {/* AI Era Vulnerability */}
           {result.ai_vulnerability_reason && (
-            <MobileSection title={cs.results.aiEraRisk} icon="🤖" defaultOpen={false}>
+            <MobileSection title={cs.results.aiEraRisk} icon="bot" defaultOpen={false}>
               <div style={{ background: '#1a0a2e', border: '1px solid rgba(109,40,217,0.4)', borderRadius: 14, padding: 16, position: 'relative', overflow: 'hidden' }}>
                 <div style={{ position: 'absolute', top: -20, right: -20, width: 80, height: 80, borderRadius: '50%', background: 'rgba(109,40,217,0.15)' }} />
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
-                  <div style={{ width: 28, height: 28, borderRadius: 8, background: 'rgba(109,40,217,0.25)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14 }}>⚡</div>
+                  <div style={{ width: 28, height: 28, borderRadius: 8, background: 'rgba(109,40,217,0.25)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><SvgIcon name="lightning" size={14} color="#c4b5fd" /></div>
                   <div>
                     <div style={{ fontSize: 12, fontWeight: 700, color: '#c4b5fd' }}>{cs.results.aiEraRisk}</div>
                     <div style={{ fontSize: 10, color: 'rgba(196,181,253,0.6)' }}>{cs.results.aiEraRiskSub}</div>
@@ -556,7 +557,7 @@ export default function CareerScanPage() {
 
           {/* Market insight */}
           {result.market_insight && (
-            <MobileSection title={cs.results.marketInsight} icon="📈" defaultOpen={false}>
+            <MobileSection title={cs.results.marketInsight} icon="trending-up" defaultOpen={false}>
               <div style={{ background: `linear-gradient(135deg, ${c.primary}, #073d6e)`, borderRadius: 14, padding: 16 }}>
                 <div style={{ fontSize: 13, color: c.primaryLight, lineHeight: 1.65 }}>{result.market_insight}</div>
               </div>

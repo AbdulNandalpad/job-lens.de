@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { theme } from '@/lib/theme'
 import { SS, API } from '@/lib/constants'
+import SvgIcon from '@/components/SvgIcon'
 import { useLanguage } from '@/lib/i18n'
 
 const { colors: c, fonts: f, gradients: g } = theme
@@ -1108,7 +1109,7 @@ export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
               <div style={{ textAlign: 'center', marginTop: 5, color: 'rgba(255,255,255,.18)', fontSize: 10 }}>
                 {isMobile
                   ? (lang === 'DE' ? 'Enter zum Senden · Sprache nur am PC' : 'Enter to send · Voice on desktop only')
-                  : (lang === 'DE' ? 'Enter zum Senden · 🎙 für Sprache' : 'Enter to send · 🎙 for voice')}
+                  : (lang === 'DE' ? <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>Enter zum Senden · <SvgIcon name="mic" size={10} color="rgba(255,255,255,.4)" /> für Sprache</span> : <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>Enter to send · <SvgIcon name="mic" size={10} color="rgba(255,255,255,.4)" /> for voice</span>)}
               </div>
             </div>
           )}

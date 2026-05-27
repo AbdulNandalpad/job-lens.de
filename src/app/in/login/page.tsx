@@ -4,6 +4,7 @@ import { Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase'
 import Link from 'next/link'
+import SvgIcon, { type IconName } from '@/components/SvgIcon'
 
 const saffron = '#FF9933'
 const dark    = '#07111f'
@@ -66,7 +67,7 @@ function IndiaLoginForm() {
             </svg>
             <div style={{ textAlign:'left' }}>
               <div style={{ fontSize:17, fontWeight:700, color:'#fff', lineHeight:1 }}>Job-Lens</div>
-              <div style={{ fontSize:12, fontWeight:600, color:saffron, marginTop:2 }}>India 🇮🇳</div>
+              <div style={{ fontSize:12, fontWeight:600, color:saffron, marginTop:2, display:'flex', alignItems:'center', gap:4 }}>India <SvgIcon name="flag-in" size={14} /></div>
             </div>
           </div>
           <h1 style={{ fontSize:22, fontWeight:700, color:'#fff', margin:'0 0 8px', lineHeight:1.3 }}>
@@ -101,13 +102,13 @@ function IndiaLoginForm() {
 
         {/* Feature pills */}
         <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:8, padding:'14px', background:'rgba(255,153,51,0.06)', border:`1px solid rgba(255,153,51,0.15)`, borderRadius:12, marginBottom:18 }}>
-          {[
-            { icon:'🎯', label:'ATS Scan' },
-            { icon:'🤖', label:'AI CV Build' },
-            { icon:'💼', label:'Job Search' },
-          ].map(f => (
+          {([
+            { icon:'target' as IconName, label:'ATS Scan' },
+            { icon:'bot' as IconName, label:'AI CV Build' },
+            { icon:'briefcase' as IconName, label:'Job Search' },
+          ]).map(f => (
             <div key={f.label} style={{ textAlign:'center' }}>
-              <div style={{ fontSize:16, marginBottom:3 }}>{f.icon}</div>
+              <div style={{ marginBottom:3, display:'flex', justifyContent:'center' }}><SvgIcon name={f.icon} size={16} color="rgba(255,255,255,0.7)" /></div>
               <div style={{ fontSize:10, color:'rgba(255,255,255,0.45)', fontWeight:500 }}>{f.label}</div>
             </div>
           ))}

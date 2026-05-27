@@ -1,5 +1,6 @@
 'use client'
 import { useState } from 'react'
+import SvgIcon from '@/components/SvgIcon'
 
 interface Props {
   matching: string[]
@@ -24,8 +25,8 @@ export default function SkillGapModal({ matching, missing, accent, onConfirm, on
       <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.8)', zIndex: 2000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
         <div style={{ background: '#0e1a28', border: '1px solid rgba(255,100,80,0.25)', borderRadius: 18, padding: '32px 28px 28px', maxWidth: 460, width: '100%', boxShadow: '0 40px 100px rgba(0,0,0,0.7)' }}>
 
-          <div style={{ width: 52, height: 52, borderRadius: '50%', background: 'rgba(255,100,80,0.12)', border: '1px solid rgba(255,100,80,0.25)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22, marginBottom: 18 }}>
-            🧭
+          <div style={{ width: 52, height: 52, borderRadius: '50%', background: 'rgba(255,100,80,0.12)', border: '1px solid rgba(255,100,80,0.25)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 18 }}>
+            <SvgIcon name="target" size={22} color="rgba(255,100,80,0.8)" />
           </div>
 
           <div style={{ fontSize: 18, fontWeight: 700, color: '#fff', fontFamily: "'Outfit', sans-serif", marginBottom: 8, lineHeight: 1.4 }}>
@@ -77,7 +78,7 @@ export default function SkillGapModal({ matching, missing, accent, onConfirm, on
         {matching.length > 0 && (
           <div style={{ marginBottom: 20 }}>
             <div style={{ fontSize: 10, fontWeight: 700, color: '#1D9E75', letterSpacing: 0.8, textTransform: 'uppercase' as const, marginBottom: 10 }}>
-              ✅ Already in your CV
+              Already in your CV
             </div>
             <div style={{ display: 'flex', flexWrap: 'wrap' as const, gap: 6 }}>
               {matching.map(s => (
@@ -90,7 +91,7 @@ export default function SkillGapModal({ matching, missing, accent, onConfirm, on
         {missing.length > 0 ? (
           <div style={{ marginBottom: 24 }}>
             <div style={{ fontSize: 10, fontWeight: 700, color: 'rgba(255,200,50,0.9)', letterSpacing: 0.8, textTransform: 'uppercase' as const, marginBottom: 10 }}>
-              ❓ In the JD, not in your CV — do you have these?
+              In the JD, not in your CV — do you have these?
             </div>
             <div style={{ display: 'flex', flexDirection: 'column' as const, gap: 7 }}>
               {missing.map(s => (

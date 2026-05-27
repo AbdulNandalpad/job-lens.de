@@ -8,6 +8,7 @@ import { useLanguage } from '@/lib/i18n'
 import CrossMarketModal from '@/components/CrossMarketModal'
 import SkillGapModal from '@/components/SkillGapModal'
 import { CREDIT_COST, LOW_CREDIT_WARN, MARKET, SS, API } from '@/lib/constants'
+import SvgIcon from '@/components/SvgIcon'
 
 type Template = 'executive' | 'modern' | 'minimal' | 'technical'
 type Tone = 'professional' | 'concise' | 'detailed'
@@ -1303,7 +1304,7 @@ ${confirmedSkills.length > 0 ? `- User confirmed they also have these skills (in
                   </div>
                 ) : (
                   <>
-                    <div style={{ fontSize: 20, marginBottom: 6 }}>📄</div>
+                    <div style={{ marginBottom: 6, display: 'flex', justifyContent: 'center' }}><SvgIcon name="document" size={20} color="rgba(255,255,255,0.5)" /></div>
                     <div style={{ fontSize: 12, fontWeight: 600, color: 'rgba(255,255,255,0.7)' }}>{t.cvBuilder.sidebar.cvLabel}</div>
                     <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)', marginTop: 3 }}>PDF · DOCX · TXT</div>
                   </>
@@ -1330,7 +1331,7 @@ ${confirmedSkills.length > 0 ? `- User confirmed they also have these skills (in
                 {photoUrl ? (
                   <img src={photoUrl} alt="Profile" style={{ width: 42, height: 42, borderRadius: '50%', objectFit: 'cover', border: `2px solid ${currentAccent}55`, flexShrink: 0 }} />
                 ) : (
-                  <div onClick={() => photoInputRef.current?.click()} style={{ width: 42, height: 42, borderRadius: '50%', background: 'rgba(255,255,255,0.04)', border: '1.5px dashed rgba(255,255,255,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, cursor: 'pointer', fontSize: 18 }}>📷</div>
+                  <div onClick={() => photoInputRef.current?.click()} style={{ width: 42, height: 42, borderRadius: '50%', background: 'rgba(255,255,255,0.04)', border: '1.5px dashed rgba(255,255,255,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, cursor: 'pointer', fontSize: 18 }}>+</div>
                 )}
                 <div style={{ flex: 1 }}>
                   <button onClick={() => photoInputRef.current?.click()} style={{ fontSize: 12, fontWeight: 600, color: photoUrl ? currentAccent : 'rgba(255,255,255,0.4)', background: 'none', border: 'none', cursor: 'pointer', padding: 0, fontFamily: 'inherit', display: 'block' }}>

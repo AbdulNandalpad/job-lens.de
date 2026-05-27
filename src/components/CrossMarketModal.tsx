@@ -1,4 +1,5 @@
 'use client'
+import SvgIcon from '@/components/SvgIcon'
 
 interface CrossMarketModalProps {
   cost: number
@@ -31,7 +32,9 @@ export default function CrossMarketModal({ cost, market, crossAmount, onConfirm,
         boxShadow: '0 24px 80px rgba(0,0,0,0.6)',
       }}>
         {/* Icon */}
-        <div style={{ fontSize: 28, marginBottom: 12, textAlign: 'center' }}>⚠️</div>
+        <div style={{ marginBottom: 12, textAlign: 'center' }}>
+          <SvgIcon name="warning" size={28} color="#f59e0b" />
+        </div>
 
         {/* Title */}
         <div style={{

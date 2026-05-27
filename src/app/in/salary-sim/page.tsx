@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react'
 import { API, CREDIT_COST, MARKET } from '@/lib/constants'
+import SvgIcon from '@/components/SvgIcon'
 
 const accent = '#FF9933'
 const navy   = '#042C53'
@@ -214,7 +215,7 @@ export default function IndiaSalarySimPage() {
             </button>
 
             <div style={{ marginTop: 16, fontSize: 12, color: '#6b7c93', lineHeight: 1.6 }}>
-              💡 <strong>Tip:</strong> Mention competing offers, your current CTC, or specific skills. The AI HR has a hidden ceiling — push for it!
+              <SvgIcon name="bulb" size={13} color="#6b7c93" style={{ display: 'inline', marginRight: 4, verticalAlign: 'middle' }} /> <strong>Tip:</strong> Mention competing offers, your current CTC, or specific skills. The AI HR has a hidden ceiling — push for it!
             </div>
           </div>
         )}
@@ -225,7 +226,7 @@ export default function IndiaSalarySimPage() {
             {/* Header */}
             <div style={{ padding: '14px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: navy }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                <div style={{ width: 34, height: 34, borderRadius: '50%', background: `linear-gradient(135deg,${accent},#e67300)`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14 }}>👔</div>
+                <div style={{ width: 34, height: 34, borderRadius: '50%', background: `linear-gradient(135deg,${accent},#e67300)`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><SvgIcon name="briefcase" size={16} color="#fff" /></div>
                 <div>
                   <div style={{ color: '#fff', fontSize: 13, fontWeight: 700, fontFamily: f.heading }}>Priya · HR Manager{company ? ` @ ${company}` : ''}</div>
                   <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: 11 }}>{role} · Offer: {fmtL(offerRaw)} · Target: {fmtL(targetRaw)}</div>
@@ -242,7 +243,7 @@ export default function IndiaSalarySimPage() {
               {msgs.map((m, i) => (
                 <div key={i} style={{ display: 'flex', justifyContent: m.role === 'user' ? 'flex-end' : 'flex-start', marginBottom: 14, gap: 8, alignItems: 'flex-end' }}>
                   {m.role === 'assistant' && (
-                    <div style={{ width: 28, height: 28, borderRadius: '50%', background: `linear-gradient(135deg,${accent},#e67300)`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, flexShrink: 0 }}>👔</div>
+                    <div style={{ width: 28, height: 28, borderRadius: '50%', background: `linear-gradient(135deg,${accent},#e67300)`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}><SvgIcon name="briefcase" size={13} color="#fff" /></div>
                   )}
                   <div style={{
                     maxWidth: '75%', padding: '10px 14px', fontSize: 14, lineHeight: 1.6,

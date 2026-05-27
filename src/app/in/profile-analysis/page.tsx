@@ -6,6 +6,7 @@ import { useCredits } from '@/lib/useCredits'
 import CrossMarketModal from '@/components/CrossMarketModal'
 import CareerCard from '@/components/CareerCard'
 import { CREDIT_COST, MARKET, SS, API } from '@/lib/constants'
+import SvgIcon from '@/components/SvgIcon'
 
 const orange = '#ff9933'
 const navy  = '#042C53'
@@ -279,7 +280,7 @@ export default function ProfileAnalysisPage() {
                     Upload your CV and enter a target role, then click <strong>Analyse Profile</strong>.
                   </p>
                   <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', justifyContent: 'center' }}>
-                    {['🎯 Salary benchmark', '🤖 AI risk score', '🗺 Career roadmap', '🔥 Honest roast'].map(f => (
+                    {['Salary benchmark', 'AI risk score', 'Career roadmap', 'Honest roast'].map(f => (
                       <span key={f} style={{ fontSize: 11, padding: '5px 12px', borderRadius: 20, background: orange + '10', color: orange, fontWeight: 600 }}>{f}</span>
                     ))}
                   </div>
@@ -344,7 +345,7 @@ export default function ProfileAnalysisPage() {
                     {(['insights', 'market', 'career', 'roast'] as ResTab[]).map(t => (
                       <button key={t} onClick={() => setResTab(t)}
                         style={{ padding: '7px 18px', borderRadius: 20, border: 'none', cursor: 'pointer', fontSize: 12, fontWeight: 600, background: resTab === t ? orange : '#fff', color: resTab === t ? '#fff' : '#6b7c93', boxShadow: resTab === t ? '0 2px 8px rgba(255,153,51,0.3)' : '0 1px 4px rgba(4,44,83,0.06)', transition: 'all .15s' }}>
-                        {t === 'insights' ? 'Insights' : t === 'market' ? 'Market & Salary' : t === 'career' ? 'Career Path' : '🔥 Roast'}
+                        {t === 'insights' ? 'Insights' : t === 'market' ? 'Market & Salary' : t === 'career' ? 'Career Path' : 'Roast'}
                       </button>
                     ))}
                   </div>
@@ -451,7 +452,7 @@ export default function ProfileAnalysisPage() {
                       {result.roast_lines.map((line, i) => (
                         <div key={i} style={{ display: 'flex', gap: 14, alignItems: 'flex-start', marginBottom: 16, padding: '14px 16px', borderRadius: 12, background: i === 0 ? 'rgba(226,75,74,0.05)' : '#fafbfd', border: `1px solid ${i === 0 ? 'rgba(226,75,74,0.2)' : '#edf1f6'}` }}>
                           <div style={{ width: 26, height: 26, borderRadius: '50%', background: i === 0 ? red : '#edf1f6', color: i === 0 ? '#fff' : '#9aafbc', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 800, flexShrink: 0 }}>
-                            {i === 0 ? '🔥' : i + 1}
+                            {i === 0 ? <SvgIcon name="flame" size={12} color="#fff" /> : i + 1}
                           </div>
                           <span style={{ fontSize: 13, color: '#374151', lineHeight: 1.6 }}>{line}</span>
                         </div>

@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { useCredits } from '@/lib/useCredits'
 import CrossMarketModal from '@/components/CrossMarketModal'
 import { CREDIT_COST, MARKET, SS, API } from '@/lib/constants'
+import SvgIcon from '@/components/SvgIcon'
 
 const orange = '#ff9933'
 const navy = '#042C53'
@@ -349,7 +350,7 @@ export default function IndiaCareerScanPage() {
                   {result.domain_mismatch && (
                     <div style={{ background: '#fff', borderRadius: 14, border: `2px solid ${red}`, boxShadow: '0 2px 12px rgba(226,75,74,0.12)', overflow: 'hidden' }}>
                       <div style={{ background: red, padding: '18px 24px', display: 'flex', alignItems: 'center', gap: 14 }}>
-                        <span style={{ fontSize: 28 }}>🚫</span>
+                        <SvgIcon name="megaphone" size={28} color="#fff" />
                         <div>
                           <div style={{ fontFamily: "'Outfit',sans-serif", fontSize: 16, fontWeight: 800, color: '#fff' }}>Wrong domain — this CV doesn&apos;t match this role</div>
                           <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.75)', marginTop: 2 }}>ATS Score: {result.ats_score} / 100</div>

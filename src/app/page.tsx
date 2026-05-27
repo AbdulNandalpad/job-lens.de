@@ -6,6 +6,7 @@ import { createClient } from '@/lib/supabase'
 import { theme } from '@/lib/theme'
 import { useLanguage, DEFlag, GBFlag } from '@/lib/i18n'
 import KiraDemoWidget from '@/components/KiraDemoWidget'
+import SvgIcon, { type IconName } from '@/components/SvgIcon'
 
 const { colors: c, gradients: g, fonts: f, shadow: sh } = theme
 
@@ -17,14 +18,14 @@ const translations = {
     navJobSearch: 'Job-Suche',
     navSignIn: 'Anmelden',
     navGoToApp: 'Zur App',
-    heroTag: '🇩🇪 Deutschland · 🇨🇭 Schweiz · 🇦🇹 Österreich',
+    heroTag: 'Deutschland · Schweiz · Österreich',
     heroH1: 'Deinen nächsten Job auf dem DACH-Markt finden',
     heroSub: 'Lade deinen Lebenslauf hoch. Erfahre, wo du stehst. Finde passende Stellen in Deutschland, der Schweiz und Österreich. Bewirb dich mit einem maßgeschneiderten Lebenslauf und Anschreiben.',
     heroCta1: 'Kostenlos starten',
     heroCta2: 'Jobs entdecken',
-    indiaPill: '🇮🇳 Jobs in Indien suchen?',
+    indiaPill: 'Jobs in Indien suchen?',
     indiaPillCta: 'Job-Lens India →',
-    madeIn: '🇩🇪 Made in Germany',
+    madeIn: 'Made in Germany',
     dataNote: 'Dein Lebenslauf wird nicht gespeichert',
     freeCredits: '5 kostenlose Credits',
     statsLabels: ['DACH', 'KI', '30 Sek', '1-Klick'],
@@ -97,7 +98,7 @@ const translations = {
     startFree: 'Kostenlos starten',
     kiraHeroMsg: 'Dein nächster Job ist ein Gespräch entfernt.',
     kiraHeroBtn: 'Kira kennenlernen ↓',
-    demoTag: '✨ Kira Preview',
+    demoTag: 'Kira Preview',
     demoTitle: 'Sprich mit Kira — Live-Demo',
     demoSub: 'Kira liest deinen Lebenslauf, findet passende Jobs und optimiert deine Bewerbung. Sieh es in Aktion.',
     kiraTag: 'Lern Kira kennen — KI-Karriereassistentin',
@@ -105,9 +106,9 @@ const translations = {
     kiraHeadline2: 'ein Gespräch entfernt.',
     kiraSub: 'Kira kennt den DACH-Markt in- und auswendig. Sprich einfach mit ihr — sie findet passende Jobs, liest deinen Lebenslauf und gibt echte Gehaltsdaten. Voice-first. Keine Formulare. Keine Filter.',
     kiraFeatures: [
-      { icon: '🎙', label: 'Voice-first', desc: 'Einfach sprechen — Kira hört zu' },
-      { icon: '🔍', label: 'Live Jobsuche', desc: 'Echte Stellen, passend zu dir' },
-      { icon: '📄', label: 'Lebenslauf-Analyse', desc: 'Score, Lücken & nächste Schritte' },
+      { icon: 'mic',      label: 'Voice-first',          desc: 'Einfach sprechen — Kira hört zu' },
+      { icon: 'search',   label: 'Live Jobsuche',         desc: 'Echte Stellen, passend zu dir' },
+      { icon: 'document', label: 'Lebenslauf-Analyse',    desc: 'Score, Lücken & nächste Schritte' },
     ] as { icon: string; label: string; desc: string }[],
     freeNoteBottom: 'Neue Accounts erhalten',
     freeCreditsNote: '5 kostenlose Credits',
@@ -117,7 +118,7 @@ const translations = {
     ctaSub: 'Karriere-Analyse, Job-Matching und Bewerbungen — alles an einem Ort.',
     ctaBtn1: 'Mit Career Scan starten',
     ctaBtn2: 'Jobs durchsuchen',
-    footerBrand: '🇩🇪 Made in Germany · Job-Lens AI',
+    footerBrand: 'Made in Germany · Job-Lens AI',
     footerSignIn: 'Anmelden',
     footerGoApp: 'Zur App',
     footerCareerScan: 'Career Scan',
@@ -128,14 +129,14 @@ const translations = {
     navJobSearch: 'Job Search',
     navSignIn: 'Sign In',
     navGoToApp: 'Go to App',
-    heroTag: '🇩🇪 Germany · 🇨🇭 Switzerland · 🇦🇹 Austria',
+    heroTag: 'Germany · Switzerland · Austria',
     heroH1: 'Find your next job in the DACH market',
     heroSub: 'Upload your CV. See where you stand. Get matched with real jobs across Germany, Switzerland and Austria. Apply with a tailored CV and cover letter.',
     heroCta1: 'Get Started Free',
     heroCta2: 'Explore Jobs',
-    indiaPill: '🇮🇳 Looking for jobs in India?',
+    indiaPill: 'Looking for jobs in India?',
     indiaPillCta: 'Job-Lens India →',
-    madeIn: '🇩🇪 Made in Germany',
+    madeIn: 'Made in Germany',
     dataNote: 'Your CV is never saved',
     freeCredits: '5 free credits',
     statsLabels: ['DACH', 'AI', '30s', '1-click'],
@@ -208,7 +209,7 @@ const translations = {
     startFree: 'Start free',
     kiraHeroMsg: 'Your next job is a conversation away.',
     kiraHeroBtn: 'Meet Kira ↓',
-    demoTag: '✨ Kira Preview',
+    demoTag: 'Kira Preview',
     demoTitle: 'Talk to Kira — live demo',
     demoSub: 'Kira reads your CV, finds matching jobs and optimises your application. See it in action.',
     kiraTag: 'Meet Kira — AI Career Assistant',
@@ -216,9 +217,9 @@ const translations = {
     kiraHeadline2: 'conversation away.',
     kiraSub: 'Kira knows the DACH market inside out. Just talk — she finds live jobs, reads your CV, gives real salary data. Voice-first. No forms. No fluff. Just results.',
     kiraFeatures: [
-      { icon: '🎙', label: 'Voice-first', desc: 'Just speak — Kira listens' },
-      { icon: '🔍', label: 'Live job search', desc: 'Real roles, matched to you' },
-      { icon: '📄', label: 'CV insight', desc: 'Score, gaps & next steps' },
+      { icon: 'mic', label: 'Voice-first', desc: 'Just speak — Kira listens' },
+      { icon: 'search', label: 'Live job search', desc: 'Real roles, matched to you' },
+      { icon: 'document', label: 'CV insight', desc: 'Score, gaps & next steps' },
     ] as { icon: string; label: string; desc: string }[],
     freeNoteBottom: 'New accounts get',
     freeCreditsNote: '5 free credits',
@@ -228,7 +229,7 @@ const translations = {
     ctaSub: 'Career analysis, job matching and applications — all in one place.',
     ctaBtn1: 'Start with Career Scan',
     ctaBtn2: 'Browse Jobs',
-    footerBrand: '🇩🇪 Made in Germany · Job-Lens AI',
+    footerBrand: 'Made in Germany · Job-Lens AI',
     footerSignIn: 'Sign in',
     footerGoApp: 'Go to App',
     footerCareerScan: 'Career Scan',
@@ -487,11 +488,11 @@ export default function HomePage() {
 
           {/* Market pills */}
           <div style={{ display: 'flex', gap: 6 }}>
-            <span className="jl-home-dach-pill" style={{ fontSize: 11, fontWeight: 700, padding: '5px 12px', borderRadius: 10, border: '1px solid rgba(55,138,221,0.4)', background: 'rgba(55,138,221,0.12)', color: '#85B7EB', fontFamily: 'inherit' }}>
-              🇩🇪 DACH
+            <span className="jl-home-dach-pill" style={{ fontSize: 11, fontWeight: 700, padding: '5px 12px', borderRadius: 10, border: '1px solid rgba(55,138,221,0.4)', background: 'rgba(55,138,221,0.12)', color: '#85B7EB', fontFamily: 'inherit', display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+              <SvgIcon name="flag-de" size={14} /> DACH
             </span>
-            <Link href="/in" style={{ fontSize: 11, fontWeight: 600, textDecoration: 'none', padding: '5px 12px', borderRadius: 10, border: '1px solid rgba(255,153,51,0.2)', background: 'rgba(255,153,51,0.07)', color: '#FF9933', fontFamily: 'inherit' }}>
-              🇮🇳 India
+            <Link href="/in" style={{ fontSize: 11, fontWeight: 600, textDecoration: 'none', padding: '5px 12px', borderRadius: 10, border: '1px solid rgba(255,153,51,0.2)', background: 'rgba(255,153,51,0.07)', color: '#FF9933', fontFamily: 'inherit', display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+              <SvgIcon name="flag-in" size={14} /> India
             </Link>
           </div>
 
@@ -724,7 +725,7 @@ export default function HomePage() {
               <div style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap' }}>
                 {t.kiraFeatures.map(feat => (
                   <div key={feat.label} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 18px', borderRadius: 14, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', backdropFilter: 'blur(8px)' }}>
-                    <span style={{ fontSize: 20, lineHeight: 1 }}>{feat.icon}</span>
+                    <SvgIcon name={feat.icon as IconName} size={20} color="rgba(255,255,255,0.8)" />
                     <div style={{ textAlign: 'left' }}>
                       <div style={{ fontSize: 12, fontWeight: 700, color: '#fff', fontFamily: f.heading }}>{feat.label}</div>
                       <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.38)', marginTop: 1 }}>{feat.desc}</div>

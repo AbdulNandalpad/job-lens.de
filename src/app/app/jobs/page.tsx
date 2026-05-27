@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import Navbar from '../components/Navbar'
 import { useLanguage } from '@/lib/i18n'
 import { SS } from '@/lib/constants'
+import SvgIcon, { type IconName } from '@/components/SvgIcon'
 
 const blue  = '#378ADD'
 const navy  = '#042C53'
@@ -26,10 +27,10 @@ interface Job {
   job_source?: JobSource
 }
 
-const COUNTRIES = [
-  { code: 'de', label: '🇩🇪', name: 'Deutschland' },
-  { code: 'ch', label: '🇨🇭', name: 'Schweiz' },
-  { code: 'at', label: '🇦🇹', name: 'Österreich' },
+const COUNTRIES: { code: string; flag: IconName; name: string }[] = [
+  { code: 'de', flag: 'flag-de', name: 'Deutschland' },
+  { code: 'ch', flag: 'flag-ch', name: 'Schweiz' },
+  { code: 'at', flag: 'flag-at', name: 'Österreich' },
 ]
 
 const CITY_PILLS: Record<string, string[]> = {
@@ -241,7 +242,7 @@ export default function DACHJobsPage() {
                 style={{ flex: 1, minWidth: 180, padding: '10px 14px', borderRadius: 8, border: '1px solid #dce4ef', fontSize: 13, fontFamily: "'DM Sans',sans-serif", outline: 'none', color: '#1a2332' }}
               />
               <div className="dach-city-wrap" style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
-                <span style={{ position: 'absolute', left: 10, color: '#9aafbc', fontSize: 13, pointerEvents: 'none' }}>📍</span>
+                <span style={{ position: 'absolute', left: 10, color: '#9aafbc', pointerEvents: 'none', display: 'flex', alignItems: 'center' }}><SvgIcon name="pin" size={13} color="#9aafbc" /></span>
                 <input
                   value={city}
                   onChange={e => setCity(e.target.value)}
@@ -281,12 +282,12 @@ export default function DACHJobsPage() {
                   </div>
                   <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                     <button onClick={() => setSource('adzuna')}
-                      style={{ padding: '8px 16px', borderRadius: 20, border: `1.5px solid ${source === 'adzuna' ? blue : '#dce4ef'}`, background: source === 'adzuna' ? blue + '12' : '#f8fafc', color: source === 'adzuna' ? blue : '#6b7c93', fontSize: 12, fontWeight: source === 'adzuna' ? 700 : 400, cursor: 'pointer', fontFamily: "'DM Sans',sans-serif" }}>
-                      🌐 {label('International (Adzuna)', 'International (Adzuna)')}
+                      style={{ padding: '8px 16px', borderRadius: 20, border: `1.5px solid ${source === 'adzuna' ? blue : '#dce4ef'}`, background: source === 'adzuna' ? blue + '12' : '#f8fafc', color: source === 'adzuna' ? blue : '#6b7c93', fontSize: 12, fontWeight: source === 'adzuna' ? 700 : 400, cursor: 'pointer', fontFamily: "'DM Sans',sans-serif", display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+                      <SvgIcon name="globe" size={13} color="currentColor" /> {label('International (Adzuna)', 'International (Adzuna)')}
                     </button>
                     <button onClick={() => setSource('ba')}
-                      style={{ padding: '8px 16px', borderRadius: 20, border: `1.5px solid ${source === 'ba' ? '#1D9E75' : '#dce4ef'}`, background: source === 'ba' ? '#1D9E7512' : '#f8fafc', color: source === 'ba' ? '#1D9E75' : '#6b7c93', fontSize: 12, fontWeight: source === 'ba' ? 700 : 400, cursor: 'pointer', fontFamily: "'DM Sans',sans-serif" }}>
-                      🏢 {label('Mittelstand (Bundesagentur)', 'Mittelstand (Bundesagentur)')}
+                      style={{ padding: '8px 16px', borderRadius: 20, border: `1.5px solid ${source === 'ba' ? '#1D9E75' : '#dce4ef'}`, background: source === 'ba' ? '#1D9E7512' : '#f8fafc', color: source === 'ba' ? '#1D9E75' : '#6b7c93', fontSize: 12, fontWeight: source === 'ba' ? 700 : 400, cursor: 'pointer', fontFamily: "'DM Sans',sans-serif", display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+                      <SvgIcon name="building" size={13} color="currentColor" /> {label('Mittelstand (Bundesagentur)', 'Mittelstand (Bundesagentur)')}
                     </button>
                   </div>
                   {source === 'ba' && (
@@ -305,8 +306,8 @@ export default function DACHJobsPage() {
                     <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                       {COUNTRIES.map(c => (
                         <button key={c.code} className="country-pill" onClick={() => setCountry(c.code)}
-                          style={{ padding: '8px 16px', borderRadius: 20, border: `1.5px solid ${country === c.code ? blue : '#dce4ef'}`, background: country === c.code ? blue + '12' : '#f8fafc', color: country === c.code ? blue : '#6b7c93', fontSize: 12, fontWeight: country === c.code ? 700 : 400, cursor: 'pointer', fontFamily: "'DM Sans',sans-serif" }}>
-                          {c.label} {c.name}
+                          style={{ padding: '8px 16px', borderRadius: 20, border: `1.5px solid ${country === c.code ? blue : '#dce4ef'}`, background: country === c.code ? blue + '12' : '#f8fafc', color: country === c.code ? blue : '#6b7c93', fontSize: 12, fontWeight: country === c.code ? 700 : 400, cursor: 'pointer', fontFamily: "'DM Sans',sans-serif", display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                          <SvgIcon name={c.flag} size={16} /> {c.name}
                         </button>
                       ))}
                     </div>
@@ -318,12 +319,14 @@ export default function DACHJobsPage() {
             {/* Compact chips after search */}
             {searched && (
               <div style={{ padding: '0 16px 12px', display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-                <span style={{ fontSize: 11, padding: '3px 10px', borderRadius: 12, background: source === 'ba' ? '#1D9E7512' : blue + '12', color: source === 'ba' ? '#1D9E75' : blue, fontWeight: 600 }}>
-                  {source === 'ba' ? '🏢 Mittelstand' : `🌐 ${countryInfo?.label} ${countryInfo?.name}`}
+                <span style={{ fontSize: 11, padding: '3px 10px', borderRadius: 12, background: source === 'ba' ? '#1D9E7512' : blue + '12', color: source === 'ba' ? '#1D9E75' : blue, fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                  {source === 'ba'
+                    ? <><SvgIcon name="building" size={12} color="currentColor" /> Mittelstand</>
+                    : <><SvgIcon name="globe" size={12} color="currentColor" /> {countryInfo?.name}</>}
                 </span>
                 {city && (
                   <span style={{ fontSize: 11, padding: '3px 10px', borderRadius: 12, background: '#f0f4f8', color: '#6b7c93', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 4 }}>
-                    📍 {city}
+                    <SvgIcon name="pin" size={11} color="#6b7c93" /> {city}
                     <button onClick={() => setCity('')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#9aafbc', fontSize: 13, lineHeight: 1, padding: 0, marginLeft: 2 }}>×</button>
                   </span>
                 )}
@@ -356,7 +359,7 @@ export default function DACHJobsPage() {
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
               {usedQuery && usedQuery.toLowerCase() !== query.trim().toLowerCase() && (
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px', borderRadius: 10, background: 'rgba(55,138,221,0.07)', border: '1px solid rgba(55,138,221,0.2)', marginBottom: 4 }}>
-                  <span style={{ fontSize: 16 }}>🔍</span>
+                  <SvgIcon name="search" size={16} color="#6b7c93" />
                   <span style={{ fontSize: 13, color: '#6b7c93' }}>
                     {label('Keine Ergebnisse für', 'No results for')}{' '}
                     <span style={{ fontWeight: 700, color: '#374151' }}>"{query}"</span>
@@ -387,8 +390,8 @@ export default function DACHJobsPage() {
                             {job.employer_name}{job.job_city ? ` · ${job.job_city}` : ''}{job.job_employment_type ? ` · ${job.job_employment_type}` : ''}
                           </span>
                           {job.job_source === 'ba' && (
-                            <span style={{ fontSize: 10, padding: '2px 7px', borderRadius: 8, background: '#1D9E7515', color: '#1D9E75', fontWeight: 700, flexShrink: 0 }}>
-                              🏢 Mittelstand
+                            <span style={{ fontSize: 10, padding: '2px 7px', borderRadius: 8, background: '#1D9E7515', color: '#1D9E75', fontWeight: 700, flexShrink: 0, display: 'inline-flex', alignItems: 'center', gap: 3 }}>
+                              <SvgIcon name="building" size={10} color="#1D9E75" /> Mittelstand
                             </span>
                           )}
                         </div>

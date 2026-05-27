@@ -5,6 +5,7 @@ import Navbar from '../components/Navbar'
 import { theme } from '@/lib/theme'
 import { useLanguage } from '@/lib/i18n'
 import { API, CREDIT_COST, MARKET } from '@/lib/constants'
+import SvgIcon from '@/components/SvgIcon'
 
 const { colors: c, gradients: g, fonts: f } = theme
 
@@ -186,7 +187,7 @@ export default function InterviewPrepPage() {
                     </span>
                   </div>
                   <div style={{ fontSize: 15, fontWeight: 600, color: c.primary, lineHeight: 1.5, fontFamily: f.heading }}>{q.question}</div>
-                  <div style={{ fontSize: 12, color: c.textMuted, marginTop: 6, fontStyle: 'italic' }}>💡 {q.tip}</div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 12, color: c.textMuted, marginTop: 6, fontStyle: 'italic' }}><SvgIcon name="bulb" size={12} color={c.textMuted} /> {q.tip}</div>
                 </div>
               </div>
 
@@ -203,7 +204,7 @@ export default function InterviewPrepPage() {
                   onClick={() => isRec ? stopVoice() : startVoice(q.id)}
                   title={isRec ? 'Stop recording' : 'Record voice answer'}
                   style={{ position: 'absolute' as const, right: 10, top: 10, width: 30, height: 30, borderRadius: '50%', border: 'none', cursor: 'pointer', background: isRec ? '#e53e3e' : c.accent, color: '#fff', fontSize: 14, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  {isRec ? <span className="recording-dot">■</span> : '🎙'}
+                  {isRec ? <span className="recording-dot">■</span> : <SvgIcon name="mic" size={14} color="#fff" />}
                 </button>
               </div>
 
@@ -297,7 +298,7 @@ export default function InterviewPrepPage() {
                 color: '#fff', fontSize: 13, fontWeight: 700,
                 fontFamily: f.heading, whiteSpace: 'nowrap', flexShrink: 0,
               }}>
-              💰 Practice Salary Negotiation →
+              Practice Salary Negotiation →
             </a>
           </div>
         </div>

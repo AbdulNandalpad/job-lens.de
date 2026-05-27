@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase'
 import { useDashWidgets } from '@/lib/useDashWidgets'
 import { MARKET } from '@/lib/constants'
+import SvgIcon, { getIcon } from '@/components/SvgIcon'
 
 const orange = '#FF9933'
 const navy = '#042C53'
@@ -132,7 +133,7 @@ export default function IndiaAccountPage() {
 
               {/* Credits card */}
               <div style={{ background: '#fff', border: '1px solid #edf1f6', borderRadius: 16, padding: 24, marginBottom: 16, boxShadow: '0 2px 8px rgba(4,44,83,0.05)' }}>
-                <div style={{ fontFamily: "'Outfit', sans-serif", fontSize: 15, fontWeight: 700, color: navy, marginBottom: 18 }}>⚡ AI Credits</div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 7, fontFamily: "'Outfit', sans-serif", fontSize: 15, fontWeight: 700, color: navy, marginBottom: 18 }}><SvgIcon name="lightning" size={16} color={orange} /> AI Credits</div>
 
                 {/* Available vs Used */}
                 <div className="acc-stats">
@@ -153,12 +154,12 @@ export default function IndiaAccountPage() {
                   <div style={{ fontSize: 12, fontWeight: 700, color: '#94a3b8', letterSpacing: .4, textTransform: 'uppercase', marginBottom: 10 }}>Credit Pools</div>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                     {[
-                      { label: 'Free Credits', sub: 'Signup bonus & promotions', value: profile.commonCredits ?? 0, color: orange, icon: '🎁' },
-                      { label: 'India Credits', sub: 'Purchased via Razorpay (₹)', value: profile.inCredits ?? 0, color: '#138808', icon: '🇮🇳' },
-                      { label: 'EU Credits', sub: 'Purchased via PayPal (€)', value: profile.euCredits ?? 0, color: '#378ADD', icon: '🇪🇺' },
+                      { label: 'Free Credits', sub: 'Signup bonus & promotions', value: profile.commonCredits ?? 0, color: orange, icon: 'sparkle' },
+                      { label: 'India Credits', sub: 'Purchased via Razorpay (₹)', value: profile.inCredits ?? 0, color: '#138808', icon: 'flag-in' },
+                      { label: 'EU Credits', sub: 'Purchased via PayPal (€)', value: profile.euCredits ?? 0, color: '#378ADD', icon: 'flag-de' },
                     ].map(pool => (
                       <div key={pool.label} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 14px', background: pool.value > 0 ? `${pool.color}08` : '#f8fafc', borderRadius: 10, border: `1px solid ${pool.value > 0 ? `${pool.color}25` : '#edf1f6'}` }}>
-                        <span style={{ fontSize: 18, flexShrink: 0 }}>{pool.icon}</span>
+                        <span style={{ flexShrink: 0, display: 'flex' }}>{getIcon(pool.icon, 20, pool.color)}</span>
                         <div style={{ flex: 1 }}>
                           <div style={{ fontSize: 13, fontWeight: 600, color: navy }}>{pool.label}</div>
                           <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 1 }}>{pool.sub}</div>
@@ -177,10 +178,10 @@ export default function IndiaAccountPage() {
                   <div style={{ fontSize: 12, fontWeight: 700, color: '#94a3b8', letterSpacing: .4, textTransform: 'uppercase', marginBottom: 10 }}>What Each Action Costs</div>
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 6 }}>
                     {[
-                      { label: '🎯 ATS Scan', cost: 2 },
-                      { label: '📄 CV Tailoring', cost: 1 },
-                      { label: '✉️ Cover Letter', cost: 1 },
-                      { label: '🚀 Auto Apply', cost: 3 },
+                      { label: 'ATS Scan', cost: 2 },
+                      { label: 'CV Tailoring', cost: 1 },
+                      { label: 'Cover Letter', cost: 1 },
+                      { label: 'Auto Apply', cost: 3 },
                     ].map(item => (
                       <div key={item.label} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 12px', background: '#f8fafc', borderRadius: 8, border: '1px solid #edf1f6' }}>
                         <span style={{ fontSize: 12, color: '#374151' }}>{item.label}</span>
@@ -216,7 +217,7 @@ export default function IndiaAccountPage() {
               {/* Usage log */}
               {profile.usage.length > 0 && (() => {
                 const actionIcons: Record<string, string> = {
-                  career_scan: '◎', india_ats_scan: '◎', tailor_cv: '📄', cover_letter: '✉', auto_apply: '⚡',
+                  career_scan: 'target', india_ats_scan: 'target', tailor_cv: 'document', cover_letter: 'email', auto_apply: 'bot',
                 }
                 const now = new Date()
                 const todayStr = now.toDateString()
@@ -249,12 +250,12 @@ export default function IndiaAccountPage() {
                               const label = refund
                                 ? `${ACTION_LABELS[baseAction] || baseAction} (refund)`
                                 : (ACTION_LABELS[ev.action] || ev.action)
-                              const icon = actionIcons[baseAction] || '·'
+                              const iconKey = actionIcons[baseAction] || 'document'
                               const time = new Date(ev.created_at).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })
                               return (
                                 <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '9px 12px', background: '#f8fafc', borderRadius: 8, border: '1px solid #edf1f6' }}>
                                   <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                                    <span style={{ fontSize: 14, width: 20, textAlign: 'center', flexShrink: 0 }}>{icon}</span>
+                                    <span style={{ width: 20, display: 'flex', justifyContent: 'center', flexShrink: 0 }}>{getIcon(iconKey, 14, orange)}</span>
                                     <div>
                                       <div style={{ fontSize: 12, color: navy, fontWeight: 600 }}>{label}</div>
                                       <div style={{ fontSize: 11, color: '#9aafbc', marginTop: 1 }}>{time}</div>
@@ -337,7 +338,7 @@ export default function IndiaAccountPage() {
                     const on = isVisible(w.id)
                     return (
                       <div key={w.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 14px', borderRadius: 10, border: '1px solid #edf1f6', background: on ? '#f8fafc' : 'transparent', transition: 'all .15s' }}>
-                        <span style={{ fontSize: 13, color: on ? navy : '#6b7c93', fontWeight: on ? 600 : 400 }}>{w.icon} {w.label}</span>
+                        <span style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, color: on ? navy : '#6b7c93', fontWeight: on ? 600 : 400 }}>{getIcon(w.icon, 14, on ? orange : '#6b7c93')} {w.label}</span>
                         <button onClick={() => toggle(w.id)}
                           style={{ width: 42, height: 24, borderRadius: 12, border: 'none', background: on ? orange : 'rgba(0,0,0,.12)', cursor: 'pointer', position: 'relative', transition: 'all .2s', flexShrink: 0 }}>
                           <span style={{ position: 'absolute', top: 3, left: on ? 20 : 3, width: 18, height: 18, borderRadius: '50%', background: '#fff', transition: 'left .2s', boxShadow: '0 1px 3px rgba(0,0,0,.2)', display: 'block' }} />

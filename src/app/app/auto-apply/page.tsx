@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import Navbar from '../components/Navbar'
 import type { FieldMapping, AnalyzeResult, ExecuteEvent } from '@/lib/auto-apply-engine'
 import { theme } from '@/lib/theme'
+import SvgIcon from '@/components/SvgIcon'
 
 const { colors: c, gradients: g, fonts: f } = theme
 
@@ -313,7 +314,7 @@ export default function AutoApplyPage() {
         padding: 24,
       }}>
         <div style={{ textAlign: 'center', maxWidth: 400 }}>
-          <div style={{ fontSize: 52, marginBottom: 16 }}>🚧</div>
+          <div style={{ marginBottom: 16, display: 'flex', justifyContent: 'center' }}><SvgIcon name="construction" size={52} color="#378ADD" /></div>
           <div style={{ fontFamily: "'Outfit', sans-serif", fontSize: 22, fontWeight: 700, color: '#fff', marginBottom: 10 }}>
             Auto Apply — Coming Soon
           </div>
@@ -635,7 +636,7 @@ export default function AutoApplyPage() {
                         {entry.type === 'error' ? '✗' :
                          entry.type === 'done' ? '✓' :
                          entry.type === 'filled' ? (entry.success ? '✓' : '–') :
-                         entry.type === 'screenshot' ? '📸' :
+                         entry.type === 'screenshot' ? <SvgIcon name="camera" size={12} color="currentColor" /> :
                          entry.type === 'submitting' ? '⬆' : '·'}
                       </span>
                       <span style={{ color: entry.type === 'error' ? c.error : entry.type === 'done' ? c.success : entry.success === false ? c.textMuted : undefined }}>

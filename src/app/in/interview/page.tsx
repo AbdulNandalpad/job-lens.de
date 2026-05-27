@@ -2,6 +2,7 @@
 
 import { useState, useRef } from 'react'
 import { API, CREDIT_COST, MARKET } from '@/lib/constants'
+import SvgIcon from '@/components/SvgIcon'
 
 const accent = '#FF9933'
 const navy   = '#042C53'
@@ -158,7 +159,7 @@ export default function IndiaInterviewPage() {
                     <span style={{ fontSize: 11, fontWeight: 700, padding: '2px 10px', borderRadius: 20, background: typeCfg.bg, color: typeCfg.color }}>{typeCfg.label}</span>
                   </div>
                   <div style={{ fontSize: 15, fontWeight: 600, color: navy, lineHeight: 1.5, fontFamily: f.heading }}>{q.question}</div>
-                  <div style={{ fontSize: 12, color: '#6b7c93', marginTop: 6, fontStyle: 'italic' }}>💡 {q.tip}</div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 12, color: '#6b7c93', marginTop: 6, fontStyle: 'italic' }}><SvgIcon name="bulb" size={12} color="#6b7c93" /> {q.tip}</div>
                 </div>
               </div>
 
@@ -168,7 +169,7 @@ export default function IndiaInterviewPage() {
                   style={{ ...inputStyle, height: 100, resize: 'vertical' as const, paddingRight: 44 }} />
                 <button onClick={() => isRec ? stopVoice() : startVoice(q.id)}
                   style={{ position: 'absolute' as const, right: 10, top: 10, width: 30, height: 30, borderRadius: '50%', border: 'none', cursor: 'pointer', background: isRec ? '#e53e3e' : accent, color: '#fff', fontSize: 14, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  {isRec ? <span className="recording-dot">■</span> : '🎙'}
+                  {isRec ? <span className="recording-dot">■</span> : <SvgIcon name="mic" size={14} color="#fff" />}
                 </button>
               </div>
 
@@ -239,7 +240,7 @@ export default function IndiaInterviewPage() {
                 color: '#fff', fontSize: 13, fontWeight: 700,
                 whiteSpace: 'nowrap', flexShrink: 0,
               }}>
-              💰 Practice Salary Negotiation →
+              Practice Salary Negotiation →
             </a>
           </div>
         </div>

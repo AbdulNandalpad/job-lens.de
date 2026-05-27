@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { createBrowserClient } from '@supabase/ssr'
 import { theme } from '@/lib/theme'
+import SvgIcon from '@/components/SvgIcon'
 
 const { colors: c, fonts: f } = theme
 
@@ -228,7 +229,7 @@ export default function AdminPage() {
                         <div>
                           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                             <span style={{ fontSize: 13, fontWeight: 600, color: c.primary }}>{user.name || '—'}</span>
-                            {user.isAdmin && <span style={{ fontSize: 10, fontWeight: 700, color: c.accent, background: `${c.accent}18`, padding: '1px 6px', borderRadius: 8 }}>👑 ADMIN</span>}
+                            {user.isAdmin && <span style={{ fontSize: 10, fontWeight: 700, color: c.accent, background: `${c.accent}18`, padding: '1px 6px', borderRadius: 8 }}>ADMIN</span>}
                           </div>
                           <div style={{ fontSize: 11, color: c.textMuted }}>{user.email}</div>
                           <div style={{ fontSize: 10, color: c.textFaint }}>Joined: {fmtShort(user.created_at)}</div>
@@ -274,7 +275,7 @@ export default function AdminPage() {
                               onClick={() => { const val = parseInt(creditEdits[user.id]); if (!isNaN(val)) updateUser(user.id, { credits: val }) }}
                               disabled={updating === user.id}
                               style={{ padding: '5px 10px', borderRadius: 6, border: `1px solid ${c.accent}60`, background: `${c.accent}15`, color: c.accent, fontSize: 11, fontWeight: 700, cursor: 'pointer' }}>
-                              {updating === user.id ? '…' : '💾 Save'}
+                              {updating === user.id ? '…' : 'Save'}
                             </button>
                           )}
                           {user.isAdmin ? (
@@ -298,7 +299,7 @@ export default function AdminPage() {
                         <div>
                           <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' as const }}>
                             <span style={{ fontSize: 14, fontWeight: 600, color: c.primary }}>{user.name || '—'}</span>
-                            {user.isAdmin && <span style={{ fontSize: 10, fontWeight: 700, color: c.accent, background: `${c.accent}18`, padding: '1px 6px', borderRadius: 8 }}>👑 ADMIN</span>}
+                            {user.isAdmin && <span style={{ fontSize: 10, fontWeight: 700, color: c.accent, background: `${c.accent}18`, padding: '1px 6px', borderRadius: 8 }}>ADMIN</span>}
                           </div>
                           <div style={{ fontSize: 12, color: c.textMuted, marginTop: 2 }}>{user.email}</div>
                           <div style={{ fontSize: 11, color: c.textFaint, marginTop: 2 }}>Joined: {fmtShort(user.created_at)}</div>
@@ -321,7 +322,7 @@ export default function AdminPage() {
                         {/* Credit pools */}
                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8 }}>
                           <div style={{ background: c.bgSubtle, borderRadius: 8, padding: '8px 10px', textAlign: 'center' as const }}>
-                            <div style={{ fontSize: 10, color: c.textMuted, fontWeight: 600, marginBottom: 4 }}>🎁 FREE</div>
+                            <div style={{ fontSize: 10, color: c.textMuted, fontWeight: 600, marginBottom: 4 }}>FREE</div>
                             {user.isAdmin ? (
                               <div style={{ fontSize: 16, fontWeight: 800, color: c.accent }}>∞</div>
                             ) : (
@@ -331,11 +332,11 @@ export default function AdminPage() {
                             )}
                           </div>
                           <div style={{ background: '#13880808', border: '1px solid #13880820', borderRadius: 8, padding: '8px 10px', textAlign: 'center' as const }}>
-                            <div style={{ fontSize: 10, color: '#138808', fontWeight: 600, marginBottom: 4 }}>🇮🇳 IN</div>
+                            <div style={{ fontSize: 10, color: '#138808', fontWeight: 600, marginBottom: 4, display: 'flex', alignItems: 'center', gap: 3 }}><SvgIcon name="flag-in" size={10} /> IN</div>
                             <div style={{ fontSize: 16, fontWeight: 800, color: user.inCredits > 0 ? '#138808' : c.textFaint }}>{user.isAdmin ? '∞' : user.inCredits}</div>
                           </div>
                           <div style={{ background: '#0A66C208', border: '1px solid #0A66C220', borderRadius: 8, padding: '8px 10px', textAlign: 'center' as const }}>
-                            <div style={{ fontSize: 10, color: '#0A66C2', fontWeight: 600, marginBottom: 4 }}>🇪🇺 EU</div>
+                            <div style={{ fontSize: 10, color: '#0A66C2', fontWeight: 600, marginBottom: 4, display: 'flex', alignItems: 'center', gap: 3 }}><SvgIcon name="flag-de" size={10} /> EU</div>
                             <div style={{ fontSize: 16, fontWeight: 800, color: user.euCredits > 0 ? '#0A66C2' : c.textFaint }}>{user.isAdmin ? '∞' : user.euCredits}</div>
                           </div>
                         </div>
@@ -347,7 +348,7 @@ export default function AdminPage() {
                             onClick={() => { const val = parseInt(creditEdits[user.id]); if (!isNaN(val)) updateUser(user.id, { credits: val }) }}
                             disabled={updating === user.id}
                             style={{ width: '100%', padding: '9px 0', borderRadius: 8, border: `1px solid ${c.accent}60`, background: `${c.accent}15`, color: c.accent, fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: f.body }}>
-                            {updating === user.id ? '…' : '💾 Save Credits'}
+                            {updating === user.id ? '…' : 'Save Credits'}
                           </button>
                         )}
                         {!user.isAdmin && (
@@ -355,7 +356,7 @@ export default function AdminPage() {
                             onClick={() => updateUser(user.id, { status: user.status === 'active' ? 'blocked' : 'active' })}
                             disabled={updating === user.id}
                             style={{ width: '100%', padding: '9px 0', borderRadius: 8, border: `1px solid ${user.status === 'active' ? c.danger : c.success}40`, background: user.status === 'active' ? `${c.danger}10` : `${c.success}10`, color: user.status === 'active' ? c.danger : c.success, fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: f.body }}>
-                            {updating === user.id ? '…' : user.status === 'active' ? '🚫 Block User' : '✅ Unblock User'}
+                            {updating === user.id ? '…' : user.status === 'active' ? 'Block User' : 'Unblock User'}
                           </button>
                         )}
                       </div>

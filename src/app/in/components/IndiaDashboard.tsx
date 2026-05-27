@@ -6,9 +6,16 @@ import type { MarketSnapshot } from '@/app/api/india/market-snapshot/route'
 import type { NewsArticle } from '@/app/api/india/news-insights/route'
 import type { WorldIndicator } from '@/app/api/india/world-indicators/route'
 import CareerIntelPanel from '@/components/CareerIntelPanel'
+import SvgIcon, { getIcon, type IconName } from '@/components/SvgIcon'
 import { createClient } from '@/lib/supabase'
 import { useDashWidgets } from '@/lib/useDashWidgets'
 import { MARKET } from '@/lib/constants'
+
+// Maps API emoji strings → SVG icon keys for world indicator cards
+const INDICATOR_ICON_MAP: Record<string, IconName> = {
+  '📈': 'trending-up', '📉': 'trending-down', '🎓': 'graduate',
+  '👷': 'worker', '💶': 'euro', '🏠': 'home', '🌐': 'globe',
+}
 
 // ── Design tokens ───────────────────────────────────────
 const saffron = '#FF9933'
@@ -43,24 +50,15 @@ const CATEGORY_SEARCH: Record<string, string> = {
   'Healthcare':       'healthcare medical',
   'HR & Recruitment': 'human resources recruiter',
 }
-const CATEGORY_EMOJI: Record<string, string> = {
-  'IT & Software':    '💻',
-  'Engineering':      '⚙️',
-  'Finance':          '💰',
-  'Sales & Marketing':'📣',
-  'Healthcare':       '🏥',
-  'HR & Recruitment': '👥',
-}
-
-const AI_SECTOR_IMPACT = [
-  { sector:'IT & Software',    emoji:'💻', impact:'creating',   score:88, headline:'AI engineering roles up 240% YoY',       color:emerald },
-  { sector:'Data & Analytics', emoji:'📊', impact:'creating',   score:82, headline:'Data scientists & MLOps in huge demand',  color:emerald },
-  { sector:'Healthcare',       emoji:'🏥', impact:'creating',   score:70, headline:'Health-tech and AI diagnostics booming',  color:emerald },
-  { sector:'Finance & Fintech',emoji:'💰', impact:'mixed',      score:55, headline:'Analysts valued, clerks being automated', color:orange  },
-  { sector:'Sales & Marketing',emoji:'📣', impact:'mixed',      score:48, headline:'AI copilots reshaping the role entirely', color:orange  },
-  { sector:'BPO / Support',    emoji:'🎧', impact:'disrupting', score:76, headline:'Routine tasks heavily automated by LLMs', color:red     },
-  { sector:'Manufacturing',    emoji:'🏭', impact:'disrupting', score:62, headline:'Robotics replacing assembly line workers', color:red     },
-  { sector:'Content / Media',  emoji:'✍️', impact:'mixed',      score:50, headline:'GenAI creating and killing roles simultaneously', color:orange },
+const AI_SECTOR_IMPACT: { sector:string; icon:IconName; impact:string; score:number; headline:string; color:string }[] = [
+  { sector:'IT & Software',    icon:'laptop',     impact:'creating',   score:88, headline:'AI engineering roles up 240% YoY',       color:emerald },
+  { sector:'Data & Analytics', icon:'chart-bar',  impact:'creating',   score:82, headline:'Data scientists & MLOps in huge demand',  color:emerald },
+  { sector:'Healthcare',       icon:'hospital',   impact:'creating',   score:70, headline:'Health-tech and AI diagnostics booming',  color:emerald },
+  { sector:'Finance & Fintech',icon:'coin',       impact:'mixed',      score:55, headline:'Analysts valued, clerks being automated', color:orange  },
+  { sector:'Sales & Marketing',icon:'megaphone',  impact:'mixed',      score:48, headline:'AI copilots reshaping the role entirely', color:orange  },
+  { sector:'BPO / Support',    icon:'headphone',  impact:'disrupting', score:76, headline:'Routine tasks heavily automated by LLMs', color:red     },
+  { sector:'Manufacturing',    icon:'factory',    impact:'disrupting', score:62, headline:'Robotics replacing assembly line workers', color:red     },
+  { sector:'Content / Media',  icon:'pencil',     impact:'mixed',      score:50, headline:'GenAI creating and killing roles simultaneously', color:orange },
 ]
 
 const RISING_SKILLS  = [
@@ -93,12 +91,12 @@ const SALARY_DATA = [
 ]
 
 const NEWS_CAT_COLOR: Record<string,string> = { ai:purple, hiring:red, market:cyan }
-const NEWS_CAT_LABEL: Record<string,string>  = { ai:'🤖 AI', hiring:'📉 Hiring', market:'🏢 Market' }
+const NEWS_CAT_LABEL: Record<string,string>  = { ai:'AI', hiring:'Hiring', market:'Market' }
 const NEWS_TABS: { id:NewsTab; label:string }[] = [
-  { id:'all',     label:'📰 All'            },
-  { id:'ai',      label:'🤖 AI Impact'      },
-  { id:'hiring',  label:'📉 Hiring & Firing' },
-  { id:'market',  label:'🏢 Market News'    },
+  { id:'all',     label:'All News'       },
+  { id:'ai',      label:'AI Impact'      },
+  { id:'hiring',  label:'Hiring & Firing' },
+  { id:'market',  label:'Market News'    },
 ]
 
 function timeAgo(iso:string) {
@@ -124,7 +122,10 @@ function SectionHeader({icon,title,sub}:{icon:string;title:string;sub:string}) {
     <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:20}}>
       <GlowDot color={saffron}/>
       <div>
-        <div style={{fontFamily:"'Outfit',sans-serif",fontSize:14,fontWeight:700,color:'#fff'}}>{icon} {title}</div>
+        <div style={{display:'flex',alignItems:'center',gap:7,fontFamily:"'Outfit',sans-serif",fontSize:14,fontWeight:700,color:'#fff'}}>
+          {getIcon(icon,14,'#fff')}
+          {title}
+        </div>
         <div style={{fontSize:11,color:txt3,marginTop:1}}>{sub}</div>
       </div>
     </div>
@@ -132,7 +133,7 @@ function SectionHeader({icon,title,sub}:{icon:string;title:string;sub:string}) {
 }
 
 // ── SVG Horizontal Bar Chart ──────────────────────────────────
-function BarChart({data}:{data:{label:string;count:number;color:string;emoji?:string;onClick?:()=>void}[]}) {
+function BarChart({data}:{data:{label:string;count:number;color:string;onClick?:()=>void}[]}) {
   const max = Math.max(...data.map(d=>d.count))
   const ROW=38, LEFT=118, BAR=170
   const h = data.length*ROW+16
@@ -144,7 +145,7 @@ function BarChart({data}:{data:{label:string;count:number;color:string;emoji?:st
         return (
           <g key={d.label} onClick={d.onClick} style={d.onClick?{cursor:'pointer'}:undefined}>
             <text x={LEFT-8} y={y+14} fontSize="11.5" fill={txt2} textAnchor="end" dominantBaseline="middle">
-              {d.emoji ? `${d.emoji} ` : ''}{d.label}
+              {d.label}
             </text>
             <rect x={LEFT} y={y+6} width={BAR} height={16} rx={8} fill="rgba(255,255,255,0.04)"/>
             <rect x={LEFT} y={y+6} width={0} height={16} rx={8} fill={d.color} opacity={0.75}>
@@ -316,7 +317,7 @@ export default function IndiaDashboard() {
                 </span>
               </div>
               <h1 style={{margin:0,fontFamily:"'Outfit',sans-serif",fontSize:'clamp(20px,4.5vw,30px)',fontWeight:800,color:'#fff',letterSpacing:-.5}}>
-                {greeting}{firstName?`, ${firstName}`:''} 👋
+                {greeting}{firstName?`, ${firstName}`:''}
               </h1>
               <p style={{margin:'5px 0 0',fontSize:13,color:txt2}}>Your India career intelligence dashboard</p>
             </div>
@@ -327,7 +328,7 @@ export default function IndiaDashboard() {
               {!loadingP && profile && (
                 <div onClick={()=>router.push('/in/account')}
                   style={{display:'flex',alignItems:'center',gap:8,background:'rgba(255,153,51,.1)',border:'1px solid rgba(255,153,51,.28)',borderRadius:12,padding:'8px 16px',cursor:'pointer',animation:'glow 3s infinite'}}>
-                  <span style={{fontSize:18}}>⚡</span>
+                  <SvgIcon name="lightning" size={18} color={saffron} />
                   <div>
                     <div style={{fontFamily:"'Outfit',sans-serif",fontSize:20,fontWeight:800,color:saffron,lineHeight:1}}>{profile.credits}</div>
                     <div style={{fontSize:10,color:'rgba(255,153,51,.55)',letterSpacing:.5}}>CREDITS</div>
@@ -359,21 +360,21 @@ export default function IndiaDashboard() {
         {/* ── Quick Actions ── */}
         {isVisible('quick_actions') && (
           <div style={{...cardStyle,marginBottom:20}}>
-            <SectionHeader icon="⚡" title="Quick Actions" sub="Jump straight to your tools"/>
+            <SectionHeader icon="lightning" title="Quick Actions" sub="Jump straight to your tools"/>
             <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill, minmax(140px, 1fr))',gap:10}}>
-              {[
-                {label:'ATS Score',        icon:'📋', href:'/in/career-scan'},
-                {label:'Career Analysis',  icon:'🎯', href:'/in/profile-analysis'},
-                {label:'Job Search',       icon:'🔍', href:'/in/jobs'},
-                {label:'CV Builder',       icon:'📄', href:'/in/cv-builder'},
-                {label:'Cover Letter',     icon:'✉️', href:'/in/cover-letter'},
-                {label:'Work Visa 🇩🇪',   icon:'🛂', href:'/in/visa'},
-              ].map(a=>(
+              {([
+                {label:'ATS Score',       icon:'clipboard' as IconName, href:'/in/career-scan'},
+                {label:'Career Analysis', icon:'target'    as IconName, href:'/in/profile-analysis'},
+                {label:'Job Search',      icon:'search'    as IconName, href:'/in/jobs'},
+                {label:'CV Builder',      icon:'document'  as IconName, href:'/in/cv-builder'},
+                {label:'Cover Letter',    icon:'email'     as IconName, href:'/in/cover-letter'},
+                {label:'Work Visa DE',    icon:'passport'  as IconName, href:'/in/visa'},
+              ] as {label:string;icon:IconName;href:string}[]).map(a=>(
                 <button key={a.href} onClick={()=>router.push(a.href)}
                   style={{display:'flex',alignItems:'center',gap:9,padding:'11px 14px',borderRadius:12,border:`1px solid ${border}`,background:'rgba(255,255,255,.04)',color:txt2,fontSize:12,fontWeight:600,cursor:'pointer',fontFamily:"'DM Sans',sans-serif",transition:'all .15s',textAlign:'left'}}
                   onMouseEnter={e=>{(e.currentTarget as HTMLButtonElement).style.borderColor=saffron+'60';(e.currentTarget as HTMLButtonElement).style.color='#fff'}}
                   onMouseLeave={e=>{(e.currentTarget as HTMLButtonElement).style.borderColor=border;(e.currentTarget as HTMLButtonElement).style.color=txt2}}>
-                  <span style={{fontSize:16}}>{a.icon}</span>
+                  <SvgIcon name={a.icon} size={16} color="currentColor" />
                   <span>{a.label}</span>
                 </button>
               ))}
@@ -386,16 +387,16 @@ export default function IndiaDashboard() {
 
         {/* ── KPI snapshot ── */}
         {isVisible('kpi') && <div className="kpi-grid">
-          {[
-            {label:'Open Roles',     value:loadingM?null:fmt(totalJobs),                       sub:'across all sectors',      color:saffron, icon:'📋'},
-            {label:'Hottest Sector', value:loadingM?null:(topCat?.label??'—'),                 sub:`${fmt(topCat?.count??0)} listings`, color:cyan,    icon:'🔥'},
-            {label:'Top City',       value:loadingM?null:(topCity?.city??'—'),                 sub:`${fmt(topCity?.count??0)} openings`,color:emerald, icon:'📍'},
-            {label:'Most In-Demand', value:loadingM?null:(topRole?.title?.split(' ')[0]??'—'), sub:'trending role right now', color:purple,  icon:'⭐'},
-          ].map(k=>(
+          {([
+            {label:'Open Roles',     value:loadingM?null:fmt(totalJobs),                       sub:'across all sectors',      color:saffron, icon:'clipboard'    as IconName},
+            {label:'Hottest Sector', value:loadingM?null:(topCat?.label??'—'),                 sub:`${fmt(topCat?.count??0)} listings`, color:cyan,    icon:'flame'        as IconName},
+            {label:'Top City',       value:loadingM?null:(topCity?.city??'—'),                 sub:`${fmt(topCity?.count??0)} openings`,color:emerald, icon:'pin'          as IconName},
+            {label:'Most In-Demand', value:loadingM?null:(topRole?.title?.split(' ')[0]??'—'), sub:'trending role right now', color:purple,  icon:'star'         as IconName},
+          ] as {label:string;value:string|null;sub:string;color:string;icon:IconName}[]).map(k=>(
             <div key={k.label} className="kpi-card">
               <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:12}}>
                 <span style={{fontSize:10,fontWeight:600,color:txt3,letterSpacing:.6,textTransform:'uppercase'}}>{k.label}</span>
-                <div style={{width:32,height:32,borderRadius:9,background:`${k.color}15`,border:`1px solid ${k.color}25`,display:'flex',alignItems:'center',justifyContent:'center',fontSize:15}}>{k.icon}</div>
+                <div style={{width:32,height:32,borderRadius:9,background:`${k.color}15`,border:`1px solid ${k.color}25`,display:'flex',alignItems:'center',justifyContent:'center'}}><SvgIcon name={k.icon} size={15} color={k.color} /></div>
               </div>
               {k.value===null
                 ?<Shimmer h={28} r={6} w="70%"/>
@@ -410,7 +411,7 @@ export default function IndiaDashboard() {
         {isVisible('skills') && <div style={{marginBottom:20}}>
           <div className="skills-cols">
             <div style={cardStyle}>
-              <SectionHeader icon="🚀" title="Rising Skills" sub="YoY demand growth · India market"/>
+              <SectionHeader icon="rocket" title="Rising Skills" sub="YoY demand growth · India market"/>
               {RISING_SKILLS.map(s=>(
                 <div key={s.skill} style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'9px 0',borderBottom:`1px solid rgba(255,255,255,.05)`}}>
                   <div style={{display:'flex',alignItems:'center',gap:8}}>
@@ -422,7 +423,7 @@ export default function IndiaDashboard() {
               ))}
             </div>
             <div style={cardStyle}>
-              <SectionHeader icon="📉" title="Declining Demand" sub="Drop in job demand · India market"/>
+              <SectionHeader icon="trending-down" title="Declining Demand" sub="Drop in job demand · India market"/>
               {DECLINING_SKILLS.map(s=>(
                 <div key={s.skill} style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'9px 0',borderBottom:`1px solid rgba(255,255,255,.05)`}}>
                   <span style={{fontSize:13,color:txt2}}>{s.skill}</span>
@@ -438,7 +439,7 @@ export default function IndiaDashboard() {
           <div className="two-col">
             {/* Sector bar chart */}
             <div style={cardStyle}>
-              <SectionHeader icon="🇮🇳" title="Jobs by Sector" sub="Adzuna India · refreshed every 4h · click to search"/>
+              <SectionHeader icon="clipboard" title="Jobs by Sector" sub="Adzuna India · refreshed every 4h · click to search"/>
               {loadingM ? (
                 <div style={{display:'flex',flexDirection:'column',gap:10}}>{[1,2,3,4,5].map(i=><Shimmer key={i} h={22} r={6}/>)}</div>
               ) : (
@@ -455,7 +456,7 @@ export default function IndiaDashboard() {
 
             {/* Salary guide */}
             <div style={cardStyle}>
-              <SectionHeader icon="💸" title="India Salary Guide 2026" sub="Annual CTC in ₹ LPA · industry benchmarks"/>
+              <SectionHeader icon="cash" title="India Salary Guide 2026" sub="Annual CTC in ₹ LPA · industry benchmarks"/>
               {visibleSalaries.map(s=>(
                 <SalaryBar key={s.role} role={s.role} min={s.min} max={s.max} avg={s.avg} scaleMax={50}/>
               ))}
@@ -470,7 +471,7 @@ export default function IndiaDashboard() {
 
         {/* ── 3. India Macro Indicators ── */}
         {isVisible('macro') && <div style={{...cardStyle, marginBottom:20}}>
-          <SectionHeader icon="🌐" title="India Macro Indicators" sub="World Bank · updated annually"/>
+          <SectionHeader icon="globe" title="India Macro Indicators" sub="World Bank · updated annually"/>
           <div className="macro-grid">
             {loadingI?[1,2,3,4].map(i=><Shimmer key={i} h={80} r={12}/>):
               indicators.map(ind=>{
@@ -480,7 +481,7 @@ export default function IndiaDashboard() {
                 return (
                   <div key={ind.label} style={{background:cardHov,border:`1px solid ${border}`,borderRadius:14,padding:'16px 18px',borderTop:`2px solid ${tc}`}}>
                     <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:8}}>
-                      <span style={{fontSize:22}}>{ind.icon}</span>
+                      <SvgIcon name={INDICATOR_ICON_MAP[ind.icon] ?? 'trending-up'} size={22} color={tc} />
                       <span style={{fontSize:12,fontWeight:700,color:tc,background:`${tc}18`,padding:'2px 8px',borderRadius:20}}>{arr}</span>
                     </div>
                     <div style={{fontFamily:"'Outfit',sans-serif",fontSize:28,fontWeight:800,color:ind.value!==null?tc:txt3,lineHeight:1}}>
@@ -499,7 +500,7 @@ export default function IndiaDashboard() {
         {isVisible('ai_impact') && <div style={{...cardStyle, marginBottom:20}}>
           {/* Collapsible header */}
           <div onClick={()=>setAiExpanded(p=>!p)} style={{display:'flex',alignItems:'center',justifyContent:'space-between',cursor:'pointer',userSelect:'none'}}>
-            <SectionHeader icon="🤖" title="AI Impact by Sector" sub="India 2026 · Green = creating jobs · Red = disrupting roles"/>
+            <SectionHeader icon="bot" title="AI Impact by Sector" sub="India 2026 · Green = creating jobs · Red = disrupting roles"/>
             <span style={{fontSize:18,color:txt2,marginTop:-12,flexShrink:0}}>{aiExpanded?'▲':'▼'}</span>
           </div>
           {aiExpanded && (
@@ -514,7 +515,7 @@ export default function IndiaDashboard() {
                   {creating.map(x=>(
                     <div key={x.sector} style={{background:`${emerald}08`,border:`1px solid ${emerald}28`,borderRadius:12,padding:'11px 13px'}}>
                       <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:4}}>
-                        <span style={{fontSize:14}}>{x.emoji}</span>
+                        <SvgIcon name={x.icon} size={16} color={x.color} />
                         <div style={{display:'flex',gap:3}}>
                           {Array.from({length:5}).map((_,i)=>(
                             <div key={i} style={{width:6,height:6,borderRadius:1,background:i<Math.round(x.score/20)?emerald:'rgba(255,255,255,.1)'}}/>
@@ -537,7 +538,7 @@ export default function IndiaDashboard() {
                   {mixed.map(x=>(
                     <div key={x.sector} style={{background:`${orange}08`,border:`1px solid ${orange}28`,borderRadius:12,padding:'11px 13px'}}>
                       <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:4}}>
-                        <span style={{fontSize:14}}>{x.emoji}</span>
+                        <SvgIcon name={x.icon} size={16} color={x.color} />
                         <div style={{display:'flex',gap:3}}>
                           {Array.from({length:5}).map((_,i)=>(
                             <div key={i} style={{width:6,height:6,borderRadius:1,background:i<Math.round(x.score/20)?orange:'rgba(255,255,255,.1)'}}/>
@@ -560,7 +561,7 @@ export default function IndiaDashboard() {
                   {disrupting.map(x=>(
                     <div key={x.sector} style={{background:`${red}08`,border:`1px solid ${red}28`,borderRadius:12,padding:'11px 13px'}}>
                       <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:4}}>
-                        <span style={{fontSize:14}}>{x.emoji}</span>
+                        <SvgIcon name={x.icon} size={16} color={x.color} />
                         <div style={{display:'flex',gap:3}}>
                           {Array.from({length:5}).map((_,i)=>(
                             <div key={i} style={{width:6,height:6,borderRadius:1,background:i<Math.round(x.score/20)?red:'rgba(255,255,255,.1)'}}/>
@@ -579,7 +580,7 @@ export default function IndiaDashboard() {
 
         {/* ── 5. News & Signals ── */}
         {isVisible('news') && <div style={cardStyle}>
-          <SectionHeader icon="📰" title="India Job Market News" sub="Real-time signals · refreshed every 6h"/>
+          <SectionHeader icon="news" title="India Job Market News" sub="Real-time signals · refreshed every 6h"/>
           <div style={{display:'flex',gap:8,flexWrap:'wrap',marginBottom:20}}>
             {NEWS_TABS.map(t=>{
               const active=newsTab===t.id
@@ -596,7 +597,7 @@ export default function IndiaDashboard() {
             <div className="news-grid">{[1,2,3,4,5,6].map(i=><Shimmer key={i} h={190} r={14}/>)}</div>
           ):news.filter(a=>newsTab==='all'||a.category===newsTab).length===0?(
             <div style={{textAlign:'center',padding:'56px 0',color:txt3,fontSize:13}}>
-              <div style={{fontSize:36,marginBottom:12,opacity:.4}}>📭</div>
+              <div style={{marginBottom:12,opacity:.4,display:'flex',justifyContent:'center'}}><SvgIcon name="news" size={36} color={txt3} /></div>
               No articles right now. Check back soon.
             </div>
           ):(
@@ -635,7 +636,7 @@ export default function IndiaDashboard() {
         {!loadingP&&profile?.credits===0&&(
           <div style={{marginTop:16,padding:'16px 22px',background:'rgba(239,68,68,.08)',border:'1px solid rgba(239,68,68,.2)',borderRadius:14,display:'flex',alignItems:'center',justifyContent:'space-between',flexWrap:'wrap',gap:12}}>
             <div>
-              <div style={{fontSize:14,fontWeight:700,color:red}}>⛔ No credits remaining</div>
+              <div style={{fontSize:14,fontWeight:700,color:red,display:'flex',alignItems:'center',gap:6}}><SvgIcon name="warning" size={14} color={red} /> No credits remaining</div>
               <div style={{fontSize:12,color:'rgba(239,68,68,.7)',marginTop:2}}>Top up to continue using AI features</div>
             </div>
             <button onClick={()=>router.push('/in/account')} style={{padding:'10px 22px',borderRadius:10,background:red,color:'#fff',fontSize:13,fontWeight:700,border:'none',cursor:'pointer',boxShadow:`0 4px 16px ${red}40`}}>

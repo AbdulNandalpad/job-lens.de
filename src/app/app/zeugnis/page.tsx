@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import Navbar from '../components/Navbar'
 import { SS, CREDIT_COST } from '@/lib/constants'
+import SvgIcon from '@/components/SvgIcon'
 
 const blue   = '#378ADD'
 const navy   = '#042C53'
@@ -314,7 +315,7 @@ export default function ZeugnisPage() {
 
           {/* Main tabs */}
           <div style={{ display: 'flex', gap: 8, marginBottom: 20 }}>
-            {([['decode', '🔍 Decode Zeugnis'], ['request', '✉️ Request / Correct']] as const).map(([key, label]) => (
+            {([['decode', 'Decode Zeugnis'], ['request', 'Request / Correct']] as const).map(([key, label]) => (
               <button key={key} className="zt-tab" onClick={() => setTab(key)}
                 style={{ padding: '9px 20px', borderRadius: 10, border: `1.5px solid ${tab === key ? blue : '#dce4ef'}`, background: tab === key ? blue + '12' : '#fff', color: tab === key ? blue : '#6b7c93', fontSize: 13, fontWeight: tab === key ? 700 : 400, cursor: 'pointer', fontFamily: 'inherit' }}>
                 {label}
@@ -349,7 +350,7 @@ export default function ZeugnisPage() {
                 <>
                   {/* Session banner + download */}
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 14px', borderRadius: 9, background: '#f0f9ff', border: '1px solid #bae6fd', marginBottom: 12, flexWrap: 'wrap', gap: 8 }}>
-                    <span style={{ fontSize: 12, color: '#0369a1' }}>💾 Results saved for this session</span>
+                    <span style={{ fontSize: 12, color: '#0369a1' }}>Results saved for this session</span>
                     <button onClick={() => downloadZeugnisReport(result)}
                       style={{ padding: '6px 14px', borderRadius: 7, border: `1px solid ${blue}40`, background: blue + '10', color: blue, fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>
                       ↓ Download PDF Report
@@ -369,7 +370,7 @@ export default function ZeugnisPage() {
                       </div>
                       <button onClick={() => { setTab('request'); setReqTab(result.overallGrade >= 3 ? 'correction' : 'initial') }}
                         style={{ padding: '10px 18px', borderRadius: 9, background: result.overallGrade >= 3 ? `linear-gradient(135deg,${red},#c0392b)` : `linear-gradient(135deg,${green},#16a085)`, color: '#fff', fontWeight: 700, fontSize: 12, border: 'none', cursor: 'pointer', fontFamily: "'Outfit',sans-serif", flexShrink: 0 }}>
-                        {result.overallGrade >= 3 ? '✉️ Request correction' : '✉️ Request Zeugnis'}
+                        {result.overallGrade >= 3 ? 'Request correction' : 'Request Zeugnis'}
                       </button>
                     </div>
                   </div>
@@ -377,10 +378,10 @@ export default function ZeugnisPage() {
                   {/* Red flags */}
                   {result.redFlags.length > 0 && (
                     <div style={{ ...cardStyle, borderLeft: `4px solid ${red}` }}>
-                      <div style={{ fontSize: 13, fontWeight: 700, color: red, marginBottom: 10, fontFamily: "'Outfit',sans-serif" }}>🚩 Red Flags — phrases that actively hurt you</div>
+                      <div style={{ fontSize: 13, fontWeight: 700, color: red, marginBottom: 10, fontFamily: "'Outfit',sans-serif", display: 'flex', alignItems: 'center', gap: 6 }}><SvgIcon name="flag" size={13} color={red} /> Red Flags — phrases that actively hurt you</div>
                       {result.redFlags.map((flag, i) => (
                         <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 8, padding: '8px 0', borderBottom: i < result.redFlags.length - 1 ? '1px solid #fef2f2' : 'none' }}>
-                          <span style={{ fontSize: 16, flexShrink: 0, marginTop: 1 }}>⚠️</span>
+                          <span style={{ flexShrink: 0, marginTop: 1 }}><SvgIcon name="warning" size={16} color="#f59e0b" /></span>
                           <span style={{ fontSize: 13, color: '#374151' }}>{flag}</span>
                         </div>
                       ))}
@@ -389,7 +390,7 @@ export default function ZeugnisPage() {
 
                   {/* Phrase breakdown */}
                   <div style={cardStyle}>
-                    <div style={{ fontSize: 13, fontWeight: 700, color: navy, marginBottom: 14, fontFamily: "'Outfit',sans-serif" }}>📋 Phrase-by-phrase breakdown</div>
+                    <div style={{ fontSize: 13, fontWeight: 700, color: navy, marginBottom: 14, fontFamily: "'Outfit',sans-serif", display: 'flex', alignItems: 'center', gap: 6 }}><SvgIcon name="clipboard" size={13} color={navy} /> Phrase-by-phrase breakdown</div>
                     {result.phrases.map((p, i) => {
                       const cfg = RATING_CONFIG[p.rating]
                       return (
@@ -398,7 +399,7 @@ export default function ZeugnisPage() {
                             <div style={{ flex: 1, minWidth: 200 }}>
                               <div style={{ fontSize: 13, fontStyle: 'italic', color: '#374151', marginBottom: 4 }}>"{p.original}"</div>
                               <div style={{ fontSize: 12, color: '#6b7c93', lineHeight: 1.55 }}>{p.decoded}</div>
-                              {p.tip && <div style={{ fontSize: 11, color: blue, marginTop: 4 }}>💡 {p.tip}</div>}
+                              {p.tip && <div style={{ fontSize: 11, color: blue, marginTop: 4, display: 'flex', alignItems: 'center', gap: 4 }}><SvgIcon name="bulb" size={11} color={blue} /> {p.tip}</div>}
                             </div>
                             <span style={{ fontSize: 11, padding: '3px 10px', borderRadius: 20, background: cfg.bg, color: cfg.color, fontWeight: 700, flexShrink: 0, whiteSpace: 'nowrap' }}>
                               {cfg.label}
@@ -412,7 +413,7 @@ export default function ZeugnisPage() {
                   {/* Missing phrases */}
                   {result.missingPhrases.length > 0 && (
                     <div style={{ ...cardStyle, borderLeft: `4px solid ${orange}` }}>
-                      <div style={{ fontSize: 13, fontWeight: 700, color: orange, marginBottom: 10, fontFamily: "'Outfit',sans-serif" }}>📭 Missing phrases — absent from your Zeugnis</div>
+                      <div style={{ fontSize: 13, fontWeight: 700, color: orange, marginBottom: 10, fontFamily: "'Outfit',sans-serif" }}>Missing phrases — absent from your Zeugnis</div>
                       <p style={{ fontSize: 12, color: '#9aafbc', margin: '0 0 10px' }}>A Grade 1–2 Zeugnis would typically include these. Their absence signals a weaker reference.</p>
                       {result.missingPhrases.map((m, i) => (
                         <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 0', borderBottom: i < result.missingPhrases.length - 1 ? '1px solid #fef9ec' : 'none' }}>
@@ -426,7 +427,7 @@ export default function ZeugnisPage() {
                   {/* Legal grounds for correction */}
                   {result.correctionGrounds && (
                     <div style={{ ...cardStyle, background: '#f0f9ff', border: '1px solid #bae6fd' }}>
-                      <div style={{ fontSize: 12, fontWeight: 700, color: blue, marginBottom: 6 }}>⚖️ Legal basis for requesting a correction</div>
+                      <div style={{ fontSize: 12, fontWeight: 700, color: blue, marginBottom: 6 }}>Legal basis for requesting a correction</div>
                       <p style={{ fontSize: 13, color: '#374151', margin: 0, lineHeight: 1.6 }}>{result.correctionGrounds}</p>
                     </div>
                   )}
@@ -440,7 +441,7 @@ export default function ZeugnisPage() {
             <>
               {/* Sub-tabs */}
               <div style={{ display: 'flex', gap: 8, marginBottom: 20 }}>
-                {([['initial', '📄 Request Zeugnis'], ['correction', '✏️ Request Correction']] as const).map(([key, label]) => (
+                {([['initial', 'Request Zeugnis'], ['correction', 'Request Correction']] as const).map(([key, label]) => (
                   <button key={key} className="zt-tab" onClick={() => { setReqTab(key); setLetter('') }}
                     style={{ padding: '8px 18px', borderRadius: 10, border: `1.5px solid ${reqTab === key ? blue : '#dce4ef'}`, background: reqTab === key ? blue + '12' : '#fff', color: reqTab === key ? blue : '#6b7c93', fontSize: 12, fontWeight: reqTab === key ? 700 : 400, cursor: 'pointer', fontFamily: 'inherit' }}>
                     {label}
@@ -451,8 +452,8 @@ export default function ZeugnisPage() {
               {/* Context banner */}
               <div style={{ padding: '12px 16px', borderRadius: 10, background: reqTab === 'correction' ? '#fff0f0' : '#f0f9ff', border: `1px solid ${reqTab === 'correction' ? '#fca5a5' : '#bae6fd'}`, marginBottom: 16, fontSize: 13, color: '#374151', lineHeight: 1.6 }}>
                 {reqTab === 'initial'
-                  ? '📄 Use this to request your Zeugnis after leaving a job. Under § 109 GewO, your employer must provide it within a reasonable time.'
-                  : `✏️ Use this if your Zeugnis contains coded negative language. ${result ? `We've pre-loaded the red flags from your decoded Zeugnis.` : 'Run the Decoder first to automatically load your flagged phrases.'}`}
+                  ? 'Use this to request your Zeugnis after leaving a job. Under § 109 GewO, your employer must provide it within a reasonable time.'
+                  : `Use this if your Zeugnis contains coded negative language. ${result ? `We've pre-loaded the red flags from your decoded Zeugnis.` : 'Run the Decoder first to automatically load your flagged phrases.'}`}
               </div>
 
               {/* Form */}
@@ -484,7 +485,7 @@ export default function ZeugnisPage() {
                 <div style={cardStyle}>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14, flexWrap: 'wrap', gap: 10 }}>
                     <div style={{ fontSize: 14, fontWeight: 700, color: navy, fontFamily: "'Outfit',sans-serif" }}>
-                      {reqTab === 'initial' ? '📄 Request Letter' : '✏️ Correction Request Letter'}
+                      {reqTab === 'initial' ? 'Request Letter' : 'Correction Request Letter'}
                     </div>
                     <div style={{ display: 'flex', gap: 8 }}>
                       <button onClick={copyLetter}
@@ -494,7 +495,7 @@ export default function ZeugnisPage() {
                       {form.hrEmail && (
                         <a href={mailtoLink()}
                           style={{ padding: '8px 16px', borderRadius: 8, border: 'none', background: `linear-gradient(135deg,${blue},#2563eb)`, color: '#fff', fontSize: 12, fontWeight: 700, textDecoration: 'none', cursor: 'pointer', fontFamily: 'inherit' }}>
-                          ✉️ Send via Email
+                          Send via Email
                         </a>
                       )}
                     </div>
@@ -504,7 +505,7 @@ export default function ZeugnisPage() {
                   </pre>
                   {!form.hrEmail && (
                     <p style={{ fontSize: 12, color: '#9aafbc', marginTop: 10 }}>
-                      💡 Add an HR email above to get a direct "Send via Email" button.
+                      Add an HR email above to get a direct "Send via Email" button.
                     </p>
                   )}
                 </div>
