@@ -69,6 +69,11 @@ export const SS = {
 
   // AI Assistant
   aiMessages:          'jl_ai_messages',
+
+  // Interview Prep — written by interview page, read by Kira
+  interviewRole:       'jl_interview_role',
+  interviewCompany:    'jl_interview_company',
+  interviewCurrentQ:   'jl_interview_current_q',
 } as const
 
 // ── localStorage keys ───────────────────────────────────────────────────────

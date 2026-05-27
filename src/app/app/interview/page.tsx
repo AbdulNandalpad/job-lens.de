@@ -4,7 +4,7 @@ import { useState, useRef } from 'react'
 import Navbar from '../components/Navbar'
 import { theme } from '@/lib/theme'
 import { useLanguage } from '@/lib/i18n'
-import { API, CREDIT_COST, MARKET } from '@/lib/constants'
+import { API, CREDIT_COST, MARKET, SS } from '@/lib/constants'
 import SvgIcon from '@/components/SvgIcon'
 
 const { colors: c, gradients: g, fonts: f } = theme
@@ -64,6 +64,10 @@ export default function InterviewPrepPage() {
       const data = await res.json()
       if (!res.ok) { setError(data.error || 'Failed to generate questions'); return }
       setQuestions(data.questions)
+      // Write context so Kira knows what you're practising
+      sessionStorage.setItem(SS.interviewRole, role.trim())
+      sessionStorage.setItem(SS.interviewCompany, company.trim())
+      sessionStorage.removeItem(SS.interviewCurrentQ)
     } catch { setError('Something went wrong. Please try again.') }
     setLoading(false)
   }
@@ -71,6 +75,8 @@ export default function InterviewPrepPage() {
   async function getFeedback(q: Question) {
     const answer = answers[q.id]?.trim()
     if (!answer) return
+    // Tell Kira which question you're currently working on
+    sessionStorage.setItem(SS.interviewCurrentQ, q.question)
     setLoadingFb(p => ({ ...p, [q.id]: true }))
     try {
       const res  = await fetch(API.interviewFeedback, {

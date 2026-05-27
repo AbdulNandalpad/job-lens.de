@@ -246,6 +246,11 @@ export async function POST(req: NextRequest) {
   // Cap CV text server-side (client may send full file)
   const cvText: string = typeof body.cvText === 'string' ? body.cvText.slice(0, 8000) : ''
 
+  // Interview context — set by interview page, gives Kira role/question awareness
+  const interviewCtx = body.interviewCtx && typeof body.interviewCtx.role === 'string'
+    ? body.interviewCtx as { role: string; company: string; currentQ: string }
+    : null
+
   // Cap message history — prevent context explosion and API abuse
   const rawMessages: ChatMessage[] = Array.isArray(body.messages) ? body.messages : []
   const messages = rawMessages
@@ -264,8 +269,12 @@ export async function POST(req: NextRequest) {
     ? `\n\nUSER CV (use this to personalise advice and score job matches):\n${cvText.slice(0, 5000)}`
     : '\n\nNo CV uploaded yet — you can still help, but cannot personalise match scores without one.'
 
+  const interviewCtxStr = interviewCtx
+    ? `\n\nINTERVIEW MODE: The user is on the Interview Prep page practising for a ${interviewCtx.role} role${interviewCtx.company ? ` at ${interviewCtx.company}` : ''}. Help them prepare without repeating what the page already shows.${interviewCtx.currentQ ? `\nCurrent question they are working on: "${interviewCtx.currentQ}"\nYou can help them structure a STAR answer, give tips, or do a quick mock Q&A. Keep replies short and actionable.` : '\nThey have just generated questions. You can offer STAR method tips, what to expect for this role, or how to handle nerves.'}`
+    : ''
+
   const basePrompt = mode === 'cv_discuss' ? CV_DISCUSS_SYSTEM : BASE_SYSTEM
-  const systemContent = basePrompt + marketCtx + cvCtx
+  const systemContent = basePrompt + marketCtx + cvCtx + interviewCtxStr
 
   // Stream setup
   const encoder = new TextEncoder()

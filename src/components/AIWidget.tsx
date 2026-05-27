@@ -698,6 +698,12 @@ export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
           market,
           isVoice,
           ...(cvDiscussModeRef.current ? { mode: 'cv_discuss' } : {}),
+          interviewCtx: (() => {
+            const r = sessionStorage.getItem(SS.interviewRole)
+            const c = sessionStorage.getItem(SS.interviewCompany)
+            const q = sessionStorage.getItem(SS.interviewCurrentQ)
+            return r ? { role: r, company: c || '', currentQ: q || '' } : null
+          })(),
         }),
       })
 
