@@ -4,6 +4,7 @@ import { useState, useRef, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useCredits } from '@/lib/useCredits'
 import CrossMarketModal from '@/components/CrossMarketModal'
+import CareerCard from '@/components/CareerCard'
 import { CREDIT_COST, MARKET, SS, API } from '@/lib/constants'
 
 const orange = '#ff9933'
@@ -319,6 +320,20 @@ export default function ProfileAnalysisPage() {
                         )}
                       </div>
                     </div>
+                  </div>
+
+                  {/* Share Career Card */}
+                  <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                    <CareerCard accentColor={orange} data={{
+                      score: result.score,
+                      readiness: result.readiness,
+                      headline: result.headline,
+                      strengths: result.strengths,
+                      salaryMin: result.salary_min,
+                      salaryMax: result.salary_max,
+                      salaryCurrency: result.salary_currency,
+                      market: 'in',
+                    }} />
                   </div>
 
                   {/* Tabs */}

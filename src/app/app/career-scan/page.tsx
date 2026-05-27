@@ -8,6 +8,7 @@ import { theme } from '@/lib/theme'
 import { useCredits } from '@/lib/useCredits'
 import { useLanguage } from '@/lib/i18n'
 import CrossMarketModal from '@/components/CrossMarketModal'
+import CareerCard from '@/components/CareerCard'
 import { CREDIT_COST, LOW_CREDIT_WARN, MARKET, SS, API } from '@/lib/constants'
 
 const { colors: c, gradients: g, fonts: f } = theme
@@ -409,10 +410,22 @@ export default function CareerScanPage() {
       )}
 
       {/* Header + mode toggle — hidden when domain mismatch */}
-      {!result.domain_mismatch && <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+      {!result.domain_mismatch && <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 10 }}>
         <div>
           <div style={{ fontFamily: f.heading, fontSize: 18, fontWeight: 700, color: c.primary }}>{cs.results.title}</div>
           <div style={{ fontSize: 12, color: c.textMuted, marginTop: 2 }}>{result.headline}</div>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+          <CareerCard data={{
+            score: result.score,
+            readiness: result.readiness,
+            headline: result.headline,
+            strengths: result.strengths,
+            salaryMin: result.salary_min,
+            salaryMax: result.salary_max,
+            salaryCurrency: result.salary_currency,
+            market: 'eu',
+          }} />
         </div>
         <div style={{ display: 'flex', background: c.bg, borderRadius: 10, padding: 3, gap: 2 }}>
           {(['insights', 'roast', 'upgrade'] as Mode[]).map(m => (

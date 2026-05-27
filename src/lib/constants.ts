@@ -11,6 +11,7 @@ export const CREDIT_COST = {
   visaCheck:       1,  // /api/visa — Fachkräfte eligibility analysis
   aiChat:          1,  // /api/ai/chat — 1 credit per AI_CHAT_FREE_MESSAGES block after free tier
   interviewPrep:   1,  // /api/interview/questions — generate 5 interview questions
+  salarySim:       1,  // /api/salary-sim — start a salary negotiation session
 } as const
 
 // First N Kira messages are free; 1 credit charged per N messages after that
@@ -101,4 +102,5 @@ export const API = {
   applications:         '/api/applications',
   interviewQuestions:   '/api/interview/questions',
   interviewFeedback:    '/api/interview/feedback',
+  salarySim:            '/api/salary-sim',
 } as const
