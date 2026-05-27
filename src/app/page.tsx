@@ -31,13 +31,14 @@ const translations = {
     statsDescs: ['Marktfokus', 'Gestützte Analyse', 'Career Scan', 'Lebenslauf'],
     featuresTitle: 'Alles, was du für deinen nächsten Job brauchst',
     featuresSub: 'Speziell für Deutschland, die Schweiz und Österreich entwickelt',
+    featuresExplore: 'Alle Funktionen entdecken →',
     features: [
-      { title: 'Career Scan', desc: 'Lade deinen Lebenslauf hoch und erhalte eine ehrliche KI-Analyse — Stärken, Lücken, Gehaltsschätzung und Quick-Wins in 30 Sekunden.', cta: 'Profil scannen' },
-      { title: 'Intelligente Jobsuche', desc: 'Die KI liest deinen Lebenslauf und findet die besten passenden Stellen in Deutschland und der Schweiz. Aktuelle Angebote, echte Unternehmen.', cta: 'Passende Jobs finden' },
-      { title: 'Lebenslauf & Anschreiben', desc: 'Ein Klick, um einen maßgeschneiderten Lebenslauf und ein Anschreiben zu erstellen. Optimiert für ATS und DACH-Personalverantwortliche.', cta: 'Lebenslauf anpassen' },
-      { title: 'Interview-Training', desc: '5 rollenspezifische Fragen — Verhalten, Fachkompetenz, Situationsverständnis. Antworte per Sprache oder Text, erhalte sofortiges KI-Feedback und einen Score.', cta: 'Interview üben' },
-      { title: 'Bewerbungs-Tracker', desc: 'Behalte alle Bewerbungen im Blick — von "Gespeichert" bis "Angebot". Aktualisiere den Status mit einem Klick, verfolge Vorstellungsgespräche und Angebote.', cta: 'Tracker öffnen' },
-      { title: 'Auto-Bewerbung', desc: 'Zeige auf eine Stellenanzeige und die KI füllt das gesamte Bewerbungsformular — Felder, Anschreiben, Datei-Uploads. Du überprüfst nur und klickst auf Senden.', cta: 'Auto-Bewerbung testen' },
+      { title: 'Career Scan', desc: 'KI-Score, Gehaltsschätzung, Stärken & Lücken — in 30 Sek.' },
+      { title: 'Intelligente Jobsuche', desc: 'Passende DACH-Stellen, abgestimmt auf deinen Lebenslauf.' },
+      { title: 'Lebenslauf & Anschreiben', desc: 'Maßgeschneidert für jede Stelle, ATS-optimiert.' },
+      { title: 'Interview-Training', desc: 'Rollenspezifische Fragen mit sofortigem KI-Feedback.' },
+      { title: 'Bewerbungs-Tracker', desc: 'Alle Bewerbungen im Blick — von Gespeichert bis Angebot.' },
+      { title: 'Auto-Bewerbung', desc: 'KI füllt das gesamte Bewerbungsformular automatisch aus.' },
     ],
     howTitle: 'So funktioniert es',
     howSub: 'Vom Lebenslauf-Upload bis zur eingereichten Bewerbung in Minuten',
@@ -108,13 +109,14 @@ const translations = {
     statsDescs: ['Market focus', 'Powered analysis', 'Career scan', 'CV tailoring'],
     featuresTitle: 'Everything you need to land your next role',
     featuresSub: 'Built specifically for Germany, Switzerland and Austria',
+    featuresExplore: 'Explore all features →',
     features: [
-      { title: 'Career Scan', desc: 'Upload your CV and get an honest AI analysis — strengths, gaps, salary estimate, and quick wins in 30 seconds.', cta: 'Scan my profile' },
-      { title: 'Smart Job Search', desc: 'AI reads your CV and finds the best matching jobs across Germany and Switzerland. Live postings, real companies.', cta: 'Find matching jobs' },
-      { title: 'CV & Cover Letter', desc: 'One click to generate a tailored CV and cover letter for any job. Optimised for ATS and DACH hiring managers.', cta: 'Tailor my CV' },
-      { title: 'Interview Prep', desc: '5 role-specific questions — behavioural, technical, situational. Answer by voice or text, get instant AI feedback with a score and a model answer.', cta: 'Practice interviews' },
-      { title: 'Application Tracker', desc: 'Track every application from Saved to Offer. Update status in one click, monitor interviews and offers — all synced to your account.', cta: 'Open tracker' },
-      { title: 'Auto Apply', desc: 'Point it at any job listing and AI fills the whole application form for you — fields, cover letter, file uploads. You just review and hit submit.', cta: 'Try Auto Apply' },
+      { title: 'Career Scan', desc: 'AI score, salary estimate, strengths and gaps — in 30 seconds.' },
+      { title: 'Smart Job Search', desc: 'Best-matched DACH jobs pulled from your CV automatically.' },
+      { title: 'CV & Cover Letter', desc: 'One-click tailored CV and cover letter, ATS-optimised.' },
+      { title: 'Interview Prep', desc: 'Role-specific questions with instant AI feedback and scoring.' },
+      { title: 'Application Tracker', desc: 'Track every application from Saved to Offer in one place.' },
+      { title: 'Auto Apply', desc: 'AI fills the entire application form for you automatically.' },
     ],
     howTitle: 'How it works',
     howSub: 'From CV upload to submitted application in minutes',
@@ -237,12 +239,9 @@ export default function HomePage() {
           background: #fff;
           border: 1.5px solid ${c.border};
           border-radius: 16px;
-          padding: 28px;
-          display: flex;
-          flex-direction: column;
-          gap: 14px;
-          cursor: default;
-          transition: border-color 0.25s, box-shadow 0.25s, transform 0.25s;
+          padding: 22px;
+          cursor: pointer;
+          transition: border-color 0.2s, box-shadow 0.2s, transform 0.2s;
         }
         .jl-feat-card:hover {
           border-color: ${c.accent};
@@ -449,13 +448,14 @@ export default function HomePage() {
 
         <div className="jl-feature-grid">
           {t.features.map((feat, idx) => (
-            <div
+            <Link
               key={feat.title}
+              href={featureHrefs[idx]}
               className="jl-card jl-feat-card"
-              style={{ animationDelay: `${idx * 0.12}s` }}
+              style={{ animationDelay: `${idx * 0.12}s`, textDecoration: 'none', display: 'flex', flexDirection: 'column' as const, gap: 10 }}
             >
-              <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
-                <div style={{ width: 52, height: 52, borderRadius: 14, background: featureBgs[idx], display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 26 }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <div style={{ width: 44, height: 44, borderRadius: 12, background: featureBgs[idx], display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22 }}>
                   {featureIcons[idx]}
                 </div>
                 {featureBadges[idx] && (
@@ -464,13 +464,17 @@ export default function HomePage() {
                   </span>
                 )}
               </div>
-              <div style={{ fontFamily: f.heading, fontSize: 17, fontWeight: 700, color: c.primary }}>{feat.title}</div>
-              <div style={{ fontSize: 13, color: c.textMuted, lineHeight: 1.75, flex: 1 }}>{feat.desc}</div>
-              <Link href={featureHrefs[idx]} style={{ fontSize: 13, padding: '10px 18px', borderRadius: 9, background: g.primaryBtn, color: '#fff', textDecoration: 'none', fontWeight: 600, display: 'inline-block', textAlign: 'center' as const, fontFamily: f.heading }}>
-                {feat.cta} &rarr;
-              </Link>
-            </div>
+              <div style={{ fontFamily: f.heading, fontSize: 15, fontWeight: 700, color: c.primary }}>{feat.title}</div>
+              <div style={{ fontSize: 13, color: c.textMuted, lineHeight: 1.6 }}>{feat.desc}</div>
+            </Link>
           ))}
+        </div>
+
+        {/* Single explore CTA */}
+        <div style={{ textAlign: 'center', marginTop: 32 }}>
+          <Link href={go('/app/career-scan')} style={{ fontSize: 14, fontWeight: 600, color: c.accent, textDecoration: 'none', fontFamily: f.heading }}>
+            {t.featuresExplore}
+          </Link>
         </div>
 
         {/* ── How it works ── */}
