@@ -300,6 +300,36 @@ export default function HomePage() {
           .jl-home-greeting { display: none !important; }
           .jl-home-nav-links { display: none !important; }
         }
+
+        /* ── Mobile section spacing ── */
+        .jl-section { padding: 80px 24px 56px; }
+        @media (max-width: 768px) { .jl-section { padding: 48px 16px 40px; } }
+
+        /* ── Hero trust bar ── */
+        .jl-hero-trust { display: flex; align-items: center; justify-content: center; gap: 14px; flex-wrap: wrap; font-size: 12px; color: rgba(255,255,255,0.3); }
+        @media (max-width: 480px) { .jl-hero-trust { gap: 8px; font-size: 11px; } .jl-hero-trust .jl-dot { display: none; } }
+
+        /* ── Kira hero teaser ── */
+        .jl-kira-teaser { display: inline-flex; align-items: center; gap: 14px; border-radius: 20px; padding: 14px 18px 14px 14px; max-width: 480px; width: 100%; }
+        @media (max-width: 480px) { .jl-kira-teaser { gap: 10px; padding: 12px 14px; } .jl-kira-teaser-cta { display: none !important; } }
+
+        /* ── Kira demo section ── */
+        .jl-kira-demo-box { border-radius: 24px; padding: 64px 32px 52px; position: relative; overflow: hidden; }
+        @media (max-width: 768px) { .jl-kira-demo-box { padding: 40px 16px 36px; border-radius: 16px; } }
+
+        /* ── How it works section ── */
+        @media (max-width: 480px) { .jl-step { padding-bottom: 20px !important; } }
+
+        /* ── Hero ── */
+        @media (max-width: 768px) { .jl-hero { padding: 52px 20px 80px !important; } }
+        @media (max-width: 480px) { .jl-hero { padding: 40px 16px 72px !important; } }
+
+        /* ── Sub-sections inside main wrapper ── */
+        .jl-subsection { margin-top: 80px; }
+        @media (max-width: 768px) { .jl-subsection { margin-top: 48px; } }
+
+        /* ── Bottom CTA block ── */
+        @media (max-width: 768px) { .jl-cta-block { padding: 40px 20px !important; border-radius: 16px !important; } }
       `}</style>
 
       {/* ── Navbar ── */}
@@ -364,7 +394,7 @@ export default function HomePage() {
       </div>
 
       {/* ── Hero ── */}
-      <div style={{ background: g.hero, padding: '80px 24px 108px', textAlign: 'center', position: 'relative', overflow: 'hidden' }}>
+      <div className="jl-hero" style={{ background: g.hero, padding: '80px 24px 108px', textAlign: 'center', position: 'relative', overflow: 'hidden' }}>
         <div style={{ position: 'relative', zIndex: 1, maxWidth: 680, margin: '0 auto' }}>
           <div className="jl-hero-tag" style={{ display: 'inline-flex', alignItems: 'center', gap: 8, marginBottom: 24 }}>
             <span style={{ fontSize: 12, fontWeight: 600, color: 'rgba(255,255,255,0.5)', background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.12)', padding: '5px 16px', borderRadius: 20, letterSpacing: 0.5 }}>
@@ -391,12 +421,10 @@ export default function HomePage() {
 
           {/* Kira hero teaser */}
           <div style={{ marginTop: 36, display: 'flex', justifyContent: 'center' }}>
-            <a href="#kira-demo" style={{
-              display: 'inline-flex', alignItems: 'center', gap: 14,
+            <a href="#kira-demo" className="jl-kira-teaser" style={{
               background: 'linear-gradient(135deg,rgba(109,40,217,0.18),rgba(55,138,221,0.14))',
               border: '1px solid rgba(255,255,255,0.14)',
-              borderRadius: 20, padding: '14px 18px 14px 14px',
-              textDecoration: 'none', maxWidth: 480,
+              textDecoration: 'none',
               transition: 'border-color 0.2s, background 0.2s',
               backdropFilter: 'blur(12px)',
             }}>
@@ -414,18 +442,18 @@ export default function HomePage() {
                   {t.kiraHeroMsg}
                 </div>
               </div>
-              {/* CTA */}
-              <div style={{ flexShrink: 0, padding: '8px 16px', borderRadius: 10, background: 'linear-gradient(135deg,#6D28D9,#378ADD)', color: '#fff', fontSize: 12, fontWeight: 700, fontFamily: f.heading, whiteSpace: 'nowrap' as const, boxShadow: '0 4px 12px rgba(109,40,217,0.4)' }}>
+              {/* CTA — hidden on very small screens via .jl-kira-teaser-cta */}
+              <div className="jl-kira-teaser-cta" style={{ flexShrink: 0, padding: '8px 16px', borderRadius: 10, background: 'linear-gradient(135deg,#6D28D9,#378ADD)', color: '#fff', fontSize: 12, fontWeight: 700, fontFamily: f.heading, whiteSpace: 'nowrap' as const, boxShadow: '0 4px 12px rgba(109,40,217,0.4)' }}>
                 {t.kiraHeroBtn}
               </div>
             </a>
           </div>
 
-          <div style={{ marginTop: 20, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 18, fontSize: 12, color: 'rgba(255,255,255,0.3)' }}>
+          <div className="jl-hero-trust" style={{ marginTop: 20 }}>
             <span>{t.madeIn}</span>
-            <span style={{ opacity: 0.4 }}>·</span>
+            <span className="jl-dot" style={{ opacity: 0.4 }}>·</span>
             <span>{t.dataNote}</span>
-            <span style={{ opacity: 0.4 }}>·</span>
+            <span className="jl-dot" style={{ opacity: 0.4 }}>·</span>
             <span>{t.freeCredits}</span>
           </div>
         </div>
@@ -444,7 +472,7 @@ export default function HomePage() {
       </div>
 
       {/* ── Features ── */}
-      <div style={{ maxWidth: 1100, margin: '0 auto', padding: '80px 24px 56px' }}>
+      <div className="jl-section" style={{ maxWidth: 1100, margin: '0 auto' }}>
         <div style={{ textAlign: 'center', marginBottom: 44 }}>
           <div style={{ fontFamily: f.heading, fontSize: 26, fontWeight: 700, color: c.primary, marginBottom: 10 }}>
             {t.featuresTitle}
@@ -479,7 +507,7 @@ export default function HomePage() {
         </div>
 
         {/* ── How it works ── */}
-        <div style={{ marginTop: 80 }}>
+        <div className="jl-subsection">
           <div style={{ textAlign: 'center', marginBottom: 52 }}>
             <div style={{ fontFamily: f.heading, fontSize: 26, fontWeight: 700, color: c.primary, marginBottom: 10 }}>{t.howTitle}</div>
             <div style={{ fontSize: 14, color: c.textMuted }}>{t.howSub}</div>
@@ -540,11 +568,9 @@ export default function HomePage() {
         </div>
 
         {/* ── Kira Section ── */}
-        <div id="kira-demo" style={{ marginTop: 80 }}>
-          <div style={{
+        <div id="kira-demo" className="jl-subsection">
+          <div className="jl-kira-demo-box" style={{
             background: 'linear-gradient(160deg,#0c1c30 0%,#08121f 100%)',
-            borderRadius: 24, padding: '64px 32px 52px',
-            position: 'relative', overflow: 'hidden',
           }}>
             {/* Background glow */}
             <div style={{ position: 'absolute', top: -80, left: '50%', transform: 'translateX(-50%)', width: 600, height: 320, background: 'radial-gradient(ellipse, rgba(109,40,217,0.18) 0%, rgba(55,138,221,0.1) 45%, transparent 70%)', pointerEvents: 'none' }} />
@@ -595,7 +621,7 @@ export default function HomePage() {
         </div>
 
         {/* ── Pricing ── */}
-        <div style={{ marginTop: 80 }}>
+        <div className="jl-subsection">
           <div style={{ textAlign: 'center', marginBottom: 52 }}>
             <div style={{ fontFamily: f.heading, fontSize: 26, fontWeight: 700, color: c.primary, marginBottom: 10 }}>{t.pricingTitle}</div>
             <div style={{ fontSize: 14, color: c.textMuted, maxWidth: 480, margin: '0 auto', lineHeight: 1.65 }}>
@@ -693,7 +719,7 @@ export default function HomePage() {
         </div>
 
         {/* ── Bottom CTA ── */}
-        <div style={{ marginTop: 80, background: g.ctaBlock, borderRadius: 20, padding: '56px 32px', textAlign: 'center' }}>
+        <div className="jl-subsection jl-cta-block" style={{ background: g.ctaBlock, borderRadius: 20, padding: '56px 32px', textAlign: 'center' }}>
           <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)', marginBottom: 16, letterSpacing: 0.5 }}>
             {t.ctaTag}
           </div>
