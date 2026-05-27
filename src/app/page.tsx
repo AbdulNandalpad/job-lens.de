@@ -51,19 +51,50 @@ const translations = {
       { title: 'Mit einem Klick bewerben', desc: 'Maßgeschneiderter Lebenslauf und Anschreiben pro Stelle — oder lass Auto-Bewerbung das Formular ausfüllen.' },
     ],
     pricingTitle: 'Einfache, transparente Preise',
-    pricingSub: 'Einmal kaufen, jederzeit nutzen. Credits verfallen nie — ideal für eine fokussierte Jobsuche.',
-    freeTierSub: 'Dauerhaft kostenlos · keine Karte nötig',
-    freeFeatures: ['5 Credits bei Registrierung', 'Career Scan (Vorschau)', 'Unbegrenzte Jobsuche', 'Intelligentes Job-Matching'],
+    pricingSub: 'Einmal kaufen, jederzeit nutzen. Credits verfallen nie — kein Abo, kein Stress.',
+    plans: [
+      {
+        name: 'Free',
+        price: '0',
+        sub: 'Dauerhaft kostenlos · keine Karte nötig',
+        credits: '5 Credits',
+        features: ['5 Credits bei Registrierung', 'Career Scan — Vorschau', 'Unbegrenzte Jobsuche', 'KI-Jobmatching'],
+        cta: 'Kostenlos starten',
+        raised: false,
+        badge: null,
+      },
+      {
+        name: 'Starter',
+        price: '4,99',
+        sub: '20 Credits · verfallen nie',
+        credits: '~5 Bewerbungen',
+        features: ['20 Credits', 'Career Scan — 2 Credits', 'Lebenslauf-Anpassung — 1 Credit', 'Anschreiben — 1 Credit', 'Interview-Training — 1 Credit'],
+        cta: 'Starter holen',
+        raised: false,
+        badge: null,
+      },
+      {
+        name: 'Job Hunt',
+        price: '9,99',
+        sub: '50 Credits · verfallen nie',
+        credits: '~12 Bewerbungen',
+        features: ['50 Credits', 'Career Scan — 2 Credits', 'Lebenslauf-Anpassung — 1 Credit', 'Anschreiben — 1 Credit', 'Interview + Gehalts-Sim — je 1 Credit'],
+        cta: 'Job Hunt holen',
+        raised: true,
+        badge: '★ BELIEBTESTE WAHL',
+      },
+      {
+        name: 'Full Sprint',
+        price: '13,99',
+        sub: '120 Credits · verfallen nie',
+        credits: '~30 Bewerbungen',
+        features: ['120 Credits', 'Alles aus Job Hunt', 'Mehrmonatige Jobsuche', 'Auto-Bewerbung — 3 Credits', 'Ideal für Karrierewechsler'],
+        cta: 'Full Sprint holen',
+        raised: false,
+        badge: null,
+      },
+    ] as { name: string; price: string; sub: string; credits: string; features: string[]; cta: string; raised: boolean; badge: string | null }[],
     startFree: 'Kostenlos starten',
-    popularBadge: '★ BELIEBTESTE WAHL',
-    jobHuntSub: '60 Credits · verfallen nie',
-    jobHuntFeatures: ['60 Credits (~20 komplette Bewerbungen)', 'Lebenslauf-Anpassung — 1 Credit', 'Anschreiben — 1 Credit', 'Career Scan — 2 Credits', 'Auto-Bewerbung — 3 Credits'],
-    jobHuntNote: 'Bestes Preis-Leistungs-Verhältnis für aktive Bewerber',
-    getJobHunt: 'Job Hunt holen',
-    fullSprintSub: '150 Credits · verfallen nie',
-    fullSprintFeatures: ['150 Credits (~50 komplette Bewerbungen)', 'Alles aus Job Hunt', 'Mehrmonatige Jobsuche', 'Ideal für Karrierewechsler'],
-    starterNote: 'Auch erhältlich: Starter-Paket €4,99 / 20 Credits',
-    getFullSprint: 'Full Sprint holen',
     kiraHeroMsg: 'Dein nächster Job ist ein Gespräch entfernt.',
     kiraHeroBtn: 'Kira kennenlernen ↓',
     demoTag: '✨ Kira Preview',
@@ -131,19 +162,50 @@ const translations = {
       { title: 'Apply in one click', desc: 'Tailored CV and cover letter per job — or let Auto Apply fill the whole form for you.' },
     ],
     pricingTitle: 'Simple, honest pricing',
-    pricingSub: 'Buy once, use anytime. Credits never expire — perfect for a focused job search.',
-    freeTierSub: 'Forever free · no card needed',
-    freeFeatures: ['5 credits on signup', 'Career Scan (preview)', 'Unlimited job browsing', 'Smart job matching'],
+    pricingSub: 'Buy once, use anytime. Credits never expire — no subscription, no pressure.',
+    plans: [
+      {
+        name: 'Free',
+        price: '0',
+        sub: 'Forever free · no card needed',
+        credits: '5 credits',
+        features: ['5 credits on signup', 'Career Scan — preview', 'Unlimited job browsing', 'Smart job matching'],
+        cta: 'Start free',
+        raised: false,
+        badge: null,
+      },
+      {
+        name: 'Starter',
+        price: '4.99',
+        sub: '20 credits · never expire',
+        credits: '~5 applications',
+        features: ['20 credits', 'Career Scan — 2 credits', 'CV tailoring — 1 credit each', 'Cover letter — 1 credit each', 'Interview Prep — 1 credit'],
+        cta: 'Get Starter',
+        raised: false,
+        badge: null,
+      },
+      {
+        name: 'Job Hunt',
+        price: '9.99',
+        sub: '50 credits · never expire',
+        credits: '~12 applications',
+        features: ['50 credits', 'Career Scan — 2 credits', 'CV tailoring — 1 credit each', 'Cover letter — 1 credit each', 'Interview + Salary Sim — 1 credit each'],
+        cta: 'Get Job Hunt',
+        raised: true,
+        badge: '★ MOST POPULAR',
+      },
+      {
+        name: 'Full Sprint',
+        price: '13.99',
+        sub: '120 credits · never expire',
+        credits: '~30 applications',
+        features: ['120 credits', 'Everything in Job Hunt', 'Multi-month job search', 'Auto Apply — 3 credits', 'Ideal for career changers'],
+        cta: 'Get Full Sprint',
+        raised: false,
+        badge: null,
+      },
+    ] as { name: string; price: string; sub: string; credits: string; features: string[]; cta: string; raised: boolean; badge: string | null }[],
     startFree: 'Start free',
-    popularBadge: '★ MOST POPULAR',
-    jobHuntSub: '60 credits · never expire',
-    jobHuntFeatures: ['60 credits (~20 full applications)', 'CV tailoring — 1 credit each', 'Cover letter — 1 credit each', 'Career Scan — 2 credits', 'Auto Apply — 3 credits'],
-    jobHuntNote: 'Best value for active job seekers',
-    getJobHunt: 'Get Job Hunt',
-    fullSprintSub: '150 credits · never expire',
-    fullSprintFeatures: ['150 credits (~50 full applications)', 'Everything in Job Hunt', 'Multi-month job search', 'Ideal for career changers'],
-    starterNote: 'Also available: Starter pack €4.99 / 20 credits',
-    getFullSprint: 'Get Full Sprint',
     kiraHeroMsg: 'Your next job is a conversation away.',
     kiraHeroBtn: 'Meet Kira ↓',
     demoTag: '✨ Kira Preview',
@@ -316,9 +378,10 @@ export default function HomePage() {
         .jl-feature-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
         @media (max-width: 1000px) { .jl-feature-grid { grid-template-columns: repeat(2, 1fr); } }
         @media (max-width: 560px) { .jl-feature-grid { grid-template-columns: 1fr; } }
-        .jl-pricing-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; max-width: 900px; margin: 0 auto; align-items: start; }
-        @media (max-width: 700px) { .jl-pricing-grid { grid-template-columns: 1fr; } }
-        @media (max-width: 700px) { .jl-pricing-grid > *:nth-child(2) { margin-top: 0 !important; } }
+        .jl-pricing-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; max-width: 1040px; margin: 0 auto; align-items: start; }
+        @media (max-width: 900px)  { .jl-pricing-grid { grid-template-columns: repeat(2, 1fr); } }
+        @media (max-width: 560px)  { .jl-pricing-grid { grid-template-columns: 1fr; } }
+        @media (max-width: 900px)  { .jl-pricing-grid > * { margin-top: 0 !important; } }
 
         .jl-steps { display: flex; gap: 0; position: relative; }
         .jl-step { flex: 1; display: flex; flex-direction: column; align-items: center; text-align: center; padding: 0 12px; position: relative; z-index: 1; }
@@ -678,97 +741,77 @@ export default function HomePage() {
 
         {/* ── Pricing ── */}
         <div className="jl-subsection">
-          <div style={{ textAlign: 'center', marginBottom: 52 }}>
+          <div style={{ textAlign: 'center', marginBottom: 48 }}>
             <div style={{ fontFamily: f.heading, fontSize: 26, fontWeight: 700, color: c.primary, marginBottom: 10 }}>{t.pricingTitle}</div>
-            <div style={{ fontSize: 14, color: c.textMuted, maxWidth: 480, margin: '0 auto', lineHeight: 1.65 }}>
-              {t.pricingSub}
-            </div>
+            <div style={{ fontSize: 14, color: c.textMuted, maxWidth: 480, margin: '0 auto', lineHeight: 1.65 }}>{t.pricingSub}</div>
           </div>
 
-          <div className="jl-pricing-grid" style={{ alignItems: 'start' }}>
-
-            {/* Free */}
-            <div style={{ background: '#fff', border: `1.5px solid ${c.border}`, borderRadius: 16, padding: '28px 24px', display: 'flex', flexDirection: 'column' as const, gap: 16 }}>
-              <div>
-                <div style={{ fontSize: 11, fontWeight: 700, color: c.success, letterSpacing: 1, textTransform: 'uppercase' as const, marginBottom: 8 }}>Free</div>
-                <div style={{ display: 'flex', alignItems: 'baseline', gap: 4 }}>
-                  <span style={{ fontFamily: f.heading, fontSize: 34, fontWeight: 700, color: c.primary, lineHeight: 1 }}>€0</span>
-                </div>
-                <div style={{ fontSize: 12, color: c.textMuted, marginTop: 4 }}>{t.freeTierSub}</div>
-              </div>
-              <div style={{ height: 1, background: c.border }} />
-              <div style={{ display: 'flex', flexDirection: 'column' as const, gap: 10, flex: 1 }}>
-                {t.freeFeatures.map(item => (
-                  <div key={item} style={{ display: 'flex', alignItems: 'flex-start', gap: 8, fontSize: 13, color: c.text }}>
-                    <span style={{ color: c.success, fontWeight: 700, fontSize: 15, lineHeight: '1.4', flexShrink: 0 }}>✓</span>
-                    <span>{item}</span>
+          <div className="jl-pricing-grid">
+            {t.plans.map((plan) => (
+              <div key={plan.name} style={{
+                position: 'relative',
+                background: '#fff',
+                border: plan.raised ? `2px solid ${c.accent}` : `1.5px solid ${c.border}`,
+                borderRadius: plan.raised ? 18 : 16,
+                padding: plan.raised ? '40px 24px 28px' : '28px 24px',
+                display: 'flex', flexDirection: 'column' as const, gap: 14,
+                boxShadow: plan.raised ? `0 12px 40px ${c.accent}22, 0 2px 8px rgba(0,0,0,0.05)` : '0 2px 8px rgba(0,0,0,0.04)',
+                marginTop: plan.raised ? -12 : 0,
+              }}>
+                {plan.badge && (
+                  <div style={{ position: 'absolute', top: -13, left: '50%', transform: 'translateX(-50%)', background: g.button, color: '#fff', fontSize: 10, fontWeight: 700, padding: '4px 16px', borderRadius: 20, whiteSpace: 'nowrap' as const, letterSpacing: 0.8, boxShadow: `0 4px 12px ${c.accent}40` }}>
+                    {plan.badge}
                   </div>
-                ))}
-              </div>
-              <Link href={go('/app/career-scan')} style={{ padding: '11px 0', borderRadius: 9, background: c.primaryLight, color: c.navy, textDecoration: 'none', fontWeight: 700, fontFamily: f.heading, fontSize: 13, textAlign: 'center' as const, display: 'block', transition: 'opacity 0.15s' }}>
-                {t.startFree} &rarr;
-              </Link>
-            </div>
+                )}
 
-            {/* Job Hunt — Most Popular */}
-            <div style={{ position: 'relative', background: '#fff', border: `2px solid ${c.accent}`, borderRadius: 18, padding: '36px 24px 28px', display: 'flex', flexDirection: 'column' as const, gap: 16, boxShadow: `0 12px 40px ${c.accent}22, 0 2px 8px rgba(0,0,0,0.06)`, marginTop: -16 }}>
-              <div style={{ position: 'absolute', top: -14, left: '50%', transform: 'translateX(-50%)', background: g.button, color: '#fff', fontSize: 10, fontWeight: 700, padding: '5px 18px', borderRadius: 20, whiteSpace: 'nowrap' as const, letterSpacing: 0.8, boxShadow: `0 4px 12px ${c.accent}40` }}>
-                {t.popularBadge}
-              </div>
-              <div>
-                <div style={{ fontSize: 11, fontWeight: 700, color: c.accent, letterSpacing: 1, textTransform: 'uppercase' as const, marginBottom: 8 }}>Job Hunt</div>
-                <div style={{ display: 'flex', alignItems: 'baseline', gap: 4 }}>
-                  <span style={{ fontFamily: f.heading, fontSize: 34, fontWeight: 700, color: c.primary, lineHeight: 1 }}>€12.99</span>
-                </div>
-                <div style={{ fontSize: 12, color: c.textMuted, marginTop: 4 }}>{t.jobHuntSub}</div>
-              </div>
-              <div style={{ height: 1, background: `${c.accent}22` }} />
-              <div style={{ display: 'flex', flexDirection: 'column' as const, gap: 10, flex: 1 }}>
-                {t.jobHuntFeatures.map(item => (
-                  <div key={item} style={{ display: 'flex', alignItems: 'flex-start', gap: 8, fontSize: 13, color: c.text }}>
-                    <span style={{ color: c.accent, fontWeight: 700, fontSize: 15, lineHeight: '1.4', flexShrink: 0 }}>✓</span>
-                    <span>{item}</span>
+                {/* Name + price */}
+                <div>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: plan.raised ? c.accent : c.success, letterSpacing: 1, textTransform: 'uppercase' as const, marginBottom: 8 }}>{plan.name}</div>
+                  <div style={{ display: 'flex', alignItems: 'baseline', gap: 3 }}>
+                    {plan.price !== '0' && <span style={{ fontFamily: f.heading, fontSize: 16, fontWeight: 600, color: c.textMuted, lineHeight: 1, marginBottom: 2 }}>€</span>}
+                    <span style={{ fontFamily: f.heading, fontSize: 34, fontWeight: 700, color: plan.raised ? c.accent : c.primary, lineHeight: 1 }}>
+                      {plan.price === '0' ? 'Free' : plan.price}
+                    </span>
                   </div>
-                ))}
-                <div style={{ marginTop: 4, padding: '8px 12px', background: c.primaryLight, borderRadius: 8, fontSize: 12, color: c.navy, fontWeight: 600 }}>
-                  {t.jobHuntNote}
-                </div>
-              </div>
-              <Link href={go('/app/account')} style={{ padding: '13px 0', borderRadius: 10, background: g.button, color: '#fff', textDecoration: 'none', fontWeight: 700, fontFamily: f.heading, fontSize: 14, textAlign: 'center' as const, display: 'block', boxShadow: `0 4px 14px ${c.accent}35` }}>
-                {t.getJobHunt} &rarr;
-              </Link>
-            </div>
-
-            {/* Full Sprint */}
-            <div style={{ background: '#fff', border: `1.5px solid ${c.border}`, borderRadius: 16, padding: '28px 24px', display: 'flex', flexDirection: 'column' as const, gap: 16 }}>
-              <div>
-                <div style={{ fontSize: 11, fontWeight: 700, color: c.primary, letterSpacing: 1, textTransform: 'uppercase' as const, marginBottom: 8 }}>Full Sprint</div>
-                <div style={{ display: 'flex', alignItems: 'baseline', gap: 4 }}>
-                  <span style={{ fontFamily: f.heading, fontSize: 34, fontWeight: 700, color: c.primary, lineHeight: 1 }}>€24.99</span>
-                </div>
-                <div style={{ fontSize: 12, color: c.textMuted, marginTop: 4 }}>{t.fullSprintSub}</div>
-              </div>
-              <div style={{ height: 1, background: c.border }} />
-              <div style={{ display: 'flex', flexDirection: 'column' as const, gap: 10, flex: 1 }}>
-                {t.fullSprintFeatures.map(item => (
-                  <div key={item} style={{ display: 'flex', alignItems: 'flex-start', gap: 8, fontSize: 13, color: c.text }}>
-                    <span style={{ color: c.success, fontWeight: 700, fontSize: 15, lineHeight: '1.4', flexShrink: 0 }}>✓</span>
-                    <span>{item}</span>
+                  <div style={{ fontSize: 12, color: c.textMuted, marginTop: 5 }}>{plan.sub}</div>
+                  <div style={{ marginTop: 8, display: 'inline-block', padding: '3px 10px', borderRadius: 20, background: plan.raised ? `${c.accent}12` : c.bg, border: `1px solid ${plan.raised ? c.accent+'33' : c.border}`, fontSize: 11, fontWeight: 700, color: plan.raised ? c.accent : c.textMuted }}>
+                    {plan.credits}
                   </div>
-                ))}
-                <div style={{ marginTop: 4, padding: '8px 12px', background: c.bg, borderRadius: 8, border: `1px solid ${c.border}`, fontSize: 12, color: c.textMuted }}>
-                  {t.starterNote}
                 </div>
-              </div>
-              <Link href={go('/app/account')} style={{ padding: '11px 0', borderRadius: 9, background: c.primaryLight, color: c.navy, textDecoration: 'none', fontWeight: 700, fontFamily: f.heading, fontSize: 13, textAlign: 'center' as const, display: 'block' }}>
-                {t.getFullSprint} &rarr;
-              </Link>
-            </div>
 
+                <div style={{ height: 1, background: plan.raised ? `${c.accent}18` : c.border }} />
+
+                {/* Features */}
+                <div style={{ display: 'flex', flexDirection: 'column' as const, gap: 9, flex: 1 }}>
+                  {plan.features.map(item => (
+                    <div key={item} style={{ display: 'flex', alignItems: 'flex-start', gap: 8, fontSize: 13, color: c.text }}>
+                      <span style={{ color: plan.raised ? c.accent : c.success, fontWeight: 700, fontSize: 14, lineHeight: '1.5', flexShrink: 0 }}>✓</span>
+                      <span>{item}</span>
+                    </div>
+                  ))}
+                </div>
+
+                {/* CTA */}
+                <Link
+                  href={plan.price === '0' ? go('/app/career-scan') : go('/app/account')}
+                  style={{
+                    padding: plan.raised ? '13px 0' : '11px 0',
+                    borderRadius: plan.raised ? 10 : 9,
+                    background: plan.raised ? g.button : c.primaryLight,
+                    color: plan.raised ? '#fff' : c.navy,
+                    textDecoration: 'none', fontWeight: 700,
+                    fontFamily: f.heading, fontSize: plan.raised ? 14 : 13,
+                    textAlign: 'center' as const, display: 'block',
+                    boxShadow: plan.raised ? `0 4px 14px ${c.accent}35` : 'none',
+                  }}>
+                  {plan.cta} →
+                </Link>
+              </div>
+            ))}
           </div>
 
-          <div style={{ textAlign: 'center', marginTop: 24 }}>
-            <span style={{ fontSize: 13, color: c.textMuted }}>
+          <div style={{ textAlign: 'center', marginTop: 20 }}>
+            <span style={{ fontSize: 12, color: c.textMuted }}>
               {t.freeNoteBottom} <strong style={{ color: c.success }}>{t.freeCreditsNote}</strong> {t.noCard}
             </span>
           </div>
