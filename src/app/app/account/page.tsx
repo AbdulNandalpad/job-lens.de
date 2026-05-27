@@ -45,6 +45,10 @@ export default function AccountPage() {
   const [deletingKiraData, setDeletingKiraData] = useState(false)
   const [kiraDataDeleted, setKiraDataDeleted] = useState(false)
 
+  const paymentStatus = typeof window !== 'undefined'
+    ? new URLSearchParams(window.location.search).get('payment')
+    : null
+
   const { widgets, isVisible, toggle, resetDefaults } = useDashWidgets(MARKET.eu)
 
   useEffect(() => {
@@ -88,6 +92,22 @@ export default function AccountPage() {
           <div style={{ textAlign: 'center', color: c.danger, paddingTop: 80 }}>{t.account.failedLoad}</div>
         ) : (
           <>
+            {/* ── Payment status banner ── */}
+            {paymentStatus === 'success' && (
+              <div style={{ marginBottom: 16, padding: '14px 20px', borderRadius: 12, background: 'rgba(29,158,117,0.1)', border: '1px solid rgba(29,158,117,0.3)', display: 'flex', alignItems: 'center', gap: 10 }}>
+                <span style={{ fontSize: 18 }}>🎉</span>
+                <div>
+                  <div style={{ fontSize: 14, fontWeight: 700, color: c.success }}>Payment received — credits on their way!</div>
+                  <div style={{ fontSize: 12, color: c.textMuted, marginTop: 2 }}>Credits are added within a few seconds. Refresh this page if the balance hasn't updated yet.</div>
+                </div>
+              </div>
+            )}
+            {paymentStatus === 'cancelled' && (
+              <div style={{ marginBottom: 16, padding: '14px 20px', borderRadius: 12, background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)' }}>
+                <div style={{ fontSize: 14, fontWeight: 600, color: c.danger }}>Payment cancelled — no charge was made.</div>
+              </div>
+            )}
+
             {/* ── Profile Card ── */}
             <div style={{ background: c.bgCard, border: `1px solid ${c.border}`, borderRadius: 16, padding: '24px', marginBottom: 16, display: 'flex', alignItems: 'center', gap: 18, flexWrap: 'wrap' }}>
               {profile.avatar_url ? (
@@ -177,6 +197,9 @@ export default function AccountPage() {
                       <input type="hidden" name="amount" value={pack.amount} />
                       <input type="hidden" name="currency_code" value="EUR" />
                       <input type="hidden" name="notify_url" value={`${process.env.NEXT_PUBLIC_APP_URL || ''}/api/paypal/webhook`} />
+                      <input type="hidden" name="return" value={`${process.env.NEXT_PUBLIC_APP_URL || ''}/app/account?payment=success`} />
+                      <input type="hidden" name="cancel_return" value={`${process.env.NEXT_PUBLIC_APP_URL || ''}/app/account?payment=cancelled`} />
+                      <input type="hidden" name="rm" value="2" />
                       <input type="hidden" name="custom" value={profile.id} />
                       <input type="hidden" name="no_shipping" value="1" />
                       <button type="submit" style={{ width: '100%', padding: '8px 0', borderRadius: 7, border: 'none', background: pack.popular ? g.primaryBtn : c.primaryLight, color: pack.popular ? '#fff' : c.navy, fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: f.heading }}>
