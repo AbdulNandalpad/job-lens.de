@@ -256,7 +256,7 @@ export default function HomePage() {
     })
   }, [])
 
-  const go = (path: string) => user ? path : '/login'
+  const go = (path: string) => user ? path : `/login?next=${encodeURIComponent(path)}`
 
   // Order: Career Scan, Job Search, CV+CL, Interview, Salary Sim, Career Card, Tracker, Auto Apply
   const featureBgs    = [c.primaryLight, c.successLight,  c.warningLight, c.primaryLight, c.successLight, c.aiLight, c.warningLight, c.aiLight]

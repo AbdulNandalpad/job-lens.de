@@ -12,9 +12,9 @@ import { MARKET } from '@/lib/constants'
 const { colors: c, gradients: g, fonts: f } = theme
 
 const PACKS = [
-  { label: 'Starter', credits: 20, price: '€4.99', desc: 'A quick CV + a few cover letters', itemName: 'Job-Lens AI — Starter Pack (20 Credits)', amount: '4.99' },
-  { label: 'Job Hunt', credits: 60, price: '€12.99', desc: '1–2 month active job search', itemName: 'Job-Lens AI — Job Hunt Pack (60 Credits)', amount: '12.99', popular: true },
-  { label: 'Full Sprint', credits: 150, price: '€24.99', desc: 'Heavy Auto Apply user', itemName: 'Job-Lens AI — Full Sprint Pack (150 Credits)', amount: '24.99' },
+  { label: 'Starter',     credits: 20,  price: '€4.99',  desc: '~5 full applications',          itemName: 'Job-Lens AI — Starter Pack (20 Credits)',     amount: '4.99'  },
+  { label: 'Job Hunt',    credits: 50,  price: '€9.99',  desc: '~12 full applications',          itemName: 'Job-Lens AI — Job Hunt Pack (50 Credits)',     amount: '9.99',  popular: true },
+  { label: 'Full Sprint', credits: 120, price: '€13.99', desc: '~30 applications · best value',  itemName: 'Job-Lens AI — Full Sprint Pack (120 Credits)', amount: '13.99' },
 ]
 
 
