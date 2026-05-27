@@ -211,6 +211,39 @@ export default function IndiaInterviewPage() {
           )
         })}
       </div>
+
+      {/* Salary Sim CTA */}
+      {questions.length > 0 && (
+        <div style={{ maxWidth: 740, margin: '0 auto', padding: '0 24px 48px' }}>
+          <div style={{
+            background: `linear-gradient(135deg, ${accent}12, ${accent}06)`,
+            border: `1px solid ${accent}33`,
+            borderRadius: 16, padding: '24px 28px',
+            display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 20,
+            flexWrap: 'wrap',
+          }}>
+            <div>
+              <div style={{ fontSize: 15, fontWeight: 700, color: '#1a2332', marginBottom: 4 }}>
+                Ready to negotiate your salary?
+              </div>
+              <div style={{ fontSize: 13, color: '#6b7c93', lineHeight: 1.5 }}>
+                Practice with an AI HR manager and get a debrief on your tactics — before the real offer call.
+              </div>
+            </div>
+            <a
+              href="/in/salary-sim"
+              style={{
+                display: 'inline-flex', alignItems: 'center', gap: 8,
+                padding: '10px 22px', borderRadius: 10, textDecoration: 'none',
+                background: `linear-gradient(135deg, ${accent}, #e07000)`,
+                color: '#fff', fontSize: 13, fontWeight: 700,
+                whiteSpace: 'nowrap', flexShrink: 0,
+              }}>
+              💰 Practice Salary Negotiation →
+            </a>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

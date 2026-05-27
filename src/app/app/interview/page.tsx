@@ -267,6 +267,41 @@ export default function InterviewPrepPage() {
         })}
 
       </div>
+
+      {/* Salary Sim CTA */}
+      {questions.length > 0 && (
+        <div style={{
+          maxWidth: 740, margin: '0 auto', padding: '0 24px 48px',
+        }}>
+          <div style={{
+            background: `linear-gradient(135deg, ${c.accent}12, ${c.accent}06)`,
+            border: `1px solid ${c.accent}33`,
+            borderRadius: 16, padding: '24px 28px',
+            display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 20,
+            flexWrap: 'wrap',
+          }}>
+            <div>
+              <div style={{ fontSize: 15, fontWeight: 700, color: c.text, fontFamily: f.heading, marginBottom: 4 }}>
+                Ready to negotiate your salary?
+              </div>
+              <div style={{ fontSize: 13, color: c.textMuted, lineHeight: 1.5 }}>
+                Practice with an AI hiring manager and get a debrief on your tactics — before the real conversation.
+              </div>
+            </div>
+            <a
+              href="/app/salary-sim"
+              style={{
+                display: 'inline-flex', alignItems: 'center', gap: 8,
+                padding: '10px 22px', borderRadius: 10, textDecoration: 'none',
+                background: `linear-gradient(135deg, ${c.accent}, #185FA5)`,
+                color: '#fff', fontSize: 13, fontWeight: 700,
+                fontFamily: f.heading, whiteSpace: 'nowrap', flexShrink: 0,
+              }}>
+              💰 Practice Salary Negotiation →
+            </a>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
