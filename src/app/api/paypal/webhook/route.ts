@@ -4,8 +4,8 @@ import { createAdminSupabase } from '@/lib/supabase-server'
 // Credit amounts per purchase price (EUR)
 const CREDIT_PACKS: Record<string, number> = {
   '4.99':  20,
-  '12.99': 60,
-  '24.99': 150,
+  '9.99':  50,
+  '13.99': 120,
 }
 
 export async function POST(req: NextRequest) {
