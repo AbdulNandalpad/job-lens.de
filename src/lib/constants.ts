@@ -11,6 +11,7 @@ export const CREDIT_COST = {
   visaCheck:       1,  // /api/visa — Fachkräfte eligibility analysis
   aiChat:          1,  // /api/ai/chat — 1 credit per AI_CHAT_FREE_MESSAGES block after free tier
   interviewPrep:   1,  // /api/interview/questions — generate 5 interview questions
+  interviewCoach:  1,  // /api/interview/coaching — unlock Kira full interview coaching
   salarySim:       1,  // /api/salary-sim — start a salary negotiation session
 } as const
 
@@ -74,6 +75,7 @@ export const SS = {
   interviewRole:       'jl_interview_role',
   interviewCompany:    'jl_interview_company',
   interviewCurrentQ:   'jl_interview_current_q',
+  interviewCoachOn:    'jl_interview_coach_on', // '1' when user has paid to unlock full coaching
 } as const
 
 // ── localStorage keys ───────────────────────────────────────────────────────
@@ -107,5 +109,6 @@ export const API = {
   applications:         '/api/applications',
   interviewQuestions:   '/api/interview/questions',
   interviewFeedback:    '/api/interview/feedback',
+  interviewCoaching:    '/api/interview/coaching',
   salarySim:            '/api/salary-sim',
 } as const

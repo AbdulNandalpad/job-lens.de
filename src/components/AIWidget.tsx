@@ -275,6 +275,12 @@ export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
   const [isMobile,      setIsMobile]      = useState(false)
   const [mounted,       setMounted]       = useState(false)
 
+  // ── Interview coaching state ─────────────────────────────────────────────
+  const [interviewRole,    setInterviewRole]    = useState('')
+  const [interviewCompany, setInterviewCompany] = useState('')
+  const [coachUnlocked,    setCoachUnlocked]    = useState(false)
+  const [coachUnlocking,   setCoachUnlocking]   = useState(false)
+
   // ── Refs ─────────────────────────────────────────────────────────────────
   const bottomRef        = useRef<HTMLDivElement>(null)
   const inputRef         = useRef<HTMLTextAreaElement>(null)
@@ -298,10 +304,22 @@ export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
   useEffect(() => { voiceModeRef.current  = voiceMode     }, [voiceMode])
   useEffect(() => { cvDiscussModeRef.current = cvDiscussMode }, [cvDiscussMode])
 
+  // ── Refresh interview coaching state from sessionStorage ────────────────
+  function refreshInterviewCtx() {
+    const r = sessionStorage.getItem(SS.interviewRole) || ''
+    setInterviewRole(r)
+    setInterviewCompany(sessionStorage.getItem(SS.interviewCompany) || '')
+    setCoachUnlocked(sessionStorage.getItem(SS.interviewCoachOn) === '1')
+  }
+
+  // Re-read interview context whenever the panel opens
+  useEffect(() => { if (open) refreshInterviewCtx() }, [open])
+
   // ── Init: CV, saved messages, user name ─────────────────────────────────
   useEffect(() => {
     setIsMobile(window.innerWidth <= 768 || /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent))
     setMounted(true)
+    refreshInterviewCtx()
 
     const cv = sessionStorage.getItem(SS.cvText) || ''
     cvRef.current = cv
@@ -648,6 +666,31 @@ export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
     router.push(market === 'in' ? '/in/cv-builder' : '/app/cv-builder')
   }
 
+  // ── Interview coaching unlock ─────────────────────────────────────────
+  async function unlockCoaching() {
+    setCoachUnlocking(true)
+    try {
+      const res = await fetch(API.interviewCoaching, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ market }),
+      })
+      if (res.ok) {
+        sessionStorage.setItem(SS.interviewCoachOn, '1')
+        setCoachUnlocked(true)
+        const roleLabel = interviewRole
+        const companyLabel = interviewCompany ? ` at ${interviewCompany}` : ''
+        setMsgs(prev => [...prev, { role: 'assistant', content: `Full interview coaching unlocked! I'm now your personal interview coach for the ${roleLabel} role${companyLabel}. Ask me anything — STAR answers, what to expect, salary negotiation, how to handle tough questions. Let's get you ready!` }])
+      } else {
+        const d = await res.json().catch(() => ({})) as { error?: string }
+        setMsgs(prev => [...prev, { role: 'assistant', content: (d.error as string | undefined) || 'Could not unlock coaching — please check your credits.' }])
+      }
+    } catch {
+      setMsgs(prev => [...prev, { role: 'assistant', content: 'Connection error. Please try again.' }])
+    }
+    setCoachUnlocking(false)
+  }
+
   // ── CV Discussion ────────────────────────────────────────────────────────
   function startCvDiscussion() {
     if (!cvRef.current) {
@@ -702,7 +745,8 @@ export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
             const r = sessionStorage.getItem(SS.interviewRole)
             const c = sessionStorage.getItem(SS.interviewCompany)
             const q = sessionStorage.getItem(SS.interviewCurrentQ)
-            return r ? { role: r, company: c || '', currentQ: q || '' } : null
+            const unlocked = sessionStorage.getItem(SS.interviewCoachOn) === '1'
+            return r ? { role: r, company: c || '', currentQ: q || '', coachUnlocked: unlocked } : null
           })(),
         }),
       })
@@ -758,6 +802,7 @@ export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
     }
 
     setLoading(false)
+    refreshInterviewCtx()
 
     if (isVoice && voiceModeRef.current) {
       // Queue any remaining text after sentence boundary (or full response if no boundary found)
@@ -1076,6 +1121,23 @@ export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
                   )}
                 </div>
               ))}
+
+              {/* Interview coaching unlock banner */}
+              {interviewRole && !coachUnlocked && (
+                <div style={{ margin: '8px 0 4px', padding: '12px 14px', borderRadius: 12, background: `${accent}12`, border: `1px solid ${accent}33`, display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: '#fff', fontFamily: f.heading }}>
+                    Interview Coaching Available
+                  </div>
+                  <div style={{ fontSize: 11, color: 'rgba(255,255,255,.55)', lineHeight: 1.5 }}>
+                    Kira can give you fully tailored coaching for your <strong style={{ color: 'rgba(255,255,255,.85)' }}>{interviewRole}</strong>{interviewCompany ? <> at <strong style={{ color: 'rgba(255,255,255,.85)' }}>{interviewCompany}</strong></> : null} interview — STAR answers, role-specific tips, mock Q&amp;A, and more.
+                  </div>
+                  <button onClick={unlockCoaching} disabled={coachUnlocking}
+                    style={{ padding: '8px 16px', borderRadius: 8, border: 'none', background: accent, color: '#fff', fontSize: 12, fontWeight: 700, cursor: coachUnlocking ? 'not-allowed' : 'pointer', fontFamily: f.heading, opacity: coachUnlocking ? .6 : 1, display: 'flex', alignItems: 'center', gap: 6, alignSelf: 'flex-start', transition: 'opacity .15s' }}>
+                    {coachUnlocking && <span style={{ width: 10, height: 10, border: '2px solid rgba(255,255,255,.3)', borderTopColor: '#fff', borderRadius: '50%', display: 'inline-block', animation: 'kira-spin .8s linear infinite' }}/>}
+                    {coachUnlocking ? 'Unlocking…' : 'Unlock Full Coaching — 1 credit'}
+                  </button>
+                </div>
+              )}
 
               {/* Suggestion chips — shown after greeting or on empty state */}
               {showSuggestions && (

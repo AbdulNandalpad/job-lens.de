@@ -248,7 +248,7 @@ export async function POST(req: NextRequest) {
 
   // Interview context — set by interview page, gives Kira role/question awareness
   const interviewCtx = body.interviewCtx && typeof body.interviewCtx.role === 'string'
-    ? body.interviewCtx as { role: string; company: string; currentQ: string }
+    ? body.interviewCtx as { role: string; company: string; currentQ: string; coachUnlocked: boolean }
     : null
 
   // Cap message history — prevent context explosion and API abuse
@@ -270,7 +270,9 @@ export async function POST(req: NextRequest) {
     : '\n\nNo CV uploaded yet — you can still help, but cannot personalise match scores without one.'
 
   const interviewCtxStr = interviewCtx
-    ? `\n\nINTERVIEW MODE: The user is on the Interview Prep page practising for a ${interviewCtx.role} role${interviewCtx.company ? ` at ${interviewCtx.company}` : ''}. Help them prepare without repeating what the page already shows.${interviewCtx.currentQ ? `\nCurrent question they are working on: "${interviewCtx.currentQ}"\nYou can help them structure a STAR answer, give tips, or do a quick mock Q&A. Keep replies short and actionable.` : '\nThey have just generated questions. You can offer STAR method tips, what to expect for this role, or how to handle nerves.'}`
+    ? interviewCtx.coachUnlocked
+      ? `\n\nINTERVIEW COACHING MODE (UNLOCKED): The user has paid for full interview coaching. They are preparing for a ${interviewCtx.role} role${interviewCtx.company ? ` at ${interviewCtx.company}` : ''}.${interviewCtx.currentQ ? ` Current question: "${interviewCtx.currentQ}". Give them a tailored STAR answer structure, specific examples relevant to this role, a sample strong answer, and flag common mistakes for this question type. Be their personal interview coach.` : ' Help with anything they need — STAR method, mock Q&A, what to expect, salary negotiation, nerves. Be thorough and specific to their role.'}`
+      : `\n\nINTERVIEW LIMITED MODE: The user is on the Interview Prep page for a ${interviewCtx.role} role${interviewCtx.company ? ` at ${interviewCtx.company}` : ''}. Give ONE short general tip only (e.g. STAR method overview, or a quick confidence tip). Then say you can give them fully tailored coaching — STAR answers specific to their questions, mock Q&A, and role-specific advice — for 1 credit, and ask if they'd like to unlock it. Do not give role-specific or question-specific advice until unlocked.`
     : ''
 
   const basePrompt = mode === 'cv_discuss' ? CV_DISCUSS_SYSTEM : BASE_SYSTEM
