@@ -11,7 +11,7 @@ export async function POST(req: NextRequest) {
     const body = await req.json()
     const market = body.market === MARKET.in ? MARKET.in : MARKET.eu
 
-    const { ok, message } = await checkAndDeductCredits(
+    const { ok, remaining } = await checkAndDeductCredits(
       user.id,
       CREDIT_COST.interviewCoach,
       'interview_coaching',
@@ -19,7 +19,7 @@ export async function POST(req: NextRequest) {
       market,
     )
 
-    if (!ok) return NextResponse.json({ error: message || 'Not enough credits' }, { status: 402 })
+    if (!ok) return NextResponse.json({ error: 'Not enough credits', credits: remaining }, { status: 402 })
 
     return NextResponse.json({ ok: true })
   } catch (err) {
