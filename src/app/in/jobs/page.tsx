@@ -39,6 +39,7 @@ export default function IndiaJobsPage() {
   const router = useRouter()
   const [query, setQuery] = useState('')
   const [city, setCity] = useState('')
+  const [sortBy, setSortBy] = useState<'date' | 'default'>('date')
   const [jobs, setJobs] = useState<Job[]>([])
   const [loading, setLoading] = useState(false)
   const [loadingMore, setLoadingMore] = useState(false)
@@ -215,9 +216,22 @@ export default function IndiaJobsPage() {
                   </span>
                 </div>
               )}
-              <div style={{ fontSize: 13, color: '#9aafbc', marginBottom: 4 }}>{jobs.length} jobs found — tap a card to see actions</div>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
+                <span style={{ fontSize: 13, color: '#9aafbc' }}>{jobs.length} jobs found</span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <span style={{ fontSize: 11, color: '#9aafbc' }}>Sort:</span>
+                  {(['date', 'default'] as const).map(opt => (
+                    <button key={opt} onClick={() => setSortBy(opt)} style={{ fontSize: 11, padding: '3px 10px', borderRadius: 20, border: `1px solid ${sortBy === opt ? orange : '#dce4ef'}`, background: sortBy === opt ? orange + '15' : '#fff', color: sortBy === opt ? orange : '#6b7c93', fontWeight: sortBy === opt ? 700 : 400, cursor: 'pointer' }}>
+                      {opt === 'date' ? 'Newest first' : 'Default'}
+                    </button>
+                  ))}
+                </div>
+              </div>
 
-              {jobs.map(job => {
+              {[...jobs].sort((a, b) => sortBy === 'date'
+                ? new Date(b.job_posted_at_datetime_utc || 0).getTime() - new Date(a.job_posted_at_datetime_utc || 0).getTime()
+                : 0
+              ).map(job => {
                 const isSelected = selectedJobId === job.job_id
                 return (
                   <div key={job.job_id} className="jl-job-card"

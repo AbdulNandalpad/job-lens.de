@@ -61,6 +61,7 @@ function SmartJobSearchPage() {
   const [location, setLocation] = useState('Stuttgart, Germany')
   const [country, setCountry] = useState('de')
   const [daysOld, setDaysOld] = useState('')
+  const [sortBy, setSortBy] = useState<'match' | 'date'>('match')
 
   const [profile, setProfile] = useState<Profile | null>(null)
   const [jobs, setJobs] = useState<Job[]>([])
@@ -795,7 +796,21 @@ function SmartJobSearchPage() {
             {!loading && !analysing && jobs.length > 0 && (
               <div className="jl-main-grid">
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                  {jobs.map(job => <JobCard key={job.job_id} job={job} />)}
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
+                    <span style={{ fontSize: 12, color: '#8fa3b8' }}>{jobs.length} {jobs.length === 1 ? 'position' : 'positions'} found</span>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <span style={{ fontSize: 11, color: '#8fa3b8' }}>Sort:</span>
+                      {(['match', 'date'] as const).map(opt => (
+                        <button key={opt} onClick={() => setSortBy(opt)} style={{ fontSize: 11, padding: '3px 10px', borderRadius: 20, border: `1px solid ${sortBy === opt ? '#378ADD' : '#dce4ef'}`, background: sortBy === opt ? '#E6F1FB' : '#fff', color: sortBy === opt ? '#185FA5' : '#6b7c93', fontWeight: sortBy === opt ? 700 : 400, cursor: 'pointer' }}>
+                          {opt === 'match' ? 'Best match' : 'Newest first'}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  {[...jobs].sort((a, b) => sortBy === 'date'
+                    ? new Date(b.job_posted_at_datetime_utc || 0).getTime() - new Date(a.job_posted_at_datetime_utc || 0).getTime()
+                    : (b.matchScore ?? 0) - (a.matchScore ?? 0)
+                  ).map(job => <JobCard key={job.job_id} job={job} />)}
                 </div>
                 <div style={{ position: 'sticky', top: 20 }}>
                   <RightPanel />
