@@ -14,7 +14,7 @@ export async function POST(req: NextRequest) {
   const body = await req.json()
   const cvText       = typeof body.cvText       === 'string' ? body.cvText                        : ''
   const feedback     = typeof body.feedback     === 'string' ? body.feedback.slice(0, 500)        : ''
-  const currentCv    = typeof body.currentCv    === 'string' ? body.currentCv.slice(0, 4000)      : ''
+  const currentCv    = typeof body.currentCv    === 'string' ? body.currentCv                     : ''
   // Cap client-supplied system prompt — prevents prompt injection via crafted requests
   const systemPrompt = typeof body.systemPrompt === 'string' ? body.systemPrompt.slice(0, 8000)   : ''
   const { job, template, tone, pages, lang, returnJson, market } = body
@@ -34,7 +34,7 @@ export async function POST(req: NextRequest) {
 User feedback: ${feedback}
 
 Current CV JSON:
-${currentCv.slice(0, 3000)}
+${currentCv}
 
 ${job ? `Target Job: ${job.job_title} at ${job.employer_name}` : ''}
 
@@ -76,7 +76,7 @@ Return ONLY the JSON object. No markdown, no backticks, no explanation.`
       : 'This is a 1-page CV - be selective, prioritise the most relevant experience.'
 
     const feedbackSection = feedback && currentCv
-      ? `\n\nThe user has requested changes to the current CV:\nFeedback: ${feedback}\n\nCurrent CV:\n${currentCv.slice(0, 2000)}\n\nApply these changes.`
+      ? `\n\nThe user has requested changes to the current CV:\nFeedback: ${feedback}\n\nCurrent CV:\n${currentCv}\n\nApply these changes.`
       : ''
 
     const message = await anthropic.messages.create({
