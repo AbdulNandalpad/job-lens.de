@@ -1,4 +1,5 @@
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
+import { createServerSupabase } from '@/lib/supabase-server'
 
 const CACHE_TTL = 24 * 60 * 60 * 1000 // 24h — World Bank updates annually
 
@@ -39,7 +40,11 @@ function trend(current: number | null, prev: number | null): 'up' | 'down' | 'fl
   return 'flat'
 }
 
-export async function GET() {
+export async function GET(req: NextRequest) {
+  const supabase = await createServerSupabase()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
   if (cache && Date.now() - cache.ts < CACHE_TTL) {
     return NextResponse.json(cache.data)
   }

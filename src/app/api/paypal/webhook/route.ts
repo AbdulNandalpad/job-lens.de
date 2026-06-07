@@ -56,7 +56,11 @@ export async function POST(req: NextRequest) {
     // Verify payment was made to OUR merchant account — critical against IPN replay attacks
     const receiverEmail = params.get('receiver_email') ?? ''
     const expectedEmail = (process.env.NEXT_PUBLIC_PAYPAL_EMAIL ?? '').toLowerCase()
-    if (!expectedEmail || receiverEmail.toLowerCase() !== expectedEmail) {
+    if (!expectedEmail) {
+      console.error('[paypal] NEXT_PUBLIC_PAYPAL_EMAIL env var not set — all IPN rejected')
+      return NextResponse.json({ ok: false }, { status: 400 })
+    }
+    if (receiverEmail.toLowerCase() !== expectedEmail) {
       console.warn('[paypal] receiver_email mismatch — possible replay attack:', receiverEmail)
       return NextResponse.json({ ok: false }, { status: 400 })
     }

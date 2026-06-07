@@ -76,6 +76,7 @@ export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ 
     .from('applications')
     .delete()
     .eq('id', id)
+    .eq('user_id', user.id)
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
   return NextResponse.json({ ok: true })

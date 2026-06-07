@@ -4,6 +4,16 @@ import { createServerSupabase } from '@/lib/supabase-server'
 
 const anthropic = new Anthropic()
 
+const rl = new Map<string, { count: number; hour: number }>()
+function rateLimit(userId: string, max = 40): boolean {
+  const hour = Math.floor(Date.now() / 3_600_000)
+  const key = `${userId}:${hour}`
+  const cur = rl.get(key) ?? { count: 0, hour }
+  if (cur.count >= max) return false
+  rl.set(key, { count: cur.count + 1, hour })
+  return true
+}
+
 export async function POST(req: NextRequest) {
   const supabase = await createServerSupabase()
   const { data: { user } } = await supabase.auth.getUser()
@@ -13,6 +23,7 @@ export async function POST(req: NextRequest) {
   const cvText         = typeof body.cvText         === 'string' ? body.cvText         : ''
   const jobDescription = typeof body.jobDescription === 'string' ? body.jobDescription : ''
   if (!cvText || !jobDescription) return NextResponse.json({ matching: [], missing: [] })
+  if (!rateLimit(user.id)) return NextResponse.json({ error: 'Too many requests' }, { status: 429 })
 
   try {
     const msg = await anthropic.messages.create({

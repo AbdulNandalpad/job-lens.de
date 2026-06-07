@@ -1,4 +1,5 @@
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
+import { createServerSupabase } from '@/lib/supabase-server'
 
 const CACHE_TTL = 6 * 60 * 60 * 1000 // 6 hours
 
@@ -51,7 +52,11 @@ async function fetchQuery(q: string, category: NewsArticle['category']): Promise
   }
 }
 
-export async function GET() {
+export async function GET(req: NextRequest) {
+  const supabase = await createServerSupabase()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
   if (cache && Date.now() - cache.ts < CACHE_TTL) {
     return NextResponse.json({ articles: cache.data, fetchedAt: new Date(cache.ts).toISOString() })
   }

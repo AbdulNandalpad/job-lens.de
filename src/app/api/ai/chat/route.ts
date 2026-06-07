@@ -246,9 +246,23 @@ export async function POST(req: NextRequest) {
   // Cap CV text server-side (client may send full file)
   const cvText: string = typeof body.cvText === 'string' ? body.cvText.slice(0, 8000) : ''
 
-  // Interview context — set by interview page, gives Kira role/question awareness
+  // Interview context — verify coachUnlocked server-side against usage_events
+  // Client flag is untrusted; check DB for a recent interview_coaching payment
+  let coachUnlockedVerified = false
+  if (body.interviewCtx && typeof body.interviewCtx.role === 'string') {
+    const admin = createAdminSupabase()
+    const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
+    const { data: coachEvents } = await admin
+      .from('usage_events')
+      .select('id')
+      .eq('user_id', user.id)
+      .eq('action', 'interview_coaching')
+      .gte('created_at', since)
+      .limit(1)
+    coachUnlockedVerified = (coachEvents?.length ?? 0) > 0
+  }
   const interviewCtx = body.interviewCtx && typeof body.interviewCtx.role === 'string'
-    ? body.interviewCtx as { role: string; company: string; currentQ: string; coachUnlocked: boolean }
+    ? { ...(body.interviewCtx as { role: string; company: string; currentQ: string }), coachUnlocked: coachUnlockedVerified }
     : null
 
   // Cap message history — prevent context explosion and API abuse

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import Anthropic from '@anthropic-ai/sdk'
-import { createServerSupabase, checkAndDeductCredits } from '@/lib/supabase-server'
+import { createServerSupabase, createAdminSupabase, checkAndDeductCredits } from '@/lib/supabase-server'
 import { CREDIT_COST, MARKET } from '@/lib/constants'
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
@@ -33,11 +33,25 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'role and offer are required' }, { status: 400 })
   }
 
-  // Charge 1 credit on the first message of a session
   if (isFirst) {
+    // Charge credit on the first message
     const credits = await checkAndDeductCredits(user.id, COST, 'salary_sim', user.email ?? '', market)
     if (!credits.ok) {
       return NextResponse.json({ error: 'Insufficient credits', credits: credits.remaining, required: COST }, { status: 402 })
+    }
+  } else {
+    // Verify a session was actually paid for in the last 24h — prevents isFirst:false bypass
+    const admin = createAdminSupabase()
+    const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
+    const { data: paid } = await admin
+      .from('usage_events')
+      .select('id')
+      .eq('user_id', user.id)
+      .eq('action', 'salary_sim')
+      .gte('created_at', since)
+      .limit(1)
+    if (!paid || paid.length === 0) {
+      return NextResponse.json({ error: 'No active session. Please start a new simulation.' }, { status: 402 })
     }
   }
 

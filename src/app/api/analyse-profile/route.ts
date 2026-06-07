@@ -4,6 +4,16 @@ import { createServerSupabase } from '@/lib/supabase-server'
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
 
+const rl = new Map<string, { count: number; hour: number }>()
+function rateLimit(userId: string, max = 20): boolean {
+  const hour = Math.floor(Date.now() / 3_600_000)
+  const key = `${userId}:${hour}`
+  const cur = rl.get(key) ?? { count: 0, hour }
+  if (cur.count >= max) return false
+  rl.set(key, { count: cur.count + 1, hour })
+  return true
+}
+
 const FALLBACK = {
   suggestedQuery: '',
   queryFallbacks: [] as string[],
@@ -20,6 +30,7 @@ export async function POST(req: NextRequest) {
   const supabase = await createServerSupabase()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  if (!rateLimit(user.id)) return NextResponse.json({ error: 'Too many requests' }, { status: 429 })
 
   let targetRole = ''
   try {

@@ -12,11 +12,12 @@ export async function POST(req: NextRequest) {
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const body = await req.json()
-  const cvText       = typeof body.cvText       === 'string' ? body.cvText                        : ''
-  const feedback     = typeof body.feedback     === 'string' ? body.feedback.slice(0, 500)        : ''
-  const currentCv    = typeof body.currentCv    === 'string' ? body.currentCv                     : ''
-  // Cap client-supplied system prompt — prevents prompt injection via crafted requests
-  const systemPrompt = typeof body.systemPrompt === 'string' ? body.systemPrompt.slice(0, 8000)   : ''
+  const cvText    = typeof body.cvText    === 'string' ? body.cvText                    : ''
+  const feedback  = typeof body.feedback  === 'string' ? body.feedback.slice(0, 500)   : ''
+  const currentCv = typeof body.currentCv === 'string' ? body.currentCv                : ''
+  const confirmedSkills: string[] = Array.isArray(body.confirmedSkills)
+    ? body.confirmedSkills.map((s: unknown) => String(s).slice(0, 60)).slice(0, 20)
+    : []
   const { job, template, tone, pages, lang, returnJson, market } = body
   const resolvedMarket: 'eu' | 'in' = market === MARKET.in ? MARKET.in : MARKET.eu
 
@@ -27,7 +28,53 @@ export async function POST(req: NextRequest) {
 
   try {
     // -- MODE 1: Structured JSON for visual CV rendering ----------------------
-    if (returnJson && systemPrompt) {
+    if (returnJson) {
+      // System prompt is always server-side — never accepted from client
+      const serverSystemPrompt = feedback && currentCv
+        ? `You are an elite CV designer. The user has requested changes to their CV. Apply the feedback exactly and return updated JSON matching the same schema. Return ONLY valid JSON, no markdown.`
+        : `You are an elite CV designer and career consultant. Extract, enhance and structure CV information into a rich JSON object for visual rendering.
+
+SOURCE TYPE HINTS — apply these parsing rules:
+- If the text looks like a LinkedIn export (has sections like "Experience", "Education", "Skills", "Licenses & Certifications", "Languages"): parse each section carefully. LinkedIn exports often have garbled line breaks — reconstruct full sentences.
+- If it looks like a Word/PDF CV: extract all sections including any custom sections.
+- In all cases: NEVER skip any role, education entry, or certification. Extract EVERYTHING.
+
+Return ONLY valid JSON — no markdown, no backticks, no preamble.
+
+Schema:
+{
+  "name": "Full Name",
+  "title": "Job Title / Professional Headline",
+  "tagline": "Brief role descriptor (optional)",
+  "email": "email",
+  "phone": "phone",
+  "location": "City, Country",
+  "linkedin": "linkedin url or handle",
+  "summary": "3-4 sentence professional summary, polished and compelling",
+  "stats": [{"value": "15+", "label": "Years Experience"}],
+  "skills": [{"name": "Skill Name", "level": 90}],
+  "experience": [{"role": "Job Title", "company": "Company", "period": "MMM YYYY - MMM YYYY", "location": "City, Country", "type": "Full-time", "bullets": ["Achievement..."]}],
+  "education": [{"degree": "...", "school": "...", "year": "YYYY"}],
+  "certifications": ["Full cert name"],
+  "languages": [{"name": "Language", "level": 90}],
+  "tools": ["Tool1", "Tool2"],
+  "highlights": ["Short punchy highlight"]
+}
+
+Rules:
+- CONTACT FIELDS: copy email, phone, location, linkedin EXACTLY from the source. Never invent them. Empty string if not found.
+- stats: 3-5 impressive metrics
+- skills: up to 12, percentage level 60-99
+- languages: native=98, fluent=85, proficient=65, basic=45
+- experience: include EVERY role — do not skip or merge positions
+- experience bullets: 2-4 achievement-focused bullets per role, start with action verbs
+- tools: 10-20 specific technologies/platforms mentioned in the CV
+- highlights: 4-6 punchy career highlights
+- tone: ${tone || 'professional'}, output language: ${lang || 'EN'}
+${job ? `- Tailor for this role: ${job.job_title} at ${job.employer_name}` : ''}
+${job?.job_description ? `- Job description context: ${job.job_description.slice(0, 1000)}` : ''}
+${confirmedSkills.length > 0 ? `- User confirmed they also have these skills (include them): ${confirmedSkills.join(', ')}` : ''}`
+
       const userContent = feedback && currentCv
         ? `Here is the candidate's current CV (already enhanced). Apply the user's requested changes.
 
@@ -51,7 +98,7 @@ Return ONLY the JSON object. No markdown, no backticks, no explanation.`
       const message = await anthropic.messages.create({
         model: 'claude-sonnet-4-6',
         max_tokens: 8000,
-        system: systemPrompt,
+        system: serverSystemPrompt,
         messages: [{ role: 'user', content: userContent }],
       })
 

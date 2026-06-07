@@ -835,54 +835,11 @@ export default function CVBuilderPage() {
     if (credits !== null && credits < CV_COST) { alert(`You need ${CV_COST} credit to build a CV. Please top up on the Account page.`); return }
     setLoading(true); setCvData(null); setRawCv('')
 
-    const systemPrompt = `You are an elite CV designer and career consultant. Extract, enhance and structure CV information into a rich JSON object for visual rendering.
-
-SOURCE TYPE HINTS — apply these parsing rules:
-- If the text looks like a LinkedIn export (has sections like "Experience", "Education", "Skills", "Licenses & Certifications", "Languages"): parse each section carefully. LinkedIn exports often have garbled line breaks — reconstruct full sentences.
-- If it looks like a Word/PDF CV: extract all sections including any custom sections.
-- In all cases: NEVER skip any role, education entry, or certification. Extract EVERYTHING.
-
-Return ONLY valid JSON — no markdown, no backticks, no preamble.
-
-Schema:
-{
-  "name": "Full Name",
-  "title": "Job Title / Professional Headline",
-  "tagline": "Brief role descriptor (optional)",
-  "email": "email",
-  "phone": "phone",
-  "location": "City, Country",
-  "linkedin": "linkedin url or handle",
-  "summary": "3-4 sentence professional summary, polished and compelling",
-  "stats": [{"value": "15+", "label": "Years Experience"}],
-  "skills": [{"name": "Skill Name", "level": 90}],
-  "experience": [{"role": "Job Title", "company": "Company", "period": "MMM YYYY - MMM YYYY", "location": "City, Country", "type": "Full-time", "bullets": ["Achievement..."]}],
-  "education": [{"degree": "...", "school": "...", "year": "YYYY"}],
-  "certifications": ["Full cert name"],
-  "languages": [{"name": "Language", "level": 90}],
-  "tools": ["Tool1", "Tool2"],
-  "highlights": ["Short punchy highlight"]
-}
-
-Rules:
-- CONTACT FIELDS: copy email, phone, location, linkedin EXACTLY from the source. Never invent them. Empty string if not found.
-- stats: 3-5 impressive metrics
-- skills: up to 12, percentage level 60-99
-- languages: native=98, fluent=85, proficient=65, basic=45
-- experience: include EVERY role — do not skip or merge positions
-- experience bullets: 2-4 achievement-focused bullets per role, start with action verbs
-- tools: 10-20 specific technologies/platforms mentioned in the CV
-- highlights: 4-6 punchy career highlights
-- tone: ${tone}, output language: ${lang}
-${job ? `- Tailor for this role: ${job.job_title} at ${job.employer_name}` : ''}
-${job?.job_description ? `- Job description context: ${job.job_description.slice(0, 1000)}` : ''}
-${confirmedSkills.length > 0 ? `- User confirmed they also have these skills (include them): ${confirmedSkills.join(', ')}` : ''}`
-
     try {
       const res = await fetch(API.tailorCv, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ cvText, job, template, tone, lang, systemPrompt, returnJson: true }),
+        body: JSON.stringify({ cvText, job, template, tone, lang, confirmedSkills, returnJson: true }),
       })
       if (res.status === 402) { const d = await res.json(); if (typeof d.credits === 'number') setCredits(d.credits); setLoading(false); alert('Not enough credits. Please top up on the Account page.'); return }
       const data = await res.json()
@@ -934,13 +891,11 @@ ${confirmedSkills.length > 0 ? `- User confirmed they also have these skills (in
     if (!feedback.trim() || !rawCv) return
     setApplyingFeedback(true)
 
-    const systemPrompt = `You are an elite CV designer. The user has requested changes to their CV. Apply the feedback and return updated JSON matching the same schema. Return ONLY valid JSON, no markdown.`
-
     try {
       const res = await fetch(API.tailorCv, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ cvText, job, template, tone, lang, systemPrompt, returnJson: true, feedback, currentCv: rawCv }),
+        body: JSON.stringify({ cvText, job, template, tone, lang, returnJson: true, feedback, currentCv: rawCv }),
       })
       if (res.status === 402) { alert('Not enough credits to apply changes.'); setApplyingFeedback(false); return }
       const data = await res.json()
