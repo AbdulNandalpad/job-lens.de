@@ -747,6 +747,9 @@ export default function CVBuilderPage() {
   const [openSections, setOpenSections] = useState<Record<string, boolean>>({ template: false, style: false, output: false })
   const [feedback, setFeedback] = useState('')
   const [applyingFeedback, setApplyingFeedback] = useState(false)
+  const [feedbackCount, setFeedbackCount] = useState(0)   // how many feedback calls made total (resets every 4)
+  const [feedbackError, setFeedbackError] = useState<string | null>(null)
+  const [feedbackSuccess, setFeedbackSuccess] = useState(false)
   const { credits, setCredits, needsCrossMarket, crossMarketAmount } = useCredits()
   const CV_COST = CREDIT_COST.tailorCv
   const [crossWarnPending, setCrossWarnPending] = useState<(() => void) | null>(null)
@@ -890,26 +893,97 @@ export default function CVBuilderPage() {
   async function applyFeedback() {
     if (!feedback.trim() || !rawCv) return
     setApplyingFeedback(true)
+    setFeedbackError(null)
+    setFeedbackSuccess(false)
+
+    // Every 4th call charges 1 credit; calls 1-3 within a bundle are free
+    const isChargeCall = feedbackCount % 4 === 3
 
     try {
       const res = await fetch(API.tailorCv, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ cvText, job, template, tone, lang, returnJson: true, feedback, currentCv: rawCv }),
+        body: JSON.stringify({
+          cvText, job, template, tone, lang, returnJson: true,
+          feedback, currentCv: rawCv,
+          market: MARKET.eu,
+          skipCredit: !isChargeCall,
+        }),
       })
-      if (res.status === 402) { alert('Not enough credits to apply changes.'); setApplyingFeedback(false); return }
+
+      if (res.status === 401) {
+        setFeedbackError(lang === 'DE' ? 'Bitte melde dich erneut an.' : 'Session expired — please sign in again.')
+        setApplyingFeedback(false)
+        return
+      }
+      if (res.status === 402) {
+        setFeedbackError(lang === 'DE' ? 'Nicht genug Credits. Du benötigst 1 Credit für die nächste Änderung.' : 'Not enough credits. You need 1 credit for this change.')
+        setApplyingFeedback(false)
+        return
+      }
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}))
+        const msg = (errData as { error?: string }).error || `Server error (${res.status})`
+        setFeedbackError(lang === 'DE' ? `Fehler vom Server: ${msg}` : `Server error: ${msg}`)
+        console.error('[applyFeedback] API error:', res.status, msg)
+        setApplyingFeedback(false)
+        return
+      }
+
       const data = await res.json()
-      const raw = data.cv || ''
-      setRawCv(raw)
-      sessionStorage.setItem(SS.cvbTailored, raw)
+      const raw: string = data.cv || ''
+
+      if (!raw) {
+        setFeedbackError(lang === 'DE'
+          ? 'Die KI hat keine Antwort zurückgegeben. Bitte versuche es erneut.'
+          : 'AI returned no response. Please try again.')
+        setApplyingFeedback(false)
+        return
+      }
+
+      // Robust JSON extraction — Claude occasionally wraps output in markdown
+      let parsed: CVData | null = null
+      let parseErrMsg = ''
       try {
-        const clean = raw.replace(/```json|```/g, '').trim()
-        const parsed = normalizeCv(JSON.parse(clean))
+        let jsonStr = raw.trim()
+        // Strip markdown code fences (```json … ``` or ``` … ```)
+        jsonStr = jsonStr.replace(/^```(?:json)?\s*/im, '').replace(/\s*```\s*$/im, '').trim()
+        // Find outermost JSON object in case of leading/trailing prose
+        const jsonStart = jsonStr.indexOf('{')
+        const jsonEnd   = jsonStr.lastIndexOf('}')
+        if (jsonStart !== -1 && jsonEnd !== -1 && jsonEnd > jsonStart) {
+          jsonStr = jsonStr.slice(jsonStart, jsonEnd + 1)
+        }
+        parsed = normalizeCv(JSON.parse(jsonStr))
+      } catch (e) {
+        parseErrMsg = e instanceof Error ? e.message : String(e)
+        console.error('[applyFeedback] JSON parse failed:', parseErrMsg, '\nRaw snippet:', raw.slice(0, 300))
+      }
+
+      if (parsed) {
         setCvData(parsed)
         sessionStorage.setItem(SS.cvbData, JSON.stringify(parsed))
-      } catch { /* keep existing */ }
-      setFeedback('')
-    } catch { /* silent */ }
+        setRawCv(raw)
+        sessionStorage.setItem(SS.cvbTailored, raw)
+        setFeedbackCount(prev => prev + 1)
+        setFeedback('')
+        setFeedbackSuccess(true)
+        setTimeout(() => setFeedbackSuccess(false), 4000)
+      } else {
+        // AI processed the request but response wasn't valid JSON — tell user exactly why
+        setFeedbackError(
+          lang === 'DE'
+            ? `Änderungen wurden verarbeitet, konnten aber nicht dargestellt werden (Parse-Fehler: ${parseErrMsg}). Versuche es mit einer anderen Formulierung oder generiere den CV neu.`
+            : `Changes processed but couldn't be rendered (parse error: ${parseErrMsg}). Try rephrasing your request or regenerate the CV.`
+        )
+      }
+
+    } catch (networkErr) {
+      const msg = networkErr instanceof Error ? networkErr.message : 'Unknown network error'
+      setFeedbackError(lang === 'DE' ? `Verbindungsfehler: ${msg}` : `Connection error: ${msg}`)
+      console.error('[applyFeedback] Network error:', networkErr)
+    }
+
     setApplyingFeedback(false)
   }
 
@@ -1576,20 +1650,53 @@ export default function CVBuilderPage() {
 
                 {/* Feedback input */}
                 <div style={{ marginTop: 12, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 10, padding: '14px 16px' }}>
-                  <div style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.4)', letterSpacing: 0.5, textTransform: 'uppercase' as const, marginBottom: 8 }}>{lang === 'DE' ? 'Änderungen anfordern' : 'Request changes'}</div>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+                    <div style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.4)', letterSpacing: 0.5, textTransform: 'uppercase' as const }}>{lang === 'DE' ? 'Änderungen anfordern' : 'Request changes'}</div>
+                    {/* Credit counter pill */}
+                    {(() => {
+                      const usedInBundle = feedbackCount % 4
+                      const freeLeft = 3 - usedInBundle
+                      return freeLeft > 0
+                        ? <div style={{ fontSize: 10, fontWeight: 600, color: 'rgba(255,255,255,0.35)', background: 'rgba(255,255,255,0.06)', borderRadius: 20, padding: '2px 8px' }}>
+                            {lang === 'DE' ? `${freeLeft} gratis übrig` : `${freeLeft} free left`}
+                          </div>
+                        : <div style={{ fontSize: 10, fontWeight: 600, color: currentAccent, background: `${currentAccent}18`, borderRadius: 20, padding: '2px 8px' }}>
+                            {lang === 'DE' ? '1 Credit für diese Änderung' : '1 credit for this change'}
+                          </div>
+                    })()}
+                  </div>
                   <textarea
                     value={feedback}
-                    onChange={e => setFeedback(e.target.value)}
-                    placeholder={lang === 'DE' ? 'z.B. Mehr Führungskompetenzen hervorheben...' : 'e.g. Add more leadership skills, focus on achievements...'}
-                    rows={2}
-                    style={{ width: '100%', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 7, color: '#E6F1FB', fontSize: 12, padding: '8px 10px', resize: 'vertical' as const, fontFamily: "'DM Sans', sans-serif", outline: 'none', boxSizing: 'border-box' as const }}
+                    onChange={e => { setFeedback(e.target.value); setFeedbackError(null) }}
+                    placeholder={lang === 'DE' ? 'z.B. Mehr Führungskompetenzen hervorheben...' : 'e.g. Emphasise leadership skills, highlight promotions, add more detail to 2022 role...'}
+                    rows={3}
+                    style={{ width: '100%', background: 'rgba(255,255,255,0.05)', border: `1px solid ${feedbackError ? 'rgba(239,68,68,0.5)' : 'rgba(255,255,255,0.1)'}`, borderRadius: 7, color: '#E6F1FB', fontSize: 12, padding: '8px 10px', resize: 'vertical' as const, fontFamily: "'DM Sans', sans-serif", outline: 'none', boxSizing: 'border-box' as const }}
                   />
+                  {/* Error message */}
+                  {feedbackError && (
+                    <div style={{ marginTop: 6, fontSize: 11, color: '#f87171', background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.25)', borderRadius: 6, padding: '7px 10px', lineHeight: 1.5 }}>
+                      ⚠ {feedbackError}
+                    </div>
+                  )}
+                  {/* Success message */}
+                  {feedbackSuccess && (
+                    <div style={{ marginTop: 6, fontSize: 11, color: '#4ade80', background: 'rgba(74,222,128,0.08)', border: '1px solid rgba(74,222,128,0.2)', borderRadius: 6, padding: '7px 10px' }}>
+                      ✓ {lang === 'DE' ? 'Änderungen wurden erfolgreich übernommen!' : 'Changes applied successfully!'}
+                    </div>
+                  )}
                   <button
                     onClick={applyFeedback}
                     disabled={!feedback.trim() || applyingFeedback}
                     style={{ marginTop: 8, padding: '7px 18px', borderRadius: 7, border: 'none', background: feedback.trim() && !applyingFeedback ? currentAccent : 'rgba(255,255,255,0.08)', color: feedback.trim() && !applyingFeedback ? '#042C53' : 'rgba(255,255,255,0.25)', fontSize: 12, fontWeight: 700, cursor: feedback.trim() && !applyingFeedback ? 'pointer' : 'not-allowed', fontFamily: "'Outfit', sans-serif" }}>
-                    {applyingFeedback ? (lang === 'DE' ? 'Wird angewendet...' : 'Applying...') : (lang === 'DE' ? `Änderungen übernehmen — 1 Credit` : 'Apply changes — 1 credit')}
+                    {applyingFeedback
+                      ? (lang === 'DE' ? 'Wird angewendet...' : 'Applying changes…')
+                      : feedbackCount % 4 === 3
+                        ? (lang === 'DE' ? 'Änderungen übernehmen — 1 Credit' : 'Apply changes — 1 credit')
+                        : (lang === 'DE' ? 'Änderungen übernehmen (gratis)' : 'Apply changes (free)')}
                   </button>
+                  <div style={{ marginTop: 6, fontSize: 10, color: 'rgba(255,255,255,0.22)' }}>
+                    {lang === 'DE' ? '4 Änderungen = 1 Credit' : '4 changes = 1 credit'}
+                  </div>
                 </div>
 
                 {/* Footer actions */}

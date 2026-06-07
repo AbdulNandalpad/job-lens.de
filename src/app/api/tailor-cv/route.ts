@@ -21,9 +21,15 @@ export async function POST(req: NextRequest) {
   const { job, template, tone, pages, lang, returnJson, market } = body
   const resolvedMarket: 'eu' | 'in' = market === MARKET.in ? MARKET.in : MARKET.eu
 
-  const credits = await checkAndDeductCredits(user.id, COST, 'tailor_cv', user.email ?? '', resolvedMarket)
-  if (!credits.ok) {
-    return NextResponse.json({ error: 'Insufficient credits', credits: credits.remaining, required: COST }, { status: 402 })
+  // skipCredit=true when client is still within its 4-free-changes bundle
+  const skipCredit = body.skipCredit === true
+
+  let credits = { ok: true, remaining: 0 }
+  if (!skipCredit) {
+    credits = await checkAndDeductCredits(user.id, COST, 'tailor_cv', user.email ?? '', resolvedMarket)
+    if (!credits.ok) {
+      return NextResponse.json({ error: 'Insufficient credits', credits: credits.remaining, required: COST }, { status: 402 })
+    }
   }
 
   try {
