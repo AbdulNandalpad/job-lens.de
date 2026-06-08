@@ -70,19 +70,23 @@ export async function GET(request: Request) {
       // ── Check whether profile already exists (returning user) ────────────
       const { data: existingProfile } = await admin
         .from('profiles')
-        .select('id')
+        .select('id, signup_country')
         .eq('id', data.user.id)
         .maybeSingle()
 
       const signupCountry = (request.headers.get('x-vercel-ip-country') ?? '').slice(0, 2).toUpperCase() || null
 
       if (existingProfile) {
-        // Returning user — refresh market stamp and backfill normalized_email
-        // if it was missing (accounts created before this feature shipped).
-        // Also backfill signup_country if still null (captures existing users on next login).
+        // Returning user — refresh market stamp and backfill normalized_email.
+        // Only write signup_country if it has never been set — never overwrite an
+        // existing value, because x-vercel-ip-country is GeoIP-based and can
+        // mis-classify DACH users as CH on any given login.
+        const countryPatch = (!existingProfile.signup_country && signupCountry)
+          ? { signup_country: signupCountry }
+          : {}
         await admin
           .from('profiles')
-          .update({ market, normalized_email: normalized, ...(signupCountry ? { signup_country: signupCountry } : {}) })
+          .update({ market, normalized_email: normalized, ...countryPatch })
           .eq('id', data.user.id)
 
       } else {
