@@ -632,12 +632,19 @@ export default function IndiaCVBuilderPage() {
   const [skillGapOpen,  setSkillGapOpen]  = useState(false)
   const [skillGapData,  setSkillGapData]  = useState<{ matching: string[]; missing: string[] } | null>(null)
   const [skillGapLoading, setSkillGapLoading] = useState(false)
+  const [previewTab,      setPreviewTab]      = useState<'original' | 'generated'>('generated')
+  const [originalFileUrl, setOriginalFileUrl] = useState<string | null>(null)
+  const [originalFileIsPdf, setOriginalFileIsPdf] = useState(true)
 
   const { credits, setCredits, needsCrossMarket, crossMarketAmount } = useCredits()
   const CV_COST = CREDIT_COST.tailorCv
   const [crossWarnPending, setCrossWarnPending] = useState<(() => void) | null>(null)
 
   // ── Calculate mobile scale ──
+  useEffect(() => {
+    return () => { if (originalFileUrl) URL.revokeObjectURL(originalFileUrl) }
+  }, [originalFileUrl])
+
   useEffect(() => {
     function calc() {
       if (!previewAreaRef.current) return
@@ -673,6 +680,9 @@ export default function IndiaCVBuilderPage() {
 
   async function handleCvFile(file: File) {
     setCvFileName(file.name); setCvText(''); setFileLoading(true)
+    if (originalFileUrl) URL.revokeObjectURL(originalFileUrl)
+    setOriginalFileUrl(URL.createObjectURL(file))
+    setOriginalFileIsPdf(file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf'))
     if (file.name.endsWith('.txt') || file.type === 'text/plain') {
       const r = new FileReader()
       r.onload = e => { const text = (e.target?.result as string) ?? ''; setCvText(text); sessionStorage.setItem(SS.cvText, text); setFileLoading(false) }
@@ -727,7 +737,7 @@ ${atsSuggestions?.section_gaps?.length ? `- ATS SECTION GAPS to address: ${atsSu
       if (typeof data.creditsRemaining === 'number') setCredits(data.creditsRemaining)
       const raw  = data.cv || data.enhanced || data.result || ''
       setRawCv(raw); sessionStorage.setItem(SS.cvbTailored, raw)
-      try { const parsed = normalizeCv(JSON.parse(raw.replace(/```json|```/g, '').trim())); setCvData(parsed); sessionStorage.setItem(SS.cvbData, JSON.stringify(parsed)) } catch { setCvData(null) }
+      try { const parsed = normalizeCv(JSON.parse(raw.replace(/```json|```/g, '').trim())); setCvData(parsed); setPreviewTab('generated'); sessionStorage.setItem(SS.cvbData, JSON.stringify(parsed)) } catch { setCvData(null) }
     } catch { setRawCv('Failed to generate.') }
     setLoading(false)
   }
@@ -767,7 +777,7 @@ ${atsSuggestions?.section_gaps?.length ? `- ATS SECTION GAPS to address: ${atsSu
       const data = await res.json()
       const raw  = data.cv || ''
       setRawCv(raw); sessionStorage.setItem(SS.cvbTailored, raw)
-      try { const parsed = normalizeCv(JSON.parse(raw.replace(/```json|```/g, '').trim())); setCvData(parsed); sessionStorage.setItem(SS.cvbData, JSON.stringify(parsed)) } catch { }
+      try { const parsed = normalizeCv(JSON.parse(raw.replace(/```json|```/g, '').trim())); setCvData(parsed); setPreviewTab('generated'); sessionStorage.setItem(SS.cvbData, JSON.stringify(parsed)) } catch { }
       setFeedback('')
     } catch { }
     setApplyingFeedback(false)
@@ -1057,7 +1067,7 @@ ${atsSuggestions?.section_gaps?.length ? `- ATS SECTION GAPS to address: ${atsSu
             ) : (
               <div style={{ marginTop: 12, padding: '7px 10px', background: 'rgba(29,158,117,0.12)', border: '1px solid rgba(29,158,117,0.3)', borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6 }}>
                 <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.7)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' as const }}>✓ {cvFileName || 'CV loaded'}</span>
-                <button onClick={() => { setCvText(''); setCvFileName(''); if (fileInputRef.current) fileInputRef.current.value = '' }} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.35)', cursor: 'pointer', fontSize: 16, padding: 0, flexShrink: 0 }}>×</button>
+                <button onClick={() => { setCvText(''); setCvFileName(''); if (originalFileUrl) URL.revokeObjectURL(originalFileUrl); setOriginalFileUrl(null); setCvData(null); setRawCv(''); setPreviewTab('generated'); if (fileInputRef.current) fileInputRef.current.value = ''; sessionStorage.removeItem(SS.cvbTailored); sessionStorage.removeItem(SS.cvbData); sessionStorage.removeItem(SS.cvText) }} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.35)', cursor: 'pointer', fontSize: 16, padding: 0, flexShrink: 0 }}>×</button>
               </div>
             )}
           </div>
@@ -1279,13 +1289,62 @@ ${atsSuggestions?.section_gaps?.length ? `- ATS SECTION GAPS to address: ${atsSu
 
             {!loading && cvData && (
               <div className="cv-preview" style={{ width: '100%', maxWidth: mobileScale < 1 ? 740 * mobileScale : 740 }}>
-                {/* CV preview — scaled on mobile to fit screen width */}
+
+                {/* Before / After tab toggle */}
+                {cvText && (
+                  <div style={{ display: 'flex', gap: 4, marginBottom: 14, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 10, padding: 4 }}>
+                    <button onClick={() => setPreviewTab('original')}
+                      style={{ flex: 1, padding: '8px 0', borderRadius: 7, border: 'none', background: previewTab === 'original' ? 'rgba(255,255,255,0.1)' : 'transparent', color: previewTab === 'original' ? '#E6F1FB' : 'rgba(255,255,255,0.4)', fontSize: 12, fontWeight: previewTab === 'original' ? 700 : 500, cursor: 'pointer', fontFamily: "'Outfit', sans-serif", transition: 'all 0.15s' }}>
+                      📄 Your Original
+                    </button>
+                    <button onClick={() => setPreviewTab('generated')}
+                      style={{ flex: 1, padding: '8px 0', borderRadius: 7, border: 'none', background: previewTab === 'generated' ? '#FF9933' : 'transparent', color: previewTab === 'generated' ? '#fff' : 'rgba(255,255,255,0.4)', fontSize: 12, fontWeight: previewTab === 'generated' ? 700 : 500, cursor: 'pointer', fontFamily: "'Outfit', sans-serif", transition: 'all 0.15s' }}>
+                      ✨ Generated CV
+                    </button>
+                  </div>
+                )}
+
+                {/* Original file view */}
+                {previewTab === 'original' && (
+                  <div style={{ background: '#fff', borderRadius: 14, boxShadow: '0 32px 80px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,0.05)', overflow: 'hidden', minHeight: 300 }}>
+                    <div style={{ background: '#f8f9fa', borderBottom: '1px solid #e9ecef', padding: '10px 20px', display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <span style={{ fontSize: 14 }}>📄</span>
+                      <span style={{ fontSize: 11, fontWeight: 600, color: '#6c757d', fontFamily: "'Outfit', sans-serif" }}>{cvFileName || 'Uploaded CV'}</span>
+                      <span style={{ marginLeft: 'auto', fontSize: 10, color: '#adb5bd', fontFamily: "'Outfit', sans-serif" }}>Original file</span>
+                    </div>
+                    {originalFileUrl && originalFileIsPdf ? (
+                      <iframe src={originalFileUrl} title="Original CV" style={{ width: '100%', height: 720, border: 'none', display: 'block' }} />
+                    ) : originalFileUrl ? (
+                      <div style={{ padding: '48px 32px', textAlign: 'center' as const }}>
+                        <div style={{ fontSize: 40, marginBottom: 12 }}>📝</div>
+                        <div style={{ fontSize: 13, fontWeight: 600, color: '#495057', marginBottom: 8, fontFamily: "'Outfit', sans-serif" }}>Preview not available</div>
+                        <div style={{ fontSize: 12, color: '#868e96', marginBottom: 20 }}>DOCX files cannot be previewed directly in the browser.</div>
+                        <a href={originalFileUrl} download={cvFileName} style={{ padding: '8px 20px', borderRadius: 8, background: '#FF9933', color: '#fff', fontSize: 12, fontWeight: 700, textDecoration: 'none', fontFamily: "'Outfit', sans-serif" }}>Download original</a>
+                      </div>
+                    ) : (
+                      <div style={{ padding: '40px 32px', textAlign: 'center' as const, fontSize: 12, color: '#868e96' }}>
+                        File preview unavailable after page refresh. Upload the file again to see it here.
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Generated CV visual preview */}
+                {previewTab === 'generated' && (
                 <CVScaleWrapper scale={mobileScale}>
                   <div ref={previewRef} style={{ borderRadius: 14, overflow: 'hidden', boxShadow: '0 32px 80px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,0.05)' }}>
                     {renderCV()}
                   </div>
                 </CVScaleWrapper>
+                )}
 
+                {previewTab === 'original' && (
+                  <div style={{ marginTop: 14, padding: '10px 14px', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 10, fontSize: 11, color: 'rgba(255,255,255,0.35)', textAlign: 'center' as const }}>
+                    ← Switch to "Generated CV" to request changes or download
+                  </div>
+                )}
+
+                {previewTab === 'generated' && <div>
                 {/* Contact editor */}
                 <div style={{ marginTop: 20, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 10, padding: '14px 16px' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: editingContact ? 12 : 0 }}>
@@ -1330,6 +1389,7 @@ ${atsSuggestions?.section_gaps?.length ? `- ATS SECTION GAPS to address: ${atsSu
                   <button onClick={goToAtsCheck} style={{ padding: '10px 22px', borderRadius: 9, border: `1px solid ${accent}50`, background: accent + '15', color: accent, fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: "'Outfit', sans-serif" }}>Check ATS Score</button>
                   <button onClick={goToCoverLetter} style={{ padding: '10px 26px', borderRadius: 9, border: 'none', background: accent, color: '#042C53', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: "'Outfit', sans-serif", boxShadow: `0 6px 20px ${accent}40` }}>Write Cover Letter →</button>
                 </div>
+                </div>}{/* end previewTab === 'generated' wrapper */}
               </div>
             )}
           </div>

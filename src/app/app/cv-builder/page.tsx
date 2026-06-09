@@ -752,6 +752,8 @@ export default function CVBuilderPage() {
   const [feedbackSuccess, setFeedbackSuccess] = useState(false)
   const [showClearCvConfirm, setShowClearCvConfirm] = useState(false)
   const [previewTab, setPreviewTab] = useState<'original' | 'generated'>('generated')
+  const [originalFileUrl, setOriginalFileUrl] = useState<string | null>(null)
+  const [originalFileIsPdf, setOriginalFileIsPdf] = useState(true)
   const { credits, setCredits, needsCrossMarket, crossMarketAmount } = useCredits()
   const CV_COST = CREDIT_COST.tailorCv
   const [crossWarnPending, setCrossWarnPending] = useState<(() => void) | null>(null)
@@ -777,6 +779,9 @@ export default function CVBuilderPage() {
     setFeedbackCount(0)
     setFeedbackError(null)
     setFeedbackSuccess(false)
+    if (originalFileUrl) URL.revokeObjectURL(originalFileUrl)
+    setOriginalFileUrl(null)
+    setPreviewTab('generated')
     if (fileInputRef.current) fileInputRef.current.value = ''
     sessionStorage.removeItem(SS.cvbTailored)
     sessionStorage.removeItem(SS.cvbData)
@@ -788,6 +793,10 @@ export default function CVBuilderPage() {
     setCvFileName(file.name)
     setCvText('')
     setFileLoading(true)
+    // Capture the original file as a browser object URL for the before/after view
+    if (originalFileUrl) URL.revokeObjectURL(originalFileUrl)
+    setOriginalFileUrl(URL.createObjectURL(file))
+    setOriginalFileIsPdf(file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf'))
     if (file.name.endsWith('.txt') || file.type === 'text/plain') {
       const r = new FileReader()
       r.onload = e => {
@@ -818,6 +827,11 @@ export default function CVBuilderPage() {
   function toggleSection(id: string) {
     setOpenSections(prev => ({ ...prev, [id]: !prev[id] }))
   }
+
+  // Revoke objectURL when a new file is uploaded or component unmounts — prevents memory leak
+  useEffect(() => {
+    return () => { if (originalFileUrl) URL.revokeObjectURL(originalFileUrl) }
+  }, [originalFileUrl])
 
   useEffect(() => {
     const cv = sessionStorage.getItem(SS.sjsCvText) || sessionStorage.getItem(SS.cvText) || ''
@@ -1685,21 +1699,45 @@ export default function CVBuilderPage() {
                   </div>
                 )}
 
-                {/* Original CV text view */}
-                {previewTab === 'original' && cvText && (
-                  <div style={{ background: '#fff', borderRadius: 14, boxShadow: '0 32px 80px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,0.05)', overflow: 'hidden' }}>
+                {/* Original CV file view */}
+                {previewTab === 'original' && (
+                  <div style={{ background: '#fff', borderRadius: 14, boxShadow: '0 32px 80px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,0.05)', overflow: 'hidden', minHeight: 300 }}>
                     <div style={{ background: '#f8f9fa', borderBottom: '1px solid #e9ecef', padding: '10px 20px', display: 'flex', alignItems: 'center', gap: 8 }}>
                       <span style={{ fontSize: 14 }}>📄</span>
                       <span style={{ fontSize: 11, fontWeight: 600, color: '#6c757d', fontFamily: "'Outfit', sans-serif" }}>
                         {cvFileName || (lang === 'DE' ? 'Hochgeladener Lebenslauf' : 'Uploaded CV')}
                       </span>
                       <span style={{ marginLeft: 'auto', fontSize: 10, color: '#adb5bd', fontFamily: "'Outfit', sans-serif" }}>
-                        {lang === 'DE' ? 'Extrahierter Text' : 'Extracted text'}
+                        {lang === 'DE' ? 'Original-Datei' : 'Original file'}
                       </span>
                     </div>
-                    <pre style={{ margin: 0, padding: '24px 28px', fontSize: 11.5, lineHeight: 1.75, color: '#212529', fontFamily: "'DM Sans', sans-serif", whiteSpace: 'pre-wrap' as const, wordBreak: 'break-word' as const, maxHeight: 600, overflowY: 'auto' as const }}>
-                      {cvText}
-                    </pre>
+                    {originalFileUrl && originalFileIsPdf ? (
+                      <iframe
+                        src={originalFileUrl}
+                        title={lang === 'DE' ? 'Original-Lebenslauf' : 'Original CV'}
+                        style={{ width: '100%', height: 720, border: 'none', display: 'block' }}
+                      />
+                    ) : originalFileUrl ? (
+                      /* DOCX/other — can't render in browser, offer download */
+                      <div style={{ padding: '48px 32px', textAlign: 'center' as const }}>
+                        <div style={{ fontSize: 40, marginBottom: 12 }}>📝</div>
+                        <div style={{ fontSize: 13, fontWeight: 600, color: '#495057', marginBottom: 8, fontFamily: "'Outfit', sans-serif" }}>
+                          {lang === 'DE' ? 'Vorschau nicht verfügbar' : 'Preview not available'}
+                        </div>
+                        <div style={{ fontSize: 12, color: '#868e96', marginBottom: 20 }}>
+                          {lang === 'DE' ? 'DOCX-Dateien können nicht direkt im Browser angezeigt werden.' : 'DOCX files cannot be previewed directly in the browser.'}
+                        </div>
+                        <a href={originalFileUrl} download={cvFileName}
+                          style={{ padding: '8px 20px', borderRadius: 8, background: '#378ADD', color: '#fff', fontSize: 12, fontWeight: 700, textDecoration: 'none', fontFamily: "'Outfit', sans-serif" }}>
+                          {lang === 'DE' ? 'Original herunterladen' : 'Download original'}
+                        </a>
+                      </div>
+                    ) : (
+                      /* File URL lost (page reload) — not expected in normal flow */
+                      <div style={{ padding: '40px 32px', textAlign: 'center' as const, fontSize: 12, color: '#868e96' }}>
+                        {lang === 'DE' ? 'Datei-Vorschau nach Seitenaktualisierung nicht mehr verfügbar.' : 'File preview unavailable after page refresh. Upload the file again to see it here.'}
+                      </div>
+                    )}
                   </div>
                 )}
 
