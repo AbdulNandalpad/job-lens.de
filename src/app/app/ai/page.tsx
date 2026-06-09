@@ -4,7 +4,7 @@ import { useState, useRef, useEffect } from 'react'
 import Navbar from '../components/Navbar'
 import { theme } from '@/lib/theme'
 import { useCredits } from '@/lib/useCredits'
-import { SS, API, CREDIT_COST } from '@/lib/constants'
+import { SS, LS, API, CREDIT_COST } from '@/lib/constants'
 
 const { colors: c, gradients: g, fonts: f } = theme
 
@@ -98,7 +98,7 @@ export default function AIPage() {
   const [messages, setMessages] = useState<Message[]>(() => {
     if (typeof window === 'undefined') return []
     try {
-      const saved = sessionStorage.getItem(SS.aiMessages)
+      const saved = localStorage.getItem(LS.aiMessages)
       return saved ? JSON.parse(saved) : []
     } catch { return [] }
   })
@@ -122,7 +122,7 @@ export default function AIPage() {
 
   useEffect(() => {
     if (messages.length > 0) {
-      sessionStorage.setItem(SS.aiMessages, JSON.stringify(messages.slice(-20)))
+      localStorage.setItem(LS.aiMessages, JSON.stringify(messages.slice(-20)))
     }
   }, [messages])
 
@@ -232,7 +232,7 @@ export default function AIPage() {
 
   function clearChat() {
     setMessages([])
-    sessionStorage.removeItem(SS.aiMessages)
+    localStorage.removeItem(LS.aiMessages)
   }
 
   const isEmpty = messages.length === 0

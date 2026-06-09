@@ -58,13 +58,16 @@ export default function AccountPage() {
       .catch(() => setLoading(false))
   }, [])
 
-  function clearAllJLData() {
+  function clearSessionData() {
     Object.keys(sessionStorage).filter(k => k.startsWith('jl_')).forEach(k => sessionStorage.removeItem(k))
+  }
+  function clearAllJLData() {
+    clearSessionData()
     Object.keys(localStorage).filter(k => k.startsWith('jl_')).forEach(k => localStorage.removeItem(k))
   }
 
   async function signOut() {
-    clearAllJLData()
+    clearSessionData()
     const supabase = createClient()
     await supabase.auth.signOut()
     router.push('/')
@@ -348,8 +351,9 @@ export default function AccountPage() {
                   <button onClick={async () => {
                     setDeletingKiraData(true)
                     await fetch('/api/profile/career', { method: 'DELETE' })
-                    ;['jl_cv_text', 'jl_scan_result', 'jl_ai_messages'].forEach(k => sessionStorage.removeItem(k))
+                    ;['jl_cv_text', 'jl_scan_result'].forEach(k => sessionStorage.removeItem(k))
                     localStorage.removeItem('jl_cv_consent')
+                    localStorage.removeItem('jl_ai_messages')
                     setDeletingKiraData(false)
                     setShowDeleteKiraConfirm(false)
                     setKiraDataDeleted(true)

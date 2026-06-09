@@ -49,13 +49,18 @@ export default function NavbarIndia() {
     return () => document.removeEventListener('mousedown', handleClick)
   }, [])
 
-  function clearAllJLData() {
+  // Sign-out / new session: clear sessionStorage only (localStorage persists — Kira history, widget prefs)
+  function clearSessionData() {
     Object.keys(sessionStorage).filter(k => k.startsWith('jl_')).forEach(k => sessionStorage.removeItem(k))
+  }
+  // User-switch: full wipe (different account — nothing should carry over)
+  function clearAllJLData() {
+    clearSessionData()
     Object.keys(localStorage).filter(k => k.startsWith('jl_')).forEach(k => localStorage.removeItem(k))
   }
 
   async function signOut() {
-    clearAllJLData()
+    clearSessionData()
     const supabase = createClient()
     await supabase.auth.signOut()
     router.push('/in')
@@ -63,7 +68,7 @@ export default function NavbarIndia() {
   }
 
   function clearSession() {
-    clearAllJLData()
+    clearSessionData()
     setConfirmClear(false)
     window.location.reload()
   }

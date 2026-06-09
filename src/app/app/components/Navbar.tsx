@@ -6,6 +6,7 @@ import { useState, useEffect, useRef } from 'react'
 import { createClient } from '@/lib/supabase'
 import { theme } from '@/lib/theme'
 import { useLanguage, DEFlag, GBFlag } from '@/lib/i18n'
+import { SS, LS } from '@/lib/constants'
 
 const { colors: c, gradients: g, fonts: f } = theme
 
@@ -23,8 +24,16 @@ export default function Navbar() {
   useEffect(() => {
     const supabase = createClient()
     supabase.auth.getUser().then(({ data }) => {
-      const full = data.user?.user_metadata?.full_name ?? data.user?.email ?? ''
+      const user = data.user
+      if (!user) return
+      const full = user.user_metadata?.full_name ?? user.email ?? ''
       setUserName(full.split(' ')[0] || 'User')
+      // Clear stale data if a different user is now logged in
+      const storedUid = sessionStorage.getItem(SS.uid)
+      if (storedUid && storedUid !== user.id) {
+        clearAllJLData()
+      }
+      sessionStorage.setItem(SS.uid, user.id)
     })
   }, [])
 
@@ -39,7 +48,18 @@ export default function Navbar() {
     return () => document.removeEventListener('mousedown', handleClick)
   }, [])
 
+  // Sign-out / new session: clear sessionStorage only (localStorage persists — Kira history, widget prefs)
+  function clearSessionData() {
+    Object.keys(sessionStorage).filter(k => k.startsWith('jl_')).forEach(k => sessionStorage.removeItem(k))
+  }
+  // User-switch: full wipe (different account — nothing should carry over)
+  function clearAllJLData() {
+    clearSessionData()
+    Object.keys(localStorage).filter(k => k.startsWith('jl_')).forEach(k => localStorage.removeItem(k))
+  }
+
   async function signOut() {
+    clearSessionData()
     const supabase = createClient()
     await supabase.auth.signOut()
     router.push('/')
@@ -47,9 +67,7 @@ export default function Navbar() {
   }
 
   function clearSession() {
-    Object.keys(sessionStorage)
-      .filter(k => k.startsWith('jl_'))
-      .forEach(k => sessionStorage.removeItem(k))
+    clearSessionData()
     setConfirmClear(false)
     window.location.reload()
   }

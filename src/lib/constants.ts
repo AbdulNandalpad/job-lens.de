@@ -68,8 +68,8 @@ export const SS = {
   inCareerScanResult:  'jl_in_career_scan_result',
   inCareerScanRole:    'jl_in_career_scan_role',
 
-  // AI Assistant
-  aiMessages:          'jl_ai_messages',
+  // Session owner — compared on every app load; mismatch triggers full clear
+  uid:                 'jl_uid',
 
   // Interview Prep — written by interview page, read by Kira
   interviewRole:       'jl_interview_role',
@@ -84,6 +84,8 @@ export const LS = {
   dashWidgetsEu: 'jl_dash_widgets_eu',
   dashWidgetsIn: 'jl_dash_widgets_in',
   cvConsent:     'jl_cv_consent',
+  // Kira chat history — persists across sign-out for the same user
+  aiMessages:    'jl_ai_messages',
 } as const
 
 // ── API routes ───────────────────────────────────────────────────────────────

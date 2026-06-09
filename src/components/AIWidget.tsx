@@ -5,7 +5,7 @@ import { createPortal } from 'react-dom'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { theme } from '@/lib/theme'
-import { SS, API } from '@/lib/constants'
+import { SS, LS, API } from '@/lib/constants'
 import SvgIcon from '@/components/SvgIcon'
 import { useLanguage } from '@/lib/i18n'
 
@@ -326,7 +326,7 @@ export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
     if (cv) setCvName('CV ready')
 
     try {
-      const saved = sessionStorage.getItem(SS.aiMessages)
+      const saved = localStorage.getItem(LS.aiMessages)
       if (saved) {
         const parsed = JSON.parse(saved) as Msg[]
         if (parsed.length > 0) {
@@ -357,7 +357,7 @@ export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
   useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: 'smooth' }) }, [msgs])
 
   useEffect(() => {
-    if (msgs.length) sessionStorage.setItem(SS.aiMessages, JSON.stringify(msgs.slice(-30)))
+    if (msgs.length) localStorage.setItem(LS.aiMessages, JSON.stringify(msgs.slice(-30)))
   }, [msgs])
 
   useEffect(() => {
@@ -935,7 +935,7 @@ export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
             )}
 
             {msgs.length > 0 && !voiceMode && (
-              <button onClick={() => { setMsgs([]); greetedRef.current = false; cvDiscussModeRef.current = false; setCvDiscussMode(false); sessionStorage.removeItem(SS.aiMessages) }}
+              <button onClick={() => { setMsgs([]); greetedRef.current = false; cvDiscussModeRef.current = false; setCvDiscussMode(false); localStorage.removeItem(LS.aiMessages) }}
                 style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,.3)', fontSize: 10, cursor: 'pointer', padding: '2px 4px', fontFamily: f.body, flexShrink: 0 }}>
                 Clear
               </button>
