@@ -751,6 +751,7 @@ export default function CVBuilderPage() {
   const [feedbackError, setFeedbackError] = useState<string | null>(null)
   const [feedbackSuccess, setFeedbackSuccess] = useState(false)
   const [showClearCvConfirm, setShowClearCvConfirm] = useState(false)
+  const [previewTab, setPreviewTab] = useState<'original' | 'generated'>('generated')
   const { credits, setCredits, needsCrossMarket, crossMarketAmount } = useCredits()
   const CV_COST = CREDIT_COST.tailorCv
   const [crossWarnPending, setCrossWarnPending] = useState<(() => void) | null>(null)
@@ -870,6 +871,7 @@ export default function CVBuilderPage() {
       try {
         const parsed = normalizeCv(JSON.parse(raw.replace(/```json|```/g, '').trim()))
         setCvData(parsed)
+        setPreviewTab('generated')
         sessionStorage.setItem(SS.cvbData, JSON.stringify(parsed))
       } catch { setCvData(null) }
     } catch {
@@ -1666,11 +1668,61 @@ export default function CVBuilderPage() {
             {/* Rendered CV */}
             {!loading && cvData && (
               <div className="cv-preview" style={{ width: '100%', maxWidth: mobileScale < 1 ? 740 * mobileScale : 740 }}>
-                <CVScaleWrapper scale={mobileScale}>
-                  <div ref={previewRef} style={{ borderRadius: 14, overflow: 'hidden', boxShadow: '0 32px 80px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,0.05)' }}>
-                    {renderCV()}
+
+                {/* Before / After tab toggle — only shown when original text is available */}
+                {cvText && (
+                  <div style={{ display: 'flex', gap: 4, marginBottom: 14, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 10, padding: 4 }}>
+                    <button
+                      onClick={() => setPreviewTab('original')}
+                      style={{ flex: 1, padding: '8px 0', borderRadius: 7, border: 'none', background: previewTab === 'original' ? 'rgba(255,255,255,0.1)' : 'transparent', color: previewTab === 'original' ? '#E6F1FB' : 'rgba(255,255,255,0.4)', fontSize: 12, fontWeight: previewTab === 'original' ? 700 : 500, cursor: 'pointer', fontFamily: "'Outfit', sans-serif", transition: 'all 0.15s' }}>
+                      {lang === 'DE' ? '📄 Dein Original' : '📄 Your Original'}
+                    </button>
+                    <button
+                      onClick={() => setPreviewTab('generated')}
+                      style={{ flex: 1, padding: '8px 0', borderRadius: 7, border: 'none', background: previewTab === 'generated' ? currentAccent : 'transparent', color: previewTab === 'generated' ? '#042C53' : 'rgba(255,255,255,0.4)', fontSize: 12, fontWeight: previewTab === 'generated' ? 700 : 500, cursor: 'pointer', fontFamily: "'Outfit', sans-serif", transition: 'all 0.15s' }}>
+                      {lang === 'DE' ? '✨ Generierter Lebenslauf' : '✨ Generated CV'}
+                    </button>
                   </div>
-                </CVScaleWrapper>
+                )}
+
+                {/* Original CV text view */}
+                {previewTab === 'original' && cvText && (
+                  <div style={{ background: '#fff', borderRadius: 14, boxShadow: '0 32px 80px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,0.05)', overflow: 'hidden' }}>
+                    <div style={{ background: '#f8f9fa', borderBottom: '1px solid #e9ecef', padding: '10px 20px', display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <span style={{ fontSize: 14 }}>📄</span>
+                      <span style={{ fontSize: 11, fontWeight: 600, color: '#6c757d', fontFamily: "'Outfit', sans-serif" }}>
+                        {cvFileName || (lang === 'DE' ? 'Hochgeladener Lebenslauf' : 'Uploaded CV')}
+                      </span>
+                      <span style={{ marginLeft: 'auto', fontSize: 10, color: '#adb5bd', fontFamily: "'Outfit', sans-serif" }}>
+                        {lang === 'DE' ? 'Extrahierter Text' : 'Extracted text'}
+                      </span>
+                    </div>
+                    <pre style={{ margin: 0, padding: '24px 28px', fontSize: 11.5, lineHeight: 1.75, color: '#212529', fontFamily: "'DM Sans', sans-serif", whiteSpace: 'pre-wrap' as const, wordBreak: 'break-word' as const, maxHeight: 600, overflowY: 'auto' as const }}>
+                      {cvText}
+                    </pre>
+                  </div>
+                )}
+
+                {/* Generated CV visual preview */}
+                {previewTab === 'generated' && (
+                  <CVScaleWrapper scale={mobileScale}>
+                    <div ref={previewRef} style={{ borderRadius: 14, overflow: 'hidden', boxShadow: '0 32px 80px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,0.05)' }}>
+                      {renderCV()}
+                    </div>
+                  </CVScaleWrapper>
+                )}
+
+                {/* Only show editing tools when on generated tab */}
+                {previewTab === 'original' && (
+                  <div style={{ marginTop: 14, padding: '10px 14px', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 10, fontSize: 11, color: 'rgba(255,255,255,0.35)', textAlign: 'center' as const }}>
+                    {lang === 'DE'
+                      ? '← Wechsle zu „Generierter Lebenslauf" um Änderungen anzufordern oder herunterzuladen'
+                      : '← Switch to "Generated CV" to request changes or download'}
+                  </div>
+                )}
+
+                {/* Contact editor, feedback widget and download actions — only on generated tab */}
+                {previewTab === 'generated' && <div>
 
                 {/* Free contact info editor */}
                 <div style={{ marginTop: 20, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 10, padding: '14px 16px' }}>
@@ -1767,6 +1819,8 @@ export default function CVBuilderPage() {
                     {t.navbar.coverLetter} →
                   </button>
                 </div>
+
+                </div>}{/* end previewTab === 'generated' wrapper */}
               </div>
             )}
           </div>
