@@ -5,6 +5,7 @@ import { usePathname, useRouter } from 'next/navigation'
 import { useState, useEffect, useRef } from 'react'
 import { createClient } from '@/lib/supabase'
 import { theme } from '@/lib/theme'
+import { SS } from '@/lib/constants'
 
 const { colors: c, gradients: g, fonts: f } = theme
 
@@ -21,10 +22,16 @@ export default function NavbarIndia() {
   useEffect(() => {
     const supabase = createClient()
     supabase.auth.getUser().then(({ data }) => {
-      if (data.user) {
-        const full = data.user.user_metadata?.full_name ?? data.user.email ?? ''
+      const user = data.user
+      if (user) {
+        const full = user.user_metadata?.full_name ?? user.email ?? ''
         setUserName(full.split(' ')[0] || 'User')
         setIsLoggedIn(true)
+        const storedUid = sessionStorage.getItem(SS.uid)
+        if (storedUid && storedUid !== user.id) {
+          clearAllJLData()
+        }
+        sessionStorage.setItem(SS.uid, user.id)
       } else {
         setIsLoggedIn(false)
       }
@@ -42,7 +49,13 @@ export default function NavbarIndia() {
     return () => document.removeEventListener('mousedown', handleClick)
   }, [])
 
+  function clearAllJLData() {
+    Object.keys(sessionStorage).filter(k => k.startsWith('jl_')).forEach(k => sessionStorage.removeItem(k))
+    Object.keys(localStorage).filter(k => k.startsWith('jl_')).forEach(k => localStorage.removeItem(k))
+  }
+
   async function signOut() {
+    clearAllJLData()
     const supabase = createClient()
     await supabase.auth.signOut()
     router.push('/in')
@@ -50,9 +63,7 @@ export default function NavbarIndia() {
   }
 
   function clearSession() {
-    Object.keys(sessionStorage)
-      .filter(k => k.startsWith('jl_'))
-      .forEach(k => sessionStorage.removeItem(k))
+    clearAllJLData()
     setConfirmClear(false)
     window.location.reload()
   }

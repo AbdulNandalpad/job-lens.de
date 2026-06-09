@@ -62,7 +62,13 @@ export default function IndiaAccountPage() {
       .catch(() => setLoading(false))
   }, [])
 
+  function clearAllJLData() {
+    Object.keys(sessionStorage).filter(k => k.startsWith('jl_')).forEach(k => sessionStorage.removeItem(k))
+    Object.keys(localStorage).filter(k => k.startsWith('jl_')).forEach(k => localStorage.removeItem(k))
+  }
+
   async function signOut() {
+    clearAllJLData()
     const supabase = createClient()
     await supabase.auth.signOut()
     router.push('/in')
@@ -70,6 +76,7 @@ export default function IndiaAccountPage() {
 
   async function deleteAccount() {
     setDeleting(true)
+    clearAllJLData()
     const supabase = createClient()
     await supabase.auth.signOut()
     router.push('/in')
