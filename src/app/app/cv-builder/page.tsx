@@ -750,6 +750,7 @@ export default function CVBuilderPage() {
   const [feedbackCount, setFeedbackCount] = useState(0)   // how many feedback calls made total (resets every 4)
   const [feedbackError, setFeedbackError] = useState<string | null>(null)
   const [feedbackSuccess, setFeedbackSuccess] = useState(false)
+  const [showClearCvConfirm, setShowClearCvConfirm] = useState(false)
   const { credits, setCredits, needsCrossMarket, crossMarketAmount } = useCredits()
   const CV_COST = CREDIT_COST.tailorCv
   const [crossWarnPending, setCrossWarnPending] = useState<(() => void) | null>(null)
@@ -764,6 +765,22 @@ export default function CVBuilderPage() {
     const r = new FileReader()
     r.onload = e => { const url = (e.target?.result as string) ?? ''; if (url) setPhotoUrl(url) }
     r.readAsDataURL(file)
+  }
+
+  function clearCvAndPreview() {
+    setCvText('')
+    setCvFileName('')
+    setCvData(null)
+    setRawCv('')
+    setFeedback('')
+    setFeedbackCount(0)
+    setFeedbackError(null)
+    setFeedbackSuccess(false)
+    if (fileInputRef.current) fileInputRef.current.value = ''
+    sessionStorage.removeItem(SS.cvbTailored)
+    sessionStorage.removeItem(SS.cvbData)
+    sessionStorage.removeItem(SS.cvText)
+    setShowClearCvConfirm(false)
   }
 
   async function handleCvFile(file: File) {
@@ -1295,6 +1312,39 @@ export default function CVBuilderPage() {
         />
       )}
 
+      {/* Confirm removing uploaded CV when a generated preview exists */}
+      {showClearCvConfirm && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', zIndex: 9000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
+          <div style={{ background: '#0e1a28', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 16, padding: '28px 28px 24px', maxWidth: 380, width: '100%', boxShadow: '0 24px 60px rgba(0,0,0,0.6)' }}>
+            <div style={{ display: 'flex', alignItems: 'flex-start', gap: 14, marginBottom: 16 }}>
+              <div style={{ flexShrink: 0, width: 36, height: 36, borderRadius: '50%', background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16 }}>⚠</div>
+              <div>
+                <div style={{ fontSize: 14, fontWeight: 700, color: '#E6F1FB', marginBottom: 6, fontFamily: "'Outfit', sans-serif" }}>
+                  {lang === 'DE' ? 'Lebenslauf entfernen?' : 'Remove CV?'}
+                </div>
+                <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.55)', lineHeight: 1.6 }}>
+                  {lang === 'DE'
+                    ? 'Der generierte Lebenslauf wird ebenfalls entfernt. Diese Aktion kann nicht rückgängig gemacht werden.'
+                    : 'Your generated CV preview will also be removed. This cannot be undone.'}
+                </div>
+              </div>
+            </div>
+            <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
+              <button
+                onClick={() => setShowClearCvConfirm(false)}
+                style={{ padding: '8px 18px', borderRadius: 8, border: '1px solid rgba(255,255,255,0.15)', background: 'transparent', color: 'rgba(255,255,255,0.6)', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: "'Outfit', sans-serif" }}>
+                {lang === 'DE' ? 'Abbrechen' : 'Cancel'}
+              </button>
+              <button
+                onClick={clearCvAndPreview}
+                style={{ padding: '8px 18px', borderRadius: 8, border: 'none', background: 'rgba(239,68,68,0.85)', color: '#fff', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: "'Outfit', sans-serif" }}>
+                {lang === 'DE' ? 'Ja, entfernen' : 'Yes, remove'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="cvb-layout">
 
         {/* -- LEFT STUDIO PANEL -- */}
@@ -1344,7 +1394,14 @@ export default function CVBuilderPage() {
                 <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.7)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' as const }}>
                   {cvFileName ? `✓ ${cvFileName}` : t.coverLetter.sidebar.cvLoaded}
                 </span>
-                <button onClick={() => { setCvText(''); setCvFileName(''); if (fileInputRef.current) fileInputRef.current.value = '' }}
+                <button
+                  onClick={() => {
+                    if (cvData) {
+                      setShowClearCvConfirm(true)
+                    } else {
+                      setCvText(''); setCvFileName(''); if (fileInputRef.current) fileInputRef.current.value = ''
+                    }
+                  }}
                   style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.35)', cursor: 'pointer', fontSize: 16, padding: 0, flexShrink: 0, lineHeight: 1 }}>×</button>
               </div>
             )}
