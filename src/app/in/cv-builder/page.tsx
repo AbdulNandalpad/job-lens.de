@@ -1262,7 +1262,8 @@ ${atsSuggestions?.section_gaps?.length ? `- ATS SECTION GAPS to address: ${atsSu
               </div>
             )}
 
-            {!loading && !cvData && (
+            {/* Empty state — no file uploaded, no generated CV */}
+            {!loading && !cvData && !originalFileUrl && (
               <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', flex: 1, gap: 20 }}>
                 <div style={{ width: 260, opacity: 0.5 }}>
                   <div style={{ background: '#1C2A3A', borderRadius: 12, overflow: 'hidden', boxShadow: '0 20px 50px rgba(0,0,0,0.4)' }}>
@@ -1283,6 +1284,31 @@ ${atsSuggestions?.section_gaps?.length ? `- ATS SECTION GAPS to address: ${atsSu
                   <div style={{ fontSize: 17, fontWeight: 600, color: 'rgba(255,255,255,0.5)', fontFamily: "'Outfit', sans-serif", marginBottom: 8 }}>{cvText ? 'Ready to design' : 'No CV uploaded'}</div>
                   <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.2)', lineHeight: 1.7 }}>{cvText ? `Choose a template and click Generate CV\n${curTpl.label}: ${curTpl.ats}` : 'Upload your CV using the panel on the left'}</div>
                   {cvText && <button onClick={handleGenerate} className="cvb-gen" disabled={!canGenerate} style={{ marginTop: 20, padding: '11px 28px', borderRadius: 10, border: 'none', background: canGenerate ? accent : 'rgba(255,255,255,0.1)', color: canGenerate ? '#0a1520' : 'rgba(255,255,255,0.3)', fontFamily: "'Outfit', sans-serif", fontSize: 13, fontWeight: 700, cursor: canGenerate ? 'pointer' : 'not-allowed' }}>Generate CV</button>}
+                </div>
+              </div>
+            )}
+
+            {/* Original file preview — uploaded but not yet generated */}
+            {!loading && !cvData && originalFileUrl && (
+              <div className="cv-preview" style={{ width: '100%', maxWidth: mobileScale < 1 ? 740 * mobileScale : 740 }}>
+                <div style={{ background: '#fff', borderRadius: 14, boxShadow: '0 32px 80px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,0.05)', overflow: 'hidden' }}>
+                  <div style={{ background: '#f8f9fa', borderBottom: '1px solid #e9ecef', padding: '10px 20px', display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <span style={{ fontSize: 14 }}>📄</span>
+                    <span style={{ fontSize: 11, fontWeight: 600, color: '#6c757d', fontFamily: "'Outfit', sans-serif" }}>{cvFileName || 'Uploaded CV'}</span>
+                    <span style={{ marginLeft: 'auto', fontSize: 10, color: '#adb5bd', fontFamily: "'Outfit', sans-serif" }}>Your original</span>
+                  </div>
+                  {originalFileIsPdf ? (
+                    <iframe src={originalFileUrl} title="Original CV" style={{ width: '100%', height: 680, border: 'none', display: 'block' }} />
+                  ) : (
+                    <div style={{ padding: '48px 32px', textAlign: 'center' as const }}>
+                      <div style={{ fontSize: 40, marginBottom: 12 }}>📝</div>
+                      <div style={{ fontSize: 13, fontWeight: 600, color: '#495057', marginBottom: 8, fontFamily: "'Outfit', sans-serif" }}>DOCX uploaded</div>
+                      <div style={{ fontSize: 12, color: '#868e96', marginBottom: 20 }}>Browser cannot preview DOCX files. Select a template and generate your new CV.</div>
+                    </div>
+                  )}
+                </div>
+                <div style={{ marginTop: 12, padding: '10px 14px', background: 'rgba(255,153,51,0.08)', border: '1px solid rgba(255,153,51,0.2)', borderRadius: 10, fontSize: 12, color: 'rgba(255,153,51,0.8)', textAlign: 'center' as const, fontFamily: "'Outfit', sans-serif" }}>
+                  ✓ CV uploaded — select a template on the left and click Generate CV
                 </div>
               </div>
             )}

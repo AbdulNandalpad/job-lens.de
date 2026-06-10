@@ -1643,7 +1643,8 @@ export default function CVBuilderPage() {
             )}
 
             {/* Empty state */}
-            {!loading && !cvData && (
+            {/* Empty state — no file uploaded, no generated CV */}
+            {!loading && !cvData && !originalFileUrl && (
               <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', flex: 1, gap: 20 }}>
                 <div style={{ width: 300, opacity: 0.5, position: 'relative' }}>
                   <div style={{ background: '#1C2A3A', borderRadius: 12, overflow: 'hidden', boxShadow: '0 20px 50px rgba(0,0,0,0.4)' }}>
@@ -1675,6 +1676,39 @@ export default function CVBuilderPage() {
                       {credits !== null && credits < CV_COST ? t.coverLetter.sidebar.needCredits(CV_COST, credits) : t.cvBuilder.sidebar.generateBtn(CV_COST)}
                     </button>
                   )}
+                </div>
+              </div>
+            )}
+
+            {/* Original file preview — uploaded but not yet generated */}
+            {!loading && !cvData && originalFileUrl && (
+              <div className="cv-preview" style={{ width: '100%', maxWidth: mobileScale < 1 ? 740 * mobileScale : 740 }}>
+                <div style={{ background: '#fff', borderRadius: 14, boxShadow: '0 32px 80px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,0.05)', overflow: 'hidden' }}>
+                  <div style={{ background: '#f8f9fa', borderBottom: '1px solid #e9ecef', padding: '10px 20px', display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <span style={{ fontSize: 14 }}>📄</span>
+                    <span style={{ fontSize: 11, fontWeight: 600, color: '#6c757d', fontFamily: "'Outfit', sans-serif" }}>
+                      {cvFileName || (lang === 'DE' ? 'Hochgeladener Lebenslauf' : 'Uploaded CV')}
+                    </span>
+                    <span style={{ marginLeft: 'auto', fontSize: 10, color: '#adb5bd', fontFamily: "'Outfit', sans-serif" }}>
+                      {lang === 'DE' ? 'Dein Original' : 'Your original'}
+                    </span>
+                  </div>
+                  {originalFileIsPdf ? (
+                    <iframe src={originalFileUrl} title={lang === 'DE' ? 'Original-Lebenslauf' : 'Original CV'} style={{ width: '100%', height: 680, border: 'none', display: 'block' }} />
+                  ) : (
+                    <div style={{ padding: '48px 32px', textAlign: 'center' as const }}>
+                      <div style={{ fontSize: 40, marginBottom: 12 }}>📝</div>
+                      <div style={{ fontSize: 13, fontWeight: 600, color: '#495057', marginBottom: 8, fontFamily: "'Outfit', sans-serif" }}>
+                        {lang === 'DE' ? 'DOCX hochgeladen' : 'DOCX uploaded'}
+                      </div>
+                      <div style={{ fontSize: 12, color: '#868e96' }}>
+                        {lang === 'DE' ? 'Browser kann DOCX nicht anzeigen. Vorlage wählen und Lebenslauf erstellen.' : 'Browser cannot preview DOCX files. Select a template and generate your new CV.'}
+                      </div>
+                    </div>
+                  )}
+                </div>
+                <div style={{ marginTop: 12, padding: '10px 14px', background: `${currentAccent}15`, border: `1px solid ${currentAccent}30`, borderRadius: 10, fontSize: 12, color: `${currentAccent}cc`, textAlign: 'center' as const, fontFamily: "'Outfit', sans-serif" }}>
+                  {lang === 'DE' ? '✓ Lebenslauf hochgeladen — Vorlage wählen und Lebenslauf erstellen klicken' : '✓ CV uploaded — select a template on the left and click Generate CV'}
                 </div>
               </div>
             )}
