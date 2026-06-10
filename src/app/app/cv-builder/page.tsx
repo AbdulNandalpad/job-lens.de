@@ -1683,8 +1683,8 @@ export default function CVBuilderPage() {
             {!loading && cvData && (
               <div className="cv-preview" style={{ width: '100%', maxWidth: mobileScale < 1 ? 740 * mobileScale : 740 }}>
 
-                {/* Before / After tab toggle — only shown when original text is available */}
-                {cvText && (
+                {/* Before / After tab toggle — only when original file is in memory */}
+                {originalFileUrl && (
                   <div style={{ display: 'flex', gap: 4, marginBottom: 14, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 10, padding: 4 }}>
                     <button
                       onClick={() => setPreviewTab('original')}
@@ -1699,8 +1699,8 @@ export default function CVBuilderPage() {
                   </div>
                 )}
 
-                {/* Original CV file view */}
-                {previewTab === 'original' && (
+                {/* Original CV file view — only rendered when file is in memory */}
+                {previewTab === 'original' && originalFileUrl && (
                   <div style={{ background: '#fff', borderRadius: 14, boxShadow: '0 32px 80px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,0.05)', overflow: 'hidden', minHeight: 300 }}>
                     <div style={{ background: '#f8f9fa', borderBottom: '1px solid #e9ecef', padding: '10px 20px', display: 'flex', alignItems: 'center', gap: 8 }}>
                       <span style={{ fontSize: 14 }}>📄</span>
@@ -1711,14 +1711,13 @@ export default function CVBuilderPage() {
                         {lang === 'DE' ? 'Original-Datei' : 'Original file'}
                       </span>
                     </div>
-                    {originalFileUrl && originalFileIsPdf ? (
+                    {originalFileIsPdf ? (
                       <iframe
                         src={originalFileUrl}
                         title={lang === 'DE' ? 'Original-Lebenslauf' : 'Original CV'}
                         style={{ width: '100%', height: 720, border: 'none', display: 'block' }}
                       />
-                    ) : originalFileUrl ? (
-                      /* DOCX/other — can't render in browser, offer download */
+                    ) : (
                       <div style={{ padding: '48px 32px', textAlign: 'center' as const }}>
                         <div style={{ fontSize: 40, marginBottom: 12 }}>📝</div>
                         <div style={{ fontSize: 13, fontWeight: 600, color: '#495057', marginBottom: 8, fontFamily: "'Outfit', sans-serif" }}>
@@ -1732,17 +1731,12 @@ export default function CVBuilderPage() {
                           {lang === 'DE' ? 'Original herunterladen' : 'Download original'}
                         </a>
                       </div>
-                    ) : (
-                      /* File URL lost (page reload) — not expected in normal flow */
-                      <div style={{ padding: '40px 32px', textAlign: 'center' as const, fontSize: 12, color: '#868e96' }}>
-                        {lang === 'DE' ? 'Datei-Vorschau nach Seitenaktualisierung nicht mehr verfügbar.' : 'File preview unavailable after page refresh. Upload the file again to see it here.'}
-                      </div>
                     )}
                   </div>
                 )}
 
                 {/* Generated CV visual preview */}
-                {previewTab === 'generated' && (
+                {(previewTab === 'generated' || !originalFileUrl) && (
                   <CVScaleWrapper scale={mobileScale}>
                     <div ref={previewRef} style={{ borderRadius: 14, overflow: 'hidden', boxShadow: '0 32px 80px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,0.05)' }}>
                       {renderCV()}
@@ -1750,8 +1744,7 @@ export default function CVBuilderPage() {
                   </CVScaleWrapper>
                 )}
 
-                {/* Only show editing tools when on generated tab */}
-                {previewTab === 'original' && (
+                {previewTab === 'original' && originalFileUrl && (
                   <div style={{ marginTop: 14, padding: '10px 14px', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 10, fontSize: 11, color: 'rgba(255,255,255,0.35)', textAlign: 'center' as const }}>
                     {lang === 'DE'
                       ? '← Wechsle zu „Generierter Lebenslauf" um Änderungen anzufordern oder herunterzuladen'
@@ -1760,7 +1753,7 @@ export default function CVBuilderPage() {
                 )}
 
                 {/* Contact editor, feedback widget and download actions — only on generated tab */}
-                {previewTab === 'generated' && <div>
+                {(previewTab === 'generated' || !originalFileUrl) && <div>
 
                 {/* Free contact info editor */}
                 <div style={{ marginTop: 20, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 10, padding: '14px 16px' }}>
