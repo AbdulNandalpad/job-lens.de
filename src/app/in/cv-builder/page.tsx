@@ -1293,7 +1293,7 @@ ${atsSuggestions?.section_gaps?.length ? `- ATS SECTION GAPS to address: ${atsSu
               <div className="cv-preview" style={{ width: '100%', maxWidth: mobileScale < 1 ? 740 * mobileScale : 740 }}>
                 <div style={{ background: '#fff', borderRadius: 14, boxShadow: '0 32px 80px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,0.05)', overflow: 'hidden' }}>
                   <div style={{ background: '#f8f9fa', borderBottom: '1px solid #e9ecef', padding: '10px 20px', display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <span style={{ fontSize: 14 }}>📄</span>
+                    <SvgIcon name="document" size={14} color="#6c757d" />
                     <span style={{ fontSize: 11, fontWeight: 600, color: '#6c757d', fontFamily: "'Outfit', sans-serif" }}>{cvFileName || 'Uploaded CV'}</span>
                     <span style={{ marginLeft: 'auto', fontSize: 10, color: '#adb5bd', fontFamily: "'Outfit', sans-serif" }}>Your original</span>
                   </div>
@@ -1301,7 +1301,7 @@ ${atsSuggestions?.section_gaps?.length ? `- ATS SECTION GAPS to address: ${atsSu
                     <iframe src={originalFileUrl} title="Original CV" style={{ width: '100%', height: 680, border: 'none', display: 'block' }} />
                   ) : (
                     <div style={{ padding: '48px 32px', textAlign: 'center' as const }}>
-                      <div style={{ fontSize: 40, marginBottom: 12 }}>📝</div>
+                      <div style={{ marginBottom: 12, display: 'flex', justifyContent: 'center' }}><SvgIcon name="pencil" size={36} color="#adb5bd" /></div>
                       <div style={{ fontSize: 13, fontWeight: 600, color: '#495057', marginBottom: 8, fontFamily: "'Outfit', sans-serif" }}>DOCX uploaded</div>
                       <div style={{ fontSize: 12, color: '#868e96', marginBottom: 20 }}>Browser cannot preview DOCX files. Select a template and generate your new CV.</div>
                     </div>
@@ -1320,12 +1320,14 @@ ${atsSuggestions?.section_gaps?.length ? `- ATS SECTION GAPS to address: ${atsSu
                 {originalFileUrl && (
                   <div style={{ display: 'flex', gap: 4, marginBottom: 14, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 10, padding: 4 }}>
                     <button onClick={() => setPreviewTab('original')}
-                      style={{ flex: 1, padding: '8px 0', borderRadius: 7, border: 'none', background: previewTab === 'original' ? 'rgba(255,255,255,0.1)' : 'transparent', color: previewTab === 'original' ? '#E6F1FB' : 'rgba(255,255,255,0.4)', fontSize: 12, fontWeight: previewTab === 'original' ? 700 : 500, cursor: 'pointer', fontFamily: "'Outfit', sans-serif", transition: 'all 0.15s' }}>
-                      📄 Your Original
+                      style={{ flex: 1, padding: '8px 0', borderRadius: 7, border: 'none', background: previewTab === 'original' ? 'rgba(255,255,255,0.1)' : 'transparent', color: previewTab === 'original' ? '#E6F1FB' : 'rgba(255,255,255,0.4)', fontSize: 12, fontWeight: previewTab === 'original' ? 700 : 500, cursor: 'pointer', fontFamily: "'Outfit', sans-serif", transition: 'all 0.15s', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5 }}>
+                      <SvgIcon name="document" size={13} color="currentColor" />
+                      Your Original
                     </button>
                     <button onClick={() => setPreviewTab('generated')}
-                      style={{ flex: 1, padding: '8px 0', borderRadius: 7, border: 'none', background: previewTab === 'generated' ? '#FF9933' : 'transparent', color: previewTab === 'generated' ? '#fff' : 'rgba(255,255,255,0.4)', fontSize: 12, fontWeight: previewTab === 'generated' ? 700 : 500, cursor: 'pointer', fontFamily: "'Outfit', sans-serif", transition: 'all 0.15s' }}>
-                      ✨ Generated CV
+                      style={{ flex: 1, padding: '8px 0', borderRadius: 7, border: 'none', background: previewTab === 'generated' ? '#FF9933' : 'transparent', color: previewTab === 'generated' ? '#fff' : 'rgba(255,255,255,0.4)', fontSize: 12, fontWeight: previewTab === 'generated' ? 700 : 500, cursor: 'pointer', fontFamily: "'Outfit', sans-serif", transition: 'all 0.15s', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5 }}>
+                      <SvgIcon name="sparkle" size={13} color="currentColor" />
+                      Generated CV
                     </button>
                   </div>
                 )}
@@ -1334,7 +1336,7 @@ ${atsSuggestions?.section_gaps?.length ? `- ATS SECTION GAPS to address: ${atsSu
                 {previewTab === 'original' && originalFileUrl && (
                   <div style={{ background: '#fff', borderRadius: 14, boxShadow: '0 32px 80px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,0.05)', overflow: 'hidden', minHeight: 300 }}>
                     <div style={{ background: '#f8f9fa', borderBottom: '1px solid #e9ecef', padding: '10px 20px', display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <span style={{ fontSize: 14 }}>📄</span>
+                      <SvgIcon name="document" size={14} color="#6c757d" />
                       <span style={{ fontSize: 11, fontWeight: 600, color: '#6c757d', fontFamily: "'Outfit', sans-serif" }}>{cvFileName || 'Uploaded CV'}</span>
                       <span style={{ marginLeft: 'auto', fontSize: 10, color: '#adb5bd', fontFamily: "'Outfit', sans-serif" }}>Original file</span>
                     </div>
@@ -1342,7 +1344,7 @@ ${atsSuggestions?.section_gaps?.length ? `- ATS SECTION GAPS to address: ${atsSu
                       <iframe src={originalFileUrl} title="Original CV" style={{ width: '100%', height: 720, border: 'none', display: 'block' }} />
                     ) : (
                       <div style={{ padding: '48px 32px', textAlign: 'center' as const }}>
-                        <div style={{ fontSize: 40, marginBottom: 12 }}>📝</div>
+                        <div style={{ marginBottom: 12, display: 'flex', justifyContent: 'center' }}><SvgIcon name="pencil" size={36} color="#adb5bd" /></div>
                         <div style={{ fontSize: 13, fontWeight: 600, color: '#495057', marginBottom: 8, fontFamily: "'Outfit', sans-serif" }}>Preview not available</div>
                         <div style={{ fontSize: 12, color: '#868e96', marginBottom: 20 }}>DOCX files cannot be previewed directly in the browser.</div>
                         <a href={originalFileUrl} download={cvFileName} style={{ padding: '8px 20px', borderRadius: 8, background: '#FF9933', color: '#fff', fontSize: 12, fontWeight: 700, textDecoration: 'none', fontFamily: "'Outfit', sans-serif" }}>Download original</a>
