@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { createHash } from 'crypto'
 import Anthropic from '@anthropic-ai/sdk'
-import { createServerSupabase, checkAndDeductCredits, refundCredits } from '@/lib/supabase-server'
+import { createServerSupabase, checkAndDeductCredits, refundCredits, createAdminSupabase } from '@/lib/supabase-server'
 import { CREDIT_COST, MARKET } from '@/lib/constants'
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
@@ -11,10 +12,10 @@ const SYSTEM_PROMPT = `You are a senior career analyst specializing in the DACH 
 ABSOLUTE RULES — violating any of these makes your output worthless:
 1. Respond ONLY with valid JSON. Zero markdown, zero backticks, zero explanations outside the JSON.
 2. NEVER invent, assume, or infer information not explicitly present in the CV text provided.
-3. Every strength, gap, and roast_line MUST quote or directly reference specific text from the CV. If you cannot find evidence in the CV, do not mention it.
-4. Roast lines must be surgical: quote exact job titles, company names, dates, or wording from the CV, then explain why it is weak for the target role. NEVER say "your CV lacks X" unless X is genuinely absent from the text shown.
-5. Salary ranges must reflect real DACH market data for the seniority level evidenced in the CV.
-6. Keep all string values concise — max 2 sentences each. Do not pad responses.
+3. Every strength and gap MUST quote or directly reference specific text from the CV. If you cannot find evidence, do not mention it.
+4. Salary ranges must reflect real DACH market data for the seniority level evidenced in the CV.
+5. Keep all string values concise — max 2 sentences each. Do not pad responses.
+6. Be factual and direct. No filler phrases, no preamble, no encouraging language. State what is there, what is missing, what to do.
 
 CONSISTENT SCORING RUBRIC (apply this exactly):
 - 85–100: 10+ years directly relevant experience, strong DACH market presence, leadership credentials, 90%+ skills alignment with target role
@@ -72,12 +73,6 @@ Return ONLY valid JSON matching this schema exactly:
     {"timeframe": "Month 1", "focus": "Skills & visibility", "actions": ["<action>", "<action>", "<action>"]},
     {"timeframe": "Month 2–3", "focus": "Active search", "actions": ["<action>", "<action>", "<action>"]}
   ],
-  "roast_lines": [
-    "<quote exact CV wording + explain weakness for role>",
-    "<real visible gap — no assumptions>",
-    "<strength vs poor positioning>",
-    "<AI impact on this profile in 2-3 years>"
-  ],
   "domain_mismatch": <true|false>,
   "mismatch_message": "<blunt explanation if domain_mismatch is true, else empty string>"
 }`
@@ -93,10 +88,33 @@ function extractJson(raw: string): string {
   return s.slice(start, end + 1)
 }
 
+function scanHash(cvText: string, role: string, market: string): string {
+  return createHash('sha256').update(cvText.trim().slice(0, 15000) + '|' + role.toLowerCase() + '|' + market.toLowerCase()).digest('hex')
+}
+
 export async function POST(req: NextRequest) {
   const supabase = await createServerSupabase()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
+  const body = await req.json()
+  const cvText = typeof body.cvText === 'string' ? body.cvText : ''
+  const role   = typeof body.role   === 'string' ? body.role.slice(0, 200)   : ''
+  const market = typeof body.market === 'string' ? body.market.slice(0, 50)  : ''
+  const lang   = typeof body.lang   === 'string' ? body.lang.slice(0, 5)     : ''
+
+  if (!cvText?.trim()) {
+    return NextResponse.json({ error: 'CV text is required' }, { status: 400 })
+  }
+
+  // Return cached result if CV + role + market haven't changed — no credit deduction
+  const hash = scanHash(cvText, role, market)
+  const admin = createAdminSupabase()
+  const { data: profile } = await admin.from('profiles').select('scan_cache').eq('id', user.id).single()
+  const cached = profile?.scan_cache as { hash: string; result: Record<string, unknown> } | null
+  if (cached?.hash === hash && cached?.result) {
+    return NextResponse.json({ ...cached.result, fromCache: true })
+  }
 
   const credits = await checkAndDeductCredits(user.id, COST, 'career_scan', user.email ?? '', MARKET.eu)
   if (!credits.ok) {
@@ -104,18 +122,9 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    const body = await req.json()
-    const cvText = typeof body.cvText === 'string' ? body.cvText : ''
-    const role   = typeof body.role   === 'string' ? body.role.slice(0, 200)   : ''
-    const market = typeof body.market === 'string' ? body.market.slice(0, 50)  : ''
-    const lang   = typeof body.lang   === 'string' ? body.lang.slice(0, 5)     : ''
-    if (!cvText?.trim()) {
-      await refundCredits(user.id, COST, 'career_scan')
-      return NextResponse.json({ error: 'CV text is required' }, { status: 400 })
-    }
 
     const languageInstruction = lang === 'DE'
-      ? '\n\nIMPORTANT: Respond with ALL text fields (headline, summary, strengths, gaps, quick_wins, role_suggestions, market_insight, ai_vulnerability_reason, career_path_steps, roast_lines) written in German. Keep role titles and technical terms in their original language if that is standard in the DACH market.'
+      ? '\n\nIMPORTANT: Respond with ALL text fields (headline, summary, strengths, gaps, quick_wins, role_suggestions, market_insight, ai_vulnerability_reason, career_path_steps) written in German. Keep role titles and technical terms in their original language if that is standard in the DACH market.'
       : ''
 
     const message = await anthropic.messages.create({
@@ -157,11 +166,14 @@ export async function POST(req: NextRequest) {
       ai_vulnerability_label: (data.ai_vulnerability_label as string) ?? 'Medium',
       ai_vulnerability_reason: (data.ai_vulnerability_reason as string) ?? '',
       career_path_steps: Array.isArray(data.career_path_steps) ? data.career_path_steps : [],
-      roast_lines: Array.isArray(data.roast_lines) ? data.roast_lines : [],
       domain_mismatch: data.domain_mismatch === true,
       mismatch_message: (data.mismatch_message as string) ?? '',
       creditsRemaining: credits.remaining,
     }
+
+    // Cache result so re-scanning same CV+role is free
+    admin.from('profiles').update({ scan_cache: { hash, result: safe } }).eq('id', user.id)
+      .then(() => null, () => null)
 
     return NextResponse.json(safe)
   } catch (err) {

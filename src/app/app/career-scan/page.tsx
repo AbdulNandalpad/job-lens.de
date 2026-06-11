@@ -34,13 +34,12 @@ interface ScanResult {
   ai_vulnerability_label: string
   ai_vulnerability_reason: string
   career_path_steps: { timeframe: string; focus: string; actions: string[] }[]
-  roast_lines: string[]
   domain_mismatch: boolean
   mismatch_message: string
   creditsRemaining?: number
 }
 
-type Mode = 'insights' | 'roast' | 'upgrade'
+type Mode = 'insights' | 'upgrade'
 
 function ScoreRing({ value, color, label, size = 80 }: { value: number; color: string; label: string; size?: number }) {
   const r = (size / 2) - 8
@@ -434,9 +433,9 @@ export default function CareerScanPage() {
           }} />
         </div>
         <div style={{ display: 'flex', background: c.bg, borderRadius: 10, padding: 3, gap: 2 }}>
-          {(['insights', 'roast', 'upgrade'] as Mode[]).map(m => (
+          {(['insights', 'upgrade'] as Mode[]).map(m => (
             <button key={m} onClick={() => setMode(m)} style={{ padding: '6px 14px', fontSize: 11, fontWeight: 600, border: 'none', borderRadius: 8, background: mode === m ? c.primary : 'transparent', color: mode === m ? c.primaryLight : c.textMuted, cursor: 'pointer', fontFamily: f.body, transition: 'all 0.15s' }}>
-              {m === 'insights' ? cs.results.modeInsights : m === 'roast' ? cs.results.modeRoast : cs.results.modeUpgrade}
+              {m === 'insights' ? cs.results.modeInsights : cs.results.modeUpgrade}
             </button>
           ))}
         </div>
@@ -573,35 +572,6 @@ export default function CareerScanPage() {
             </button>
           </div>
         </>
-      )}
-
-      {/* ROAST MODE */}
-      {mode === 'roast' && (
-        <div style={{ background: 'linear-gradient(135deg, #1a0505, #2d0a0a)', border: `1.5px solid ${c.danger}`, borderRadius: 16, padding: 20, position: 'relative', overflow: 'hidden' }}>
-          <div style={{ position: 'absolute', top: -30, right: -30, width: 120, height: 120, borderRadius: '50%', background: `rgba(226,75,74,0.1)` }} />
-          <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 16 }}>
-            <div style={{ fontFamily: f.heading, fontSize: 56, fontWeight: 700, color: c.danger, lineHeight: 1 }}>
-              {Math.round(result.score / 10 * 3.2 / 8.2 * 10) / 10}
-            </div>
-            <div>
-              <div style={{ fontSize: 15, fontWeight: 700, color: '#F09595', fontFamily: f.heading }}>{cs.results.roastScore}</div>
-              <div style={{ fontSize: 12, color: '#F09595', marginTop: 4, lineHeight: 1.5, maxWidth: 280 }}>{result.summary}</div>
-            </div>
-          </div>
-          {(result.roast_lines && result.roast_lines.length > 0
-            ? result.roast_lines
-            : result.gaps.filter(Boolean)
-          ).map((text, i) => (
-            <div key={i} style={{ fontSize: 12, color: '#fca5a5', padding: '8px 12px', background: 'rgba(226,75,74,0.12)', borderRadius: 8, marginBottom: 6, borderLeft: `3px solid ${c.danger}`, lineHeight: 1.6 }}>
-              {text}
-            </div>
-          ))}
-          {toastMsg && (
-            <div style={{ position: 'absolute', bottom: 8, left: '50%', transform: 'translateX(-50%)', background: c.primary, color: c.primaryLight, fontSize: 11, padding: '6px 14px', borderRadius: 8, whiteSpace: 'nowrap' }}>
-              {toastMsg}
-            </div>
-          )}
-        </div>
       )}
 
       {/* UPGRADE PATH */}
