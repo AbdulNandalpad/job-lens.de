@@ -11,24 +11,24 @@ export type WidgetDef = {
 }
 
 export const EU_WIDGETS: WidgetDef[] = [
-  { id: 'quick_actions',  label: 'Quick Actions',      icon: 'lightning',    defaultOn: true  },
-  { id: 'career_intel',   label: 'Career Intelligence', icon: 'target',       defaultOn: true  },
-  { id: 'kpi',            label: 'Market Snapshot',     icon: 'chart-bar',    defaultOn: true  },
-  { id: 'skills',         label: 'Skills Trends',       icon: 'rocket',       defaultOn: true  },
-  { id: 'sectors_salary', label: 'Sectors & Salaries',  icon: 'euro',         defaultOn: true  },
-  { id: 'macro',          label: 'Macro Indicators',    icon: 'trending-up',  defaultOn: true  },
+  { id: 'quick_actions',  label: 'Quick Actions',      icon: 'lightning',    defaultOn: false },
+  { id: 'career_intel',   label: 'Career Intelligence', icon: 'target',       defaultOn: false },
+  { id: 'kpi',            label: 'Market Snapshot',     icon: 'chart-bar',    defaultOn: false },
+  { id: 'skills',         label: 'Skills Trends',       icon: 'rocket',       defaultOn: false },
+  { id: 'sectors_salary', label: 'Sectors & Salaries',  icon: 'euro',         defaultOn: false },
+  { id: 'macro',          label: 'Macro Indicators',    icon: 'trending-up',  defaultOn: false },
   { id: 'ai_impact',      label: 'AI Impact Heatmap',   icon: 'bot',          defaultOn: false },
 ]
 
 export const IN_WIDGETS: WidgetDef[] = [
-  { id: 'quick_actions',  label: 'Quick Actions',      icon: 'lightning',    defaultOn: true  },
-  { id: 'career_intel',   label: 'Career Intelligence', icon: 'target',       defaultOn: true  },
-  { id: 'kpi',            label: 'Market Snapshot',     icon: 'chart-bar',    defaultOn: true  },
-  { id: 'skills',         label: 'Skills Trends',       icon: 'rocket',       defaultOn: true  },
-  { id: 'sectors_salary', label: 'Sectors & Salaries',  icon: 'salary',       defaultOn: true  },
-  { id: 'macro',          label: 'Macro Indicators',    icon: 'globe',        defaultOn: true  },
+  { id: 'quick_actions',  label: 'Quick Actions',      icon: 'lightning',    defaultOn: false },
+  { id: 'career_intel',   label: 'Career Intelligence', icon: 'target',       defaultOn: false },
+  { id: 'kpi',            label: 'Market Snapshot',     icon: 'chart-bar',    defaultOn: false },
+  { id: 'skills',         label: 'Skills Trends',       icon: 'rocket',       defaultOn: false },
+  { id: 'sectors_salary', label: 'Sectors & Salaries',  icon: 'salary',       defaultOn: false },
+  { id: 'macro',          label: 'Macro Indicators',    icon: 'globe',        defaultOn: false },
   { id: 'ai_impact',      label: 'AI Impact Heatmap',   icon: 'bot',          defaultOn: false },
-  { id: 'news',           label: 'News & Signals',      icon: 'news',         defaultOn: true  },
+  { id: 'news',           label: 'News & Signals',      icon: 'news',         defaultOn: false },
 ]
 
 export function useDashWidgets(market: Market) {

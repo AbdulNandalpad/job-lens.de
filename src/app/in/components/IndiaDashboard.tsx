@@ -198,9 +198,10 @@ export default function IndiaDashboard() {
   const [sectorsExpanded, setSectorsExpanded] = useState(false)
   const [salaryExpanded,  setSalaryExpanded]  = useState(false)
   const [aiExpanded,      setAiExpanded]      = useState(false)
-  const [hoveredCat, setHoveredCat] = useState<string|null>(null)
+  const [hoveredCat,    setHoveredCat]    = useState<string|null>(null)
+  const [showCustomize, setShowCustomize] = useState(false)
 
-  const { isVisible } = useDashWidgets(MARKET.in)
+  const { isVisible, widgets, toggle, resetDefaults } = useDashWidgets(MARKET.in)
 
   async function signOut() {
     const supabase = createClient()
@@ -335,6 +336,14 @@ export default function IndiaDashboard() {
                   </div>
                 </div>
               )}
+              {/* Customize */}
+              <button
+                onClick={() => setShowCustomize(p => !p)}
+                style={{display:'flex',alignItems:'center',gap:6,padding:'10px 16px',borderRadius:12,border:`1px solid ${showCustomize ? saffron+'80' : 'rgba(255,255,255,.12)'}`,background:showCustomize ? saffron+'18' : 'rgba(255,255,255,.04)',color:showCustomize ? saffron : txt3,fontSize:12,fontWeight:600,cursor:'pointer',fontFamily:"'DM Sans',sans-serif",transition:'all .2s'}}>
+                <svg width="13" height="13" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="10" cy="10" r="3"/><path d="M10 1v2M10 17v2M1 10h2M17 10h2M3.5 3.5l1.4 1.4M15.1 15.1l1.4 1.4M3.5 16.5l1.4-1.4M15.1 4.9l1.4-1.4"/></svg>
+                Customize
+              </button>
+
               {/* Go to App */}
               <button className="goto-app-btn" onClick={()=>router.push('/in/career-scan')}>
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
@@ -353,6 +362,31 @@ export default function IndiaDashboard() {
           </div>
         </div>
       </div>
+
+      {/* ── CUSTOMIZE PANEL ── */}
+      {showCustomize && (
+        <div style={{background:`rgba(255,153,51,.06)`,borderBottom:`1px solid rgba(255,153,51,.15)`,padding:'18px 28px'}}>
+          <div style={{maxWidth:1100,margin:'0 auto'}}>
+            <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:14}}>
+              <span style={{fontFamily:"'Outfit',sans-serif",fontSize:13,fontWeight:700,color:'#fff'}}>Choose your widgets</span>
+              <button onClick={resetDefaults} style={{fontSize:11,color:txt3,background:'none',border:'1px solid rgba(255,255,255,.12)',borderRadius:6,padding:'4px 10px',cursor:'pointer',fontFamily:"'DM Sans',sans-serif"}}>Clear all</button>
+            </div>
+            <div style={{display:'flex',flexWrap:'wrap',gap:8}}>
+              {widgets.map(w => {
+                const on = isVisible(w.id)
+                return (
+                  <button key={w.id} onClick={() => toggle(w.id)}
+                    style={{display:'flex',alignItems:'center',gap:7,padding:'8px 14px',borderRadius:20,border:`1px solid ${on ? saffron+'60' : 'rgba(255,255,255,.12)'}`,background:on ? saffron+'18' : 'rgba(255,255,255,.04)',color:on ? saffron : txt3,fontSize:12,fontWeight:on ? 700 : 400,cursor:'pointer',fontFamily:"'DM Sans',sans-serif",transition:'all .15s'}}>
+                    <SvgIcon name={w.icon as Parameters<typeof SvgIcon>[0]['name']} size={13} color="currentColor" />
+                    {w.label}
+                    {on && <span style={{fontSize:10,opacity:.7}}>✓</span>}
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ── ANALYTICS BODY ── */}
       <div className="dash-page" style={{maxWidth:1100,margin:'0 auto',padding:'28px 20px 80px'}}>

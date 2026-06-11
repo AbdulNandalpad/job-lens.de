@@ -3,7 +3,6 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase'
-import { useDashWidgets } from '@/lib/useDashWidgets'
 import { MARKET } from '@/lib/constants'
 import SvgIcon, { getIcon } from '@/components/SvgIcon'
 
@@ -53,7 +52,6 @@ export default function IndiaAccountPage() {
   const [deletingKiraData, setDeletingKiraData] = useState(false)
   const [kiraDataDeleted, setKiraDataDeleted] = useState(false)
 
-  const { widgets, isVisible, toggle, resetDefaults } = useDashWidgets(MARKET.in)
 
   useEffect(() => {
     fetch('/api/user/profile')
@@ -335,29 +333,6 @@ export default function IndiaAccountPage() {
                     </button>
                   </div>
                 )}
-              </div>
-
-              {/* Dashboard Widgets */}
-              <div style={{ background: '#fff', border: '1px solid #edf1f6', borderRadius: 16, padding: 20, marginBottom: 16, boxShadow: '0 2px 8px rgba(4,44,83,0.05)' }}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6, flexWrap: 'wrap', gap: 8 }}>
-                  <div style={{ fontFamily: "'Outfit', sans-serif", fontSize: 15, fontWeight: 700, color: navy }}>Dashboard Widgets</div>
-                  <button onClick={resetDefaults} style={{ fontSize: 11, color: '#6b7c93', background: 'transparent', border: '1px solid #dce4ef', borderRadius: 6, padding: '4px 10px', cursor: 'pointer', fontFamily: "'Outfit', sans-serif" }}>Reset defaults</button>
-                </div>
-                <p style={{ fontSize: 12, color: '#6b7c93', lineHeight: 1.5, margin: '0 0 14px' }}>Choose which widgets appear on your dashboard.</p>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                  {widgets.map(w => {
-                    const on = isVisible(w.id)
-                    return (
-                      <div key={w.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 14px', borderRadius: 10, border: '1px solid #edf1f6', background: on ? '#f8fafc' : 'transparent', transition: 'all .15s' }}>
-                        <span style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, color: on ? navy : '#6b7c93', fontWeight: on ? 600 : 400 }}>{getIcon(w.icon, 14, on ? orange : '#6b7c93')} {w.label}</span>
-                        <button onClick={() => toggle(w.id)}
-                          style={{ width: 42, height: 24, borderRadius: 12, border: 'none', background: on ? orange : 'rgba(0,0,0,.12)', cursor: 'pointer', position: 'relative', transition: 'all .2s', flexShrink: 0 }}>
-                          <span style={{ position: 'absolute', top: 3, left: on ? 20 : 3, width: 18, height: 18, borderRadius: '50%', background: '#fff', transition: 'left .2s', boxShadow: '0 1px 3px rgba(0,0,0,.2)', display: 'block' }} />
-                        </button>
-                      </div>
-                    )
-                  })}
-                </div>
               </div>
 
               {/* Sign out / delete */}

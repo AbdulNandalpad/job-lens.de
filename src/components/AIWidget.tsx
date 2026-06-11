@@ -389,6 +389,13 @@ export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
         ? `Lebenslauf "${label}" geladen! Ich kann jetzt Jobs für dich bewerten.`
         : `Got your CV! I can now score job matches and tailor your applications.` }])
 
+      // Extract and persist career profile in background — powers the dashboard panel
+      fetch('/api/profile/career', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ cvText: text, market }),
+      }).catch(() => null)
+
     } catch {
       setMsgs(prev => [...prev, { role: 'assistant', content: 'Could not read that file. Try a PDF, Word doc, or text file.' }])
     }
