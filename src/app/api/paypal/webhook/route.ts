@@ -54,7 +54,12 @@ export async function POST(req: NextRequest) {
     }
 
     // Verify payment was made to OUR merchant account — critical against IPN replay attacks
-    const receiverEmail = params.get('receiver_email') ?? ''
+    const receiverEmail = (params.get('receiver_email') ?? '').trim()
+    const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    if (!EMAIL_RE.test(receiverEmail)) {
+      console.warn('[paypal] receiver_email invalid format:', receiverEmail)
+      return NextResponse.json({ ok: false }, { status: 400 })
+    }
     const expectedEmail = (process.env.NEXT_PUBLIC_PAYPAL_EMAIL ?? '').toLowerCase()
     if (!expectedEmail) {
       console.error('[paypal] NEXT_PUBLIC_PAYPAL_EMAIL env var not set — all IPN rejected')
@@ -116,13 +121,13 @@ export async function POST(req: NextRequest) {
     })
 
     if (insertErr) {
-      // Unique constraint violation = already processed — safe to ack
       if (insertErr.code === '23505') {
         console.warn(`[paypal] txn_id ${txnId} already processed — skipping duplicate`)
         return NextResponse.json({ ok: true, skipped: true })
       }
-      console.warn('[paypal] purchase_events insert failed:', insertErr.message)
-      // Table may not exist — fall through and still add credits (audit loss, not credit loss)
+      // Any other DB error: reject — never credit without a recorded transaction
+      console.error('[paypal] purchase_events insert failed — rejecting credit:', insertErr.message)
+      return NextResponse.json({ ok: false }, { status: 500 })
     }
 
     // Atomic increment — no read-then-write race condition

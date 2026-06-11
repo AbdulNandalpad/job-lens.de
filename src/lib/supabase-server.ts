@@ -85,90 +85,21 @@ export async function checkAndDeductCredits(
 
   const admin = createAdminSupabase()
 
-  // Fetch current credits, paid pools, and status
-  const { data: profile, error: fetchError } = await admin
-    .from('profiles')
-    .select('credits, eu_credits, in_credits, status')
-    .eq('id', userId)
-    .single()
+  // Atomic check-and-deduct via DB function — eliminates TOCTOU race condition.
+  // The function locks the profile row, checks balance, deducts, and logs usage
+  // in a single transaction.
+  const { data, error } = await admin.rpc('check_and_deduct_credits', {
+    p_user_id: userId,
+    p_cost:    cost,
+    p_action:  action,
+    p_market:  market,
+  })
 
-  if (fetchError?.code === 'PGRST116') {
-    // Profile missing at API time — should have been created by the auth callback.
-    // Grant 0 credits here: the callback is the only legitimate free-credit path.
-    const { error: insertError } = await admin
-      .from('profiles')
-      .insert({ id: userId, credits: 0, eu_credits: 0, in_credits: 0 })
-    if (insertError) {
-      console.error('Profile insert failed:', insertError.message)
-      return { ok: false, remaining: 0 }
-    }
-    return { ok: false, remaining: 0 }
-  } else if (fetchError) {
-    console.error('Profile fetch error:', fetchError.message)
+  if (error) {
+    console.error('check_and_deduct_credits RPC failed:', error.message)
     return { ok: false, remaining: 0 }
   }
 
-  // Block if admin has set status to blocked
-  if (profile?.status === 'blocked') {
-    return { ok: false, remaining: 0 }
-  }
-
-  // null credits = 0 (not 5) — never grant free credits due to missing data
-  let common = profile?.credits ?? 0
-  let eu = profile?.eu_credits ?? 0
-  let inPool = profile?.in_credits ?? 0
-  const total = common + eu + inPool
-
-  if (total < cost) return { ok: false, remaining: total }
-
-  // Drain order: common → native paid → cross-market paid
-  let remaining = cost
-  let usedCrossMarket = false
-
-  // 1. Drain common pool
-  const fromCommon = Math.min(common, remaining)
-  common -= fromCommon
-  remaining -= fromCommon
-
-  if (remaining > 0) {
-    // 2. Drain native paid pool
-    if (market === 'eu') {
-      const fromEu = Math.min(eu, remaining)
-      eu -= fromEu
-      remaining -= fromEu
-    } else {
-      const fromIn = Math.min(inPool, remaining)
-      inPool -= fromIn
-      remaining -= fromIn
-    }
-  }
-
-  if (remaining > 0) {
-    // 3. Drain cross-market paid pool
-    usedCrossMarket = true
-    if (market === 'eu') {
-      inPool -= remaining
-    } else {
-      eu -= remaining
-    }
-    remaining = 0
-  }
-
-  const newTotal = common + eu + inPool
-
-  const { error: updateError } = await admin
-    .from('profiles')
-    .update({ credits: common, eu_credits: eu, in_credits: inPool })
-    .eq('id', userId)
-
-  if (updateError) {
-    console.error('Credits update failed:', updateError.message)
-    return { ok: false, remaining: total }
-  }
-
-  await admin
-    .from('usage_events')
-    .insert({ user_id: userId, action, credits_used: cost })
-
-  return { ok: true, remaining: newTotal, usedCrossMarket }
+  const result = data as { ok: boolean; remaining: number; usedCrossMarket?: boolean; reason?: string }
+  return { ok: result.ok, remaining: result.remaining, usedCrossMarket: result.usedCrossMarket }
 }

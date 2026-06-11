@@ -27,9 +27,18 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'jobUrl and cvText are required' }, { status: 400 })
     }
 
-    // Only allow https:// job URLs — prevents SSRF to internal/local addresses
     if (!jobUrl.startsWith('https://')) {
       return NextResponse.json({ error: 'jobUrl must be a valid https URL' }, { status: 400 })
+    }
+    // Block SSRF to private/internal IP ranges
+    try {
+      const parsed = new URL(jobUrl)
+      const h = parsed.hostname
+      if (/^(localhost|127\.|10\.|192\.168\.|172\.(1[6-9]|2[0-9]|3[01])\.|169\.254\.|::1$|fc[0-9a-f]{2}:|fd)/i.test(h)) {
+        return NextResponse.json({ error: 'Invalid job URL' }, { status: 400 })
+      }
+    } catch {
+      return NextResponse.json({ error: 'Invalid job URL' }, { status: 400 })
     }
 
     const result = await analyzeForm(jobUrl, cvText, coverLetter ?? undefined, anthropic)

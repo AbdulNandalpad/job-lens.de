@@ -16,6 +16,19 @@ export async function POST(req: NextRequest) {
     coverLetter: string
   }
 
+  if (!jobUrl || !jobUrl.startsWith('https://')) {
+    return new Response(JSON.stringify({ error: 'Invalid job URL' }), { status: 400 })
+  }
+  try {
+    const parsed = new URL(jobUrl)
+    const h = parsed.hostname
+    if (/^(localhost|127\.|10\.|192\.168\.|172\.(1[6-9]|2[0-9]|3[01])\.|169\.254\.|::1$|fc[0-9a-f]{2}:|fd)/i.test(h)) {
+      return new Response(JSON.stringify({ error: 'Invalid job URL' }), { status: 400 })
+    }
+  } catch {
+    return new Response(JSON.stringify({ error: 'Invalid job URL' }), { status: 400 })
+  }
+
   const encoder = new TextEncoder()
 
   const stream = new ReadableStream({

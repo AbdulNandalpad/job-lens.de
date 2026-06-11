@@ -66,10 +66,13 @@ export async function GET(req: NextRequest) {
 
 // PATCH /api/admin/users — block/unblock a user, or adjust free credits
 export async function PATCH(req: NextRequest) {
-  if (!await requireAdmin(req)) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  const adminUser = await requireAdmin(req)
+  if (!adminUser) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 
   const { id, status, credits } = await req.json()
   if (!id) return NextResponse.json({ error: 'id required' }, { status: 400 })
+  const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+  if (!UUID_RE.test(id)) return NextResponse.json({ error: 'Invalid user id' }, { status: 400 })
 
   const admin = createAdminSupabase()
 
@@ -108,6 +111,14 @@ export async function PATCH(req: NextRequest) {
     console.error('Admin PATCH: upsert failed', error.message)
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
+
+  // Audit log — non-blocking, best-effort
+  admin.from('admin_audit_log').insert({
+    admin_email: adminUser.email ?? 'unknown',
+    action: 'user_patch',
+    target_user_id: id,
+    details: patch,
+  }).then(() => null, () => null)
 
   return NextResponse.json({ ok: true })
 }
