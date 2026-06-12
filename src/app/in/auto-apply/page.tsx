@@ -59,6 +59,26 @@ export default function InAutoApplyPage() {
   const [coverLetter, setCoverLetter] = useState('')
   const [useCoverLetter, setUseCoverLetter] = useState(false)
 
+  const [cvUploading, setCvUploading] = useState(false)
+  const [cvUploadError, setCvUploadError] = useState('')
+
+  async function handleCvUpload(file: File) {
+    setCvUploading(true)
+    setCvUploadError('')
+    try {
+      const fd = new FormData()
+      fd.append('file', file)
+      const res = await fetch('/api/extract-pdf', { method: 'POST', body: fd })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Upload failed')
+      setCvText(data.text || '')
+    } catch (err) {
+      setCvUploadError(err instanceof Error ? err.message : 'Upload failed')
+    } finally {
+      setCvUploading(false)
+    }
+  }
+
   const [phase, setPhase] = useState<Phase>('idle')
   const [analyzeResult, setAnalyzeResult] = useState<AnalyzeResult | null>(null)
   const [mapping, setMapping] = useState<FieldMapping[]>([])
@@ -302,17 +322,51 @@ export default function InAutoApplyPage() {
                       <div style={{ fontSize: 12, color: c.success, fontWeight: 600, marginBottom: 6 }}>
                         ✓ CV loaded ({Math.round(cvText.length / 5)} words)
                       </div>
-                      <div style={{ fontSize: 11, color: c.textMuted, lineHeight: 1.5, background: c.bgSubtle, borderRadius: 6, padding: '8px 10px', maxHeight: 70, overflow: 'hidden' }}>
+                      <div style={{ fontSize: 11, color: c.textMuted, lineHeight: 1.5, background: c.bgSubtle, borderRadius: 6, padding: '8px 10px', maxHeight: 60, overflow: 'hidden' }}>
                         {cvText.slice(0, 180)}…
                       </div>
+                      <label style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 10, cursor: 'pointer' }}>
+                        <span style={{ fontSize: 11, color: c.textFaint }}>Replace with a different CV →</span>
+                        <input type="file" accept=".pdf,.doc,.docx,.txt" style={{ display: 'none' }}
+                          onChange={e => { const f = e.target.files?.[0]; if (f) handleCvUpload(f) }}
+                        />
+                      </label>
                     </>
                   ) : (
-                    <div style={{ fontSize: 12, color: c.danger }}>
-                      No CV found.{' '}
-                      <span onClick={() => router.push('/in/cv-builder')} style={{ textDecoration: 'underline', cursor: 'pointer', color: ACCENT }}>
-                        Go to CV Builder →
-                      </span>
-                    </div>
+                    <>
+                      <label style={{
+                        display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8,
+                        padding: '20px 16px', borderRadius: 10, cursor: 'pointer',
+                        border: `2px dashed ${cvUploading ? ACCENT : c.borderLight}`,
+                        background: cvUploading ? ACCENT_LIGHT : c.bgSubtle,
+                        transition: 'all 0.15s', marginBottom: 10,
+                      }}>
+                        {cvUploading ? (
+                          <>
+                            <svg className="spin" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={ACCENT} strokeWidth="2.5">
+                              <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/>
+                            </svg>
+                            <span style={{ fontSize: 12, color: ACCENT, fontWeight: 600 }}>Extracting text…</span>
+                          </>
+                        ) : (
+                          <>
+                            <span style={{ fontSize: 22 }}>📄</span>
+                            <span style={{ fontSize: 13, fontWeight: 600, color: c.primary }}>Upload your Resume</span>
+                            <span style={{ fontSize: 11, color: c.textMuted }}>PDF, DOC, DOCX or TXT · max 10 MB</span>
+                          </>
+                        )}
+                        <input type="file" accept=".pdf,.doc,.docx,.txt" style={{ display: 'none' }}
+                          onChange={e => { const f = e.target.files?.[0]; if (f) handleCvUpload(f) }}
+                        />
+                      </label>
+                      {cvUploadError && (
+                        <div style={{ fontSize: 11, color: c.error, marginBottom: 8 }}>{cvUploadError}</div>
+                      )}
+                      <div style={{ fontSize: 11, color: c.textFaint }}>
+                        Or build one in{' '}
+                        <span onClick={() => router.push('/in/cv-builder')} style={{ textDecoration: 'underline', cursor: 'pointer', color: ACCENT }}>CV Builder</span>
+                      </div>
+                    </>
                   )}
                   <div style={{ marginTop: 14, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                     <span style={{ fontSize: 12, color: c.textMuted }}>Include cover letter</span>
