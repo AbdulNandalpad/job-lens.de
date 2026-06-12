@@ -11,15 +11,15 @@ RUN apt-get update && apt-get install -y \
 
 WORKDIR /app
 
-# Paths are relative to repo root (Railway build context)
-COPY browser-service/package*.json ./
+COPY package*.json ./
 RUN npm ci
 
+# Install Chromium via Playwright (uses PLAYWRIGHT_BROWSERS_PATH)
 ENV PLAYWRIGHT_BROWSERS_PATH=/ms-playwright
 RUN npx playwright install chromium
 
-COPY browser-service/tsconfig.json .
-COPY browser-service/src ./src
+COPY tsconfig.json .
+COPY src ./src
 RUN npm run build
 
 EXPOSE 3001
