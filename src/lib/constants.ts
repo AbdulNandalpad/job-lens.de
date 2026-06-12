@@ -81,8 +81,8 @@ export const SS = {
 // ── localStorage keys ───────────────────────────────────────────────────────
 // Persistent preferences (not cleared by "New session"). Add new keys here.
 export const LS = {
-  dashWidgetsEu: 'jl_dash_widgets_eu',
-  dashWidgetsIn: 'jl_dash_widgets_in',
+  dashWidgetsEu: 'jl_dash_widgets_eu_v2',
+  dashWidgetsIn: 'jl_dash_widgets_in_v2',
   cvConsent:     'jl_cv_consent',
   // Kira chat history — persists across sign-out for the same user
   aiMessages:    'jl_ai_messages',
