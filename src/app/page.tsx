@@ -8,6 +8,7 @@ import { useLanguage, DEFlag, GBFlag } from '@/lib/i18n'
 import KiraDemoWidget from '@/components/KiraDemoWidget'
 import AutoApplyDemoWidget from '@/components/AutoApplyDemoWidget'
 import SvgIcon, { type IconName } from '@/components/SvgIcon'
+import HeroFeatures from '@/components/HeroFeatures'
 
 const { colors: c, gradients: g, fonts: f, shadow: sh } = theme
 
@@ -537,82 +538,13 @@ export default function HomePage() {
       </div>
 
       {/* ── Hero ── */}
-      <div className="jl-hero" style={{ background: g.hero, padding: '80px 24px 108px', textAlign: 'center', position: 'relative', overflow: 'hidden' }}>
-        <div style={{ position: 'relative', zIndex: 1, maxWidth: 680, margin: '0 auto' }}>
-          <div className="jl-hero-tag" style={{ display: 'inline-flex', alignItems: 'center', gap: 8, marginBottom: 24 }}>
-            <span style={{ fontSize: 12, fontWeight: 600, color: 'rgba(255,255,255,0.5)', background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.12)', padding: '5px 16px', borderRadius: 20, letterSpacing: 0.5 }}>
-              {t.heroTag}
-            </span>
-          </div>
-
-          <h1 className="jl-hero-h1" style={{ fontFamily: f.heading, fontSize: 'clamp(30px, 4.5vw, 50px)', fontWeight: 700, color: '#fff', margin: '0 0 20px', lineHeight: 1.15, letterSpacing: -0.5 }}>
-            {t.heroH1}
-          </h1>
-
-          <p className="jl-hero-sub" style={{ fontSize: 17, color: 'rgba(255,255,255,0.6)', maxWidth: 500, margin: '0 auto 40px', lineHeight: 1.75, fontWeight: 400 }}>
-            {t.heroSub}
-          </p>
-
-          <div className="jl-hero-btns" style={{ display: 'flex', gap: 14, justifyContent: 'center', flexWrap: 'wrap' }}>
-            <Link href={go('/app/career-scan')} className="jl-btn-primary" style={{ padding: '14px 32px', borderRadius: 12, color: '#fff', textDecoration: 'none', fontWeight: 700, fontFamily: f.heading, fontSize: 15 }}>
-              {t.heroCta1}
-            </Link>
-            <Link href={go('/app/jobs')} className="jl-btn-glass" style={{ padding: '14px 32px', borderRadius: 12, color: theme.navbar.text, textDecoration: 'none', fontWeight: 600, fontFamily: f.heading, fontSize: 15 }}>
-              {t.heroCta2}
-            </Link>
-          </div>
-
-          {/* Kira hero teaser */}
-          <div style={{ marginTop: 36, display: 'flex', justifyContent: 'center' }}>
-            <a href="#kira-demo" className="jl-kira-teaser" style={{
-              background: 'linear-gradient(135deg,rgba(109,40,217,0.18),rgba(55,138,221,0.14))',
-              border: '1px solid rgba(255,255,255,0.14)',
-              textDecoration: 'none',
-              transition: 'border-color 0.2s, background 0.2s',
-              backdropFilter: 'blur(12px)',
-            }}>
-              {/* Kira avatar with pulse */}
-              <div style={{ position: 'relative', flexShrink: 0 }}>
-                <div style={{ width: 44, height: 44, borderRadius: '50%', background: 'linear-gradient(135deg,#6D28D9,#378ADD)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10a7 7 0 0 0 14 0"/><line x1="12" y1="19" x2="12" y2="22"/></svg>
-                </div>
-                <span style={{ position: 'absolute', bottom: 1, right: 1, width: 10, height: 10, borderRadius: '50%', background: '#22c55e', border: '2px solid #0c1c30' }} />
-              </div>
-              {/* Text */}
-              <div style={{ textAlign: 'left', flex: 1 }}>
-                <div style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.45)', letterSpacing: 0.8, textTransform: 'uppercase' as const, marginBottom: 4, fontFamily: f.heading }}>Kira AI · Online now</div>
-                <div style={{ fontSize: 14, fontWeight: 600, color: '#fff', lineHeight: 1.4, fontFamily: f.heading }}>
-                  {t.kiraHeroMsg}
-                </div>
-              </div>
-              {/* CTA — hidden on very small screens via .jl-kira-teaser-cta */}
-              <div className="jl-kira-teaser-cta" style={{ flexShrink: 0, padding: '8px 16px', borderRadius: 10, background: 'linear-gradient(135deg,#6D28D9,#378ADD)', color: '#fff', fontSize: 12, fontWeight: 700, fontFamily: f.heading, whiteSpace: 'nowrap' as const, boxShadow: '0 4px 12px rgba(109,40,217,0.4)' }}>
-                {t.kiraHeroBtn}
-              </div>
-            </a>
-          </div>
-
-          <div className="jl-hero-trust" style={{ marginTop: 20 }}>
-            <span>{t.madeIn}</span>
-            <span className="jl-dot" style={{ opacity: 0.4 }}>·</span>
-            <span>{t.dataNote}</span>
-            <span className="jl-dot" style={{ opacity: 0.4 }}>·</span>
-            <span>{t.freeCredits}</span>
-          </div>
-        </div>
-      </div>
-
-      {/* ── Stats strip ── */}
-      <div style={{ maxWidth: 860, margin: '-44px auto 0', padding: '0 24px', position: 'relative', zIndex: 10 }}>
-        <div style={{ background: '#fff', border: `1px solid ${c.border}`, borderRadius: 14, padding: '20px 32px', display: 'flex', justifyContent: 'space-around', flexWrap: 'wrap', gap: 16, boxShadow: '0 4px 24px rgba(0,0,0,0.08)' }}>
-          {stats.map(s => (
-            <div key={s.label} style={{ textAlign: 'center' }}>
-              <div style={{ fontFamily: f.heading, fontSize: 20, fontWeight: 700, color: c.text }}>{s.value}</div>
-              <div style={{ fontSize: 12, color: c.textMuted, marginTop: 2 }}>{s.label}</div>
-            </div>
-          ))}
-        </div>
-      </div>
+      <HeroFeatures
+        market="eu"
+        lang={lang}
+        autoApplyHref={go('/app/auto-apply')}
+        kiraHref="#kira-demo"
+        loginHref="/login"
+      />
 
       {/* ── Features ── */}
       <div className="jl-section" style={{ maxWidth: 1100, margin: '0 auto' }}>

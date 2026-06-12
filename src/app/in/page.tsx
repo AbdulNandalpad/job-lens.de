@@ -5,6 +5,7 @@ import IndiaDashboard from './components/IndiaDashboard'
 import KiraDemoWidget from '@/components/KiraDemoWidget'
 import SvgIcon, { type IconName } from '@/components/SvgIcon'
 import AutoApplySpotlightIn from './components/AutoApplySpotlightIn'
+import HeroIn from './components/HeroIn'
 
 const saffron = '#FF9933'
 const indiaGreen = '#138808'
@@ -123,92 +124,7 @@ export default async function IndiaHomePage() {
       </div>
 
       {/* Hero */}
-      <section style={{
-        background: `radial-gradient(ellipse at 15% 60%, rgba(255,153,51,0.18) 0%, transparent 50%), radial-gradient(ellipse at 80% 20%, rgba(19,136,8,0.1) 0%, transparent 50%), linear-gradient(160deg, #0a1520 0%, #0f2035 60%, #0a1c2e 100%)`,
-        padding: '64px 24px 72px',
-      }}>
-        <div style={{ maxWidth: 1100, margin: '0 auto' }}>
-
-          {/* Flag + badge */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 28 }}>
-            <IndiaFlag size={36} />
-            <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: 'rgba(255,153,51,0.12)', border: '1px solid rgba(255,153,51,0.3)', borderRadius: 20, padding: '5px 14px' }}>
-              <span style={{ fontSize: 13, color: saffron, fontWeight: 600 }}>Built in Germany. Made for India.</span>
-            </div>
-          </div>
-
-          <div className="in-hero-grid">
-            <div>
-              <h1 style={{ fontFamily: "'Outfit', sans-serif", fontSize: 46, fontWeight: 800, color: white, lineHeight: 1.12, marginBottom: 22 }}>
-                Your CV is being
-                <span style={{ color: saffron }}> rejected by a bot</span>
-                <br />before any human
-                <span style={{ color: indiaGreen }}> ever sees it.</span>
-              </h1>
-              <p style={{ fontSize: 16, color: 'rgba(255,255,255,0.65)', lineHeight: 1.75, marginBottom: 36, maxWidth: 500 }}>
-                In India, lakhs of candidates apply for every job. Companies use software called ATS to automatically filter out 90% of CVs — before a recruiter even opens them. Job-Lens scans, scores and fixes your CV so the bot says yes.
-              </p>
-              <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
-                <Link href="/in/login" style={{
-                  display: 'inline-block', padding: '14px 30px', borderRadius: 10,
-                  background: `linear-gradient(135deg, ${saffron} 0%, #e67300 100%)`,
-                  color: white, fontWeight: 700, fontSize: 15, textDecoration: 'none',
-                  boxShadow: '0 6px 24px rgba(255,153,51,0.45)',
-                }}>
-                  Get Started Free
-                </Link>
-                <a href="#what-is-ats" style={{
-                  display: 'inline-block', padding: '14px 28px', borderRadius: 10,
-                  background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.18)',
-                  color: 'rgba(255,255,255,0.8)', fontWeight: 600, fontSize: 15, textDecoration: 'none',
-                }}>
-                  What is ATS?
-                </a>
-              </div>
-
-              {/* Kira hero teaser */}
-              <a href="#kira-demo" style={{
-                display: 'inline-flex', alignItems: 'center', gap: 14, marginTop: 32,
-                background: 'linear-gradient(135deg,rgba(255,153,51,0.14),rgba(109,40,217,0.12))',
-                border: '1px solid rgba(255,255,255,0.14)',
-                borderRadius: 20, padding: '14px 18px 14px 14px', textDecoration: 'none',
-                maxWidth: 440, backdropFilter: 'blur(12px)',
-              }}>
-                <div style={{ position: 'relative', flexShrink: 0 }}>
-                  <div style={{ width: 44, height: 44, borderRadius: '50%', background: `linear-gradient(135deg,${saffron},#6D28D9)`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10a7 7 0 0 0 14 0"/><line x1="12" y1="19" x2="12" y2="22"/></svg>
-                  </div>
-                  <span style={{ position: 'absolute', bottom: 1, right: 1, width: 10, height: 10, borderRadius: '50%', background: '#22c55e', border: '2px solid #0a1520' }} />
-                </div>
-                <div style={{ textAlign: 'left', flex: 1 }}>
-                  <div style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.45)', letterSpacing: 0.8, textTransform: 'uppercase' as const, marginBottom: 4, fontFamily: "'Outfit',sans-serif" }}>Kira AI · Online now</div>
-                  <div style={{ fontSize: 14, fontWeight: 600, color: white, lineHeight: 1.4, fontFamily: "'Outfit',sans-serif" }}>
-                    Your next job is a conversation away.
-                  </div>
-                </div>
-                <div style={{ flexShrink: 0, padding: '8px 16px', borderRadius: 10, background: `linear-gradient(135deg,${saffron},#e67300)`, color: white, fontSize: 12, fontWeight: 700, fontFamily: "'Outfit',sans-serif", whiteSpace: 'nowrap' as const, boxShadow: `0 4px 12px rgba(255,153,51,0.4)` }}>
-                  Meet Kira ↓
-                </div>
-              </a>
-            </div>
-
-            {/* Score card */}
-            <div className="in-hero-score" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.09)', borderRadius: 20, padding: '28px 32px', textAlign: 'center', minWidth: 260 }}>
-              <div style={{ fontSize: 10, color: saffron, fontWeight: 700, letterSpacing: 1.5, textTransform: 'uppercase', marginBottom: 14 }}>Sample ATS Score</div>
-              <ScoreRing score={48} size={130} label="Overall" color={saffron} />
-              <div style={{ display: 'flex', gap: 16, marginTop: 18, justifyContent: 'center' }}>
-                <ScoreRing score={38} size={68} label="Keywords" color="#E24B4A" />
-                <ScoreRing score={70} size={68} label="Format" color={indiaGreen} />
-                <ScoreRing score={42} size={68} label="Impact" color={saffron} />
-              </div>
-              <div style={{ marginTop: 16, padding: '9px 14px', background: 'rgba(226,75,74,0.15)', border: '1px solid rgba(226,75,74,0.3)', borderRadius: 8 }}>
-                <div style={{ fontSize: 12, color: '#f87171', fontWeight: 700 }}>High Risk — Bot will reject</div>
-                <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)', marginTop: 3 }}>12 keywords missing from job description</div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
+      <HeroIn />
 
       {/* THE PROBLEM — stark numbers */}
       <section style={{ background: '#fff', padding: '60px 24px', borderTop: `4px solid ${saffron}` }}>
