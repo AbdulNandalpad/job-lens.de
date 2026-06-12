@@ -535,18 +535,18 @@ export default async function IndiaHomePage() {
                 cta: 'Get Started Free', ctaHref: '/in/login', raised: false,
               },
               {
-                name: 'Starter', price: '149', credits: '20 credits', color: saffron,
-                features: ['20 credits (~6 full applications)', 'ATS Scan — 2 credits', 'CV Tailoring — 1 credit', 'Cover Letter — 1 credit', 'Credits never expire'],
+                name: 'Starter', price: '149', credits: '10 credits', color: saffron,
+                features: ['10 credits (~2–3 full applications)', 'ATS Scan — 2 credits', 'CV Tailoring — 1 credit', 'Cover Letter — 1 credit', 'Credits never expire'],
                 cta: 'Get Starter', ctaHref: '/in/account', raised: false,
               },
               {
-                name: 'Job Hunt', price: '399', credits: '60 credits', color: saffron,
-                features: ['60 credits (~20 full applications)', 'ATS Scan — 2 credits', 'CV Tailoring — 1 credit', 'Cover Letter — 1 credit', 'Best value for active job seekers'],
+                name: 'Job Hunt', price: '399', credits: '35 credits', color: saffron,
+                features: ['35 credits (~8 full applications)', 'ATS Scan — 2 credits', 'CV Tailoring — 1 credit', 'Cover Letter — 1 credit', 'Best value for active job seekers'],
                 cta: 'Get Job Hunt', ctaHref: '/in/account', raised: true, badge: 'Most Popular',
               },
               {
-                name: 'Full Sprint', price: '799', credits: '150 credits', color: indiaGreen,
-                features: ['150 credits (~50 full applications)', 'Everything in Job Hunt', 'Multi-month job search', 'Ideal for career changers', 'Credits never expire'],
+                name: 'Full Sprint', price: '999', credits: '100 credits', color: indiaGreen,
+                features: ['100 credits (~25 full applications)', 'Everything in Job Hunt', 'Multi-month job search', 'Ideal for career changers', 'Credits never expire'],
                 cta: 'Get Full Sprint', ctaHref: '/in/account', raised: false,
               },
             ].map((plan) => (
