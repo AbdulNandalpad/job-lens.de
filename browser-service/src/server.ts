@@ -1,6 +1,6 @@
 import express, { Request, Response } from 'express'
 import Anthropic from '@anthropic-ai/sdk'
-import { analyzeForm, executeApply, FieldMapping } from './engine'
+import { analyzeForm, executeApply, submitApply, FieldMapping } from './engine'
 
 const app = express()
 app.use(express.json({ limit: '10mb' }))
@@ -65,6 +65,33 @@ app.post('/execute', async (req: Request, res: Response) => {
 
   try {
     for await (const event of executeApply(jobUrl, mapping, cvText ?? '', coverLetter ?? '')) {
+      send(event)
+    }
+  } catch (err) {
+    send({ type: 'error', message: err instanceof Error ? err.message : String(err) })
+  } finally {
+    res.end()
+  }
+})
+
+app.post('/submit', async (req: Request, res: Response) => {
+  if (!authorized(req, res)) return
+
+  const { jobUrl, mapping, cvText, coverLetter } = req.body as {
+    jobUrl: string
+    mapping: FieldMapping[]
+    cvText: string
+    coverLetter: string
+  }
+
+  res.setHeader('Content-Type', 'text/event-stream')
+  res.setHeader('Cache-Control', 'no-cache')
+  res.setHeader('Connection', 'keep-alive')
+
+  const send = (data: unknown) => res.write(`data: ${JSON.stringify(data)}\n\n`)
+
+  try {
+    for await (const event of submitApply(jobUrl, mapping, cvText ?? '', coverLetter ?? '')) {
       send(event)
     }
   } catch (err) {

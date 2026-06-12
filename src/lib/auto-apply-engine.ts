@@ -31,7 +31,7 @@ export type ExecuteEvent =
   | { type: 'screenshot'; message: string; b64: string }
   | { type: 'filling'; label: string; value: string; index: number; total: number }
   | { type: 'filled'; label: string; success: boolean }
-  | { type: 'submitting' }
+  | { type: 'filled_preview'; b64: string; message: string }
   | { type: 'done'; confirmB64: string; message: string }
   | { type: 'error'; message: string; b64?: string }
 
@@ -368,42 +368,94 @@ export async function* executeApply(
       await page.waitForTimeout(400)
     }
 
-    // Screenshot after filling
-    const filledShot = (await page.screenshot({ fullPage: false })).toString('base64')
-    yield { type: 'screenshot', message: 'All fields filled — review before submitting', b64: filledShot }
-
-    yield { type: 'submitting' }
-
-    // Try common submit button patterns
-    const submitted = await page
-      .getByRole('button', { name: /submit application|apply now|send application|submit/i })
-      .first()
-      .click({ timeout: 5000 })
-      .then(() => true)
-      .catch(() => false)
-
-    if (!submitted) {
-      // Fallback: evaluate click
-      await page.evaluate(() => {
-        const btn = document.querySelector(
-          'button[type="submit"], input[type="submit"]'
-        ) as HTMLElement | null
-        if (btn) btn.click()
-      })
-    }
-
-    await page.waitForTimeout(4000)
-    const confirmShot = (await page.screenshot({ fullPage: false })).toString('base64')
+    // Scroll to top so the full form screenshot shows from the beginning
+    await page.evaluate(() => window.scrollTo(0, 0))
+    await page.waitForTimeout(500)
+    const filledShot = (await page.screenshot({ fullPage: true })).toString('base64')
+    // Stop here — do NOT submit. Client shows the screenshot and asks the user to confirm.
     yield {
-      type: 'done',
-      confirmB64: confirmShot,
-      message: 'Form submitted. Check the screenshot to confirm success.',
+      type: 'filled_preview',
+      b64: filledShot,
+      message: `All ${fillable.length} fields filled. Review the form and confirm to submit.`,
     }
   } catch (err) {
     yield { type: 'error', message: String(err) }
   } finally {
     await browser.close()
-    // Clean up temp files
+    try { if (existsSync(cvPath)) unlinkSync(cvPath) } catch { /* ignore */ }
+    try { if (existsSync(clPath)) unlinkSync(clPath) } catch { /* ignore */ }
+  }
+}
+
+export async function* submitApply(
+  jobUrl: string,
+  mapping: FieldMapping[],
+  cvText: string,
+  coverLetter: string,
+): AsyncGenerator<ExecuteEvent> {
+  const { chromium } = await import('playwright')
+  const { writeFileSync, unlinkSync, existsSync } = await import('fs')
+  const { join } = await import('path')
+  const { tmpdir } = await import('os')
+
+  const ts = Date.now()
+  const cvPath = join(tmpdir(), `jl_cv_sub_${ts}.txt`)
+  const clPath = join(tmpdir(), `jl_cl_sub_${ts}.txt`)
+  writeFileSync(cvPath, cvText || '', 'utf8')
+  writeFileSync(clPath, coverLetter || '', 'utf8')
+
+  const browser = await chromium.launch({ headless: true })
+
+  try {
+    yield { type: 'log', message: 'Re-opening browser for submission…' }
+    const ctx = await browser.newContext({
+      viewport: { width: 1280, height: 900 },
+      userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+    })
+    const page = await ctx.newPage()
+    await page.goto(jobUrl, { waitUntil: 'networkidle', timeout: 40000 })
+    await page.waitForTimeout(2500)
+    yield { type: 'log', message: 'Re-filling fields…' }
+
+    const fillable = mapping.filter(m => m.value && m.value.trim())
+    for (const { field, value } of fillable) {
+      try {
+        if (field.type === 'file') {
+          if (value === '__SKIP_FILE__') continue
+          const fp = value === '__CV_FILE__' ? cvPath : value === '__CL_FILE__' ? clPath : null
+          if (fp) await page.setInputFiles(field.selector, fp).catch(() => page.getByLabel(field.label, { exact: false }).setInputFiles(fp))
+        } else if (field.type === 'select') {
+          await page.selectOption(field.selector, { label: value }).catch(() => page.selectOption(field.selector, value))
+        } else if (field.type === 'checkbox') {
+          const check = value.toLowerCase() === 'true' || value.toLowerCase() === 'yes'
+          if (check) await page.check(field.selector).catch(() => {})
+          else await page.uncheck(field.selector).catch(() => {})
+        } else {
+          await page.fill(field.selector, value)
+            .catch(() => page.getByLabel(field.label, { exact: false }).fill(value)
+              .catch(() => field.placeholder ? page.getByPlaceholder(field.placeholder, { exact: false }).fill(value).catch(() => {}) : Promise.resolve()))
+        }
+      } catch { /* continue */ }
+      await page.waitForTimeout(200)
+    }
+
+    yield { type: 'log', message: 'Clicking submit…' }
+    const clicked = await page
+      .getByRole('button', { name: /submit application|apply now|send application|submit/i })
+      .first().click({ timeout: 5000 }).then(() => true).catch(() => false)
+    if (!clicked) {
+      await page.evaluate(() => {
+        const btn = document.querySelector('button[type="submit"], input[type="submit"]') as HTMLElement | null
+        if (btn) btn.click()
+      })
+    }
+    await page.waitForTimeout(4000)
+    const confirmShot = (await page.screenshot({ fullPage: false })).toString('base64')
+    yield { type: 'done', confirmB64: confirmShot, message: 'Application submitted. Check the screenshot to confirm.' }
+  } catch (err) {
+    yield { type: 'error', message: String(err) }
+  } finally {
+    await browser.close()
     try { if (existsSync(cvPath)) unlinkSync(cvPath) } catch { /* ignore */ }
     try { if (existsSync(clPath)) unlinkSync(clPath) } catch { /* ignore */ }
   }

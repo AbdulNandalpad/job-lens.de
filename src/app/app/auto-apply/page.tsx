@@ -12,7 +12,7 @@ import AutoApplyDemoWidget from '@/components/AutoApplyDemoWidget'
 
 const { colors: c, gradients: g, fonts: f } = theme
 
-type Phase = 'idle' | 'analyzing' | 'review' | 'executing' | 'done'
+type Phase = 'idle' | 'analyzing' | 'review' | 'executing' | 'confirming' | 'submitting' | 'done'
 type Mode  = 'demo' | 'active'
 
 interface LogEntry {
@@ -97,6 +97,7 @@ export default function AutoApplyPage() {
   const [log, setLog] = useState<LogEntry[]>([])
   const [liveShot, setLiveShot] = useState<string>('')
   const [confirmShot, setConfirmShot] = useState<string>('')
+  const [previewShot, setPreviewShot] = useState<string>('')
   const [error, setError] = useState<string>('')
   const logRef = useRef<HTMLDivElement>(null)
   const logCounter = useRef(0)
@@ -161,58 +162,85 @@ export default function AutoApplyPage() {
     setMapping(prev => prev.map((m, i) => (i === idx ? { ...m, value } : m)))
   }
 
-  async function handleExecute() {
-    setPhase('executing')
-    setLog([])
-    setLiveShot('')
-    setConfirmShot('')
-
-    const addLog = (entry: Omit<LogEntry, 'id'>) => {
-      const id = ++logCounter.current
-      setLog(prev => [...prev, { ...entry, id }])
-    }
-
+  async function streamEvents(endpoint: string, body: object, onDone: () => void) {
+    const addLog = (entry: Omit<LogEntry, 'id'>) =>
+      setLog(prev => [...prev, { ...entry, id: ++logCounter.current }])
     try {
-      const res = await fetch('/api/auto-apply/execute', {
+      const res = await fetch(endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ jobUrl: jobUrl.trim(), mapping, cvText, coverLetter: useCoverLetter ? coverLetter : '' }),
+        body: JSON.stringify(body),
       })
       if (!res.ok) throw new Error('Stream request failed')
       if (!res.body) throw new Error('No response body')
-
       const reader = res.body.getReader()
       const decoder = new TextDecoder()
       let buf = ''
-
       while (true) {
         const { done, value } = await reader.read()
         if (done) break
         buf += decoder.decode(value, { stream: true })
         const parts = buf.split('\n\n')
         buf = parts.pop() ?? ''
-
         for (const part of parts) {
           const line = part.replace(/^data: /, '').trim()
           if (!line) continue
           try {
             const ev: ExecuteEvent = JSON.parse(line)
             switch (ev.type) {
-              case 'log':        addLog({ type: 'log', message: ev.message }); break
-              case 'screenshot': setLiveShot(ev.b64); addLog({ type: 'screenshot', message: ev.message, b64: ev.b64 }); break
-              case 'filling':    addLog({ type: 'filling', message: `Filling "${ev.label}" → ${ev.value.slice(0, 40)}` }); break
-              case 'filled':     addLog({ type: 'filled', message: `"${ev.label}" ${ev.success ? 'filled' : 'skipped'}`, success: ev.success }); break
-              case 'submitting': addLog({ type: 'submitting', message: 'Clicking submit button...' }); break
-              case 'done':       setConfirmShot(ev.confirmB64); setLiveShot(ev.confirmB64); addLog({ type: 'done', message: ev.message }); setPhase('done'); break
-              case 'error':      addLog({ type: 'error', message: ev.message }); if (ev.b64) setLiveShot(ev.b64); setPhase('review'); break
+              case 'log':           addLog({ type: 'log', message: ev.message }); break
+              case 'screenshot':    setLiveShot(ev.b64); addLog({ type: 'screenshot', message: ev.message, b64: ev.b64 }); break
+              case 'filling':       addLog({ type: 'filling', message: `Filling "${ev.label}" → ${ev.value.slice(0, 40)}` }); break
+              case 'filled':        addLog({ type: 'filled', message: `"${ev.label}" ${ev.success ? '✓ filled' : '⚠ skipped'}`, success: ev.success }); break
+              case 'filled_preview':
+                setPreviewShot(ev.b64)
+                setLiveShot(ev.b64)
+                addLog({ type: 'log', message: ev.message })
+                setPhase('confirming')
+                break
+              case 'done':
+                setConfirmShot(ev.confirmB64)
+                setLiveShot(ev.confirmB64)
+                addLog({ type: 'done', message: ev.message })
+                setPhase('done')
+                onDone()
+                break
+              case 'error':
+                addLog({ type: 'error', message: ev.message })
+                if (ev.b64) setLiveShot(ev.b64)
+                setPhase('review')
+                break
             }
-          } catch { /* ignore malformed SSE */ }
+          } catch { /* ignore */ }
         }
       }
     } catch (err) {
       setLog(prev => [...prev, { id: ++logCounter.current, type: 'error', message: String(err) }])
       setPhase('review')
     }
+  }
+
+  async function handleExecute() {
+    setPhase('executing')
+    setLog([])
+    setLiveShot('')
+    setConfirmShot('')
+    setPreviewShot('')
+    await streamEvents(
+      '/api/auto-apply/execute',
+      { jobUrl: jobUrl.trim(), mapping, cvText, coverLetter: useCoverLetter ? coverLetter : '' },
+      () => {},
+    )
+  }
+
+  async function handleConfirmSubmit() {
+    setPhase('submitting')
+    setLog(prev => [...prev, { id: ++logCounter.current, type: 'log', message: 'User confirmed — submitting application…' }])
+    await streamEvents(
+      '/api/auto-apply/submit',
+      { jobUrl: jobUrl.trim(), mapping, cvText, coverLetter: useCoverLetter ? coverLetter : '' },
+      logToTracker,
+    )
   }
 
   function logToTracker() {
@@ -502,7 +530,38 @@ export default function AutoApplyPage() {
                 </div>
               )}
 
-              {(phase === 'review' || phase === 'executing' || phase === 'done') && analyzeResult && (
+              {phase === 'confirming' && previewShot && (
+                <div style={{ ...card, overflow: 'hidden' }}>
+                  <div style={{ padding: '12px 16px', borderBottom: `1px solid ${c.border}`, background: c.warningLight }}>
+                    <div style={{ fontSize: 13, fontWeight: 700, color: c.primary, fontFamily: f.heading }}>
+                      Review filled form — confirm to submit
+                    </div>
+                    <div style={{ fontSize: 11, color: c.textMuted, marginTop: 3 }}>
+                      Kira has filled all fields. Check the preview below before submitting.
+                    </div>
+                  </div>
+                  <div style={{ padding: '12px 16px' }}>
+                    <img
+                      src={`data:image/png;base64,${previewShot}`}
+                      alt="Filled form preview"
+                      style={{ width: '100%', borderRadius: 6, border: `1px solid ${c.border}`, marginBottom: 14 }}
+                    />
+                    <div style={{ display: 'flex', gap: 10 }}>
+                      <button className="aa-btn-primary" style={{ flex: 1 }} onClick={handleConfirmSubmit}>
+                        ✓ Looks good — Submit Application
+                      </button>
+                      <button
+                        className="aa-btn-outline"
+                        onClick={() => { setPhase('review'); setPreviewShot('') }}
+                      >
+                        ← Edit fields
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {(phase === 'review' || phase === 'executing' || phase === 'confirming' || phase === 'submitting' || phase === 'done') && analyzeResult && (
                 <>
                   <div style={{ ...card }}>
                     <div style={{ padding: '14px 18px', display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap' }}>
@@ -601,7 +660,7 @@ export default function AutoApplyPage() {
                   {phase === 'review' && (
                     <div style={{ display: 'flex', gap: 12 }}>
                       <button className="aa-btn-primary" style={{ flex: 1 }} onClick={handleExecute}>
-                        Launch Auto Fill &amp; Submit &rarr;
+                        Fill Form (Preview First) &rarr;
                       </button>
                       <a
                         href={jobUrl} target="_blank" rel="noopener noreferrer"
@@ -628,17 +687,17 @@ export default function AutoApplyPage() {
                 </>
               )}
 
-              {(phase === 'executing' || (phase === 'done' && log.length > 0)) && (
+              {(phase === 'executing' || phase === 'submitting' || (phase === 'done' && log.length > 0)) && (
                 <div style={card}>
                   <div style={{ ...cardHead, display: 'flex', alignItems: 'center', gap: 8 }}>
-                    {phase === 'executing' && <svg className="spin" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={c.accent} strokeWidth="2.5"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>}
-                    {phase === 'done' ? '✓ Completed' : 'Live Log'}
+                    {(phase === 'executing' || phase === 'submitting') && <svg className="spin" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={c.accent} strokeWidth="2.5"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>}
+                    {phase === 'done' ? '✓ Completed' : phase === 'submitting' ? 'Submitting…' : 'Live Log'}
                   </div>
                   <div ref={logRef} style={{ maxHeight: 280, overflowY: 'auto', padding: '4px 16px' }}>
                     {log.map(entry => (
                       <div key={entry.id} className="log-entry">
                         <span style={{ flexShrink: 0, marginTop: 1 }}>
-                          {entry.type === 'error' ? '✗' : entry.type === 'done' ? '✓' : entry.type === 'filled' ? (entry.success ? '✓' : '–') : entry.type === 'screenshot' ? <SvgIcon name="camera" size={12} color="currentColor" /> : entry.type === 'submitting' ? '⬆' : '·'}
+                          {entry.type === 'error' ? '✗' : entry.type === 'done' ? '✓' : entry.type === 'filled' ? (entry.success ? '✓' : '–') : entry.type === 'screenshot' ? <SvgIcon name="camera" size={12} color="currentColor" /> : '·'}
                         </span>
                         <span style={{ color: entry.type === 'error' ? c.error : entry.type === 'done' ? c.success : entry.success === false ? c.textMuted : undefined }}>
                           {entry.message}
