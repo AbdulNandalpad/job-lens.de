@@ -413,7 +413,7 @@ export default function AutoApplyPage() {
                           </>
                         ) : (
                           <>
-                            <span style={{ fontSize: 22 }}>📄</span>
+                            <SvgIcon name="document" size={24} color={c.accent} />
                             <span style={{ fontSize: 13, fontWeight: 600, color: c.primary }}>Upload your CV</span>
                             <span style={{ fontSize: 11, color: c.textMuted }}>PDF, DOC, DOCX or TXT · max 10 MB</span>
                           </>
@@ -615,9 +615,9 @@ export default function AutoApplyPage() {
                           </div>
                           <div style={{ paddingRight: 12 }}>
                             {m.value === '__CV_FILE__' ? (
-                              <span style={{ fontSize: 11, color: c.success, fontWeight: 600 }}>📎 Will attach CV text file</span>
+                              <span style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 11, color: c.success, fontWeight: 600 }}><SvgIcon name="clipboard" size={13} color={c.success} /> Will attach CV text file</span>
                             ) : m.value === '__CL_FILE__' ? (
-                              <span style={{ fontSize: 11, color: c.success, fontWeight: 600 }}>📎 Will attach cover letter file</span>
+                              <span style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 11, color: c.success, fontWeight: 600 }}><SvgIcon name="clipboard" size={13} color={c.success} /> Will attach cover letter file</span>
                             ) : m.value === '__SKIP_FILE__' ? (
                               <span style={{ fontSize: 11, color: c.textMuted, fontStyle: 'italic' }}>File upload — upload manually</span>
                             ) : m.field.type === 'select' && m.field.options ? (

@@ -389,7 +389,7 @@ export default function InAutoApplyPage() {
                           </>
                         ) : (
                           <>
-                            <span style={{ fontSize: 22 }}>📄</span>
+                            <SvgIcon name="document" size={24} color={ACCENT} />
                             <span style={{ fontSize: 13, fontWeight: 600, color: c.primary }}>Upload your Resume</span>
                             <span style={{ fontSize: 11, color: c.textMuted }}>PDF, DOC, DOCX or TXT · max 10 MB</span>
                           </>
@@ -475,7 +475,7 @@ export default function InAutoApplyPage() {
 
               {phase === 'idle' && !analyzeResult && (
                 <div style={{ ...card, padding: '60px 20px', textAlign: 'center' }}>
-                  <div style={{ fontSize: 36, marginBottom: 12 }}>🤖</div>
+                  <div style={{ marginBottom: 12, display: 'flex', justifyContent: 'center' }}><SvgIcon name="bot" size={36} color={ACCENT} /></div>
                   <div style={{ fontSize: 15, fontWeight: 600, color: c.primary, marginBottom: 6 }}>
                     Enter a job application URL to begin
                   </div>
@@ -549,9 +549,9 @@ export default function InAutoApplyPage() {
                           </div>
                           <div style={{ paddingRight: 12 }}>
                             {m.value === '__CV_FILE__' ? (
-                              <span style={{ fontSize: 11, color: c.success, fontWeight: 600 }}>📎 Will attach resume</span>
+                              <span style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 11, color: c.success, fontWeight: 600 }}><SvgIcon name="clipboard" size={13} color={c.success} /> Will attach resume</span>
                             ) : m.value === '__CL_FILE__' ? (
-                              <span style={{ fontSize: 11, color: c.success, fontWeight: 600 }}>📎 Will attach cover letter</span>
+                              <span style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 11, color: c.success, fontWeight: 600 }}><SvgIcon name="clipboard" size={13} color={c.success} /> Will attach cover letter</span>
                             ) : m.value === '__SKIP_FILE__' ? (
                               <span style={{ fontSize: 11, color: c.textMuted, fontStyle: 'italic' }}>File upload — upload manually</span>
                             ) : m.field.type === 'select' && m.field.options ? (

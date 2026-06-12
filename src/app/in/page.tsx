@@ -5,7 +5,7 @@ import IndiaDashboard from './components/IndiaDashboard'
 import KiraDemoWidget from '@/components/KiraDemoWidget'
 import SvgIcon, { type IconName } from '@/components/SvgIcon'
 import AutoApplySpotlightIn from './components/AutoApplySpotlightIn'
-import HeroIn from './components/HeroIn'
+import HeroV2In from './components/HeroV2In'
 
 const saffron = '#FF9933'
 const indiaGreen = '#138808'
@@ -124,7 +124,7 @@ export default async function IndiaHomePage() {
       </div>
 
       {/* Hero */}
-      <HeroIn />
+      <HeroV2In />
 
       {/* THE PROBLEM — stark numbers */}
       <section style={{ background: '#fff', padding: '60px 24px', borderTop: `4px solid ${saffron}` }}>

@@ -192,6 +192,100 @@ Return ONLY a valid JSON array — no commentary:
   )
 }
 
+// ── Extract known values from CV text via regex ──────────────────────────────
+
+interface CvValues {
+  email?: string
+  phone?: string
+  linkedin?: string
+  fullName?: string
+  firstName?: string
+  lastName?: string
+}
+
+function extractCvValues(cvText: string): CvValues {
+  const vals: CvValues = {}
+
+  // Email — most reliable: look for @ pattern
+  const emailM = cvText.match(/[\w.+\-]+@[\w\-]+(?:\.[\w\-]+)+/i)
+  if (emailM) vals.email = emailM[0].toLowerCase()
+
+  // Phone — lines or tokens that look like phone numbers
+  const phoneM = cvText.match(/(?:\+\d{1,3}[\s\-.]?)?\(?\d{2,4}\)?[\s\-.]?\d{3,5}[\s\-.]?\d{3,5}(?:[\s\-.]?\d{1,4})?/)
+  if (phoneM) vals.phone = phoneM[0].trim()
+
+  // LinkedIn URL
+  const linkedinM = cvText.match(/(?:https?:\/\/)?(?:www\.)?linkedin\.com\/in\/[\w\-%.]+\/?/i)
+  if (linkedinM) {
+    vals.linkedin = linkedinM[0].startsWith('http') ? linkedinM[0] : 'https://' + linkedinM[0]
+    vals.linkedin = vals.linkedin.replace(/\/$/, '')
+  }
+
+  // Full name — first non-empty line that is short, has no digits, no @
+  for (const line of cvText.split('\n')) {
+    const t = line.trim()
+    if (t.length > 2 && t.length < 55 && !t.includes('@') && !/\d/.test(t) && /[A-Za-z]/.test(t)) {
+      const words = t.split(/\s+/)
+      if (words.length >= 2 && words.length <= 5) {
+        vals.fullName = t
+        vals.firstName = words[0]
+        vals.lastName = words.slice(1).join(' ')
+        break
+      }
+    }
+  }
+
+  return vals
+}
+
+// ── Deterministic overrides: trust HTML attrs over Claude when confident ──────
+
+function applyDeterministicOverrides(mapping: FieldMapping[], cv: CvValues): FieldMapping[] {
+  return mapping.map(m => {
+    const { field } = m
+    const ac  = (field.autocomplete || '').toLowerCase().replace(/\s/g, '')
+    const nm  = (field.name        || '').toLowerCase().replace(/[-_\s]/g, '')
+    const lb  = field.label.toLowerCase().replace(/[^a-z0-9]/g, '')
+    const typ = field.type
+
+    // Helper: upgrade a mapping if we have a confident value
+    const override = (val: string | undefined): FieldMapping | null =>
+      val ? { ...m, value: val, confidence: 'high' } : null
+
+    // 1. HTML type="email" — definitive
+    if (typ === 'email') return override(cv.email) ?? m
+
+    // 2. HTML type="tel" — definitive
+    if (typ === 'tel')   return override(cv.phone) ?? m
+
+    // 3. autocomplete attribute — very reliable
+    if (ac === 'email')       return override(cv.email)     ?? m
+    if (ac === 'tel')         return override(cv.phone)     ?? m
+    if (ac === 'given-name')  return override(cv.firstName) ?? m
+    if (ac === 'family-name') return override(cv.lastName)  ?? m
+    if (ac === 'name')        return override(cv.fullName)  ?? m
+    if (ac === 'url' && (nm.includes('linkedin') || lb.includes('linkedin')))
+                              return override(cv.linkedin)  ?? m
+
+    // 4. name attribute patterns — reliable
+    if (/email|e-?mail/.test(nm))                         return override(cv.email)     ?? m
+    if (/phone|tel|mobile|mob|cell/.test(nm))             return override(cv.phone)     ?? m
+    if (/linkedin|linked.?in/.test(nm))                   return override(cv.linkedin)  ?? m
+    if (/^(firstname|fname|givenname)$/.test(nm))         return override(cv.firstName) ?? m
+    if (/^(lastname|lname|surname|familyname)$/.test(nm)) return override(cv.lastName)  ?? m
+    if (/^(fullname|name)$/.test(nm))                     return override(cv.fullName)  ?? m
+
+    // 5. Label fallback — catch anything Claude missed for high-certainty fields
+    if (!m.value || m.confidence === 'low') {
+      if (/email/.test(lb))    return override(cv.email)    ?? m
+      if (/phone|mobile|tel/.test(lb)) return override(cv.phone) ?? m
+      if (/linkedin/.test(lb)) return override(cv.linkedin) ?? m
+    }
+
+    return m
+  })
+}
+
 // ── Fuzzy label matching ─────────────────────────────────────────────────────
 
 function matchLabel(fieldLabel: string, mappedLabel: string): boolean {
@@ -277,11 +371,15 @@ If no form visible: {"hasForm":false,"fields":[]}`,
     }
 
     const rawMapping = await mapCvToFields(fields, cvText, coverLetter, anthropic)
+    const cvValues   = extractCvValues(cvText)
 
-    const mapping: FieldMapping[] = fields.map(field => {
-      const match = rawMapping.find(m => matchLabel(field.label, m.label))
-      return { field, value: match?.value ?? '', confidence: match?.confidence ?? 'low', notes: match?.notes }
-    })
+    const mapping: FieldMapping[] = applyDeterministicOverrides(
+      fields.map(field => {
+        const match = rawMapping.find(m => matchLabel(field.label, m.label))
+        return { field, value: match?.value ?? '', confidence: match?.confidence ?? 'low', notes: match?.notes }
+      }),
+      cvValues,
+    )
 
     return { formType, pageTitle, hasForm: true, fields, mapping, screenshotB64 }
   } finally {
