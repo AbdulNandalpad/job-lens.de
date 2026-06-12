@@ -26,7 +26,7 @@ const DECK_EU_DE: Slide[] = [
     accentColor: '#378ADD',
   },
   {
-    icon: 'apply',
+    icon: 'rocket',
     tag: 'Auto Apply · Beta',
     h1: 'Schluss mit copy-paste.',
     h1Accent: 'Kira füllt dein Formular.',
@@ -79,7 +79,7 @@ const DECK_EU_EN: Slide[] = [
     accentColor: '#378ADD',
   },
   {
-    icon: 'apply',
+    icon: 'rocket',
     tag: 'Auto Apply · Beta',
     h1: 'Stop copy-pasting.',
     h1Accent: 'Kira fills your job application.',
@@ -132,7 +132,7 @@ const DECK_IN: Slide[] = [
     accentColor: '#FF9933',
   },
   {
-    icon: 'apply',
+    icon: 'rocket',
     tag: 'Auto Apply · Beta',
     h1: 'Stop filling the same details',
     h1Accent: 'into every job portal.',
@@ -250,7 +250,7 @@ export default function HeroSlider({ market, lang = 'EN' }: HeroSliderProps) {
       `}</style>
 
       {/* Slide track */}
-      <div style={{ position: 'relative', minHeight: 460 }}>
+      <div style={{ position: 'relative', minHeight: 460, overflow: 'hidden' }}>
         {prev !== null && (
           <div className={dir === 'next' ? 'hs-out-next' : 'hs-out-prev'}>
             <SlideContent slide={deck[prev]} />
