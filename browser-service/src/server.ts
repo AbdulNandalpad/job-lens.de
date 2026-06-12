@@ -6,11 +6,11 @@ const app = express()
 app.use(express.json({ limit: '10mb' }))
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
-const SECRET = process.env.RAILWAY_SECRET
+const SECRET = process.env.BROWSER_SECRET
 
 function authorized(req: Request, res: Response): boolean {
   if (!SECRET) {
-    res.status(500).json({ error: 'RAILWAY_SECRET not configured on this service' })
+    res.status(500).json({ error: 'BROWSER_SECRET not configured on this service' })
     return false
   }
   if (req.headers.authorization !== `Bearer ${SECRET}`) {

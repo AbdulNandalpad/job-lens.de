@@ -29,7 +29,7 @@ export async function POST(req: NextRequest) {
   }
 
   const railwayUrl = process.env.RAILWAY_BROWSER_URL
-  const railwaySecret = process.env.RAILWAY_SECRET
+  const railwaySecret = process.env.BROWSER_SECRET
 
   if (railwayUrl && railwaySecret) {
     // Proxy the SSE stream from the Railway browser service

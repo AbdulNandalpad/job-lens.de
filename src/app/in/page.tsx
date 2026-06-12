@@ -4,6 +4,7 @@ import { cookies } from 'next/headers'
 import IndiaDashboard from './components/IndiaDashboard'
 import KiraDemoWidget from '@/components/KiraDemoWidget'
 import SvgIcon, { type IconName } from '@/components/SvgIcon'
+import AutoApplySpotlightIn from './components/AutoApplySpotlightIn'
 
 const saffron = '#FF9933'
 const indiaGreen = '#138808'
@@ -440,6 +441,9 @@ export default async function IndiaHomePage() {
           </div>
         </div>
       </section>
+
+      {/* AUTO APPLY SPOTLIGHT */}
+      <AutoApplySpotlightIn />
 
       {/* KIRA SECTION */}
       <section id="kira-demo" style={{ background: white, padding: '72px 24px 80px' }}>

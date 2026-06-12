@@ -6,6 +6,7 @@ import { createClient } from '@/lib/supabase'
 import { theme } from '@/lib/theme'
 import { useLanguage, DEFlag, GBFlag } from '@/lib/i18n'
 import KiraDemoWidget from '@/components/KiraDemoWidget'
+import AutoApplyDemoWidget from '@/components/AutoApplyDemoWidget'
 import SvgIcon, { type IconName } from '@/components/SvgIcon'
 
 const { colors: c, gradients: g, fonts: f, shadow: sh } = theme
@@ -43,6 +44,17 @@ const translations = {
       { title: 'Bewerbungs-Tracker', desc: 'Alle Bewerbungen im Blick — von Gespeichert bis Angebot.' },
       { title: 'Auto-Bewerbung', desc: 'KI füllt das gesamte Bewerbungsformular automatisch aus.' },
     ],
+    autoApplySpotlightTag: 'Neu · Auto-Bewerbung',
+    autoApplySpotlightH2: 'Kira füllt das Formular. Du prüfst. Fertig.',
+    autoApplySpotlightSub: 'Füge eine Bewerbungs-URL ein — Workday, Greenhouse, Lever oder jedes direkte Formular. Kira öffnet die Seite, liest alle Felder, ordnet deinen Lebenslauf zu und sendet ab. Du siehst Screenshots bei jedem Schritt.',
+    autoApplyBullets: [
+      'Funktioniert mit allen gängigen ATS-Plattformen',
+      'Ordnet deinen Lebenslauf automatisch jedem Feld zu',
+      'Überprüfen & bearbeiten, bevor irgendetwas abgeschickt wird',
+      'Echte Browser-Screenshots — du siehst genau, was passiert ist',
+    ],
+    autoApplyCta: 'Mit Beispielformular testen →',
+    autoApplyNote: 'Keine Kreditkarte nötig · 3 Credits pro Bewerbung',
     howTitle: 'So funktioniert es',
     howSub: 'Vom Lebenslauf-Upload bis zur eingereichten Bewerbung in Minuten',
     steps: [
@@ -154,6 +166,17 @@ const translations = {
       { title: 'Application Tracker', desc: 'Track every application from Saved to Offer in one place.' },
       { title: 'Auto Apply', desc: 'AI fills the entire application form for you automatically.' },
     ],
+    autoApplySpotlightTag: 'New · Auto Apply',
+    autoApplySpotlightH2: 'Kira fills the form. You review. Done.',
+    autoApplySpotlightSub: 'Paste any job application URL — Workday, Greenhouse, Lever, or any direct form. Kira opens the page, reads every field, maps your CV, and submits. You see screenshots at every step.',
+    autoApplyBullets: [
+      'Works on all major ATS platforms',
+      'Maps your CV to every field automatically',
+      'Review & edit before anything is submitted',
+      'Real browser screenshots so you see exactly what happened',
+    ],
+    autoApplyCta: 'Try with sample form →',
+    autoApplyNote: 'No credit card needed · 3 credits per application',
     howTitle: 'How it works',
     howSub: 'From CV upload to submitted application in minutes',
     steps: [
@@ -624,6 +647,87 @@ export default function HomePage() {
               <div style={{ fontSize: 13, color: c.textMuted, lineHeight: 1.6 }}>{feat.desc}</div>
             </Link>
           ))}
+        </div>
+
+        {/* ── Auto Apply spotlight ── */}
+        <div className="jl-subsection">
+          <div style={{
+            background: 'linear-gradient(160deg, #0d1f30 0%, #091624 100%)',
+            borderRadius: 20,
+            border: '1px solid rgba(55,138,221,0.18)',
+            boxShadow: '0 24px 64px rgba(0,0,0,0.18)',
+            overflow: 'hidden',
+            padding: '48px 40px',
+            display: 'grid',
+            gridTemplateColumns: '1fr 1fr',
+            gap: 48,
+            alignItems: 'center',
+          }}>
+            {/* Left — copy */}
+            <div>
+              <div style={{
+                display: 'inline-flex', alignItems: 'center', gap: 8,
+                background: 'rgba(55,138,221,0.15)', border: '1px solid rgba(55,138,221,0.3)',
+                borderRadius: 20, padding: '4px 14px', marginBottom: 20,
+              }}>
+                <span style={{ width: 7, height: 7, borderRadius: '50%', background: '#378ADD', display: 'inline-block' }} />
+                <span style={{ fontSize: 11, fontWeight: 700, color: '#378ADD', letterSpacing: 0.6, textTransform: 'uppercase' as const }}>
+                  {t.autoApplySpotlightTag}
+                </span>
+              </div>
+
+              <h2 style={{ fontFamily: f.heading, fontSize: 28, fontWeight: 700, color: '#fff', lineHeight: 1.25, marginBottom: 16, margin: '0 0 16px' }}>
+                {t.autoApplySpotlightH2}
+              </h2>
+
+              <p style={{ fontSize: 14, color: 'rgba(255,255,255,0.55)', lineHeight: 1.7, marginBottom: 24, margin: '0 0 24px' }}>
+                {t.autoApplySpotlightSub}
+              </p>
+
+              <ul style={{ listStyle: 'none', padding: 0, margin: '0 0 32px', display: 'flex', flexDirection: 'column' as const, gap: 10 }}>
+                {t.autoApplyBullets.map((b, i) => (
+                  <li key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 10, fontSize: 13, color: 'rgba(255,255,255,0.75)' }}>
+                    <span style={{ width: 18, height: 18, borderRadius: '50%', background: 'rgba(55,138,221,0.2)', border: '1px solid rgba(55,138,221,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, color: '#378ADD', flexShrink: 0, marginTop: 1 }}>✓</span>
+                    {b}
+                  </li>
+                ))}
+              </ul>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' as const }}>
+                <Link
+                  href={user ? '/app/auto-apply' : '/login'}
+                  style={{
+                    display: 'inline-block', padding: '12px 28px', borderRadius: 11,
+                    background: 'linear-gradient(135deg, #378ADD, #185FA5)',
+                    color: '#fff', fontWeight: 700, fontSize: 14,
+                    textDecoration: 'none', fontFamily: f.heading,
+                    boxShadow: '0 6px 24px rgba(55,138,221,0.35)',
+                  }}
+                >
+                  {t.autoApplyCta}
+                </Link>
+                <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.3)' }}>
+                  {t.autoApplyNote}
+                </span>
+              </div>
+            </div>
+
+            {/* Right — live demo widget */}
+            <div>
+              <AutoApplyDemoWidget
+                market="eu"
+                onTryItYourself={() => { window.location.href = user ? '/app/auto-apply' : '/login' }}
+                onTryWithSample={() => { window.location.href = user ? '/app/auto-apply' : '/login' }}
+              />
+            </div>
+          </div>
+
+          {/* Mobile fallback styles */}
+          <style>{`
+            @media (max-width: 768px) {
+              .aa-spotlight-grid { grid-template-columns: 1fr !important; padding: 28px 20px !important; gap: 32px !important; }
+            }
+          `}</style>
         </div>
 
         {/* ── How it works ── */}
