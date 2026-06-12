@@ -41,17 +41,22 @@ const IN_DEMO: DemoData = {
   ],
 }
 
+const GUIDE_STEPS = [
+  { icon: '🔗', title: 'Paste any job URL',       desc: 'Drop in the direct application form link — Workday, Greenhouse, Lever, or any direct form.' },
+  { icon: '🤖', title: 'Kira reads the form',     desc: 'A real browser opens the page, detects every field, and maps them to your CV automatically.' },
+  { icon: '✏️', title: 'You review the values',   desc: 'See exactly what will be filled in. Edit anything before submitting.' },
+  { icon: '🚀', title: 'Kira submits for you',    desc: 'One click — the browser fills every field and hits submit. You get a screenshot to confirm.' },
+]
+
 type Phase = 'url' | 'scanning' | 'fields' | 'mapping' | 'filling' | 'done'
+type WidgetMode = 'guide' | 'demo'
 
 function sleep(ms: number) { return new Promise<void>(r => setTimeout(r, ms)) }
 
 function SpinnerIcon({ color, size = 18 }: { color: string; size?: number }) {
   return (
-    <svg
-      width={size} height={size} viewBox="0 0 24 24" fill="none"
-      stroke={color} strokeWidth="2.5"
-      style={{ animation: 'aadSpin 0.9s linear infinite', flexShrink: 0 }}
-    >
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2.5"
+      style={{ animation: 'aadSpin 0.9s linear infinite', flexShrink: 0 }}>
       <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/>
     </svg>
   )
@@ -60,15 +65,18 @@ function SpinnerIcon({ color, size = 18 }: { color: string; size?: number }) {
 export default function AutoApplyDemoWidget({
   market,
   onTryItYourself,
+  onTryWithSample,
 }: {
   market: 'eu' | 'in'
   onTryItYourself: () => void
+  onTryWithSample: () => void
 }) {
   const data = market === 'in' ? IN_DEMO : EU_DEMO
   const accent = market === 'in' ? '#FF9933' : '#378ADD'
   const accentDim = market === 'in' ? '#FF993322' : '#378ADD22'
   const accentBorder = market === 'in' ? '#FF993344' : '#378ADD44'
 
+  const [widgetMode, setWidgetMode] = useState<WidgetMode>('guide')
   const [phase, setPhase] = useState<Phase>('url')
   const [urlTyped, setUrlTyped] = useState('')
   const [visibleFields, setVisibleFields] = useState(0)
@@ -78,6 +86,8 @@ export default function AutoApplyDemoWidget({
   const abortRef = useRef<AbortController | null>(null)
 
   useEffect(() => {
+    if (widgetMode !== 'demo') return
+
     abortRef.current?.abort()
     const ctrl = new AbortController()
     abortRef.current = ctrl
@@ -89,7 +99,6 @@ export default function AutoApplyDemoWidget({
     setFillProgress(0)
 
     async function run() {
-      // Phase: url — type URL character by character
       const url = data.url
       let typed = ''
       for (let i = 0; i < url.length; i++) {
@@ -100,12 +109,10 @@ export default function AutoApplyDemoWidget({
       }
       await sleep(500)
 
-      // Phase: scanning
       if (ctrl.signal.aborted) return
       setPhase('scanning')
       await sleep(2200)
 
-      // Phase: fields — appear one by one
       if (ctrl.signal.aborted) return
       setPhase('fields')
       for (let i = 1; i <= data.fields.length; i++) {
@@ -115,7 +122,6 @@ export default function AutoApplyDemoWidget({
       }
       await sleep(500)
 
-      // Phase: mapping — values populate one by one
       if (ctrl.signal.aborted) return
       setPhase('mapping')
       for (let i = 1; i <= data.fields.length; i++) {
@@ -125,7 +131,6 @@ export default function AutoApplyDemoWidget({
       }
       await sleep(400)
 
-      // Phase: filling — progress bar sweeps
       if (ctrl.signal.aborted) return
       setPhase('filling')
       for (let p = 0; p <= 100; p += 4) {
@@ -136,14 +141,13 @@ export default function AutoApplyDemoWidget({
       setFillProgress(100)
       await sleep(500)
 
-      // Phase: done
       if (ctrl.signal.aborted) return
       setPhase('done')
     }
 
     run()
     return () => ctrl.abort()
-  }, [restartKey, market])
+  }, [restartKey, widgetMode, market])
 
   const fieldIcon = (type?: string) => {
     if (type === 'email') return '✉'
@@ -154,31 +158,32 @@ export default function AutoApplyDemoWidget({
     return '✎'
   }
 
-  const card: React.CSSProperties = {
-    background: 'rgba(255,255,255,0.04)',
-    border: '1px solid rgba(255,255,255,0.08)',
-    borderRadius: 10,
-    overflow: 'hidden',
+  const startDemo = () => {
+    setWidgetMode('demo')
+    setRestartKey(k => k + 1)
   }
 
   return (
-    <div style={{ maxWidth: 660, margin: '0 auto', fontFamily: "'DM Sans', sans-serif" }}>
+    <div style={{ maxWidth: 680, margin: '0 auto', fontFamily: "'DM Sans', sans-serif" }}>
       <style>{`
         @keyframes aadSpin { from { transform:rotate(0deg); } to { transform:rotate(360deg); } }
         @keyframes aadFadeIn { from { opacity:0; transform:translateY(6px); } to { opacity:1; transform:translateY(0); } }
+        @keyframes aadSlideIn { from { opacity:0; transform:translateX(-8px); } to { opacity:1; transform:translateX(0); } }
         .aad-row { animation: aadFadeIn 0.25s ease both; }
-        .aad-cta:hover { opacity: 0.9; transform: translateY(-1px); }
+        .aad-step { animation: aadSlideIn 0.3s ease both; }
+        .aad-cta-primary:hover { opacity: 0.88; transform: translateY(-1px); }
+        .aad-cta-outline:hover { background: rgba(255,255,255,0.06) !important; }
       `}</style>
 
       <div style={{
         background: 'linear-gradient(160deg, #0d1f30 0%, #091624 100%)',
-        borderRadius: 18,
+        borderRadius: 20,
         border: '1px solid rgba(255,255,255,0.08)',
         boxShadow: '0 24px 64px rgba(0,0,0,0.32)',
         overflow: 'hidden',
       }}>
 
-        {/* ── Window chrome ── */}
+        {/* ── Window chrome (always visible) ── */}
         <div style={{ padding: '12px 16px', borderBottom: '1px solid rgba(255,255,255,0.06)', display: 'flex', alignItems: 'center', gap: 10 }}>
           <div style={{ display: 'flex', gap: 5 }}>
             {['#ff5f57','#febc2e','#28c840'].map(c => (
@@ -186,249 +191,291 @@ export default function AutoApplyDemoWidget({
             ))}
           </div>
 
-          {/* URL bar */}
           <div style={{
-            flex: 1,
-            background: 'rgba(255,255,255,0.07)',
-            borderRadius: 6,
-            padding: '5px 10px',
-            fontSize: 11,
-            color: 'rgba(255,255,255,0.55)',
-            fontFamily: 'monospace',
-            display: 'flex',
-            alignItems: 'center',
-            gap: 6,
-            minHeight: 26,
+            flex: 1, background: 'rgba(255,255,255,0.07)', borderRadius: 6,
+            padding: '5px 10px', fontSize: 11, color: 'rgba(255,255,255,0.55)',
+            fontFamily: 'monospace', display: 'flex', alignItems: 'center', gap: 6, minHeight: 26,
           }}>
-            {phase === 'scanning' || phase === 'fields' || phase === 'mapping' || phase === 'filling' || phase === 'done'
-              ? (
-                <>
-                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke={accent} strokeWidth="2.5">
-                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
-                  </svg>
-                  <span style={{ color: 'rgba(255,255,255,0.7)' }}>{data.url}</span>
-                </>
-              )
-              : (
-                <>
-                  <span>{urlTyped}</span>
-                  <span style={{ display: 'inline-block', width: 1, height: 11, background: accent, animation: 'aadFadeIn 0.6s ease infinite alternate' }} />
-                </>
-              )
-            }
+            {widgetMode === 'guide' ? (
+              <span style={{ color: 'rgba(255,255,255,0.3)' }}>job-lens.de/app/auto-apply</span>
+            ) : (phase === 'scanning' || phase === 'fields' || phase === 'mapping' || phase === 'filling' || phase === 'done') ? (
+              <>
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke={accent} strokeWidth="2.5">
+                  <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                </svg>
+                <span style={{ color: 'rgba(255,255,255,0.7)' }}>{data.url}</span>
+              </>
+            ) : (
+              <>
+                <span>{urlTyped}</span>
+                <span style={{ display: 'inline-block', width: 1, height: 11, background: accent, animation: 'aadFadeIn 0.6s ease infinite alternate' }} />
+              </>
+            )}
           </div>
 
-          {/* Status badge */}
           <div style={{
             fontSize: 10, fontWeight: 600, padding: '3px 9px', borderRadius: 20,
-            background: phase === 'done' ? '#22c55e22' : `${accent}22`,
-            color: phase === 'done' ? '#22c55e' : accent,
+            background: widgetMode === 'guide' ? 'rgba(255,255,255,0.07)' : phase === 'done' ? '#22c55e22' : `${accent}22`,
+            color: widgetMode === 'guide' ? 'rgba(255,255,255,0.3)' : phase === 'done' ? '#22c55e' : accent,
             whiteSpace: 'nowrap',
           }}>
-            {phase === 'url'     && '● Navigating'}
-            {phase === 'scanning'&& '● Scanning'}
-            {phase === 'fields'  && '● Detecting fields'}
-            {phase === 'mapping' && '● Mapping CV'}
-            {phase === 'filling' && '● Filling form'}
-            {phase === 'done'    && '✓ Submitted'}
+            {widgetMode === 'guide' && '● How it works'}
+            {widgetMode === 'demo' && phase === 'url'     && '● Navigating'}
+            {widgetMode === 'demo' && phase === 'scanning'&& '● Scanning'}
+            {widgetMode === 'demo' && phase === 'fields'  && '● Detecting fields'}
+            {widgetMode === 'demo' && phase === 'mapping' && '● Mapping CV'}
+            {widgetMode === 'demo' && phase === 'filling' && '● Filling form'}
+            {widgetMode === 'demo' && phase === 'done'    && '✓ Submitted'}
           </div>
         </div>
 
-        {/* ── Body ── */}
-        <div style={{ padding: '20px 20px 4px' }}>
-
-          {/* Scanning spinner */}
-          {phase === 'scanning' && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '28px 0', justifyContent: 'center' }}>
-              <SpinnerIcon color={accent} size={22} />
-              <div>
-                <div style={{ fontSize: 14, fontWeight: 600, color: '#fff' }}>
-                  {data.formType} form detected
-                </div>
-                <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.45)', marginTop: 2 }}>
-                  Reading application fields from {data.company}…
-                </div>
-              </div>
+        {/* ── GUIDE MODE ── */}
+        {widgetMode === 'guide' && (
+          <div style={{ padding: '28px 24px 8px' }}>
+            <div style={{ fontSize: 16, fontWeight: 700, color: '#fff', marginBottom: 4, fontFamily: "'Outfit', sans-serif" }}>
+              Auto Apply — how it works
             </div>
-          )}
-
-          {/* URL typing placeholder */}
-          {phase === 'url' && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '28px 0', justifyContent: 'center' }}>
-              <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.35)' }}>
-                Navigating to {data.company} application…
-              </div>
+            <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)', marginBottom: 24 }}>
+              Kira uses a real browser to fill job applications using your CV — you review before it submits.
             </div>
-          )}
 
-          {/* Fields + Mapping grid */}
-          {(phase === 'fields' || phase === 'mapping' || phase === 'filling' || phase === 'done') && (
-            <div>
-              {/* Header row */}
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, padding: '0 4px 8px', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
-                <div style={{ fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: 0.7 }}>
-                  Field · {data.formType}
-                </div>
-                <div style={{ fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: 0.7 }}>
-                  From your CV
-                </div>
-              </div>
-
-              {data.fields.slice(0, visibleFields).map((f, i) => (
-                <div key={f.label} className="aad-row" style={{
-                  display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8,
-                  padding: '9px 4px',
-                  borderBottom: i < data.fields.length - 1 ? '1px solid rgba(255,255,255,0.05)' : 'none',
-                  alignItems: 'center',
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 16, marginBottom: 8 }}>
+              {GUIDE_STEPS.map((step, i) => (
+                <div key={i} className="aad-step" style={{
+                  display: 'flex', gap: 14, alignItems: 'flex-start',
+                  animationDelay: `${i * 0.08}s`,
                 }}>
-                  {/* Field label */}
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <span style={{
-                      width: 22, height: 22, borderRadius: 6, flexShrink: 0,
-                      background: accentDim, border: `1px solid ${accentBorder}`,
-                      display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      fontSize: 11,
-                    }}>
-                      {fieldIcon(f.type)}
-                    </span>
-                    <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.75)', fontWeight: 500 }}>
-                      {f.label}
-                    </span>
+                  <div style={{
+                    width: 40, height: 40, borderRadius: 10, flexShrink: 0,
+                    background: `${accent}18`, border: `1px solid ${accent}30`,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18,
+                  }}>
+                    {step.icon}
                   </div>
-
-                  {/* Mapped value */}
-                  {i < mappedFields ? (
-                    <div className="aad-row" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                      {(phase === 'filling' || phase === 'done') ? (
-                        <span style={{
-                          width: 16, height: 16, borderRadius: '50%', background: '#22c55e22',
-                          border: '1px solid #22c55e44', display: 'flex', alignItems: 'center',
-                          justifyContent: 'center', fontSize: 9, color: '#22c55e', flexShrink: 0,
-                        }}>✓</span>
-                      ) : (
-                        <span style={{
-                          width: 16, height: 16, borderRadius: '50%', background: accentDim,
-                          border: `1px solid ${accentBorder}`, flexShrink: 0,
-                        }} />
-                      )}
-                      <span style={{
-                        fontSize: 12,
-                        color: f.type === 'file' ? accent : 'rgba(255,255,255,0.6)',
-                        fontStyle: f.type === 'file' ? 'italic' : 'normal',
-                        maxWidth: 180, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-                      }}>
-                        {f.value}
+                  <div>
+                    <div style={{ fontSize: 13, fontWeight: 700, color: '#fff', marginBottom: 3 }}>
+                      <span style={{ color: accent, marginRight: 6, fontSize: 11, fontWeight: 800 }}>
+                        {i + 1}
                       </span>
+                      {step.title}
                     </div>
-                  ) : (
-                    <div style={{
-                      height: 8, borderRadius: 4,
-                      background: 'rgba(255,255,255,0.06)',
-                      width: '70%',
-                    }} />
-                  )}
+                    <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.45)', lineHeight: 1.55 }}>
+                      {step.desc}
+                    </div>
+                  </div>
                 </div>
               ))}
             </div>
-          )}
 
-          {/* Progress bar */}
-          {phase === 'filling' && (
-            <div style={{ padding: '16px 4px 4px' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
-                <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.45)' }}>Filling form…</span>
-                <span style={{ fontSize: 11, color: accent, fontWeight: 600 }}>{fillProgress}%</span>
-              </div>
-              <div style={{ height: 5, borderRadius: 5, background: 'rgba(255,255,255,0.08)' }}>
-                <div style={{
-                  height: '100%', borderRadius: 5,
-                  background: `linear-gradient(90deg, ${accent}, ${accent}99)`,
-                  width: `${fillProgress}%`,
-                  transition: 'width 0.04s linear',
-                }} />
-              </div>
-            </div>
-          )}
+            <div style={{ height: 20 }} />
+          </div>
+        )}
 
-          {/* Done state */}
-          {phase === 'done' && (
-            <div className="aad-row" style={{ padding: '18px 4px 10px', display: 'flex', alignItems: 'center', gap: 12 }}>
-              <div style={{
-                width: 36, height: 36, borderRadius: '50%', flexShrink: 0,
-                background: '#22c55e22', border: '1.5px solid #22c55e55',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                fontSize: 16,
-              }}>
-                ✓
+        {/* ── DEMO MODE body ── */}
+        {widgetMode === 'demo' && (
+          <div style={{ padding: '20px 20px 4px' }}>
+
+            {phase === 'scanning' && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '28px 0', justifyContent: 'center' }}>
+                <SpinnerIcon color={accent} size={22} />
+                <div>
+                  <div style={{ fontSize: 14, fontWeight: 600, color: '#fff' }}>{data.formType} form detected</div>
+                  <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.45)', marginTop: 2 }}>Reading application fields from {data.company}…</div>
+                </div>
               </div>
+            )}
+
+            {phase === 'url' && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '28px 0', justifyContent: 'center' }}>
+                <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.35)' }}>Navigating to {data.company} application…</div>
+              </div>
+            )}
+
+            {(phase === 'fields' || phase === 'mapping' || phase === 'filling' || phase === 'done') && (
               <div>
-                <div style={{ fontSize: 14, fontWeight: 700, color: '#22c55e' }}>
-                  Application submitted to {data.company}!
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, padding: '0 4px 8px', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+                  <div style={{ fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: 0.7 }}>
+                    Field · {data.formType}
+                  </div>
+                  <div style={{ fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: 0.7 }}>
+                    From your CV
+                  </div>
                 </div>
-                <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)', marginTop: 2 }}>
-                  7 fields filled · CV attached · Cover letter included
+
+                {data.fields.slice(0, visibleFields).map((f, i) => (
+                  <div key={f.label} className="aad-row" style={{
+                    display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8,
+                    padding: '9px 4px',
+                    borderBottom: i < data.fields.length - 1 ? '1px solid rgba(255,255,255,0.05)' : 'none',
+                    alignItems: 'center',
+                  }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <span style={{
+                        width: 22, height: 22, borderRadius: 6, flexShrink: 0,
+                        background: accentDim, border: `1px solid ${accentBorder}`,
+                        display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11,
+                      }}>
+                        {fieldIcon(f.type)}
+                      </span>
+                      <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.75)', fontWeight: 500 }}>{f.label}</span>
+                    </div>
+
+                    {i < mappedFields ? (
+                      <div className="aad-row" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                        {(phase === 'filling' || phase === 'done') ? (
+                          <span style={{ width: 16, height: 16, borderRadius: '50%', background: '#22c55e22', border: '1px solid #22c55e44', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 9, color: '#22c55e', flexShrink: 0 }}>✓</span>
+                        ) : (
+                          <span style={{ width: 16, height: 16, borderRadius: '50%', background: accentDim, border: `1px solid ${accentBorder}`, flexShrink: 0 }} />
+                        )}
+                        <span style={{ fontSize: 12, color: f.type === 'file' ? accent : 'rgba(255,255,255,0.6)', fontStyle: f.type === 'file' ? 'italic' : 'normal', maxWidth: 180, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          {f.value}
+                        </span>
+                      </div>
+                    ) : (
+                      <div style={{ height: 8, borderRadius: 4, background: 'rgba(255,255,255,0.06)', width: '70%' }} />
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {phase === 'filling' && (
+              <div style={{ padding: '16px 4px 4px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
+                  <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.45)' }}>Filling form…</span>
+                  <span style={{ fontSize: 11, color: accent, fontWeight: 600 }}>{fillProgress}%</span>
+                </div>
+                <div style={{ height: 5, borderRadius: 5, background: 'rgba(255,255,255,0.08)' }}>
+                  <div style={{ height: '100%', borderRadius: 5, background: `linear-gradient(90deg, ${accent}, ${accent}99)`, width: `${fillProgress}%`, transition: 'width 0.04s linear' }} />
                 </div>
               </div>
-            </div>
-          )}
+            )}
 
-          <div style={{ height: 16 }} />
-        </div>
+            {phase === 'done' && (
+              <div className="aad-row" style={{ padding: '18px 4px 10px', display: 'flex', alignItems: 'center', gap: 12 }}>
+                <div style={{ width: 36, height: 36, borderRadius: '50%', flexShrink: 0, background: '#22c55e22', border: '1.5px solid #22c55e55', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16 }}>
+                  ✓
+                </div>
+                <div>
+                  <div style={{ fontSize: 14, fontWeight: 700, color: '#22c55e' }}>Application submitted to {data.company}!</div>
+                  <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)', marginTop: 2 }}>7 fields filled · CV attached · Cover letter included</div>
+                </div>
+              </div>
+            )}
+
+            <div style={{ height: 16 }} />
+          </div>
+        )}
 
         {/* ── Footer ── */}
         <div style={{ borderTop: '1px solid rgba(255,255,255,0.05)', padding: '14px 20px', display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' as const }}>
-          {phase === 'done' ? (
+
+          {/* Guide mode footer */}
+          {widgetMode === 'guide' && (
             <>
               <button
-                className="aad-cta"
-                onClick={onTryItYourself}
+                className="aad-cta-primary"
+                onClick={startDemo}
                 style={{
-                  padding: '10px 24px', borderRadius: 10,
+                  padding: '10px 22px', borderRadius: 10,
                   background: `linear-gradient(135deg, ${accent}, ${accent}bb)`,
                   color: '#fff', fontWeight: 700, fontSize: 13,
                   border: 'none', cursor: 'pointer',
-                  boxShadow: `0 4px 18px ${accent}40`,
-                  transition: 'all 0.15s',
-                  fontFamily: 'inherit',
+                  boxShadow: `0 4px 18px ${accent}35`,
+                  transition: 'all 0.15s', fontFamily: 'inherit',
                 }}
               >
-                Try it yourself →
+                ▶ Watch demo
               </button>
               <button
-                onClick={() => setRestartKey(k => k + 1)}
+                className="aad-cta-outline"
+                onClick={onTryWithSample}
+                style={{
+                  padding: '10px 18px', borderRadius: 10,
+                  background: 'transparent',
+                  border: `1px solid ${accent}55`,
+                  color: accent, fontSize: 13, fontWeight: 600,
+                  cursor: 'pointer', fontFamily: 'inherit', transition: 'all 0.15s',
+                }}
+              >
+                Try with sample form →
+              </button>
+              <button
+                className="aad-cta-outline"
+                onClick={onTryItYourself}
                 style={{
                   padding: '10px 16px', borderRadius: 10,
                   background: 'transparent',
-                  border: '1px solid rgba(255,255,255,0.14)',
-                  color: 'rgba(255,255,255,0.4)',
-                  fontSize: 12, cursor: 'pointer',
-                  fontFamily: 'inherit',
+                  border: '1px solid rgba(255,255,255,0.12)',
+                  color: 'rgba(255,255,255,0.45)',
+                  fontSize: 12, cursor: 'pointer', fontFamily: 'inherit',
+                  transition: 'all 0.15s',
                 }}
               >
-                ↻ Replay
+                Use my own URL
               </button>
             </>
-          ) : (
+          )}
+
+          {/* Demo running footer — progress dots */}
+          {widgetMode === 'demo' && phase !== 'done' && (
             <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
               {(['url','scanning','fields','mapping','filling','done'] as Phase[]).map((p, i) => (
                 <div key={p} style={{
-                  width: phase === p ? 20 : 7,
-                  height: 7,
-                  borderRadius: 4,
-                  background: (['url','scanning','fields','mapping','filling','done'] as Phase[]).indexOf(phase) >= i
-                    ? accent
-                    : 'rgba(255,255,255,0.12)',
+                  width: phase === p ? 20 : 7, height: 7, borderRadius: 4,
+                  background: (['url','scanning','fields','mapping','filling','done'] as Phase[]).indexOf(phase) >= i ? accent : 'rgba(255,255,255,0.12)',
                   transition: 'all 0.35s',
                 }} />
               ))}
             </div>
           )}
+
+          {/* Demo done footer — CTAs */}
+          {widgetMode === 'demo' && phase === 'done' && (
+            <>
+              <button
+                className="aad-cta-primary"
+                onClick={onTryWithSample}
+                style={{
+                  padding: '10px 22px', borderRadius: 10,
+                  background: `linear-gradient(135deg, ${accent}, ${accent}bb)`,
+                  color: '#fff', fontWeight: 700, fontSize: 13,
+                  border: 'none', cursor: 'pointer',
+                  boxShadow: `0 4px 18px ${accent}35`,
+                  transition: 'all 0.15s', fontFamily: 'inherit',
+                }}
+              >
+                Try with sample form →
+              </button>
+              <button
+                className="aad-cta-outline"
+                onClick={onTryItYourself}
+                style={{
+                  padding: '10px 18px', borderRadius: 10, background: 'transparent',
+                  border: `1px solid ${accent}55`, color: accent,
+                  fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', transition: 'all 0.15s',
+                }}
+              >
+                Use my own URL
+              </button>
+              <button
+                onClick={() => { setWidgetMode('guide') }}
+                style={{
+                  padding: '10px 14px', borderRadius: 10, background: 'transparent',
+                  border: '1px solid rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.35)',
+                  fontSize: 12, cursor: 'pointer', fontFamily: 'inherit',
+                }}
+              >
+                ↻ Replay
+              </button>
+            </>
+          )}
         </div>
       </div>
 
-      {phase === 'done' && (
+      {widgetMode === 'demo' && phase === 'done' && (
         <p style={{ textAlign: 'center', fontSize: 12, color: 'rgba(100,116,139,0.7)', marginTop: 14 }}>
-          Scripted demo. The real Auto Apply uses your CV to fill actual forms.
+          Scripted demo — the real Auto Apply uses your actual CV data on live forms.
         </p>
       )}
     </div>

@@ -257,7 +257,14 @@ export default function InAutoApplyPage() {
         {/* ── DEMO MODE ── */}
         {mode === 'demo' && (
           <div style={{ display: 'flex', justifyContent: 'center', padding: '20px 0 40px' }}>
-            <AutoApplyDemoWidget market="in" onTryItYourself={() => setMode('active')} />
+            <AutoApplyDemoWidget
+              market="in"
+              onTryItYourself={() => setMode('active')}
+              onTryWithSample={() => {
+                setJobUrl(`${window.location.origin}/in/auto-apply/demo-form`)
+                setMode('active')
+              }}
+            />
           </div>
         )}
 
