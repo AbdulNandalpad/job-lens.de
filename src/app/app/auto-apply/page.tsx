@@ -3,7 +3,7 @@
 export const dynamic = 'force-dynamic'
 
 import { useState, useEffect, useRef } from 'react'
-import { useRouter, useSearchParams } from 'next/navigation'
+import { useRouter } from 'next/navigation'
 import Navbar from '../components/Navbar'
 import type { FieldMapping, AnalyzeResult, ExecuteEvent } from '@/lib/auto-apply-engine'
 import { theme } from '@/lib/theme'
@@ -63,7 +63,6 @@ function flattenCvJson(raw: string): string {
 
 export default function AutoApplyPage() {
   const router = useRouter()
-  const searchParams = useSearchParams()
 
   const [mode, setMode] = useState<Mode>('demo')
 
@@ -116,11 +115,11 @@ export default function AutoApplyPage() {
   }, [])
 
   useEffect(() => {
-    if (searchParams.get('demo') === '1') {
+    if (new URLSearchParams(window.location.search).get('demo') === '1') {
       setJobUrl(`${window.location.origin}/app/auto-apply/demo-form`)
       setMode('active')
     }
-  }, [searchParams])
+  }, [])
 
   useEffect(() => {
     if (logRef.current) logRef.current.scrollTop = logRef.current.scrollHeight
