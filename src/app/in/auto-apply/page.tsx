@@ -4,7 +4,6 @@ export const dynamic = 'force-dynamic'
 
 import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
-import NavbarIndia from '../components/NavbarIndia'
 import type { FieldMapping, AnalyzeResult, ExecuteEvent } from '@/lib/auto-apply-engine'
 import { theme } from '@/lib/theme'
 import SvgIcon from '@/components/SvgIcon'
@@ -286,8 +285,6 @@ export default function InAutoApplyPage() {
         .spin { animation: spin 1s linear infinite; }
         @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
       `}</style>
-
-      <NavbarIndia />
 
       <div style={{ maxWidth: 1240, margin: '0 auto', padding: '24px 20px' }}>
 

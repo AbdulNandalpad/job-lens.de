@@ -8,7 +8,7 @@ import { useLanguage, DEFlag, GBFlag } from '@/lib/i18n'
 import KiraDemoWidget from '@/components/KiraDemoWidget'
 import AutoApplyDemoWidget from '@/components/AutoApplyDemoWidget'
 import SvgIcon, { type IconName } from '@/components/SvgIcon'
-import HeroV2 from '@/components/HeroV2'
+import HeroSlider from '@/components/HeroSlider'
 
 const { colors: c, gradients: g, fonts: f, shadow: sh } = theme
 
@@ -538,12 +538,7 @@ export default function HomePage() {
       </div>
 
       {/* ── Hero ── */}
-      <HeroV2
-        market="eu"
-        lang={lang}
-        autoApplyHref={go('/app/auto-apply')}
-        kiraHref="#kira-demo"
-      />
+      <HeroSlider market="eu" lang={lang} />
 
       {/* ── Features ── */}
       <div className="jl-section" style={{ maxWidth: 1100, margin: '0 auto' }}>

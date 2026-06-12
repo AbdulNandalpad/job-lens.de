@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
-import NavbarIndia from '../components/NavbarIndia'
 import { API } from '@/lib/constants'
 import SvgIcon from '@/components/SvgIcon'
 
@@ -119,8 +118,6 @@ export default function IndiaTrackerPage() {
           .tr-desk   { display: none; }
         }
       `}</style>
-
-      <NavbarIndia />
 
       <div style={{ maxWidth: 1100, margin: '0 auto', padding: '24px 16px' }}>
 
