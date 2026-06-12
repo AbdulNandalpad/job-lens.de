@@ -8,21 +8,21 @@ interface Msg { role: 'user' | 'kira'; text: string }
 const SCRIPTS: Record<string, Msg[]> = {
   'eu-DE': [
     { role: 'user', text: 'Ich bin Full-Stack-Entwickler mit 4 Jahren Erfahrung. Welche Jobs passen zu mir in München?' },
-    { role: 'kira', text: 'Für dein Profil habe ich drei starke Matches: **Senior Full-Stack Engineer bei BMW** (95.000 € · München), **Backend Developer bei MAN** (88.000 € · München) und **Software Engineer bei Allianz** (91.000 €). Deine Node.js- und React-Skills passen sehr gut. Soll ich die Lücken analysieren?' },
+    { role: 'kira', text: 'Drei starke Matches für dich: **Senior Full-Stack Engineer bei BMW** (95.000 € · München), **Backend Developer bei MAN** (88.000 € · München) und **Software Engineer bei Allianz** (91.000 €). Deine Node.js- und React-Skills passen gut. Soll ich deinen Fit für BMW prüfen?' },
     { role: 'user', text: 'Ja, für BMW bitte.' },
-    { role: 'kira', text: 'Ich habe die BMW-Stelle analysiert — deinem Lebenslauf fehlen Keywords wie **"Cloud-native"**, **"CI/CD"** und **"Agile"**. Geh zum **CV Builder**, um deinen Lebenslauf für BMW zu optimieren. Dein Score kann von 78 auf **91/100** steigen.' },
+    { role: 'kira', text: 'Ich würde dein Profil für diese BMW-Stelle auf **7/10** schätzen — solide Full-Stack-Basis, aber Cloud-native-Erfahrung fehlt noch. Starte den **Career Scan** für den vollständigen ATS-Bericht und einen konkreten Plan, die Lücke zu schließen.' },
   ],
   'eu-EN': [
     { role: 'user', text: 'I\'m a Full-Stack developer with 4 years of experience. What jobs match my profile in Germany?' },
-    { role: 'kira', text: 'Strong matches for your profile: **Senior Full-Stack Engineer at BMW** (€95,000 · Munich), **Backend Developer at MAN** (€88,000 · Munich), and **Software Engineer at Allianz** (€91,000). Your Node.js and React skills are a great fit. Want me to analyse the gaps?' },
-    { role: 'user', text: 'Yes, analyse it for BMW.' },
-    { role: 'kira', text: 'I\'ve analysed the BMW job description — your CV is missing **"cloud-native"**, **"CI/CD"** and **"Agile"**. Head to **CV Builder** to tailor your CV for BMW. Your score can jump from 78 to **91/100**.' },
+    { role: 'kira', text: 'Three strong matches for you: **Senior Full-Stack Engineer at BMW** (€95,000 · Munich), **Backend Developer at MAN** (€88,000 · Munich), and **Software Engineer at Allianz** (€91,000). Your Node.js and React skills are a solid fit. Want me to check your match for BMW?' },
+    { role: 'user', text: 'Yes, check my fit for BMW.' },
+    { role: 'kira', text: 'I\'d put your profile at around **7/10** for this BMW role — strong Full-Stack foundation, but cloud-native experience is the main gap. Run the **Career Scan** for the full ATS report and a step-by-step plan to close it.' },
   ],
   'in-EN': [
     { role: 'user', text: 'I have 3 years experience as a data analyst. Which companies in Bangalore should I target?' },
-    { role: 'kira', text: 'Top matches for a data analyst in Bangalore: **Data Analyst at Flipkart** (₹14–18 LPA), **Senior Analyst at PhonePe** (₹16–20 LPA), and **Business Analyst at CRED** (₹15–20 LPA). Your profile scores **78/100** for these roles. Want me to analyse the gaps for CRED?' },
-    { role: 'user', text: 'Yes, analyse my CV for CRED.' },
-    { role: 'kira', text: 'I\'ve analysed the CRED job description — your CV is missing **"Python"**, **"SQL"**, **"product analytics"** and **"A/B testing"**. Head to **CV Builder** to tailor your CV for CRED. Your score can go from 78 to **86/100**.' },
+    { role: 'kira', text: 'Three strong matches in Bangalore: **Data Analyst at Flipkart** (₹14–18 LPA), **Senior Analyst at PhonePe** (₹16–20 LPA), and **Business Analyst at CRED** (₹15–20 LPA). Good overall fit for your background. Want me to check your match for CRED?' },
+    { role: 'user', text: 'Yes, check my fit for CRED.' },
+    { role: 'kira', text: 'I\'d score your profile around **7/10** for CRED — solid analytics background, but product analytics and A/B testing are the key gaps. Run the **Career Scan** for your full ATS score and a personalised action plan.' },
   ],
 }
 
