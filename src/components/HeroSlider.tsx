@@ -148,7 +148,7 @@ const DECK_IN: Slide[] = [
     h1Accent: 'for the India market.',
     sub: "Kira knows Naukri, LinkedIn, and every major Indian employer. Ask about salaries, missing skills, or how to crack a specific company's interview.",
     cta: 'Chat with Kira →',
-    href: '/in/ai',
+    href: '/in#kira-demo',
     accentColor: '#9B6BFF',
   },
   {
