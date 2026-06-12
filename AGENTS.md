@@ -101,7 +101,8 @@ Only these routes exist under `src/app/api/`:
 | `/api/cover-letter` | POST | AI cover letter | body.market | 1 |
 | `/api/analyse-profile` | POST | Extract CV profile for job search | both | free |
 | `/api/jobs` | GET | Adzuna job search | DACH only | free |
-| `/api/auto-apply/analyze` | POST | Auto apply form analysis | eu | 3 |
+| `/api/auto-apply/analyze` | POST | Auto apply form analysis (proxies to Railway browser service) | body.market | 3 |
+| `/api/auto-apply/execute` | POST | Auto apply form execution — SSE stream (proxies to Railway) | body.market | 0 |
 | `/api/user/profile` | GET | Fetch credits + usage log | both | free |
 | `/api/cv/skill-gap` | POST | Compare CV text vs JD, return matching/missing skills | both | free |
 | `/api/paypal/webhook` | POST | PayPal IPN → top up eu_credits | — | — |
@@ -155,6 +156,7 @@ NEXT_PUBLIC_AUTO_APPLY_ENABLED=true   ← local only, not on Vercel
 
 ## 10. Known limits
 
-- Auto Apply uses Playwright/Chromium — exceeds Vercel 50MB limit. Local only (`NEXT_PUBLIC_AUTO_APPLY_ENABLED=true`).
+- Auto Apply browser automation runs on Railway (`browser-service/` directory). Set `RAILWAY_BROWSER_URL` + `RAILWAY_SECRET` on Vercel after Railway deployment. Falls back to local Playwright if `NEXT_PUBLIC_AUTO_APPLY_ENABLED=true` (dev only).
+- `browser-service/` is a standalone Node/Express/Playwright app — deploy separately on Railway, not part of the Vercel build.
 - `eu_credits` and `in_credits` columns were added via migration on 2026-05-15 and are live.
 - Razorpay integration not yet built — `in_credits` cannot be topped up in production yet.

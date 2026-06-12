@@ -2,13 +2,16 @@
 
 import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
-import Navbar from '../components/Navbar'
+import NavbarIndia from '../components/NavbarIndia'
 import type { FieldMapping, AnalyzeResult, ExecuteEvent } from '@/lib/auto-apply-engine'
 import { theme } from '@/lib/theme'
 import SvgIcon from '@/components/SvgIcon'
 import AutoApplyDemoWidget from '@/components/AutoApplyDemoWidget'
 
-const { colors: c, gradients: g, fonts: f } = theme
+const { colors: c, fonts: f } = theme
+const ACCENT = '#FF9933'
+const ACCENT_LIGHT = '#FF993318'
+const ACCENT_BORDER = '#FF993340'
 
 type Phase = 'idle' | 'analyzing' | 'review' | 'executing' | 'done'
 type Mode  = 'demo' | 'active'
@@ -32,8 +35,6 @@ function flattenCvJson(raw: string): string {
     if (d.email) lines.push(`Email: ${d.email}`)
     if (d.phone) lines.push(`Phone: ${d.phone}`)
     if (d.location) lines.push(`Location: ${d.location}`)
-    if (d.linkedin) lines.push(`LinkedIn: ${d.linkedin}`)
-    if (d.summary) lines.push(`\nSummary:\n${d.summary}`)
     if (Array.isArray(d.experience) && d.experience.length) {
       lines.push('\nExperience:')
       d.experience.forEach((e: { role?: string; company?: string; period?: string; bullets?: string[] }) => {
@@ -41,27 +42,16 @@ function flattenCvJson(raw: string): string {
         if (Array.isArray(e.bullets)) e.bullets.forEach((b: string) => lines.push(`  - ${b}`))
       })
     }
-    if (Array.isArray(d.education) && d.education.length) {
-      lines.push('\nEducation:')
-      d.education.forEach((e: { degree?: string; school?: string; year?: string }) =>
-        lines.push(`${e.degree} — ${e.school} (${e.year})`)
-      )
-    }
     if (Array.isArray(d.skills) && d.skills.length)
       lines.push(`\nSkills: ${d.skills.map((s: { name?: string }) => s.name).join(', ')}`)
-    if (Array.isArray(d.languages) && d.languages.length)
-      lines.push(`Languages: ${d.languages.map((l: { name?: string }) => l.name).join(', ')}`)
-    if (Array.isArray(d.certifications) && d.certifications.length)
-      lines.push(`Certifications: ${d.certifications.join(', ')}`)
     return lines.join('\n')
   } catch {
     return raw
   }
 }
 
-export default function AutoApplyPage() {
+export default function InAutoApplyPage() {
   const router = useRouter()
-
   const [mode, setMode] = useState<Mode>('demo')
 
   const [jobUrl, setJobUrl] = useState('')
@@ -73,9 +63,8 @@ export default function AutoApplyPage() {
   const [analyzeResult, setAnalyzeResult] = useState<AnalyzeResult | null>(null)
   const [mapping, setMapping] = useState<FieldMapping[]>([])
   const [log, setLog] = useState<LogEntry[]>([])
-  const [liveShot, setLiveShot] = useState<string>('')
-  const [confirmShot, setConfirmShot] = useState<string>('')
-  const [error, setError] = useState<string>('')
+  const [liveShot, setLiveShot] = useState('')
+  const [error, setError] = useState('')
   const logRef = useRef<HTMLDivElement>(null)
   const logCounter = useRef(0)
 
@@ -83,11 +72,9 @@ export default function AutoApplyPage() {
     const raw =
       sessionStorage.getItem('jl_cvb_tailored') ||
       sessionStorage.getItem('jl_sjs_cv_text') ||
-      sessionStorage.getItem('jl_cv_text') ||
-      ''
-    const cv = flattenCvJson(raw)
+      sessionStorage.getItem('jl_cv_text') || ''
+    setCvText(flattenCvJson(raw))
     const cl = sessionStorage.getItem('jl_cl_letter') || ''
-    setCvText(cv)
     setCoverLetter(cl)
     if (cl) setUseCoverLetter(true)
   }, [])
@@ -112,7 +99,7 @@ export default function AutoApplyPage() {
           jobUrl: jobUrl.trim(),
           cvText,
           coverLetter: useCoverLetter ? coverLetter : '',
-          market: 'eu',
+          market: 'in',
         }),
       })
       const data: AnalyzeResult = await res.json()
@@ -136,7 +123,6 @@ export default function AutoApplyPage() {
     setPhase('executing')
     setLog([])
     setLiveShot('')
-    setConfirmShot('')
 
     const addLog = (entry: Omit<LogEntry, 'id'>) => {
       const id = ++logCounter.current
@@ -174,10 +160,10 @@ export default function AutoApplyPage() {
               case 'filling':    addLog({ type: 'filling', message: `Filling "${ev.label}" → ${ev.value.slice(0, 40)}` }); break
               case 'filled':     addLog({ type: 'filled', message: `"${ev.label}" ${ev.success ? 'filled' : 'skipped'}`, success: ev.success }); break
               case 'submitting': addLog({ type: 'submitting', message: 'Clicking submit button...' }); break
-              case 'done':       setConfirmShot(ev.confirmB64); setLiveShot(ev.confirmB64); addLog({ type: 'done', message: ev.message }); setPhase('done'); break
+              case 'done':       setLiveShot(ev.confirmB64); addLog({ type: 'done', message: ev.message }); setPhase('done'); break
               case 'error':      addLog({ type: 'error', message: ev.message }); if (ev.b64) setLiveShot(ev.b64); setPhase('review'); break
             }
-          } catch { /* ignore malformed SSE */ }
+          } catch { /* ignore */ }
         }
       }
     } catch (err) {
@@ -187,31 +173,24 @@ export default function AutoApplyPage() {
   }
 
   function logToTracker() {
-    const job = (() => {
-      try { return JSON.parse(sessionStorage.getItem('jl_cvb_job') || '{}') } catch { return {} }
-    })()
     const existing = JSON.parse(localStorage.getItem('jl_tracker') || '[]')
     const entry = {
       id: Date.now(),
-      role: job.job_title || 'Applied via Auto Apply',
-      company: job.employer_name || new URL(jobUrl).hostname.replace('www.', ''),
-      date: new Date().toLocaleDateString('de-DE', { day: '2-digit', month: 'short', year: 'numeric' }),
+      role: 'Applied via Auto Apply',
+      company: new URL(jobUrl).hostname.replace('www.', ''),
+      date: new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }),
       notes: `Auto Apply — ${jobUrl.slice(0, 60)}`,
       source: 'Auto Apply',
     }
     localStorage.setItem('jl_tracker', JSON.stringify([entry, ...existing]))
-    router.push('/app/tracker')
+    router.push('/in/tracker')
   }
 
-  const card: React.CSSProperties = {
-    background: c.bgCard, border: `1px solid ${c.border}`, borderRadius: 14, overflow: 'hidden',
-  }
+  const card: React.CSSProperties = { background: c.bgCard, border: `1px solid ${c.border}`, borderRadius: 14, overflow: 'hidden' }
   const cardHead: React.CSSProperties = {
     padding: '12px 16px', borderBottom: `1px solid ${c.border}`,
     fontSize: 13, fontWeight: 700, color: c.primary, fontFamily: f.heading,
-  }
-  const label12: React.CSSProperties = {
-    fontSize: 12, fontWeight: 600, color: c.textMuted, marginBottom: 6, display: 'block',
+    borderLeft: `3px solid ${ACCENT}`,
   }
 
   const confidenceBadge = (conf: string) => {
@@ -221,11 +200,7 @@ export default function AutoApplyPage() {
       low:    { bg: c.errorLight,   color: c.error },
     }
     const s = map[conf] || map.low
-    return (
-      <span style={{ fontSize: 10, padding: '2px 8px', borderRadius: 10, fontWeight: 700, background: s.bg, color: s.color }}>
-        {conf}
-      </span>
-    )
+    return <span style={{ fontSize: 10, padding: '2px 8px', borderRadius: 10, fontWeight: 700, background: s.bg, color: s.color }}>{conf}</span>
   }
 
   const isUrlValid = jobUrl.trim().startsWith('http')
@@ -235,30 +210,30 @@ export default function AutoApplyPage() {
     <div style={{ minHeight: '100vh', background: c.bg, fontFamily: f.body }}>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=Outfit:wght@400;600;700&display=swap');
-        .aa-input { width: 100%; padding: 10px 12px; border-radius: 8px; border: 1.5px solid ${c.borderLight}; font-size: 13px; font-family: inherit; outline: none; color: ${c.text}; box-sizing: border-box; transition: border-color 0.15s; background: transparent; }
-        .aa-input:focus { border-color: ${c.accent}; }
-        .aa-btn-primary { padding: 11px 28px; border-radius: 9px; background: ${g.primaryBtn}; color: #fff; border: none; cursor: pointer; font-family: ${f.heading}; font-size: 14px; font-weight: 700; transition: opacity 0.15s; }
-        .aa-btn-primary:hover { opacity: 0.9; }
-        .aa-btn-primary:disabled { background: ${c.border}; color: ${c.textFaint}; cursor: not-allowed; }
-        .aa-btn-outline { padding: 10px 20px; border-radius: 9px; background: ${c.bgCard}; color: ${c.primary}; border: 1.5px solid ${c.primary}; cursor: pointer; font-family: ${f.heading}; font-size: 13px; font-weight: 700; }
-        .aa-btn-success { padding: 11px 28px; border-radius: 9px; background: ${g.successBtn}; color: #fff; border: none; cursor: pointer; font-family: ${f.heading}; font-size: 14px; font-weight: 700; }
-        .aa-toggle { position: relative; display: inline-block; width: 36px; height: 20px; }
-        .aa-toggle input { opacity: 0; width: 0; height: 0; }
-        .aa-slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background: ${c.borderLight}; border-radius: 20px; transition: 0.2s; }
-        .aa-slider:before { position: absolute; content: ''; height: 14px; width: 14px; left: 3px; bottom: 3px; background: white; border-radius: 50%; transition: 0.2s; }
-        input:checked + .aa-slider { background: ${c.accent}; }
-        input:checked + .aa-slider:before { transform: translateX(16px); }
+        .ina-input { width: 100%; padding: 10px 12px; border-radius: 8px; border: 1.5px solid ${c.borderLight}; font-size: 13px; font-family: inherit; outline: none; color: ${c.text}; box-sizing: border-box; transition: border-color 0.15s; background: transparent; }
+        .ina-input:focus { border-color: ${ACCENT}; }
+        .ina-btn-primary { padding: 11px 28px; border-radius: 9px; background: linear-gradient(135deg, ${ACCENT}, #e08020); color: #fff; border: none; cursor: pointer; font-family: ${f.heading}; font-size: 14px; font-weight: 700; transition: opacity 0.15s; }
+        .ina-btn-primary:hover { opacity: 0.9; }
+        .ina-btn-primary:disabled { background: ${c.border}; color: ${c.textFaint}; cursor: not-allowed; }
+        .ina-btn-outline { padding: 10px 20px; border-radius: 9px; background: ${c.bgCard}; color: ${ACCENT}; border: 1.5px solid ${ACCENT}; cursor: pointer; font-family: ${f.heading}; font-size: 13px; font-weight: 700; }
+        .ina-btn-success { padding: 11px 28px; border-radius: 9px; background: ${c.success}; color: #fff; border: none; cursor: pointer; font-family: ${f.heading}; font-size: 14px; font-weight: 700; }
+        .ina-toggle { position: relative; display: inline-block; width: 36px; height: 20px; }
+        .ina-toggle input { opacity: 0; width: 0; height: 0; }
+        .ina-slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background: ${c.borderLight}; border-radius: 20px; transition: 0.2s; }
+        .ina-slider:before { position: absolute; content: ''; height: 14px; width: 14px; left: 3px; bottom: 3px; background: white; border-radius: 50%; transition: 0.2s; }
+        input:checked + .ina-slider { background: ${ACCENT}; }
+        input:checked + .ina-slider:before { transform: translateX(16px); }
         .log-entry { display: flex; align-items: flex-start; gap: 8px; padding: 6px 0; border-bottom: 1px solid ${c.border}; font-size: 12px; color: ${c.text}; }
         .spin { animation: spin 1s linear infinite; }
         @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
       `}</style>
 
-      <Navbar />
+      <NavbarIndia />
 
       <div style={{ maxWidth: 1240, margin: '0 auto', padding: '24px 20px' }}>
 
         {/* Page header */}
-        <div style={{ marginBottom: 24, paddingLeft: 14, borderLeft: `3px solid ${c.accent}`, display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
+        <div style={{ marginBottom: 24, paddingLeft: 14, borderLeft: `3px solid ${ACCENT}`, display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
           <div>
             <div style={{ fontSize: 22, fontWeight: 700, color: c.primary, fontFamily: f.heading }}>
               Auto Apply
@@ -266,7 +241,7 @@ export default function AutoApplyPage() {
             <div style={{ fontSize: 13, color: c.textMuted, marginTop: 3 }}>
               {mode === 'demo'
                 ? 'See how Kira fills a real job application — then try it yourself'
-                : 'Paste a job application URL and let Kira fill the form for you'}
+                : 'Paste an application URL and let Kira fill the form for you'}
             </div>
           </div>
           {mode === 'active' && (
@@ -282,7 +257,7 @@ export default function AutoApplyPage() {
         {/* ── DEMO MODE ── */}
         {mode === 'demo' && (
           <div style={{ display: 'flex', justifyContent: 'center', padding: '20px 0 40px' }}>
-            <AutoApplyDemoWidget market="eu" onTryItYourself={() => setMode('active')} />
+            <AutoApplyDemoWidget market="in" onTryItYourself={() => setMode('active')} />
           </div>
         )}
 
@@ -293,16 +268,17 @@ export default function AutoApplyPage() {
             {/* LEFT COLUMN */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
 
-              {/* Job URL */}
               <div style={card}>
                 <div style={cardHead}>Job Application URL</div>
                 <div style={{ padding: 16 }}>
-                  <label style={label12}>Paste the direct application form URL</label>
+                  <label style={{ fontSize: 12, fontWeight: 600, color: c.textMuted, marginBottom: 6, display: 'block' }}>
+                    Paste the direct application form URL
+                  </label>
                   <input
-                    className="aa-input"
+                    className="ina-input"
                     value={jobUrl}
                     onChange={e => setJobUrl(e.target.value)}
-                    placeholder="https://greenhouse.io/jobs/apply/..."
+                    placeholder="https://careers.tcs.com/apply/..."
                     disabled={phase === 'analyzing' || phase === 'executing'}
                   />
                   {jobUrl && !isUrlValid && (
@@ -311,7 +287,6 @@ export default function AutoApplyPage() {
                 </div>
               </div>
 
-              {/* CV status */}
               <div style={card}>
                 <div style={cardHead}>Your Profile</div>
                 <div style={{ padding: 16 }}>
@@ -327,36 +302,27 @@ export default function AutoApplyPage() {
                   ) : (
                     <div style={{ fontSize: 12, color: c.danger }}>
                       No CV found.{' '}
-                      <span
-                        onClick={() => router.push('/app/cv-builder')}
-                        style={{ textDecoration: 'underline', cursor: 'pointer', color: c.accent }}
-                      >
+                      <span onClick={() => router.push('/in/cv-builder')} style={{ textDecoration: 'underline', cursor: 'pointer', color: ACCENT }}>
                         Go to CV Builder →
                       </span>
                     </div>
                   )}
                   <div style={{ marginTop: 14, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                     <span style={{ fontSize: 12, color: c.textMuted }}>Include cover letter</span>
-                    <label className="aa-toggle">
-                      <input
-                        type="checkbox"
-                        checked={useCoverLetter}
-                        onChange={e => setUseCoverLetter(e.target.checked)}
-                        disabled={!coverLetter}
-                      />
-                      <span className="aa-slider" />
+                    <label className="ina-toggle">
+                      <input type="checkbox" checked={useCoverLetter} onChange={e => setUseCoverLetter(e.target.checked)} disabled={!coverLetter} />
+                      <span className="ina-slider" />
                     </label>
                   </div>
                   {!coverLetter && (
                     <div style={{ fontSize: 11, color: c.textFaint, marginTop: 4 }}>
                       Generate one in{' '}
-                      <span onClick={() => router.push('/app/cover-letter')} style={{ textDecoration: 'underline', cursor: 'pointer', color: c.accent }}>Cover Letter</span>
+                      <span onClick={() => router.push('/in/cover-letter')} style={{ textDecoration: 'underline', cursor: 'pointer', color: ACCENT }}>Cover Letter</span>
                     </div>
                   )}
                 </div>
               </div>
 
-              {/* Action */}
               <div>
                 {error && (
                   <div style={{ fontSize: 12, color: c.error, background: c.errorLight, border: `1px solid ${c.errorBorder}`, borderRadius: 8, padding: '10px 14px', marginBottom: 12 }}>
@@ -364,7 +330,7 @@ export default function AutoApplyPage() {
                   </div>
                 )}
                 <button
-                  className="aa-btn-primary"
+                  className="ina-btn-primary"
                   style={{ width: '100%' }}
                   disabled={!isUrlValid || !hasCv || phase === 'analyzing' || phase === 'executing'}
                   onClick={handleAnalyse}
@@ -376,12 +342,12 @@ export default function AutoApplyPage() {
                       </svg>
                       Analysing form…
                     </span>
-                  ) : 'Analyse Form'}
+                  ) : 'Analyse Form — 3 credits'}
                 </button>
 
                 {(phase === 'review' || phase === 'done') && (
                   <button
-                    className="aa-btn-outline"
+                    className="ina-btn-outline"
                     style={{ width: '100%', marginTop: 10 }}
                     onClick={() => { setPhase('idle'); setAnalyzeResult(null); setMapping([]); setError('') }}
                   >
@@ -390,17 +356,16 @@ export default function AutoApplyPage() {
                 )}
               </div>
 
-              {/* Info box */}
-              <div style={{ background: c.primaryLight, border: `1px solid ${c.accentLight}`, borderRadius: 10, padding: '12px 14px' }}>
-                <div style={{ fontSize: 12, fontWeight: 700, color: c.primary, marginBottom: 4 }}>How it works</div>
+              <div style={{ background: ACCENT_LIGHT, border: `1px solid ${ACCENT_BORDER}`, borderRadius: 10, padding: '12px 14px' }}>
+                <div style={{ fontSize: 12, fontWeight: 700, color: ACCENT, marginBottom: 4 }}>How it works</div>
                 <ol style={{ margin: 0, paddingLeft: 16, fontSize: 11, color: c.navy, lineHeight: 1.8 }}>
                   <li>Paste the direct application form URL</li>
-                  <li>Kira scans the form fields via browser automation</li>
+                  <li>Kira reads the form fields (CTC, notice period, etc.)</li>
                   <li>Review &amp; edit the pre-filled values</li>
                   <li>Click Launch &mdash; browser fills &amp; submits</li>
                 </ol>
                 <div style={{ fontSize: 10, color: c.textMuted, marginTop: 8 }}>
-                  Costs 3 credits per form analysis. File upload fields need manual upload.
+                  Costs 3 credits per form analysis. India-specific fields (CTC, notice period) are auto-detected.
                 </div>
               </div>
             </div>
@@ -410,33 +375,29 @@ export default function AutoApplyPage() {
 
               {phase === 'idle' && !analyzeResult && (
                 <div style={{ ...card, padding: '60px 20px', textAlign: 'center' }}>
-                  <svg width="52" height="52" viewBox="0 0 52 52" fill="none" style={{ margin: '0 auto 16px' }}>
-                    <circle cx="26" cy="26" r="25" fill={c.primaryLight}/>
-                    <path d="M18 26h16M26 18v16" stroke={c.accent} strokeWidth="2.5" strokeLinecap="round"/>
-                    <circle cx="26" cy="26" r="10" stroke={c.primary} strokeWidth="1.5" fill="none" strokeDasharray="4 2"/>
-                  </svg>
+                  <div style={{ fontSize: 36, marginBottom: 12 }}>🤖</div>
                   <div style={{ fontSize: 15, fontWeight: 600, color: c.primary, marginBottom: 6 }}>
                     Enter a job application URL to begin
                   </div>
                   <div style={{ fontSize: 13, color: c.textMuted }}>
-                    Paste the URL of the actual application form (not the job listing)
+                    Works with Taleo, Workday, iCIMS, and most direct application forms
                   </div>
                 </div>
               )}
 
               {phase === 'analyzing' && (
                 <div style={{ ...card, padding: '50px 20px', textAlign: 'center' }}>
-                  <svg className="spin" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke={c.accent} strokeWidth="2" style={{ margin: '0 auto 16px' }}>
+                  <svg className="spin" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke={ACCENT} strokeWidth="2" style={{ margin: '0 auto 16px' }}>
                     <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/>
                   </svg>
                   <div style={{ fontSize: 14, fontWeight: 600, color: c.primary }}>Opening page with browser automation…</div>
-                  <div style={{ fontSize: 12, color: c.textMuted, marginTop: 6 }}>Extracting form fields and mapping your CV</div>
+                  <div style={{ fontSize: 12, color: c.textMuted, marginTop: 6 }}>Reading form fields and mapping your profile</div>
                 </div>
               )}
 
               {(phase === 'review' || phase === 'executing' || phase === 'done') && analyzeResult && (
                 <>
-                  <div style={{ ...card }}>
+                  <div style={card}>
                     <div style={{ padding: '14px 18px', display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap' }}>
                       <div>
                         <div style={{ fontSize: 14, fontWeight: 700, color: c.primary, fontFamily: f.heading }}>
@@ -445,7 +406,7 @@ export default function AutoApplyPage() {
                         <div style={{ fontSize: 12, color: c.textMuted, marginTop: 2 }}>{jobUrl.slice(0, 70)}{jobUrl.length > 70 ? '…' : ''}</div>
                       </div>
                       <div style={{ marginLeft: 'auto', display: 'flex', gap: 8, alignItems: 'center', flexShrink: 0 }}>
-                        <span style={{ fontSize: 11, padding: '3px 10px', borderRadius: 20, background: c.primaryLight, color: c.navy, fontWeight: 700 }}>
+                        <span style={{ fontSize: 11, padding: '3px 10px', borderRadius: 20, background: ACCENT_LIGHT, color: ACCENT, fontWeight: 700 }}>
                           {analyzeResult.formType}
                         </span>
                         <span style={{ fontSize: 11, padding: '3px 10px', borderRadius: 20, background: c.bg, color: c.textMuted, fontWeight: 600 }}>
@@ -465,8 +426,8 @@ export default function AutoApplyPage() {
                   </div>
 
                   <div style={card}>
-                    <div style={{ ...cardHead, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <span>Field Mapping &mdash; review &amp; edit values</span>
+                    <div style={{ ...cardHead, display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderLeft: 'none' }}>
+                      <span>Field Mapping — review &amp; edit values</span>
                       <span style={{ fontSize: 11, fontWeight: 400, color: c.textMuted }}>
                         {mapping.filter(m => m.value && m.value !== '__SKIP_FILE__').length} / {mapping.length} filled
                       </span>
@@ -478,7 +439,7 @@ export default function AutoApplyPage() {
                         ))}
                       </div>
                       {mapping.map((m, idx) => (
-                        <div key={`field-${idx}`} style={{ display: 'grid', gridTemplateColumns: '160px 1fr 70px', padding: '8px 16px', borderBottom: `1px solid ${c.border}`, alignItems: 'center', background: m.field.required && !m.value ? c.warningLight : undefined }}>
+                        <div key={`f-${idx}`} style={{ display: 'grid', gridTemplateColumns: '160px 1fr 70px', padding: '8px 16px', borderBottom: `1px solid ${c.border}`, alignItems: 'center', background: m.field.required && !m.value ? c.warningLight : undefined }}>
                           <div>
                             <div style={{ fontSize: 12, fontWeight: 600, color: c.text }}>
                               {m.field.label}
@@ -488,40 +449,20 @@ export default function AutoApplyPage() {
                           </div>
                           <div style={{ paddingRight: 12 }}>
                             {m.value === '__CV_FILE__' ? (
-                              <span style={{ fontSize: 11, color: c.success, fontWeight: 600 }}>📎 Will attach CV text file</span>
+                              <span style={{ fontSize: 11, color: c.success, fontWeight: 600 }}>📎 Will attach resume</span>
                             ) : m.value === '__CL_FILE__' ? (
-                              <span style={{ fontSize: 11, color: c.success, fontWeight: 600 }}>📎 Will attach cover letter file</span>
+                              <span style={{ fontSize: 11, color: c.success, fontWeight: 600 }}>📎 Will attach cover letter</span>
                             ) : m.value === '__SKIP_FILE__' ? (
                               <span style={{ fontSize: 11, color: c.textMuted, fontStyle: 'italic' }}>File upload — upload manually</span>
                             ) : m.field.type === 'select' && m.field.options ? (
-                              <select
-                                className="aa-input"
-                                style={{ fontSize: 12, padding: '6px 10px' }}
-                                value={m.value}
-                                onChange={e => updateValue(idx, e.target.value)}
-                                disabled={phase === 'executing'}
-                              >
+                              <select className="ina-input" style={{ fontSize: 12, padding: '6px 10px' }} value={m.value} onChange={e => updateValue(idx, e.target.value)} disabled={phase === 'executing'}>
                                 <option value="">-- select --</option>
                                 {m.field.options.map((o, oi) => <option key={`${oi}-${o}`} value={o}>{o}</option>)}
                               </select>
                             ) : m.field.type === 'textarea' ? (
-                              <textarea
-                                className="aa-input"
-                                rows={3}
-                                style={{ fontSize: 12, resize: 'vertical', minHeight: 56 }}
-                                value={m.value}
-                                onChange={e => updateValue(idx, e.target.value)}
-                                disabled={phase === 'executing'}
-                              />
+                              <textarea className="ina-input" rows={3} style={{ fontSize: 12, resize: 'vertical', minHeight: 56 }} value={m.value} onChange={e => updateValue(idx, e.target.value)} disabled={phase === 'executing'} />
                             ) : (
-                              <input
-                                className="aa-input"
-                                style={{ fontSize: 12, padding: '6px 10px' }}
-                                value={m.value}
-                                onChange={e => updateValue(idx, e.target.value)}
-                                disabled={phase === 'executing'}
-                                placeholder={m.field.placeholder || ''}
-                              />
+                              <input className="ina-input" style={{ fontSize: 12, padding: '6px 10px' }} value={m.value} onChange={e => updateValue(idx, e.target.value)} disabled={phase === 'executing'} placeholder={m.field.placeholder || ''} />
                             )}
                           </div>
                           <div>{confidenceBadge(m.confidence)}</div>
@@ -532,13 +473,10 @@ export default function AutoApplyPage() {
 
                   {phase === 'review' && (
                     <div style={{ display: 'flex', gap: 12 }}>
-                      <button className="aa-btn-primary" style={{ flex: 1 }} onClick={handleExecute}>
-                        Launch Auto Fill &amp; Submit &rarr;
+                      <button className="ina-btn-primary" style={{ flex: 1 }} onClick={handleExecute}>
+                        Launch Auto Fill &amp; Submit →
                       </button>
-                      <a
-                        href={jobUrl} target="_blank" rel="noopener noreferrer"
-                        style={{ flex: '0 0 auto', padding: '11px 20px', borderRadius: 9, background: c.bgCard, color: c.primary, border: `1.5px solid ${c.primary}`, textDecoration: 'none', fontFamily: f.heading, fontSize: 13, fontWeight: 700 }}
-                      >
+                      <a href={jobUrl} target="_blank" rel="noopener noreferrer" style={{ flex: '0 0 auto', padding: '11px 20px', borderRadius: 9, background: c.bgCard, color: ACCENT, border: `1.5px solid ${ACCENT}`, textDecoration: 'none', fontFamily: f.heading, fontSize: 13, fontWeight: 700 }}>
                         Open manually
                       </a>
                     </div>
@@ -546,13 +484,10 @@ export default function AutoApplyPage() {
 
                   {phase === 'done' && (
                     <div style={{ display: 'flex', gap: 12 }}>
-                      <button className="aa-btn-success" style={{ flex: 1 }} onClick={logToTracker}>
-                        ✓ Log to Tracker &rarr;
+                      <button className="ina-btn-success" style={{ flex: 1 }} onClick={logToTracker}>
+                        ✓ Log to Tracker →
                       </button>
-                      <button
-                        className="aa-btn-outline"
-                        onClick={() => { setPhase('idle'); setAnalyzeResult(null); setMapping([]); setLog([]); setLiveShot(''); setConfirmShot('') }}
-                      >
+                      <button className="ina-btn-outline" onClick={() => { setPhase('idle'); setAnalyzeResult(null); setMapping([]); setLog([]); setLiveShot('') }}>
                         Apply another
                       </button>
                     </div>
@@ -562,8 +497,8 @@ export default function AutoApplyPage() {
 
               {(phase === 'executing' || (phase === 'done' && log.length > 0)) && (
                 <div style={card}>
-                  <div style={{ ...cardHead, display: 'flex', alignItems: 'center', gap: 8 }}>
-                    {phase === 'executing' && <svg className="spin" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={c.accent} strokeWidth="2.5"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>}
+                  <div style={{ ...cardHead, display: 'flex', alignItems: 'center', gap: 8, borderLeft: 'none' }}>
+                    {phase === 'executing' && <svg className="spin" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={ACCENT} strokeWidth="2.5"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>}
                     {phase === 'done' ? '✓ Completed' : 'Live Log'}
                   </div>
                   <div ref={logRef} style={{ maxHeight: 280, overflowY: 'auto', padding: '4px 16px' }}>
@@ -583,11 +518,7 @@ export default function AutoApplyPage() {
                       <div style={{ fontSize: 11, color: c.textFaint, marginBottom: 6 }}>
                         {phase === 'done' ? 'Confirmation screenshot' : 'Current state'}
                       </div>
-                      <img
-                        src={`data:image/png;base64,${liveShot}`}
-                        alt="Live browser state"
-                        style={{ width: '100%', borderRadius: 6, border: `1px solid ${c.border}` }}
-                      />
+                      <img src={`data:image/png;base64,${liveShot}`} alt="Live browser state" style={{ width: '100%', borderRadius: 6, border: `1px solid ${c.border}` }} />
                     </div>
                   )}
                 </div>

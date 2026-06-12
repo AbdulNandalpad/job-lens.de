@@ -79,6 +79,7 @@ export default function NavbarIndia() {
     { label: 'Job Search',   href: '/in/jobs' },
     { label: 'CV Builder',   href: '/in/cv-builder' },
     { label: 'Cover Letter', href: '/in/cover-letter' },
+    { label: 'Auto Apply',   href: '/in/auto-apply' },
     { label: 'Work Visa DE',   href: '/in/visa' },
     { label: 'Tracker',        href: '/in/tracker' },
     { label: 'Interview Prep', href: '/in/interview' },
