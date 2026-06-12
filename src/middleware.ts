@@ -55,6 +55,7 @@ export async function middleware(request: NextRequest) {
     path.startsWith('/impressum') ||
     path.startsWith('/datenschutz') ||
     path.startsWith('/agb') ||
+    path.endsWith('/demo-form') ||  // sandbox demo forms — no auth needed, no data stored
     path.endsWith('.html')
 
   if (!user && !isPublic) {
