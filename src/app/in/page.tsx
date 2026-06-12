@@ -540,13 +540,13 @@ export default async function IndiaHomePage() {
                 cta: 'Get Starter', ctaHref: '/in/account', raised: false,
               },
               {
-                name: 'Job Hunt', price: '399', credits: '35 credits', color: saffron,
+                name: 'Job Hunt', price: '499', credits: '35 credits', color: saffron,
                 features: ['35 credits (~8 full applications)', 'ATS Scan — 2 credits', 'CV Tailoring — 1 credit', 'Cover Letter — 1 credit', 'Best value for active job seekers'],
                 cta: 'Get Job Hunt', ctaHref: '/in/account', raised: true, badge: 'Most Popular',
               },
               {
-                name: 'Full Sprint', price: '999', credits: '100 credits', color: indiaGreen,
-                features: ['100 credits (~25 full applications)', 'Everything in Job Hunt', 'Multi-month job search', 'Ideal for career changers', 'Credits never expire'],
+                name: 'Full Sprint', price: '999', credits: '70 credits', color: indiaGreen,
+                features: ['70 credits (~17 full applications)', 'Everything in Job Hunt', 'Multi-month job search', 'Ideal for career changers', 'Credits never expire'],
                 cta: 'Get Full Sprint', ctaHref: '/in/account', raised: false,
               },
             ].map((plan) => (
