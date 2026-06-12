@@ -583,7 +583,7 @@ export default function HomePage() {
 
         {/* ── Auto Apply spotlight ── */}
         <div className="jl-subsection">
-          <div style={{
+          <div className="aa-spotlight-grid" style={{
             background: 'linear-gradient(160deg, #0d1f30 0%, #091624 100%)',
             borderRadius: 20,
             border: '1px solid rgba(55,138,221,0.18)',
