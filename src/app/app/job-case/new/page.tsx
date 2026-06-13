@@ -17,22 +17,7 @@ type Evidence    = { requirementId: string; text: string; url: string }
 type Question    = { question: string; skill_being_tested: string }
 type JobQuality  = 'clear' | 'vague' | 'poor'
 
-// ── Mock data ─────────────────────────────────────────────────────────────────
-
-const MOCK_REQS: Requirement[] = [
-  { id: '1', skill: 'React / Next.js',   description: '3+ years building production React apps with SSR.',        essential: true  },
-  { id: '2', skill: 'TypeScript',         description: 'Strong TypeScript including generics and type narrowing.', essential: true  },
-  { id: '3', skill: 'Node.js & APIs',     description: 'Experience designing RESTful APIs with Node.js.',         essential: true  },
-  { id: '4', skill: 'PostgreSQL',         description: 'Complex queries and schema design.',                       essential: true  },
-  { id: '5', skill: 'CI/CD',             description: 'Familiar with GitHub Actions or similar pipelines.',       essential: false },
-  { id: '6', skill: 'Team communication', description: 'Articulate technical decisions to non-engineers.',        essential: false },
-]
-
-const MOCK_QUESTIONS: Question[] = [
-  { question: 'You claimed experience with Next.js App Router. Describe a specific performance challenge you solved using Server Components — what was the problem, what did you change, and what was the measurable outcome?', skill_being_tested: 'React / Next.js' },
-  { question: 'Walk me through a PostgreSQL schema you designed for a feature with complex relationships. What trade-offs did you make?', skill_being_tested: 'PostgreSQL' },
-  { question: 'You discover a third-party API you depend on is changing its response format in 48 hours. How do you handle it and communicate it to the team?', skill_being_tested: 'Team communication' },
-]
+// No mock data — all data comes from real API calls
 
 const SAMPLE_QUESTION = {
   question: 'Tell me about a time you had to learn a new technology quickly for a project. What did you do and what was the result?',
@@ -505,14 +490,20 @@ export default function JobCaseNewPage() {
 
   const [jobText, setJobText]    = useState('')
   const [jobUrl, setJobUrl]      = useState('')
-  const [quality]                = useState<JobQuality>('clear')
-  const [matchScore]             = useState(72)
-  const [jobTitle]               = useState('Senior Frontend Engineer')
-  const [company]                = useState('Acme GmbH')
+  const [quality, setQuality]    = useState<JobQuality>('clear')
+  const [qualityReason, setQualityReason] = useState('')
+  const [matchScore, setMatchScore] = useState(0)
+  const [jobTitle, setJobTitle]  = useState('')
+  const [company, setCompany]    = useState('')
   const [reqs, setReqs]          = useState<Requirement[]>([])
   const [consent, setConsent]    = useState({ video: false, test: false, tracking: false })
   const [evidence, setEvidence]  = useState<Evidence[]>([])
-  const [questions]              = useState<Question[]>(MOCK_QUESTIONS)
+  const [questions, setQuestions] = useState<Question[]>([])
+  const [analyseError, setAnalyseError] = useState('')
+  const [caseSlug, setCaseSlug]  = useState('')
+  const [caseUrl, setCaseUrl]    = useState('')
+  const [videoStorageKey, setVideoStorageKey] = useState<string | null>(null)
+  const [uploading, setUploading] = useState(false)
 
   const [countdown, setCountdown]    = useState(0)
   const [recording, setRecording]    = useState(false)
@@ -539,14 +530,97 @@ export default function JobCaseNewPage() {
     if (cv && cv.trim().length > 100) setCvFound(true)
   }, [])
 
-  function analyse() {
+  async function analyse() {
     if (!jobText.trim() && !jobUrl.trim()) return
+    setAnalyseError('')
     setStep('analysing')
-    setTimeout(() => {
-      setReqs(MOCK_REQS)
-      setEvidence(MOCK_REQS.map(r => ({ requirementId: r.id, text: '', url: '' })))
+    try {
+      const res = await fetch(API.jobCaseAnalyse, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ jobText, jobUrl }),
+      })
+      const data = await res.json()
+      if (!res.ok) { setAnalyseError(data.error ?? 'Analysis failed'); setStep('paste'); return }
+      setJobTitle(data.jobTitle ?? '')
+      setCompany(data.companyName ?? '')
+      setQuality(data.qualityScore ?? 'clear')
+      setQualityReason(data.qualityReason ?? '')
+      setMatchScore(data.matchScore ?? 0)
+      setReqs(data.requirements ?? [])
+      setEvidence((data.requirements ?? []).map((r: Requirement) => ({ requirementId: r.id, text: '', url: '' })))
       setStep('review')
-    }, 2000)
+    } catch {
+      setAnalyseError('Network error — please try again.')
+      setStep('paste')
+    }
+  }
+
+  async function generateTest() {
+    setStep('questions')
+    try {
+      const cvText = sessionStorage.getItem(SS.cvText) || sessionStorage.getItem(SS.cvbTailored) || ''
+      const res = await fetch(API.jobCaseGenerateTest, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ requirements: reqs, evidence, cvText }),
+      })
+      const data = await res.json()
+      if (res.ok && data.questions?.length) {
+        setQuestions(data.questions)
+      }
+    } catch {
+      // Keep questions empty — user can still proceed, test will use generic questions
+    }
+  }
+
+  async function uploadVideo(blob: Blob): Promise<string | null> {
+    setUploading(true)
+    try {
+      const mimeType = blob.type || 'video/webm'
+      const urlRes = await fetch(API.jobCaseUploadVideo, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ mimeType }),
+      })
+      const { signedUrl, storagePath } = await urlRes.json()
+      if (!signedUrl) return null
+      await fetch(signedUrl, { method: 'PUT', body: blob, headers: { 'Content-Type': mimeType } })
+      return storagePath
+    } catch (err) {
+      console.error('Video upload error:', err)
+      return null
+    } finally {
+      setUploading(false)
+    }
+  }
+
+  async function createCase() {
+    setStep('generating')
+    try {
+      const cvText = sessionStorage.getItem(SS.cvText) || sessionStorage.getItem(SS.cvbTailored) || ''
+      const res = await fetch(API.jobCaseCreate, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          jobText, jobTitle, companyName: company,
+          qualityScore: quality,
+          requirements: reqs, evidence,
+          questions, answers, tabSwitches,
+          videoStorageKey,
+          consent: { video: true, test: true, tracking: true },
+          cvText,
+        }),
+      })
+      const data = await res.json()
+      if (!res.ok) { setStep('test'); return }
+      setCaseSlug(data.slug ?? '')
+      setCaseUrl(data.caseUrl ?? '')
+      setMatchScore(data.matchScore ?? matchScore)
+      setStep('done')
+    } catch {
+      setStep('test')
+    }
   }
 
   async function startCountdown() {
@@ -563,13 +637,16 @@ export default function JobCaseNewPage() {
     const mimeType = MediaRecorder.isTypeSupported('video/webm;codecs=vp9') ? 'video/webm;codecs=vp9' : 'video/mp4'
     const mr = new MediaRecorder(stream, { mimeType })
     mr.ondataavailable = e => { if (e.data.size > 0) chunksRef.current.push(e.data) }
-    mr.onstop = () => {
+    mr.onstop = async () => {
       const blob = new Blob(chunksRef.current, { type: mimeType })
       setVideoBlob(blob)
       setVideoUrl(URL.createObjectURL(blob))
       setRecording(false)
       if (timerRef.current) clearInterval(timerRef.current)
       stream.getTracks().forEach(t => t.stop())
+      // Upload video in background while user watches playback
+      const key = await uploadVideo(blob)
+      if (key) setVideoStorageKey(key)
     }
     mr.start()
     mrRef.current = mr
@@ -625,7 +702,10 @@ export default function JobCaseNewPage() {
                     <div style={{ marginTop: 18, display: 'flex', justifyContent: 'flex-end' }}>
                       {step === 'analysing'
                         ? <span style={{ display: 'flex', alignItems: 'center', gap: 8, color: c.textMuted, fontSize: 13 }}><Spinner /> Analysing job description…</span>
-                        : <button className="jc-btn" onClick={analyse} disabled={!jobText.trim() && !jobUrl.trim()}>Analyse →</button>
+                        : <>
+                            {analyseError && <p style={{ fontSize: 12, color: c.danger, margin: '0 0 10px', textAlign: 'right' }}>{analyseError}</p>}
+                            <button className="jc-btn" onClick={analyse} disabled={!jobText.trim() && !jobUrl.trim()}>Analyse →</button>
+                          </>
                       }
                     </div>
                   </Card>
@@ -725,7 +805,7 @@ export default function JobCaseNewPage() {
                   </Card>
                   <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 12 }}>
                     <button className="jc-btn-ghost" onClick={() => setStep('consent')}>← Back</button>
-                    <button className="jc-btn" onClick={() => setStep('questions')}>Preview test questions →</button>
+                    <button className="jc-btn" onClick={generateTest}>Preview test questions →</button>
                   </div>
                 </div>
               )}
@@ -826,7 +906,7 @@ export default function JobCaseNewPage() {
                         <div style={{ width: 48, height: 48, borderRadius: '50%', background: 'rgba(29,158,117,0.1)', border: `1px solid rgba(29,158,117,0.3)`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20, margin: '0 auto 14px' }}>✓</div>
                         <div style={{ fontFamily: f.heading, fontSize: 16, fontWeight: 700, color: c.primary, marginBottom: 6 }}>Test submitted</div>
                         <p style={{ fontSize: 13, color: c.textMuted, marginBottom: 20 }}>AI is scoring your answers.</p>
-                        <button className="jc-btn" onClick={() => { setStep('generating'); setTimeout(() => setStep('done'), 3000) }}>Generate my Job Case →</button>
+                        <button className="jc-btn" onClick={createCase}>Generate my Job Case →</button>
                       </div>
                     ) : !testStarted ? (
                       <div style={{ textAlign: 'center', padding: '12px 0 20px' }}>
@@ -880,14 +960,14 @@ export default function JobCaseNewPage() {
                     <div style={{ fontSize: 10, fontWeight: 700, color: c.textMuted, marginBottom: 8, letterSpacing: 0.8, textTransform: 'uppercase' }}>Your link</div>
                     <div style={{ display: 'flex', borderRadius: 8, overflow: 'hidden', border: `1px solid ${c.border}`, marginBottom: 18 }}>
                       <span style={{ flex: 1, padding: '10px 12px', fontSize: 13, color: c.textMuted, fontFamily: 'monospace', background: c.bg, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                        job-lens.de/case/demo-abc123
+                        {caseUrl || `job-lens.de/case/${caseSlug}`}
                       </span>
-                      <button onClick={() => navigator.clipboard?.writeText('https://job-lens.de/case/demo-abc123')} style={{ padding: '10px 16px', background: g.button, border: 'none', color: '#fff', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: f.heading, flexShrink: 0 }}>
+                      <button onClick={() => navigator.clipboard?.writeText(caseUrl || `https://job-lens.de/case/${caseSlug}`)} style={{ padding: '10px 16px', background: g.button, border: 'none', color: '#fff', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: f.heading, flexShrink: 0 }}>
                         Copy
                       </button>
                     </div>
                     <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                      <button className="jc-btn" onClick={() => router.push('/case/demo-abc123')}>Preview as recruiter →</button>
+                      <button className="jc-btn" onClick={() => router.push(`/case/${caseSlug}`)}>Preview as recruiter →</button>
                       <button className="jc-btn-ghost" onClick={() => router.push('/app/job-case')}>My Job Cases</button>
                     </div>
                     <div style={{ marginTop: 16, padding: '10px 14px', background: c.bg, borderRadius: 8, border: `1px solid ${c.border}`, fontSize: 12, color: c.textMuted, lineHeight: 1.6 }}>
