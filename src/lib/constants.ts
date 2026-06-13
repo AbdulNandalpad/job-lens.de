@@ -114,4 +114,19 @@ export const API = {
   interviewFeedback:    '/api/interview/feedback',
   interviewCoaching:    '/api/interview/coaching',
   salarySim:            '/api/salary-sim',
+  jobCaseAnalyse:       '/api/job-case/analyse',
+  jobCaseCreate:        '/api/job-case/create',
+  jobCaseGenerateTest:  '/api/job-case/generate-test',
+  jobCaseUploadVideo:   '/api/job-case/upload-video',
+} as const
+
+// ── Job Case ─────────────────────────────────────────────────────────────────
+export const JOB_CASE = {
+  creditCost:       10,
+  videoMaxSeconds:  120,
+  testMinutes:      8,
+  expiryDays:       30,
+  refundCheckDays:  14,
+  maxRequirements:  7,
+  testQuestions:    3,
 } as const

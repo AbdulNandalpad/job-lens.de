@@ -14,6 +14,7 @@ export default function Navbar() {
   const pathname = usePathname()
   const router = useRouter()
   const [userName, setUserName] = useState('')
+  const [isAdmin, setIsAdmin] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
   const [confirmClear, setConfirmClear] = useState(false)
   const [langOpen, setLangOpen] = useState(false)
@@ -28,6 +29,7 @@ export default function Navbar() {
       if (!user) return
       const full = user.user_metadata?.full_name ?? user.email ?? ''
       setUserName(full.split(' ')[0] || 'User')
+      setIsAdmin(user.email === 'sap.rashid@gmail.com')
       // Clear stale data if a different user is now logged in
       const storedUid = sessionStorage.getItem(SS.uid)
       if (storedUid && storedUid !== user.id) {
@@ -78,6 +80,7 @@ export default function Navbar() {
     { label: t.navbar.cvBuilder,   href: '/app/cv-builder' },
     { label: t.navbar.coverLetter, href: '/app/cover-letter' },
     { label: t.navbar.autoApply,   href: '/app/auto-apply' },
+    ...(isAdmin ? [{ label: 'Job Case', href: '/app/job-case' }] : []),
     { label: t.navbar.zeugnis,     href: '/app/zeugnis' },
     { label: t.navbar.tracker,     href: '/app/tracker' },
     { label: t.navbar.interview,   href: '/app/interview' },
