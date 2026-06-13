@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
-import { SS } from '@/lib/constants'
+import { SS, API } from '@/lib/constants'
 import SvgIcon from '@/components/SvgIcon'
 
 const orange = '#ff9933'
@@ -25,21 +25,32 @@ interface Job {
 
 const CITIES = ['', 'Bangalore', 'Mumbai', 'Delhi', 'Hyderabad', 'Pune', 'Chennai', 'Kolkata', 'Noida', 'Gurgaon']
 
+function parseJobDate(s: string): number {
+  const t = new Date(s).getTime()
+  return Number.isFinite(t) ? t : 0
+}
+
 function timeAgo(dateStr: string) {
   if (!dateStr) return ''
-  const diff = Date.now() - new Date(dateStr).getTime()
+  const t = parseJobDate(dateStr)
+  if (!t) return ''
+  const diff = Date.now() - t
+  if (diff < 0) return 'Today'
   const days = Math.floor(diff / 86400000)
   if (days === 0) return 'Today'
   if (days === 1) return '1 day ago'
   if (days < 30) return `${days} days ago`
-  return `${Math.floor(days / 30)}mo ago`
+  if (days < 365) return `${Math.floor(days / 30)}mo ago`
+  return `${Math.floor(days / 365)}y ago`
 }
 
 export default function IndiaJobsPage() {
   const router = useRouter()
   const [query, setQuery] = useState('')
   const [city, setCity] = useState('')
-  const [sortBy, setSortBy] = useState<'date' | 'default'>('date')
+  const [sortBy,  setSortBy]  = useState<'date' | 'relevance'>('date')
+  const [scores,  setScores]  = useState<Record<string, number>>({})
+  const [scoring, setScoring] = useState(false)
   const [jobs, setJobs] = useState<Job[]>([])
   const [loading, setLoading] = useState(false)
   const [loadingMore, setLoadingMore] = useState(false)
@@ -53,6 +64,26 @@ export default function IndiaJobsPage() {
   function toggleDesc(id: string, e: React.MouseEvent) {
     e.stopPropagation()
     setExpandedDescs(prev => { const next = new Set(prev); next.has(id) ? next.delete(id) : next.add(id); return next })
+  }
+
+  async function scoreJobs(jobList: Job[], searchQuery: string) {
+    setScoring(true)
+    setScores({})
+    try {
+      const res = await fetch(API.jobsRank, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          query: searchQuery,
+          jobs: jobList.map(j => ({ job_id: j.job_id, job_title: j.job_title, job_description: j.job_description })),
+        }),
+      })
+      const data = await res.json()
+      const map: Record<string, number> = {}
+      for (const s of (data.scores ?? [])) map[s.job_id] = s.score
+      setScores(map)
+    } catch {}
+    setScoring(false)
   }
 
   async function fetchWithFallback(q: string): Promise<{ jobs: Job[]; usedQuery: string }> {
@@ -82,7 +113,7 @@ export default function IndiaJobsPage() {
       if (loc) setCity(loc)
       setLoading(true); setSearched(true); setPage(1)
       fetchWithFallback(q)
-        .then(({ jobs, usedQuery: uq }) => { setJobs(jobs); setUsedQuery(uq); setHasMore(jobs.length === 20) })
+        .then(({ jobs, usedQuery: uq }) => { setJobs(jobs); setUsedQuery(uq); setHasMore(jobs.length === 20); if (jobs.length) scoreJobs(jobs, q) })
         .catch(() => { setJobs([]); setUsedQuery(q); setHasMore(false) })
         .finally(() => setLoading(false))
     }
@@ -97,6 +128,7 @@ export default function IndiaJobsPage() {
     try {
       const { jobs: results, usedQuery: uq } = await fetchWithFallback(query)
       setJobs(results); setUsedQuery(uq); setHasMore(results.length === 20)
+      if (results.length) scoreJobs(results, query)
     } catch { setJobs([]); setUsedQuery(query); setHasMore(false) }
     setLoading(false)
   }
@@ -216,21 +248,25 @@ export default function IndiaJobsPage() {
                   </span>
                 </div>
               )}
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4, flexWrap: 'wrap', gap: 8 }}>
                 <span style={{ fontSize: 13, color: '#9aafbc' }}>{jobs.length} jobs found</span>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  {scoring && <span style={{ fontSize: 11, color: '#9aafbc' }}>Scoring...</span>}
                   <span style={{ fontSize: 11, color: '#9aafbc' }}>Sort:</span>
-                  {(['date', 'default'] as const).map(opt => (
-                    <button key={opt} onClick={() => setSortBy(opt)} style={{ fontSize: 11, padding: '3px 10px', borderRadius: 20, border: `1px solid ${sortBy === opt ? orange : '#dce4ef'}`, background: sortBy === opt ? orange + '15' : '#fff', color: sortBy === opt ? orange : '#6b7c93', fontWeight: sortBy === opt ? 700 : 400, cursor: 'pointer' }}>
-                      {opt === 'date' ? 'Newest first' : 'Default'}
+                  {(['date', 'relevance'] as const).map(opt => (
+                    <button key={opt} onClick={() => setSortBy(opt)}
+                      disabled={opt === 'relevance' && Object.keys(scores).length === 0}
+                      style={{ fontSize: 11, padding: '3px 10px', borderRadius: 20, border: `1px solid ${sortBy === opt ? orange : '#dce4ef'}`, background: sortBy === opt ? orange + '15' : '#fff', color: sortBy === opt ? orange : Object.keys(scores).length === 0 && opt === 'relevance' ? '#c0cfe0' : '#6b7c93', fontWeight: sortBy === opt ? 700 : 400, cursor: opt === 'relevance' && Object.keys(scores).length === 0 ? 'not-allowed' : 'pointer' }}>
+                      {opt === 'date' ? 'Newest first' : 'Relevance'}
                     </button>
                   ))}
                 </div>
               </div>
 
-              {[...jobs].sort((a, b) => sortBy === 'date'
-                ? new Date(b.job_posted_at_datetime_utc || 0).getTime() - new Date(a.job_posted_at_datetime_utc || 0).getTime()
-                : 0
+              {[...jobs].sort((a, b) =>
+                sortBy === 'relevance'
+                  ? (scores[b.job_id] ?? 0) - (scores[a.job_id] ?? 0)
+                  : parseJobDate(b.job_posted_at_datetime_utc) - parseJobDate(a.job_posted_at_datetime_utc)
               ).map(job => {
                 const isSelected = selectedJobId === job.job_id
                 return (
@@ -272,6 +308,11 @@ export default function IndiaJobsPage() {
                           {job.job_posted_at_datetime_utc && (
                             <span style={{ fontSize: 11, color: '#9aafbc' }}>{timeAgo(job.job_posted_at_datetime_utc)}</span>
                           )}
+                          {scores[job.job_id] !== undefined && (() => {
+                            const s = scores[job.job_id]
+                            const col = s >= 70 ? green : s >= 45 ? '#F59E0B' : '#9aafbc'
+                            return <span style={{ fontSize: 10, padding: '2px 8px', borderRadius: 8, background: col + '18', color: col, fontWeight: 700 }}>{s}% match</span>
+                          })()}
                         </div>
                       </div>
                       <div style={{ fontSize: 16, color: isSelected ? orange : '#c0cfe0', flexShrink: 0, transition: 'transform 0.2s', transform: isSelected ? 'rotate(180deg)' : 'rotate(0deg)', marginTop: 2 }}>v</div>

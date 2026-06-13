@@ -102,6 +102,7 @@ export const API = {
   zeugnis:          '/api/zeugnis',
   visa:             '/api/visa',
   autoApplyAnalyze: '/api/auto-apply/analyze',
+  jobsRank:         '/api/jobs/rank',
   userProfile:          '/api/user/profile',
   indiaCareerScanPro:   '/api/india/career-scan-pro',
   aiChat:               '/api/ai/chat',

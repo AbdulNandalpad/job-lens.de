@@ -74,6 +74,11 @@ export async function GET(req: NextRequest) {
       }
     })
 
+    // Sort newest-first; bad/missing dates sink to the end
+    const parseTs = (s: string) => { const t = new Date(s).getTime(); return Number.isFinite(t) ? t : 0 }
+    const typed = jobs as { job_posted_at_datetime_utc: string }[]
+    typed.sort((a, b) => parseTs(b.job_posted_at_datetime_utc) - parseTs(a.job_posted_at_datetime_utc))
+
     return NextResponse.json({ jobs })
   } catch (err) {
     console.error('Adzuna API error:', err)
