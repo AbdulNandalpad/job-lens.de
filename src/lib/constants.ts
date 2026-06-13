@@ -118,6 +118,7 @@ export const API = {
   jobCaseCreate:        '/api/job-case/create',
   jobCaseGenerateTest:  '/api/job-case/generate-test',
   jobCaseUploadVideo:   '/api/job-case/upload-video',
+  jobCaseScoreSample:   '/api/job-case/score-sample',
 } as const
 
 // ── Job Case ─────────────────────────────────────────────────────────────────
