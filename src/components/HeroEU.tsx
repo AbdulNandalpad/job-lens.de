@@ -401,27 +401,28 @@ export default function HeroEU({ lang, user }: Props) {
   const activeRef = useRef(0)
   const timerRef  = useRef<ReturnType<typeof setInterval> | null>(null)
   const pausedRef = useRef(false)
-  function advance(next: number) {
+
+  const advanceRef = useRef((next: number) => {
     setFading(true)
     setTimeout(() => {
       activeRef.current = next
       setActive(next)
       setFading(false)
     }, FADE_MS)
-  }
+  })
 
   useEffect(() => {
     timerRef.current = setInterval(() => {
-      if (!pausedRef.current) advance((activeRef.current + 1) % SLIDES.length)
+      if (!pausedRef.current) advanceRef.current((activeRef.current + 1) % SLIDES.length)
     }, INTERVAL)
     return () => { if (timerRef.current) clearInterval(timerRef.current) }
   }, [])
 
   const manualGo = (i: number) => {
     if (timerRef.current) clearInterval(timerRef.current)
-    advance(i)
+    advanceRef.current(i)
     timerRef.current = setInterval(() => {
-      if (!pausedRef.current) advance((activeRef.current + 1) % SLIDES.length)
+      if (!pausedRef.current) advanceRef.current((activeRef.current + 1) % SLIDES.length)
     }, INTERVAL)
   }
 
