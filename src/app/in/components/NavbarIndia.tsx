@@ -80,17 +80,21 @@ export default function NavbarIndia() {
     { label: 'CV Builder',   href: '/in/cv-builder' },
     { label: 'Cover Letter', href: '/in/cover-letter' },
     { label: 'Auto Apply',   href: '/in/auto-apply' },
-    { label: 'Work Visa DE',   href: '/in/visa' },
+    { label: 'Work Visa DE',  href: '/in/visa' },
+    { label: 'Account',       href: '/in/account' },
+  ]
+
+  const accountSubItems = [
     { label: 'Tracker',        href: '/in/tracker' },
     { label: 'Interview Prep', href: '/in/interview' },
-    { label: 'Account',        href: '/in/account' },
   ]
 
   // Don't render on landing page or login — those have their own headers
   if (pathname === '/in' || pathname === '/in/login') return null
 
   const isActive = (href: string) => pathname === href
-  const currentPage = navItems.find(item => isActive(item.href))?.label || 'Job-Lens India'
+  const isAccountArea = ['/in/account', '/in/tracker', '/in/interview'].some(p => pathname === p)
+  const currentPage = [...navItems, ...accountSubItems].find(item => isActive(item.href))?.label || 'Job-Lens India'
 
   return (
     <>
@@ -170,10 +174,18 @@ export default function NavbarIndia() {
                   <span style={{ fontSize: 9, opacity: 0.5, color: '#E6F1FB' }}>{userMenuOpen ? '▲' : '▼'}</span>
                 </button>
                 {userMenuOpen && (
-                  <div style={{ position: 'absolute', top: '100%', right: 0, marginTop: 6, background: '#0d2137', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 10, overflow: 'hidden', zIndex: 300, minWidth: 160, boxShadow: '0 8px 24px rgba(0,0,0,0.4)' }}>
+                  <div style={{ position: 'absolute', top: '100%', right: 0, marginTop: 6, background: '#0d2137', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 10, overflow: 'hidden', zIndex: 300, minWidth: 180, boxShadow: '0 8px 24px rgba(0,0,0,0.4)' }}>
                     <Link href="/in/account" onClick={() => setUserMenuOpen(false)}
-                      style={{ display: 'block', padding: '10px 14px', fontSize: 13, color: 'rgba(255,255,255,0.75)', textDecoration: 'none', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
+                      style={{ display: 'block', padding: '10px 14px', fontSize: 13, color: 'rgba(255,255,255,0.75)', textDecoration: 'none', borderBottom: '1px solid rgba(255,255,255,0.08)', background: isActive('/in/account') ? 'rgba(255,153,51,0.12)' : 'transparent' }}>
                       Account
+                    </Link>
+                    <Link href="/in/tracker" onClick={() => setUserMenuOpen(false)}
+                      style={{ display: 'block', padding: '9px 14px 9px 22px', fontSize: 12, color: 'rgba(255,255,255,0.5)', textDecoration: 'none', borderBottom: '1px solid rgba(255,255,255,0.05)', background: isActive('/in/tracker') ? 'rgba(255,153,51,0.1)' : 'transparent' }}>
+                      Tracker
+                    </Link>
+                    <Link href="/in/interview" onClick={() => setUserMenuOpen(false)}
+                      style={{ display: 'block', padding: '9px 14px 9px 22px', fontSize: 12, color: 'rgba(255,255,255,0.5)', textDecoration: 'none', borderBottom: '1px solid rgba(255,255,255,0.08)', background: isActive('/in/interview') ? 'rgba(255,153,51,0.1)' : 'transparent' }}>
+                      Interview Prep
                     </Link>
                     <button onClick={signOut}
                       style={{ display: 'block', width: '100%', padding: '10px 14px', fontSize: 13, color: '#FF9933', background: 'transparent', border: 'none', cursor: 'pointer', textAlign: 'left', fontFamily: 'inherit', fontWeight: 600 }}>
@@ -221,9 +233,16 @@ export default function NavbarIndia() {
             <>
               {navItems.map(item => (
                 <Link key={item.href} href={item.href} onClick={() => setMenuOpen(false)}
-                  style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 12px', borderRadius: 8, textDecoration: 'none', fontSize: 14, marginBottom: 4, color: isActive(item.href) ? '#E6F1FB' : '#85B7EB', background: isActive(item.href) ? 'rgba(55,138,221,0.2)' : 'transparent', fontWeight: isActive(item.href) ? 600 : 400 }}>
+                  style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 12px', borderRadius: 8, textDecoration: 'none', fontSize: 14, marginBottom: 4, color: isActive(item.href) ? '#E6F1FB' : '#85B7EB', background: isActive(item.href) ? 'rgba(255,153,51,0.2)' : 'transparent', fontWeight: isActive(item.href) ? 600 : 400 }}>
                   {item.label}
-                  {isActive(item.href) && <span style={{ fontSize: 10, background: '#378ADD', color: '#fff', padding: '2px 8px', borderRadius: 10, fontWeight: 700 }}>Current</span>}
+                  {isActive(item.href) && <span style={{ fontSize: 10, background: '#FF9933', color: '#042C53', padding: '2px 8px', borderRadius: 10, fontWeight: 700 }}>Current</span>}
+                </Link>
+              ))}
+              {accountSubItems.map(item => (
+                <Link key={item.href} href={item.href} onClick={() => setMenuOpen(false)}
+                  style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 12px 8px 24px', borderRadius: 8, textDecoration: 'none', fontSize: 13, marginBottom: 4, color: isActive(item.href) ? '#E6F1FB' : 'rgba(255,255,255,0.4)', background: isActive(item.href) ? 'rgba(255,153,51,0.15)' : 'transparent', fontWeight: isActive(item.href) ? 600 : 400 }}>
+                  {item.label}
+                  {isActive(item.href) && <span style={{ fontSize: 10, background: '#FF9933', color: '#042C53', padding: '2px 8px', borderRadius: 10, fontWeight: 700 }}>Current</span>}
                 </Link>
               ))}
               <div style={{ display: 'flex', gap: 8, marginTop: 8, paddingTop: 8, borderTop: '1px solid rgba(255,255,255,0.08)' }}>

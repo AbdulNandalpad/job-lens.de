@@ -397,32 +397,31 @@ const MOCKS = [MockOverview, MockKira, MockAutoApply, MockJobCase]
 
 export default function HeroEU({ lang, user }: Props) {
   const [active, setActive] = useState(0)
-  const [fading, setFading] = useState(false)
   const activeRef = useRef(0)
   const timerRef  = useRef<ReturnType<typeof setInterval> | null>(null)
   const pausedRef = useRef(false)
 
-  const advanceRef = useRef((next: number) => {
-    setFading(true)
-    setTimeout(() => {
-      activeRef.current = next
-      setActive(next)
-      setFading(false)
-    }, FADE_MS)
-  })
-
   useEffect(() => {
     timerRef.current = setInterval(() => {
-      if (!pausedRef.current) advanceRef.current((activeRef.current + 1) % SLIDES.length)
+      if (!pausedRef.current) {
+        const next = (activeRef.current + 1) % SLIDES.length
+        activeRef.current = next
+        setActive(next)
+      }
     }, INTERVAL)
     return () => { if (timerRef.current) clearInterval(timerRef.current) }
   }, [])
 
   const manualGo = (i: number) => {
     if (timerRef.current) clearInterval(timerRef.current)
-    advanceRef.current(i)
+    activeRef.current = i
+    setActive(i)
     timerRef.current = setInterval(() => {
-      if (!pausedRef.current) advanceRef.current((activeRef.current + 1) % SLIDES.length)
+      if (!pausedRef.current) {
+        const next = (activeRef.current + 1) % SLIDES.length
+        activeRef.current = next
+        setActive(next)
+      }
     }, INTERVAL)
   }
 
@@ -440,9 +439,8 @@ export default function HeroEU({ lang, user }: Props) {
       <style>{`
         @keyframes heu-in  { from{opacity:0;transform:translateX(10px)} to{opacity:1;transform:translateX(0)} }
         @keyframes heu-rup { from{opacity:0;transform:translateY(14px)} to{opacity:1;transform:translateY(0)} }
-        .heu-slide { transition: opacity ${FADE_MS}ms ease, transform ${FADE_MS}ms ease; }
-        .heu-slide.out { opacity:0; transform:translateY(8px); }
-        .heu-slide.in  { opacity:1; transform:translateY(0); }
+        @keyframes heu-slide-in { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
+        .heu-slide { animation: heu-slide-in ${FADE_MS}ms ease both; }
         .heu-right { animation: heu-rup 0.55s ease 0.15s both; }
         .heu-dot { height:6px; border-radius:3px; border:none; cursor:pointer; padding:0; transition:width 0.3s,background 0.3s; }
         .heu-pill { font-size:11px; font-weight:500; border-radius:7px; padding:5px 12px; border:none; cursor:pointer; font-family:${f.heading}; transition:background 0.25s,color 0.25s,outline 0.25s; }
@@ -459,7 +457,7 @@ export default function HeroEU({ lang, user }: Props) {
 
         {/* LEFT */}
         <div>
-          <div className={`heu-slide ${fading ? 'out' : 'in'}`}>
+          <div key={active} className="heu-slide">
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 24 }}>
               <div style={{ width: 5, height: 5, borderRadius: '50%', background: slide.color, flexShrink: 0 }} />
               <span style={{ fontSize: 10.5, fontWeight: 600, color: 'rgba(255,255,255,0.32)', letterSpacing: 1.8, textTransform: 'uppercase' as const, fontFamily: f.heading }}>
