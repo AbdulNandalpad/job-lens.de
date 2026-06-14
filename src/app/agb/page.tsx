@@ -97,7 +97,10 @@ export default function AgbPage() {
               { action: 'Lebenslauf-Optimierung (CV Builder)', cost: '1 Credit' },
               { action: 'Anschreiben-Erstellung (Cover Letter)', cost: '1 Credit' },
               { action: 'Career Scan (vollständige Analyse)', cost: '2 Credits' },
+              { action: 'Interview-Training', cost: '1 Credit' },
+              { action: 'Gehaltsverhandlungs-Simulation', cost: '1 Credit' },
               { action: 'Auto Apply (Formular-Ausfüllung)', cost: '3 Credits' },
+              { action: 'Job Case (Bewerbungs-Fallstudie)', cost: '6 Credits' },
             ].map((r, i) => (
               <div key={r.action} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 14px', borderTop: i === 0 ? 'none' : `1px solid ${c.border}` }}>
                 <span style={{ fontSize: 13, color: c.text }}>{r.action}</span>
@@ -109,8 +112,8 @@ export default function AgbPage() {
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 16, background: '#fff', border: `1px solid ${c.border}`, borderRadius: 10, overflow: 'hidden' }}>
             {[
               { pack: 'Starter', price: '€ 4,99', credits: '20 Credits' },
-              { pack: 'Job Hunt', price: '€ 12,99', credits: '60 Credits' },
-              { pack: 'Full Sprint', price: '€ 24,99', credits: '150 Credits' },
+              { pack: 'Job Hunt', price: '€ 9,99', credits: '50 Credits' },
+              { pack: 'Full Sprint', price: '€ 13,99', credits: '75 Credits' },
             ].map((p, i) => (
               <div key={p.pack} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 14px', borderTop: i === 0 ? 'none' : `1px solid ${c.border}` }}>
                 <span style={{ fontSize: 13, color: c.text }}><strong>{p.pack}</strong> — {p.credits}</span>

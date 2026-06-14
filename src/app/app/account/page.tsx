@@ -14,7 +14,7 @@ const { colors: c, gradients: g, fonts: f } = theme
 const PACKS = [
   { label: 'Starter',     credits: 20,  price: '€4.99',  desc: '~5 full applications',          itemName: 'Job-Lens AI — Starter Pack (20 Credits)',     amount: '4.99'  },
   { label: 'Job Hunt',    credits: 50,  price: '€9.99',  desc: '~12 full applications',          itemName: 'Job-Lens AI — Job Hunt Pack (50 Credits)',     amount: '9.99',  popular: true },
-  { label: 'Full Sprint', credits: 120, price: '€13.99', desc: '~30 applications · best value',  itemName: 'Job-Lens AI — Full Sprint Pack (120 Credits)', amount: '13.99' },
+  { label: 'Full Sprint', credits: 75,  price: '€13.99', desc: '~18 applications · best value',  itemName: 'Job-Lens AI — Full Sprint Pack (75 Credits)',  amount: '13.99' },
 ]
 
 
