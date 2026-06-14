@@ -1,5 +1,5 @@
 'use client'
-import { useEffect, useState, useRef, useCallback } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import Link from 'next/link'
 import { theme } from '@/lib/theme'
 
@@ -398,33 +398,37 @@ const MOCKS = [MockOverview, MockKira, MockAutoApply, MockJobCase]
 export default function HeroEU({ lang, user }: Props) {
   const [active, setActive] = useState(0)
   const [fading, setFading] = useState(false)
-  const activeRef           = useRef(0)
-  const timerRef            = useRef<ReturnType<typeof setInterval> | null>(null)
-  const pausedRef           = useRef(false)
-  const animRef             = useRef(false)
+  const activeRef = useRef(0)
+  const timerRef  = useRef<ReturnType<typeof setInterval> | null>(null)
+  const pausedRef = useRef(false)
+  const animRef   = useRef(false)
 
-  const advance = useCallback((next: number) => {
+  function go(next: number) {
     if (animRef.current) return
     animRef.current = true
     setFading(true)
     setTimeout(() => {
-      setActive(next)
       activeRef.current = next
+      setActive(next)
       setFading(false)
       animRef.current = false
     }, FADE_MS)
-  }, [])
+  }
 
-  const startTimer = useCallback(() => {
+  function startTimer() {
     if (timerRef.current) clearInterval(timerRef.current)
     timerRef.current = setInterval(() => {
-      if (!pausedRef.current) advance((activeRef.current + 1) % SLIDES.length)
+      if (!pausedRef.current) go((activeRef.current + 1) % SLIDES.length)
     }, INTERVAL)
-  }, [advance])
+  }
 
-  useEffect(() => { startTimer(); return () => { if (timerRef.current) clearInterval(timerRef.current) } }, [startTimer])
+  useEffect(() => {
+    startTimer()
+    return () => { if (timerRef.current) clearInterval(timerRef.current) }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
-  const manualGo = (i: number) => { advance(i); startTimer() }
+  const manualGo = (i: number) => { go(i); startTimer() }
 
   const slide   = SLIDES[active]
   const de      = lang === 'DE'
