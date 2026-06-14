@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { SS, API } from '@/lib/constants'
 import SvgIcon from '@/components/SvgIcon'
+import { createClient } from '@/lib/supabase'
 
 const orange = '#ff9933'
 const navy = '#042C53'
@@ -56,6 +57,7 @@ export default function IndiaJobsPage() {
   const [loadingMore, setLoadingMore] = useState(false)
   const [searched, setSearched] = useState(false)
   const [selectedJobId, setSelectedJobId] = useState<string | null>(null)
+  const [isAdmin, setIsAdmin] = useState(false)
   const [page, setPage] = useState(1)
   const [hasMore, setHasMore] = useState(false)
   const [usedQuery, setUsedQuery] = useState('')
@@ -101,6 +103,12 @@ export default function IndiaJobsPage() {
     return { jobs: [], usedQuery: current }
   }
 
+
+  useEffect(() => {
+    createClient().auth.getUser().then(({ data }) => {
+      setIsAdmin(data.user?.email === 'sap.rashid@gmail.com')
+    })
+  }, [])
 
   useEffect(() => {
     if (autoSearched.current || typeof window === 'undefined') return
@@ -340,10 +348,12 @@ export default function IndiaJobsPage() {
                             style={{ padding: '10px 18px', borderRadius: 9, border: `1px solid ${blue}40`, background: blue + '10', color: blue, fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: "'Outfit',sans-serif" }}>
                             Write Cover Letter
                           </button>
-                          <button className="jl-action-btn" onClick={() => goToJobCase(job)}
-                            style={{ padding: '10px 18px', borderRadius: 9, border: '1px solid rgba(4,44,83,0.2)', background: 'rgba(4,44,83,0.04)', color: '#042C53', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: "'Outfit',sans-serif" }}>
-                            Job Case
-                          </button>
+                          {isAdmin && (
+                            <button className="jl-action-btn" onClick={() => goToJobCase(job)}
+                              style={{ padding: '10px 18px', borderRadius: 9, border: '1px solid rgba(4,44,83,0.2)', background: 'rgba(4,44,83,0.04)', color: '#042C53', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: "'Outfit',sans-serif" }}>
+                              Job Case
+                            </button>
+                          )}
                           <a href={job.job_apply_link} target="_blank" rel="noopener noreferrer" className="jl-action-btn"
                             style={{ padding: '10px 18px', borderRadius: 9, border: '1px solid #dce4ef', background: '#f8fafc', color: '#6b7c93', fontSize: 12, fontWeight: 600, textDecoration: 'none', cursor: 'pointer', fontFamily: "'Outfit',sans-serif" }}>
                             Open job listing →

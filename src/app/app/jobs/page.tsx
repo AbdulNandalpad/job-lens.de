@@ -6,6 +6,7 @@ import Navbar from '../components/Navbar'
 import { useLanguage } from '@/lib/i18n'
 import { SS, API } from '@/lib/constants'
 import SvgIcon, { type IconName } from '@/components/SvgIcon'
+import { createClient } from '@/lib/supabase'
 
 const blue  = '#378ADD'
 const navy  = '#042C53'
@@ -69,6 +70,7 @@ export default function DACHJobsPage() {
   const [loadingMore, setLoadingMore] = useState(false)
   const [searched, setSearched] = useState(false)
   const [selectedJobId, setSelectedJobId] = useState<string | null>(null)
+  const [isAdmin, setIsAdmin] = useState(false)
   const [page,      setPage]      = useState(1)
   const [hasMore,   setHasMore]   = useState(false)
   const [usedQuery, setUsedQuery] = useState('')
@@ -139,6 +141,12 @@ export default function DACHJobsPage() {
 
   const label = (de: string, en: string) => lang === 'DE' ? de : en
 
+
+  useEffect(() => {
+    createClient().auth.getUser().then(({ data }) => {
+      setIsAdmin(data.user?.email === 'sap.rashid@gmail.com')
+    })
+  }, [])
 
   useEffect(() => {
     if (autoSearched.current || typeof window === 'undefined') return
@@ -504,10 +512,12 @@ export default function DACHJobsPage() {
                             style={{ padding: '10px 18px', borderRadius: 9, border: `1px solid ${blue}40`, background: blue + '10', color: blue, fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: "'Outfit',sans-serif" }}>
                             {label('Anschreiben', 'Cover Letter')}
                           </button>
-                          <button className="dach-action-btn" onClick={() => goToJobCase(job)}
-                            style={{ padding: '10px 18px', borderRadius: 9, border: `1px solid ${navy}30`, background: navy + '08', color: navy, fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: "'Outfit',sans-serif" }}>
-                            Job Case
-                          </button>
+                          {isAdmin && (
+                            <button className="dach-action-btn" onClick={() => goToJobCase(job)}
+                              style={{ padding: '10px 18px', borderRadius: 9, border: `1px solid ${navy}30`, background: navy + '08', color: navy, fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: "'Outfit',sans-serif" }}>
+                              Job Case
+                            </button>
+                          )}
                           <a href={job.job_apply_link} target="_blank" rel="noopener noreferrer" className="dach-action-btn"
                             style={{ padding: '10px 18px', borderRadius: 9, border: '1px solid #dce4ef', background: '#f8fafc', color: '#6b7c93', fontSize: 12, fontWeight: 600, textDecoration: 'none', cursor: 'pointer', fontFamily: "'Outfit',sans-serif" }}>
                             {label('Stellenanzeige öffnen →', 'Open job listing →')}

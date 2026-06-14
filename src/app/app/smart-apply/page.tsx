@@ -7,6 +7,7 @@ import Navbar from '../components/Navbar'
 import { useLanguage } from '@/lib/i18n'
 import { SS, API } from '@/lib/constants'
 import SvgIcon, { type IconName } from '@/components/SvgIcon'
+import { createClient } from '@/lib/supabase'
 
 interface Job {
   job_id: string
@@ -69,6 +70,7 @@ function SmartJobSearchPage() {
   const [analysing, setAnalysing] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [isAdmin, setIsAdmin] = useState(false)
   const [usedQuery, setUsedQuery] = useState('')
 
   const [activeRight, setActiveRight] = useState<RightTab>('description')
@@ -77,6 +79,12 @@ function SmartJobSearchPage() {
 
   const hasProfile = !!(linkedinText || cvText)
   const autoSearchDone = useRef(false)
+
+  useEffect(() => {
+    createClient().auth.getUser().then(({ data }) => {
+      setIsAdmin(data.user?.email === 'sap.rashid@gmail.com')
+    })
+  }, [])
 
   useEffect(() => {
     const fromCareerScan = searchParams.get('from') === 'career-scan'
@@ -553,9 +561,11 @@ function SmartJobSearchPage() {
                 <button onClick={() => toggleLogged(selectedJob.job_id)} style={{ fontSize: 13, padding: '9px 16px', borderRadius: 8, border: `1px solid ${loggedJobs.has(selectedJob.job_id) ? '#b6ecd8' : '#dce4ef'}`, background: loggedJobs.has(selectedJob.job_id) ? '#f0fbf6' : '#fff', color: loggedJobs.has(selectedJob.job_id) ? '#1D9E75' : '#6b7c93', cursor: 'pointer', fontFamily: 'inherit', fontWeight: 500 }}>
                   {loggedJobs.has(selectedJob.job_id) ? t.smartApply.results.applied : t.smartApply.results.logApplied}
                 </button>
-                <button onClick={() => openJobCase(selectedJob)} style={{ fontSize: 13, padding: '9px 16px', borderRadius: 8, border: '1px solid rgba(4,44,83,0.2)', background: 'rgba(4,44,83,0.04)', color: '#042C53', cursor: 'pointer', fontFamily: "'Outfit', sans-serif", fontWeight: 600 }}>
-                  Job Case →
-                </button>
+                {isAdmin && (
+                  <button onClick={() => openJobCase(selectedJob)} style={{ fontSize: 13, padding: '9px 16px', borderRadius: 8, border: '1px solid rgba(4,44,83,0.2)', background: 'rgba(4,44,83,0.04)', color: '#042C53', cursor: 'pointer', fontFamily: "'Outfit', sans-serif", fontWeight: 600 }}>
+                    Job Case →
+                  </button>
+                )}
               </div>
             </div>
           )}
