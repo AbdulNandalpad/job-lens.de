@@ -56,6 +56,16 @@ const translations = {
     ],
     autoApplyCta: 'Mit Beispielformular testen →',
     autoApplyNote: 'Keine Kreditkarte nötig · 3 Credits pro Bewerbung',
+    jobCaseTag: 'Demnächst · Job Case',
+    jobCaseH2: 'Deine Bewerbung als interaktive Fallstudie.',
+    jobCaseSub: 'Statt eines langweiligen Lebenslaufs präsentierst du Recruitern eine strukturierte Fallstudie: deine Stärken, Belege und Antworten auf die wichtigsten Anforderungen — alles auf einer Seite, mit KI analysiert.',
+    jobCaseBullets: [
+      'KI analysiert die Stellenanzeige und erstellt dein persönliches Profil',
+      'Belege deine Eignung mit echten Beispielen aus deiner Karriere',
+      'Optionales Kurzvideo — zeig wer du bist, nicht nur was du kannst',
+      'Recruiter erhalten einen privaten Link — keine Registrierung nötig',
+    ],
+    jobCaseComingSoon: 'Coming Soon',
     howTitle: 'So funktioniert es',
     howSub: 'Vom Lebenslauf-Upload bis zur eingereichten Bewerbung in Minuten',
     steps: [
@@ -178,6 +188,16 @@ const translations = {
     ],
     autoApplyCta: 'Try with sample form →',
     autoApplyNote: 'No credit card needed · 3 credits per application',
+    jobCaseTag: 'Coming Soon · Job Case',
+    jobCaseH2: 'Your application as an interactive case study.',
+    jobCaseSub: 'Instead of a static CV, give recruiters a structured case: your strengths, evidence, and answers to each key requirement — one link, AI-powered.',
+    jobCaseBullets: [
+      'AI analyses the job posting and builds your personal fit profile',
+      'Back up your skills with real examples from your career',
+      'Optional short video — show who you are, not just what you\'ve done',
+      'Recruiters get a private link — no sign-up required',
+    ],
+    jobCaseComingSoon: 'Coming Soon',
     howTitle: 'How it works',
     howSub: 'From CV upload to submitted application in minutes',
     steps: [
@@ -768,6 +788,118 @@ export default function HomePage() {
             {/* Demo widget */}
             <KiraDemoWidget market="eu" lang={lang} />
           </div>
+        </div>
+
+        {/* ── Job Case Coming Soon ── */}
+        <div className="jl-subsection">
+          <div style={{
+            background: 'linear-gradient(160deg, #0d1f30 0%, #091624 100%)',
+            borderRadius: 20,
+            border: '1px solid rgba(55,138,221,0.18)',
+            overflow: 'hidden',
+            padding: '48px 40px',
+            position: 'relative',
+          }}>
+            {/* Background glow */}
+            <div style={{ position: 'absolute', top: -60, right: -60, width: 400, height: 300, background: 'radial-gradient(ellipse, rgba(55,138,221,0.12) 0%, transparent 70%)', pointerEvents: 'none' }} />
+            <div style={{ position: 'absolute', bottom: -40, left: '10%', width: 280, height: 200, background: 'radial-gradient(ellipse, rgba(109,40,217,0.1) 0%, transparent 70%)', pointerEvents: 'none' }} />
+
+            <div className="jc-hero-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 48, alignItems: 'center', position: 'relative', zIndex: 1 }}>
+              {/* Left — copy */}
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 20 }}>
+                  <div style={{
+                    display: 'inline-flex', alignItems: 'center', gap: 8,
+                    background: 'rgba(109,40,217,0.18)', border: '1px solid rgba(109,40,217,0.4)',
+                    borderRadius: 20, padding: '4px 14px',
+                  }}>
+                    <span style={{ width: 7, height: 7, borderRadius: '50%', background: '#a855f7', display: 'inline-block' }} />
+                    <span style={{ fontSize: 11, fontWeight: 700, color: '#a855f7', letterSpacing: 0.6, textTransform: 'uppercase' as const }}>
+                      {t.jobCaseTag}
+                    </span>
+                  </div>
+                </div>
+
+                <h2 style={{ fontFamily: f.heading, fontSize: 28, fontWeight: 700, color: '#fff', lineHeight: 1.25, margin: '0 0 16px' }}>
+                  {t.jobCaseH2}
+                </h2>
+
+                <p style={{ fontSize: 14, color: 'rgba(255,255,255,0.55)', lineHeight: 1.7, margin: '0 0 24px' }}>
+                  {t.jobCaseSub}
+                </p>
+
+                <ul style={{ listStyle: 'none', padding: 0, margin: '0 0 32px', display: 'flex', flexDirection: 'column' as const, gap: 10 }}>
+                  {t.jobCaseBullets.map((b, i) => (
+                    <li key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 10, fontSize: 13, color: 'rgba(255,255,255,0.75)' }}>
+                      <span style={{ width: 18, height: 18, borderRadius: '50%', background: 'rgba(168,85,247,0.2)', border: '1px solid rgba(168,85,247,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, color: '#a855f7', flexShrink: 0, marginTop: 1 }}>✓</span>
+                      {b}
+                    </li>
+                  ))}
+                </ul>
+
+                <div style={{ display: 'inline-flex', alignItems: 'center', gap: 10, padding: '12px 24px', borderRadius: 11, background: 'rgba(168,85,247,0.1)', border: '1px solid rgba(168,85,247,0.3)' }}>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#a855f7" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+                  </svg>
+                  <span style={{ fontSize: 13, fontWeight: 700, color: '#a855f7', fontFamily: f.heading }}>{t.jobCaseComingSoon}</span>
+                </div>
+              </div>
+
+              {/* Right — visual mock */}
+              <div style={{ display: 'flex', justifyContent: 'center' }}>
+                <div style={{ width: '100%', maxWidth: 360, background: '#fff', borderRadius: 16, padding: '24px 20px', boxShadow: '0 24px 64px rgba(0,0,0,0.3)', display: 'flex', flexDirection: 'column' as const, gap: 14 }}>
+                  {/* Header */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <div style={{ width: 40, height: 40, borderRadius: 10, background: c.primaryLight, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={c.accent} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/>
+                      </svg>
+                    </div>
+                    <div>
+                      <div style={{ fontFamily: f.heading, fontSize: 13, fontWeight: 700, color: c.primary }}>Senior Product Manager</div>
+                      <div style={{ fontSize: 11, color: c.textMuted }}>Acme GmbH · Berlin</div>
+                    </div>
+                    <div style={{ marginLeft: 'auto', padding: '3px 10px', borderRadius: 20, background: '#F0FFF4', border: '1px solid #86EFAC', fontSize: 10, fontWeight: 700, color: '#16a34a' }}>92%</div>
+                  </div>
+                  <div style={{ height: 1, background: c.border }} />
+                  {/* Requirements */}
+                  {[
+                    { label: lang === 'DE' ? 'Produktstrategie' : 'Product Strategy', match: true },
+                    { label: lang === 'DE' ? 'Stakeholder-Management' : 'Stakeholder Mgmt', match: true },
+                    { label: lang === 'DE' ? 'Datengetrieben' : 'Data-driven mindset', match: true },
+                    { label: lang === 'DE' ? 'SCRUM / Agile' : 'SCRUM / Agile', match: false },
+                  ].map(req => (
+                    <div key={req.label} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <span style={{ width: 16, height: 16, borderRadius: '50%', background: req.match ? '#F0FFF4' : '#FEF2F2', border: `1px solid ${req.match ? '#86EFAC' : '#FCA5A5'}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 9, color: req.match ? '#16a34a' : '#dc2626', flexShrink: 0 }}>
+                        {req.match ? '✓' : '○'}
+                      </span>
+                      <span style={{ fontSize: 12, color: c.text }}>{req.label}</span>
+                    </div>
+                  ))}
+                  <div style={{ height: 1, background: c.border }} />
+                  {/* Video placeholder */}
+                  <div style={{ borderRadius: 10, background: c.primaryLight, border: `1.5px dashed ${c.accent}44`, padding: '12px 16px', display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={c.accent} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/>
+                    </svg>
+                    <span style={{ fontSize: 12, color: c.accent, fontWeight: 600 }}>{lang === 'DE' ? '90-Sek-Video · bereit' : '90s intro video · ready'}</span>
+                  </div>
+                  {/* Footer */}
+                  <div style={{ background: 'linear-gradient(135deg, #378ADD, #185FA5)', borderRadius: 9, padding: '9px 0', textAlign: 'center', fontSize: 12, fontWeight: 700, color: '#fff', fontFamily: f.heading }}>
+                    {lang === 'DE' ? 'Link an Recruiter senden →' : 'Send link to recruiter →'}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <style>{`
+            @media (max-width: 768px) {
+              .jc-hero-grid { grid-template-columns: 1fr !important; gap: 32px !important; }
+            }
+            @media (max-width: 560px) {
+              .jc-hero-grid > div:last-child { display: none !important; }
+            }
+          `}</style>
         </div>
 
         {/* ── Pricing ── */}

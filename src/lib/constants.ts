@@ -128,7 +128,7 @@ export const API = {
 
 // ── Job Case ─────────────────────────────────────────────────────────────────
 export const JOB_CASE = {
-  creditCost:       10,
+  creditCost:       6,
   videoMaxSeconds:  120,
   testMinutes:      8,
   expiryDays:       30,
