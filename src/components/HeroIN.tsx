@@ -405,34 +405,32 @@ export default function HeroIN({ user }: Props) {
   const activeRef = useRef(0)
   const timerRef  = useRef<ReturnType<typeof setInterval> | null>(null)
   const pausedRef = useRef(false)
-  const animRef   = useRef(false)
 
-  function go(next: number) {
-    if (animRef.current) return
-    animRef.current = true
+  function advance(next: number) {
     setFading(true)
     setTimeout(() => {
       activeRef.current = next
       setActive(next)
       setFading(false)
-      animRef.current = false
     }, FADE_MS)
   }
 
-  function startTimer() {
-    if (timerRef.current) clearInterval(timerRef.current)
-    timerRef.current = setInterval(() => {
-      if (!pausedRef.current) go((activeRef.current + 1) % SLIDES.length)
-    }, INTERVAL)
-  }
-
   useEffect(() => {
-    startTimer()
+    timerRef.current = setInterval(() => {
+      if (!pausedRef.current) {
+        advance((activeRef.current + 1) % SLIDES.length)
+      }
+    }, INTERVAL)
     return () => { if (timerRef.current) clearInterval(timerRef.current) }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  const manualGo = (i: number) => { go(i); startTimer() }
+  const manualGo = (i: number) => {
+    if (timerRef.current) clearInterval(timerRef.current)
+    advance(i)
+    timerRef.current = setInterval(() => {
+      if (!pausedRef.current) advance((activeRef.current + 1) % SLIDES.length)
+    }, INTERVAL)
+  }
   const slide = SLIDES[active]
   const Mock  = MOCKS[active]
   const href  = (path: string) => user ? path : `/in/login?next=${encodeURIComponent(path)}`
