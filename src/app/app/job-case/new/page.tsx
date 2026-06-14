@@ -524,10 +524,24 @@ export default function JobCaseNewPage() {
   const [tabSwitches, setTabSwitches] = useState(0)
   const [submitted, setSubmitted]     = useState(false)
 
-  // Read CV text from Career Scan session
+  // Read CV text from Career Scan / CV Builder session
   useEffect(() => {
     const cv = sessionStorage.getItem(SS.cvText) || sessionStorage.getItem(SS.cvbTailored)
     if (cv && cv.trim().length > 100) setCvFound(true)
+  }, [])
+
+  // Pre-fill from job search if navigated via Job Case button
+  useEffect(() => {
+    const raw = sessionStorage.getItem(SS.jcJob)
+    if (!raw) return
+    try {
+      const job = JSON.parse(raw)
+      if (job.job_description) setJobText(job.job_description)
+      if (job.job_apply_link)  setJobUrl(job.job_apply_link)
+      if (job.job_title)       setJobTitle(job.job_title)
+      if (job.employer_name)   setCompany(job.employer_name)
+      sessionStorage.removeItem(SS.jcJob)
+    } catch {}
   }, [])
 
   async function analyse() {

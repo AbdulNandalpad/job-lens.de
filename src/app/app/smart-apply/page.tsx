@@ -277,6 +277,16 @@ function SmartJobSearchPage() {
     router.push('/app/cover-letter')
   }
 
+  function openJobCase(job: Job) {
+    sessionStorage.setItem(SS.jcJob, JSON.stringify({
+      job_title:       job.job_title,
+      employer_name:   job.employer_name,
+      job_description: job.job_description,
+      job_apply_link:  job.job_apply_link,
+    }))
+    router.push('/app/job-case/new')
+  }
+
   function selectJob(job: Job) { setSelectedJob(job); setActiveRight('description') }
 
   function formatPostedDate(dateStr: string) {
@@ -542,6 +552,9 @@ function SmartJobSearchPage() {
                 </a>
                 <button onClick={() => toggleLogged(selectedJob.job_id)} style={{ fontSize: 13, padding: '9px 16px', borderRadius: 8, border: `1px solid ${loggedJobs.has(selectedJob.job_id) ? '#b6ecd8' : '#dce4ef'}`, background: loggedJobs.has(selectedJob.job_id) ? '#f0fbf6' : '#fff', color: loggedJobs.has(selectedJob.job_id) ? '#1D9E75' : '#6b7c93', cursor: 'pointer', fontFamily: 'inherit', fontWeight: 500 }}>
                   {loggedJobs.has(selectedJob.job_id) ? t.smartApply.results.applied : t.smartApply.results.logApplied}
+                </button>
+                <button onClick={() => openJobCase(selectedJob)} style={{ fontSize: 13, padding: '9px 16px', borderRadius: 8, border: '1px solid rgba(4,44,83,0.2)', background: 'rgba(4,44,83,0.04)', color: '#042C53', cursor: 'pointer', fontFamily: "'Outfit', sans-serif", fontWeight: 600 }}>
+                  Job Case →
                 </button>
               </div>
             </div>

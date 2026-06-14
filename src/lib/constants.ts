@@ -71,6 +71,9 @@ export const SS = {
   // Session owner — compared on every app load; mismatch triggers full clear
   uid:                 'jl_uid',
 
+  // Job Case — pre-fill from job search
+  jcJob:               'jl_jc_job',
+
   // Interview Prep — written by interview page, read by Kira
   interviewRole:       'jl_interview_role',
   interviewCompany:    'jl_interview_company',
