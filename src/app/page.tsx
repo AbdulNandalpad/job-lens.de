@@ -9,6 +9,7 @@ import KiraDemoWidget from '@/components/KiraDemoWidget'
 import AutoApplyDemoWidget from '@/components/AutoApplyDemoWidget'
 import SvgIcon, { type IconName } from '@/components/SvgIcon'
 import HeroSlider from '@/components/HeroSlider'
+import HeroEU from '@/components/HeroEU'
 
 const { colors: c, gradients: g, fonts: f, shadow: sh } = theme
 
@@ -558,7 +559,7 @@ export default function HomePage() {
       </div>
 
       {/* ── Hero ── */}
-      <HeroSlider market="eu" lang={lang} />
+      <HeroEU lang={lang} user={user} />
 
       {/* ── Features ── */}
       <div className="jl-section" style={{ maxWidth: 1100, margin: '0 auto' }}>
