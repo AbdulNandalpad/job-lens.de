@@ -65,6 +65,16 @@ const DECK_EU_DE: Slide[] = [
     href: '/app/zeugnis',
     accentColor: '#F59E0B',
   },
+  {
+    icon: 'briefcase',
+    tag: 'Demnächst · Job Case',
+    h1: 'Mehr als ein Lebenslauf —',
+    h1Accent: 'deine persönliche Fallstudie.',
+    sub: 'KI analysiert die Stellenanzeige, du lieferst die Belege. Recruiter erhalten einen privaten Link — kein Formular, kein PDF, nur dein stärkstes Argument.',
+    cta: 'Coming Soon',
+    href: '#',
+    accentColor: '#a855f7',
+  },
 ]
 
 const DECK_EU_EN: Slide[] = [
@@ -117,6 +127,16 @@ const DECK_EU_EN: Slide[] = [
     cta: 'Decode Zeugnis →',
     href: '/app/zeugnis',
     accentColor: '#F59E0B',
+  },
+  {
+    icon: 'briefcase',
+    tag: 'Coming Soon · Job Case',
+    h1: 'More than a CV —',
+    h1Accent: 'your personal case study.',
+    sub: 'AI analyses the job posting, you supply the evidence. Recruiters get a private link — no form, no PDF, just your strongest argument.',
+    cta: 'Coming Soon',
+    href: '#',
+    accentColor: '#a855f7',
   },
 ]
 
@@ -358,22 +378,41 @@ function SlideContent({ slide }: { slide: Slide }) {
       </p>
 
       {/* CTA */}
-      <a
-        href={slide.href}
-        className="hs-cta"
-        style={{
-          padding: '12px 32px',
-          borderRadius: 10,
-          background: slide.accentColor,
-          color: '#fff',
-          fontWeight: 700,
-          fontSize: 15,
-          fontFamily: theme.fonts.heading,
-          boxShadow: `0 6px 22px ${slide.accentColor}32`,
-        }}
-      >
-        {slide.cta}
-      </a>
+      {slide.href === '#' ? (
+        <span
+          style={{
+            display: 'inline-block',
+            padding: '12px 32px',
+            borderRadius: 10,
+            background: `${slide.accentColor}22`,
+            border: `1.5px solid ${slide.accentColor}55`,
+            color: slide.accentColor,
+            fontWeight: 700,
+            fontSize: 15,
+            fontFamily: theme.fonts.heading,
+            letterSpacing: 0.3,
+          }}
+        >
+          {slide.cta}
+        </span>
+      ) : (
+        <a
+          href={slide.href}
+          className="hs-cta"
+          style={{
+            padding: '12px 32px',
+            borderRadius: 10,
+            background: slide.accentColor,
+            color: '#fff',
+            fontWeight: 700,
+            fontSize: 15,
+            fontFamily: theme.fonts.heading,
+            boxShadow: `0 6px 22px ${slide.accentColor}32`,
+          }}
+        >
+          {slide.cta}
+        </a>
+      )}
     </div>
   )
 }
