@@ -168,6 +168,16 @@ export default function IndiaJobsPage() {
     router.push(path)
   }
 
+  function goToJobCase(job: Job) {
+    sessionStorage.setItem(SS.jcJob, JSON.stringify({
+      job_title:       job.job_title,
+      employer_name:   job.employer_name,
+      job_description: job.job_description,
+      job_apply_link:  job.job_apply_link,
+    }))
+    router.push('/app/job-case/new')
+  }
+
   return (
     <>
       <style>{`
@@ -329,6 +339,10 @@ export default function IndiaJobsPage() {
                           <button className="jl-action-btn" onClick={() => goTo('/in/cover-letter')}
                             style={{ padding: '10px 18px', borderRadius: 9, border: `1px solid ${blue}40`, background: blue + '10', color: blue, fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: "'Outfit',sans-serif" }}>
                             Write Cover Letter
+                          </button>
+                          <button className="jl-action-btn" onClick={() => goToJobCase(job)}
+                            style={{ padding: '10px 18px', borderRadius: 9, border: '1px solid rgba(4,44,83,0.2)', background: 'rgba(4,44,83,0.04)', color: '#042C53', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: "'Outfit',sans-serif" }}>
+                            Job Case
                           </button>
                           <a href={job.job_apply_link} target="_blank" rel="noopener noreferrer" className="jl-action-btn"
                             style={{ padding: '10px 18px', borderRadius: 9, border: '1px solid #dce4ef', background: '#f8fafc', color: '#6b7c93', fontSize: 12, fontWeight: 600, textDecoration: 'none', cursor: 'pointer', fontFamily: "'Outfit',sans-serif" }}>
