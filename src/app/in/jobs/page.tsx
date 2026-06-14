@@ -330,10 +330,6 @@ export default function IndiaJobsPage() {
                             style={{ padding: '10px 18px', borderRadius: 9, border: `1px solid ${blue}40`, background: blue + '10', color: blue, fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: "'Outfit',sans-serif" }}>
                             Write Cover Letter
                           </button>
-                          <button className="jl-action-btn" onClick={() => goTo('/in/career-scan')}
-                            style={{ padding: '10px 18px', borderRadius: 9, border: `1px solid ${green}40`, background: green + '10', color: green, fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: "'Outfit',sans-serif" }}>
-                            ATS Check
-                          </button>
                           <a href={job.job_apply_link} target="_blank" rel="noopener noreferrer" className="jl-action-btn"
                             style={{ padding: '10px 18px', borderRadius: 9, border: '1px solid #dce4ef', background: '#f8fafc', color: '#6b7c93', fontSize: 12, fontWeight: 600, textDecoration: 'none', cursor: 'pointer', fontFamily: "'Outfit',sans-serif" }}>
                             Open job listing →

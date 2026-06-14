@@ -504,10 +504,6 @@ export default function DACHJobsPage() {
                             style={{ padding: '10px 18px', borderRadius: 9, border: `1px solid ${blue}40`, background: blue + '10', color: blue, fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: "'Outfit',sans-serif" }}>
                             {label('Anschreiben', 'Cover Letter')}
                           </button>
-                          <button className="dach-action-btn" onClick={() => goTo('/app/career-scan')}
-                            style={{ padding: '10px 18px', borderRadius: 9, border: `1px solid ${green}40`, background: green + '10', color: green, fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: "'Outfit',sans-serif" }}>
-                            Career Scan
-                          </button>
                           <button className="dach-action-btn" onClick={() => goToJobCase(job)}
                             style={{ padding: '10px 18px', borderRadius: 9, border: `1px solid ${navy}30`, background: navy + '08', color: navy, fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: "'Outfit',sans-serif" }}>
                             Job Case
