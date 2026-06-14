@@ -435,7 +435,7 @@ export default function HeroIN({ user }: Props) {
   const manualGo = (i: number) => { go(i); startTimer() }
   const slide = SLIDES[active]
   const Mock  = MOCKS[active]
-  const go    = (path: string) => user ? path : `/in/login?next=${encodeURIComponent(path)}`
+  const href  = (path: string) => user ? path : `/in/login?next=${encodeURIComponent(path)}`
 
   return (
     <section
@@ -484,12 +484,12 @@ export default function HeroIN({ user }: Props) {
                 </span>
               ) : (
                 <>
-                  <Link href={go(slide.href)} style={{ background: slide.color, color: '#fff', padding: '12px 26px', borderRadius: 9, fontWeight: 700, fontSize: 14, fontFamily: f.heading, textDecoration: 'none', display: 'inline-block', boxShadow: `0 6px 24px ${slide.color}35`, transition: 'opacity 0.16s,transform 0.16s' }}
+                  <Link href={href(slide.href)} style={{ background: slide.color, color: '#fff', padding: '12px 26px', borderRadius: 9, fontWeight: 700, fontSize: 14, fontFamily: f.heading, textDecoration: 'none', display: 'inline-block', boxShadow: `0 6px 24px ${slide.color}35`, transition: 'opacity 0.16s,transform 0.16s' }}
                     onMouseEnter={e => { (e.currentTarget as HTMLElement).style.opacity='0.88';(e.currentTarget as HTMLElement).style.transform='translateY(-1px)' }}
                     onMouseLeave={e => { (e.currentTarget as HTMLElement).style.opacity='1';(e.currentTarget as HTMLElement).style.transform='translateY(0)' }}>
                     {slide.cta} →
                   </Link>
-                  <Link href={go('/in/jobs')} className="hin-ghost">Browse jobs</Link>
+                  <Link href={href('/in/jobs')} className="hin-ghost">Browse jobs</Link>
                 </>
               )}
             </div>
