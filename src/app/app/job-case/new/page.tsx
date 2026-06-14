@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import Navbar from '../../components/Navbar'
 import { c, f, sh, g } from '@/lib/theme'
@@ -10,7 +10,7 @@ import AdminGate from '@/components/AdminGate'
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
-type Step = 'paste' | 'analysing' | 'review' | 'consent' | 'evidence' | 'questions' | 'test' | 'generating' | 'done'
+type Step = 'paste' | 'analysing' | 'review' | 'consent' | 'evidence' | 'questions' | 'video' | 'test' | 'generating' | 'done'
 
 type Requirement = { id: string; skill: string; description: string; essential: boolean }
 type Evidence    = { requirementId: string; text: string; url: string }
@@ -300,6 +300,27 @@ function SidebarContent({ step, credits, cvFound, questions }: {
     </div>
   )
 
+  if (step === 'video') return (
+    <div>
+      <SBLabel>Recording tips</SBLabel>
+      <SBHeading>One take · 2 minutes max</SBHeading>
+      <SBBody>
+        This is the part that replaces the cover letter. Recruiters watch 30–60 seconds on average — make the first 20 seconds count.
+      </SBBody>
+      <SBDivider />
+      <SBLabel>What to say</SBLabel>
+      <SBTip icon="🎯">Start with: "I'm [name], applying for [role] at [company]."</SBTip>
+      <SBTip icon="💪">Name your strongest requirement match from the table.</SBTip>
+      <SBTip icon="🔍">Mention one specific thing about the company that excited you.</SBTip>
+      <SBTip icon="✅">Close with why you'd be ready to start.</SBTip>
+      <SBDivider />
+      <SBLabel>Technical</SBLabel>
+      <SBTip icon="💡">Look at the camera lens, not your face on screen.</SBTip>
+      <SBTip icon="🎙">Use headphones to avoid echo.</SBTip>
+      <SBTip icon="🌅">Natural side light beats a ring light.</SBTip>
+    </div>
+  )
+
   if (step === 'test') return (
     <div>
       <SBLabel>During the test</SBLabel>
@@ -417,9 +438,9 @@ function QualityBadge({ q }: { q: JobQuality }) {
 }
 
 function StepProgress({ step }: { step: Step }) {
-  const ordered: Step[] = ['paste', 'review', 'consent', 'evidence', 'questions', 'test', 'done']
-  const labels = ['Job', 'Review', 'Consent', 'Evidence', 'Questions', 'Test', 'Done']
-  const current = step === 'analysing' ? 0 : step === 'generating' ? 6 : ordered.indexOf(step)
+  const ordered: Step[] = ['paste', 'review', 'consent', 'evidence', 'questions', 'video', 'test', 'done']
+  const labels = ['Job', 'Review', 'Consent', 'Evidence', 'Questions', 'Video', 'Test', 'Done']
+  const current = step === 'analysing' ? 0 : step === 'generating' ? 7 : ordered.indexOf(step)
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 0, marginBottom: 24, overflowX: 'auto', paddingBottom: 4 }}>
       {ordered.map((s, i) => {
@@ -475,12 +496,26 @@ export default function JobCaseNewPage() {
   const [jobTitle, setJobTitle]  = useState('')
   const [company, setCompany]    = useState('')
   const [reqs, setReqs]          = useState<Requirement[]>([])
-  const [consent, setConsent]    = useState({ test: false, tracking: false })
+  const [consent, setConsent]    = useState({ video: false, test: false, tracking: false })
   const [evidence, setEvidence]  = useState<Evidence[]>([])
   const [questions, setQuestions] = useState<Question[]>([])
   const [analyseError, setAnalyseError] = useState('')
   const [caseSlug, setCaseSlug]  = useState('')
   const [caseUrl, setCaseUrl]    = useState('')
+  const [videoStorageKey, setVideoStorageKey] = useState<string | null>(null)
+  const [uploading, setUploading] = useState(false)
+
+  const [countdown, setCountdown] = useState(0)
+  const [recording, setRecording] = useState(false)
+  const [elapsed, setElapsed]     = useState(0)
+  const [videoBlob, setVideoBlob] = useState<Blob | null>(null)
+  const [videoUrl, setVideoUrl]   = useState('')
+  const liveRef    = useRef<HTMLVideoElement>(null)
+  const previewRef = useRef<HTMLVideoElement>(null)
+  const mrRef      = useRef<MediaRecorder | null>(null)
+  const chunksRef  = useRef<Blob[]>([])
+  const streamRef  = useRef<MediaStream | null>(null)
+  const timerRef   = useRef<ReturnType<typeof setInterval> | null>(null)
 
   const [testStarted, setTestStarted] = useState(false)
   const [timeLeft, setTimeLeft]       = useState(JOB_CASE.testMinutes * 60)
@@ -551,8 +586,8 @@ export default function JobCaseNewPage() {
           qualityScore: quality,
           requirements: reqs, evidence,
           questions, answers, tabSwitches,
-          videoStorageKey: null,
-          consent: { video: false, test: true, tracking: true },
+          videoStorageKey,
+          consent: { video: true, test: true, tracking: true },
           cvText,
         }),
       })
@@ -565,6 +600,60 @@ export default function JobCaseNewPage() {
     } catch {
       setStep('test')
     }
+  }
+
+  async function uploadVideo(blob: Blob): Promise<string | null> {
+    setUploading(true)
+    try {
+      const mimeType = blob.type || 'video/webm'
+      const urlRes = await fetch(API.jobCaseUploadVideo, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ mimeType }),
+      })
+      const { signedUrl, storagePath } = await urlRes.json()
+      if (!signedUrl) return null
+      await fetch(signedUrl, { method: 'PUT', body: blob, headers: { 'Content-Type': mimeType } })
+      return storagePath
+    } catch (err) {
+      console.error('Video upload error:', err)
+      return null
+    } finally {
+      setUploading(false)
+    }
+  }
+
+  async function startCountdown() {
+    const stream = await navigator.mediaDevices.getUserMedia({ video: { width: 1280, height: 720, facingMode: 'user' }, audio: { echoCancellation: true, noiseSuppression: true } })
+    streamRef.current = stream
+    if (liveRef.current) { liveRef.current.srcObject = stream; liveRef.current.muted = true; liveRef.current.play() }
+    setCountdown(3)
+    let n = 3
+    const iv = setInterval(() => { n--; setCountdown(n); if (n === 0) { clearInterval(iv); beginRecording(stream) } }, 1000)
+  }
+
+  function beginRecording(stream: MediaStream) {
+    chunksRef.current = []
+    const mimeType = MediaRecorder.isTypeSupported('video/webm;codecs=vp9') ? 'video/webm;codecs=vp9' : 'video/mp4'
+    const mr = new MediaRecorder(stream, { mimeType })
+    mr.ondataavailable = e => { if (e.data.size > 0) chunksRef.current.push(e.data) }
+    mr.onstop = async () => {
+      const blob = new Blob(chunksRef.current, { type: mimeType })
+      setVideoBlob(blob)
+      setVideoUrl(URL.createObjectURL(blob))
+      setRecording(false)
+      if (timerRef.current) clearInterval(timerRef.current)
+      stream.getTracks().forEach(t => t.stop())
+      const key = await uploadVideo(blob)
+      if (key) setVideoStorageKey(key)
+    }
+    mr.start()
+    mrRef.current = mr
+    setRecording(true)
+    setElapsed(0)
+    timerRef.current = setInterval(() => {
+      setElapsed(e => { if (e + 1 >= JOB_CASE.videoMaxSeconds) { mr.stop(); return JOB_CASE.videoMaxSeconds } return e + 1 })
+    }, 1000)
   }
 
   useEffect(() => {
@@ -581,7 +670,7 @@ export default function JobCaseNewPage() {
   }, [testStarted, submitted])
 
   const fmt = (s: number) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`
-  const allConsent = consent.test && consent.tracking
+  const allConsent = consent.video && consent.test && consent.tracking
 
   return (
     <AdminGate>
@@ -670,10 +759,11 @@ export default function JobCaseNewPage() {
                   <StepHeading title="Your consent" sub="All three are required. Everything is hard-deleted after 30 days." />
                   <Card>
                     {[
+                      { key: 'video'    as const, label: 'Video storage', text: 'I consent to my video pitch being stored for 30 days and shared with recruiters who access this Job Case via the link I provide.' },
                       { key: 'test'     as const, label: 'Test answers',  text: 'I consent to my skill test answers and scores being stored for 30 days and shown to recruiters who access this Job Case.' },
                       { key: 'tracking' as const, label: 'View tracking', text: 'I consent to Job-Lens recording the email domain of recruiters who view my Job Case, and notifying me when a view occurs.' },
                     ].map((item, i) => (
-                      <label key={item.key} style={{ display: 'flex', gap: 12, cursor: 'pointer', paddingBottom: i < 1 ? 18 : 0, marginBottom: i < 1 ? 18 : 0, borderBottom: i < 1 ? `1px solid ${c.border}` : 'none' }}>
+                      <label key={item.key} style={{ display: 'flex', gap: 12, cursor: 'pointer', paddingBottom: i < 2 ? 18 : 0, marginBottom: i < 2 ? 18 : 0, borderBottom: i < 2 ? `1px solid ${c.border}` : 'none' }}>
                         <input type="checkbox" className="jc-check" checked={consent[item.key]} onChange={e => setConsent(p => ({ ...p, [item.key]: e.target.checked }))} style={{ marginTop: 2 }} />
                         <div>
                           <div style={{ fontSize: 13, fontWeight: 600, color: c.text, marginBottom: 3 }}>{item.label}</div>
@@ -735,20 +825,71 @@ export default function JobCaseNewPage() {
                       </div>
                     ))}
                     <div style={{ marginTop: 14, padding: '11px 14px', background: c.primaryLight, border: `1px solid rgba(55,138,221,0.2)`, borderRadius: 8, fontSize: 13, color: c.textMuted }}>
-                      Starting the test will deduct <strong style={{ color: c.primary }}>{JOB_CASE.creditCost} credits</strong>.
+                      Starting the video step will deduct <strong style={{ color: c.primary }}>{JOB_CASE.creditCost} credits</strong>.
                     </div>
                   </Card>
                   <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
                     <button className="jc-btn-ghost" onClick={() => setStep('evidence')}>← Abort (keep credits)</button>
-                    <button className="jc-btn" onClick={() => setStep('test')}>Start skill test →</button>
+                    <button className="jc-btn" onClick={() => setStep('video')}>Record video →</button>
                   </div>
+                </div>
+              )}
+
+              {/* ── VIDEO ──────────────────────────────────────────────── */}
+              {step === 'video' && (
+                <div className="jc-fade">
+                  <SectionLabel>Step 6 of 8</SectionLabel>
+                  <StepHeading title="Record your 2-minute pitch" sub="One take only. Talk directly about why you fit this specific role." />
+                  <Card>
+                    <div style={{ position: 'relative', width: '100%', aspectRatio: '16/9', background: '#000', borderRadius: 10, overflow: 'hidden', marginBottom: 18, border: `1px solid ${c.border}` }}>
+                      {!videoBlob
+                        ? <video ref={liveRef} style={{ width: '100%', height: '100%', objectFit: 'cover', transform: 'scaleX(-1)' }} muted playsInline />
+                        : <video ref={previewRef} src={videoUrl} controls style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                      }
+                      {countdown > 0 && (
+                        <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.55)' }}>
+                          <div style={{ fontFamily: f.heading, fontSize: 88, fontWeight: 700, color: '#fff', animation: 'jcPulse 1s ease' }}>{countdown}</div>
+                        </div>
+                      )}
+                      {recording && (
+                        <div style={{ position: 'absolute', top: 12, left: 12, display: 'flex', alignItems: 'center', gap: 6, background: 'rgba(0,0,0,0.65)', padding: '5px 10px', borderRadius: 20 }}>
+                          <div style={{ width: 7, height: 7, borderRadius: '50%', background: '#e53e3e', animation: 'jcPulse 1s ease infinite' }} />
+                          <span style={{ fontSize: 12, color: '#fff', fontWeight: 700 }}>REC {fmt(elapsed)} / {fmt(JOB_CASE.videoMaxSeconds)}</span>
+                        </div>
+                      )}
+                    </div>
+                    {!videoBlob ? (
+                      <div style={{ textAlign: 'center' }}>
+                        {!recording && countdown === 0 && (
+                          <button className="jc-btn" onClick={startCountdown} style={{ fontSize: 14, padding: '12px 32px' }}>Start recording</button>
+                        )}
+                        {recording && (
+                          <button onClick={() => mrRef.current?.stop()} style={{ background: '#e53e3e', color: '#fff', border: 'none', borderRadius: 8, padding: '11px 28px', fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: f.body }}>
+                            Stop recording
+                          </button>
+                        )}
+                        <p style={{ fontSize: 12, color: c.textFaint, margin: '10px 0 0' }}>Camera + microphone required · max 2 minutes</p>
+                      </div>
+                    ) : (
+                      <div style={{ textAlign: 'center' }}>
+                        {uploading && <p style={{ fontSize: 12, color: c.textMuted, marginBottom: 10 }}>Uploading video…</p>}
+                        <p style={{ fontSize: 13, color: c.textMuted, marginBottom: 14 }}>Watch your recording above. This is your only take.</p>
+                        <div style={{ display: 'flex', gap: 8, justifyContent: 'center' }}>
+                          <button className="jc-btn-ghost" onClick={() => { setVideoBlob(null); setVideoUrl(''); setElapsed(0); setVideoStorageKey(null) }}>Discard & re-record</button>
+                          <button className="jc-btn" disabled={uploading} onClick={() => setStep('test')}>
+                            {uploading ? 'Uploading…' : 'Confirm & take test →'}
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </Card>
                 </div>
               )}
 
               {/* ── TEST ───────────────────────────────────────────────── */}
               {step === 'test' && (
                 <div className="jc-fade">
-                  <SectionLabel>Step 7 of 7</SectionLabel>
+                  <SectionLabel>Step 7 of 8</SectionLabel>
                   <Card>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 18, gap: 12 }}>
                       <div>
