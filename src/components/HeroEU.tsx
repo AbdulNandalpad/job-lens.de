@@ -1,9 +1,71 @@
 'use client'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef, useCallback } from 'react'
 import Link from 'next/link'
 import { theme } from '@/lib/theme'
 
 const { fonts: f } = theme
+
+// ── Slide definitions ────────────────────────────────────────────────────────
+
+interface Slide {
+  color: string          // dominant accent
+  bg: string            // subtle bg tint for glow
+  tag: { de: string; en: string }
+  h1: { de: string; en: string }
+  h1Accent: { de: string; en: string }
+  sub: { de: string; en: string }
+  cta: { de: string; en: string }
+  href: string
+  comingSoon?: boolean
+}
+
+const SLIDES: Slide[] = [
+  {
+    color: '#378ADD',
+    bg: 'rgba(55,138,221,0.07)',
+    tag:      { de: 'Deutschland · Schweiz · Österreich', en: 'Germany · Switzerland · Austria' },
+    h1:       { de: 'Dein komplettes', en: 'Your complete' },
+    h1Accent: { de: 'KI-Bewerbungs-Toolkit.', en: 'AI job application toolkit.' },
+    sub:      { de: 'CV-Analyse, Job-Matching, Lebenslauf, Anschreiben und Auto Apply — alles an einem Ort. Gebaut für den DACH-Markt.', en: 'CV analysis, job matching, tailored CV, cover letter and Auto Apply — all in one place. Built for the DACH market.' },
+    cta:      { de: 'Kostenlos starten', en: 'Get started free' },
+    href: '/app/career-scan',
+  },
+  {
+    color: '#8B5CF6',
+    bg: 'rgba(139,92,246,0.07)',
+    tag:      { de: 'Kira AI · KI-Karriereassistentin', en: 'Kira AI · Career Assistant' },
+    h1:       { de: 'Dein nächster Job ist', en: 'Your next job is' },
+    h1Accent: { de: 'ein Gespräch entfernt.', en: 'just a conversation away.' },
+    sub:      { de: 'Sprich mit Kira — sie kennt den DACH-Markt in- und auswendig. Voice-first: Jobs finden, Lebenslauf analysieren, Gehalt einschätzen.', en: 'Talk to Kira — she knows the DACH market inside out. Voice-first: find jobs, analyse your CV, get real salary data.' },
+    cta:      { de: 'Kira kennenlernen', en: 'Meet Kira' },
+    href: '/app/ai',
+  },
+  {
+    color: '#10B981',
+    bg: 'rgba(16,185,129,0.07)',
+    tag:      { de: 'Auto Apply · Beta', en: 'Auto Apply · Beta' },
+    h1:       { de: 'Schluss mit copy-paste —', en: 'Stop copy-pasting —' },
+    h1Accent: { de: 'Kira füllt dein Formular.', en: 'Kira fills your form.' },
+    sub:      { de: 'Füge eine Job-URL ein. Kira öffnet das Formular, ordnet deinen Lebenslauf zu, füllt alle Felder aus. Du prüfst — dann wird abgesendet.', en: 'Paste a job URL. Kira opens the form, maps your CV, fills every field. You review — then it submits.' },
+    cta:      { de: 'Auto Apply testen', en: 'Try Auto Apply' },
+    href: '/app/auto-apply',
+  },
+  {
+    color: '#F59E0B',
+    bg: 'rgba(245,158,11,0.07)',
+    tag:      { de: 'Demnächst · Job Case', en: 'Coming Soon · Job Case' },
+    h1:       { de: 'Mehr als ein Lebenslauf —', en: 'More than a CV —' },
+    h1Accent: { de: 'deine persönliche Fallstudie.', en: 'your personal case study.' },
+    sub:      { de: 'KI analysiert die Stelle, du lieferst die Belege. Recruiter erhalten einen privaten Link — keine Registrierung, kein PDF, nur dein stärkstes Argument.', en: 'AI analyses the role, you supply the evidence. Recruiters get a private link — no sign-up, no PDF, just your strongest argument.' },
+    cta:      { de: 'Coming Soon', en: 'Coming Soon' },
+    href: '#',
+    comingSoon: true,
+  },
+]
+
+const INTERVAL = 5500
+
+// ── Counter animation ────────────────────────────────────────────────────────
 
 function useCountUp(target: number, duration = 1400, delay = 700) {
   const [value, setValue] = useState(0)
@@ -13,8 +75,7 @@ function useCountUp(target: number, duration = 1400, delay = 700) {
       const start = Date.now()
       const tick = () => {
         const p = Math.min((Date.now() - start) / duration, 1)
-        const eased = 1 - Math.pow(1 - p, 3)
-        setValue(Math.round(from + (target - from) * eased))
+        setValue(Math.round(from + (target - from) * (1 - Math.pow(1 - p, 3))))
         if (p < 1) requestAnimationFrame(tick)
       }
       requestAnimationFrame(tick)
@@ -23,6 +84,8 @@ function useCountUp(target: number, duration = 1400, delay = 700) {
   }, [target, duration, delay])
   return value
 }
+
+// ── Component ────────────────────────────────────────────────────────────────
 
 interface Props {
   lang: 'DE' | 'EN'
@@ -36,43 +99,79 @@ const JOBS = [
 ]
 
 export default function HeroEU({ lang, user }: Props) {
+  const [active, setActive]       = useState(0)
+  const [fading, setFading]       = useState(false)
+  const [jobsVisible, setJobsVisible] = useState(0)
+  const timerRef  = useRef<ReturnType<typeof setInterval> | null>(null)
+  const pausedRef = useRef(false)
   const score = useCountUp(84)
-  const [visible, setVisible] = useState(0)
 
   useEffect(() => {
     const t = [
-      setTimeout(() => setVisible(1), 1300),
-      setTimeout(() => setVisible(2), 1800),
-      setTimeout(() => setVisible(3), 2300),
+      setTimeout(() => setJobsVisible(1), 1300),
+      setTimeout(() => setJobsVisible(2), 1800),
+      setTimeout(() => setJobsVisible(3), 2300),
     ]
     return () => t.forEach(clearTimeout)
   }, [])
 
+  const goTo = useCallback((idx: number) => {
+    if (fading) return
+    setFading(true)
+    setTimeout(() => {
+      setActive(idx)
+      setFading(false)
+    }, 320)
+  }, [fading])
+
+  const startTimer = useCallback(() => {
+    if (timerRef.current) clearInterval(timerRef.current)
+    timerRef.current = setInterval(() => {
+      if (!pausedRef.current) {
+        setActive(a => {
+          const next = (a + 1) % SLIDES.length
+          setFading(true)
+          setTimeout(() => setFading(false), 320)
+          return next
+        })
+      }
+    }, INTERVAL)
+  }, [])
+
+  useEffect(() => {
+    startTimer()
+    return () => { if (timerRef.current) clearInterval(timerRef.current) }
+  }, [startTimer])
+
+  const manualGo = (idx: number) => { goTo(idx); startTimer() }
+
+  const slide = SLIDES[active]
   const de = lang === 'DE'
-  const go = (path: string) => user ? path : `/login?next=${encodeURIComponent(path)}`
+  const go = (path: string) => (path === '#' ? '#' : user ? path : `/login?next=${encodeURIComponent(path)}`)
 
   return (
-    <section style={{ background: '#060d16', position: 'relative', overflow: 'hidden' }}>
+    <section
+      style={{ background: '#060d16', position: 'relative', overflow: 'hidden' }}
+      onMouseEnter={() => { pausedRef.current = true }}
+      onMouseLeave={() => { pausedRef.current = false }}
+    >
       <style>{`
-        @keyframes heu-up   { from{opacity:0;transform:translateY(18px)} to{opacity:1;transform:translateY(0)} }
-        @keyframes heu-in   { from{opacity:0;transform:translateX(14px)} to{opacity:1;transform:translateX(0)} }
-        @keyframes heu-pill { from{opacity:0;transform:translateY(6px)}  to{opacity:1;transform:translateY(0)} }
+        @keyframes heu-up  { from{opacity:0;transform:translateY(16px)} to{opacity:1;transform:translateY(0)} }
+        @keyframes heu-job { from{opacity:0;transform:translateX(12px)} to{opacity:1;transform:translateX(0)} }
 
-        .heu-left  { animation: heu-up 0.62s ease 0.08s both }
-        .heu-right { animation: heu-up 0.62s ease 0.22s both }
+        .heu-right { animation: heu-up 0.6s ease 0.2s both }
+        .heu-left-content { transition: opacity 0.3s ease, transform 0.3s ease; }
+        .heu-left-content.fading { opacity: 0; transform: translateY(10px); }
+        .heu-left-content.visible { opacity: 1; transform: translateY(0); }
 
-        .heu-primary {
-          background: #fff; color: #060d16;
-          padding: 13px 28px; border-radius: 9px;
-          font-weight: 700; font-size: 14px; font-family: ${f.heading};
-          text-decoration: none; display: inline-block; border: none; cursor: pointer;
-          transition: background 0.16s, transform 0.16s;
+        .heu-dot {
+          height: 6px; border-radius: 3px; border: none; cursor: pointer; padding: 0;
+          transition: width 0.3s ease, background 0.3s ease;
         }
-        .heu-primary:hover { background: #dde7f0; transform: translateY(-1px); }
 
         .heu-ghost {
           background: transparent; color: rgba(255,255,255,0.6);
-          padding: 13px 28px; border-radius: 9px;
+          padding: 12px 26px; border-radius: 9px;
           border: 1px solid rgba(255,255,255,0.12);
           font-weight: 600; font-size: 14px; font-family: ${f.heading};
           text-decoration: none; display: inline-block; cursor: pointer;
@@ -80,147 +179,182 @@ export default function HeroEU({ lang, user }: Props) {
         }
         .heu-ghost:hover { border-color: rgba(255,255,255,0.32); color: #fff; transform: translateY(-1px); }
 
-        .heu-pill {
-          font-size: 11px; font-weight: 500; color: rgba(255,255,255,0.38);
-          background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08);
-          border-radius: 7px; padding: 5px 12px;
-          animation: heu-pill 0.4s ease both;
+        .heu-coming-soon {
+          display: inline-block;
+          padding: 12px 26px; border-radius: 9px;
+          font-weight: 700; font-size: 14px; font-family: ${f.heading};
+          letter-spacing: 0.3px;
         }
+
+        .heu-pill {
+          font-size: 11px; font-weight: 500;
+          border-radius: 7px; padding: 5px 12px;
+          transition: background 0.3s, border-color 0.3s, color 0.3s;
+          cursor: pointer;
+        }
+
         .heu-job {
           display: flex; align-items: center; gap: 12px;
           padding: 11px 14px;
           background: #0c1b2c; border: 1px solid rgba(255,255,255,0.06);
           border-radius: 10px;
-          animation: heu-in 0.32s ease both;
+          animation: heu-job 0.32s ease both;
+          transition: border-color 0.2s;
         }
         .heu-job:hover { border-color: rgba(255,255,255,0.12); }
 
         @media (max-width: 960px) { .heu-right { display: none !important; } }
-        @media (max-width: 600px) { .heu-hero-grid { padding: 56px 0 52px !important; } }
+        @media (max-width: 600px) { .heu-grid { padding: 52px 16px 48px !important; } }
       `}</style>
 
-      {/* Ambient glow — restrained */}
-      <div style={{ position: 'absolute', top: -120, right: '20%', width: 560, height: 420, background: 'radial-gradient(ellipse, rgba(55,138,221,0.055) 0%, transparent 65%)', pointerEvents: 'none' }} />
-      <div style={{ position: 'absolute', bottom: -60, left: '8%', width: 320, height: 220, background: 'radial-gradient(ellipse, rgba(55,138,221,0.04) 0%, transparent 70%)', pointerEvents: 'none' }} />
+      {/* Ambient glow — shifts with active slide */}
+      <div style={{
+        position: 'absolute', top: -140, right: '15%', width: 600, height: 480,
+        background: `radial-gradient(ellipse, ${slide.bg} 0%, transparent 65%)`,
+        pointerEvents: 'none', transition: 'background 0.6s ease',
+      }} />
 
-      <div
-        className="heu-hero-grid"
-        style={{
-          maxWidth: 1080, margin: '0 auto', padding: '80px 24px 72px',
-          display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 56, alignItems: 'center',
-          position: 'relative', zIndex: 1,
-        }}
-      >
-        {/* ── LEFT ── */}
-        <div className="heu-left">
-          {/* Eyebrow */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 26 }}>
-            <div style={{ width: 5, height: 5, borderRadius: '50%', background: '#378ADD', flexShrink: 0 }} />
-            <span style={{ fontSize: 10.5, fontWeight: 600, color: 'rgba(255,255,255,0.3)', letterSpacing: 1.8, textTransform: 'uppercase' as const, fontFamily: f.heading }}>
-              {de ? 'Deutschland · Schweiz · Österreich' : 'Germany · Switzerland · Austria'}
-            </span>
-          </div>
+      <div className="heu-grid" style={{
+        maxWidth: 1080, margin: '0 auto', padding: '80px 24px 60px',
+        display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 56, alignItems: 'center',
+        position: 'relative', zIndex: 1,
+      }}>
 
-          {/* Headline */}
-          <h1 style={{
-            fontFamily: f.heading, fontWeight: 800, lineHeight: 1.08,
-            fontSize: 'clamp(30px, 3.8vw, 50px)',
-            color: '#ffffff', margin: '0 0 18px', letterSpacing: -1.5,
-          }}>
-            {de ? <>Dein nächster Job<br /><span style={{ color: '#378ADD' }}>im DACH-Markt.</span></> : <>Your next job<br /><span style={{ color: '#378ADD' }}>in the DACH market.</span></>}
-          </h1>
-
-          {/* Sub */}
-          <p style={{
-            fontSize: 15, color: 'rgba(255,255,255,0.42)', lineHeight: 1.78,
-            margin: '0 0 34px', maxWidth: 400, fontWeight: 400,
-          }}>
-            {de
-              ? 'CV-Analyse, Job-Matching, Lebenslauf, Anschreiben und Auto Apply — an einem Ort. Gebaut für den DACH-Markt.'
-              : 'CV analysis, job matching, tailored CV, cover letter and Auto Apply — all in one place. Built for the DACH market.'}
-          </p>
-
-          {/* CTAs */}
-          <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' as const, marginBottom: 36 }}>
-            <Link href={go('/app/career-scan')} className="heu-primary">
-              {de ? 'Kostenlos starten' : 'Get started free'}
-            </Link>
-            <Link href={go('/app/jobs')} className="heu-ghost">
-              {de ? 'Jobs entdecken' : 'Browse jobs'}
-            </Link>
-          </div>
-
-          {/* Feature pills */}
-          <div style={{ display: 'flex', gap: 7, flexWrap: 'wrap' as const }}>
-            {['Career Scan', 'Auto Apply', 'Kira AI', de ? 'Job Case · Bald' : 'Job Case · Soon'].map((label, i) => (
-              <span key={label} className="heu-pill" style={{ animationDelay: `${0.5 + i * 0.08}s` }}>
-                {label}
+        {/* ── LEFT — rotating copy ── */}
+        <div>
+          <div className={`heu-left-content ${fading ? 'fading' : 'visible'}`}>
+            {/* Eyebrow */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 24 }}>
+              <div style={{ width: 5, height: 5, borderRadius: '50%', background: slide.color, flexShrink: 0, transition: 'background 0.3s' }} />
+              <span style={{ fontSize: 10.5, fontWeight: 600, color: 'rgba(255,255,255,0.32)', letterSpacing: 1.8, textTransform: 'uppercase' as const, fontFamily: f.heading }}>
+                {de ? slide.tag.de : slide.tag.en}
               </span>
-            ))}
+            </div>
+
+            {/* Headline */}
+            <h1 style={{
+              fontFamily: f.heading, fontWeight: 800, lineHeight: 1.08,
+              fontSize: 'clamp(28px, 3.6vw, 48px)',
+              color: '#ffffff', margin: '0 0 16px', letterSpacing: -1.4,
+            }}>
+              {de ? slide.h1.de : slide.h1.en}<br />
+              <span style={{ color: slide.color, transition: 'color 0.3s' }}>
+                {de ? slide.h1Accent.de : slide.h1Accent.en}
+              </span>
+            </h1>
+
+            {/* Sub */}
+            <p style={{
+              fontSize: 15, color: 'rgba(255,255,255,0.4)', lineHeight: 1.78,
+              margin: '0 0 32px', maxWidth: 400, fontWeight: 400,
+            }}>
+              {de ? slide.sub.de : slide.sub.en}
+            </p>
+
+            {/* CTA */}
+            <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' as const, marginBottom: 36, alignItems: 'center' }}>
+              {slide.comingSoon ? (
+                <span className="heu-coming-soon" style={{
+                  background: `${slide.color}18`,
+                  border: `1.5px solid ${slide.color}44`,
+                  color: slide.color,
+                }}>
+                  {de ? slide.cta.de : slide.cta.en}
+                </span>
+              ) : (
+                <>
+                  <Link href={go(slide.href)} style={{
+                    background: slide.color, color: '#fff',
+                    padding: '12px 26px', borderRadius: 9,
+                    fontWeight: 700, fontSize: 14, fontFamily: f.heading,
+                    textDecoration: 'none', display: 'inline-block',
+                    boxShadow: `0 6px 24px ${slide.color}35`,
+                    transition: 'opacity 0.16s, transform 0.16s',
+                  }}
+                    onMouseEnter={e => { (e.currentTarget as HTMLElement).style.opacity = '0.88'; (e.currentTarget as HTMLElement).style.transform = 'translateY(-1px)' }}
+                    onMouseLeave={e => { (e.currentTarget as HTMLElement).style.opacity = '1'; (e.currentTarget as HTMLElement).style.transform = 'translateY(0)' }}
+                  >
+                    {de ? slide.cta.de : slide.cta.en} →
+                  </Link>
+                  <Link href={go('/app/jobs')} className="heu-ghost">
+                    {de ? 'Jobs entdecken' : 'Browse jobs'}
+                  </Link>
+                </>
+              )}
+            </div>
+
+            {/* Trust line */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, opacity: 0.3 }}>
+              <div style={{ width: 5, height: 5, borderRadius: '50%', background: '#3DD68C' }} />
+              <span style={{ fontSize: 11, color: '#fff', fontWeight: 500 }}>
+                {de ? '5 kostenlose Credits bei Registrierung · Keine Karte nötig' : '5 free credits on signup · No card needed'}
+              </span>
+            </div>
           </div>
 
-          {/* Trust line */}
-          <div style={{ marginTop: 28, display: 'flex', alignItems: 'center', gap: 6, opacity: 0.35 }}>
-            <div style={{ width: 5, height: 5, borderRadius: '50%', background: '#3DD68C' }} />
-            <span style={{ fontSize: 11, color: '#fff', fontWeight: 500 }}>
-              {de ? '5 kostenlose Credits bei Registrierung · Keine Karte nötig' : '5 free credits on signup · No card needed'}
-            </span>
+          {/* ── Dots nav ── */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 36 }}>
+            {SLIDES.map((s, i) => (
+              <button
+                key={i}
+                className="heu-dot"
+                onClick={() => manualGo(i)}
+                style={{
+                  width: i === active ? 28 : 8,
+                  background: i === active ? s.color : 'rgba(255,255,255,0.15)',
+                }}
+                aria-label={`Slide ${i + 1}`}
+              />
+            ))}
+            {/* Feature pills inline */}
+            <div style={{ display: 'flex', gap: 6, marginLeft: 12, flexWrap: 'wrap' as const }}>
+              {SLIDES.map((s, i) => (
+                <button
+                  key={i}
+                  className="heu-pill"
+                  onClick={() => manualGo(i)}
+                  style={{
+                    background: i === active ? `${s.color}18` : 'rgba(255,255,255,0.04)',
+                    border: `1px solid ${i === active ? `${s.color}44` : 'rgba(255,255,255,0.08)'}`,
+                    color: i === active ? s.color : 'rgba(255,255,255,0.3)',
+                    fontFamily: f.heading,
+                  }}
+                >
+                  {i === 0 ? 'Overview' : i === 1 ? 'Kira AI' : i === 2 ? 'Auto Apply' : 'Job Case'}
+                </button>
+              ))}
+            </div>
           </div>
         </div>
 
-        {/* ── RIGHT — product mock ── */}
+        {/* ── RIGHT — static product mock ── */}
         <div className="heu-right">
           <div style={{
             background: '#0b1825',
             border: '1px solid rgba(255,255,255,0.07)',
-            borderRadius: 18,
-            padding: '24px 20px',
+            borderRadius: 18, padding: '24px 20px',
             boxShadow: '0 40px 100px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.03)',
           }}>
-
             {/* Score card */}
             <div style={{
-              background: '#0d2035',
-              border: '1px solid rgba(55,138,221,0.14)',
-              borderRadius: 13,
-              padding: '20px 20px 18px',
-              marginBottom: 18,
+              background: '#0d2035', border: '1px solid rgba(55,138,221,0.14)',
+              borderRadius: 13, padding: '20px 20px 18px', marginBottom: 18,
               position: 'relative', overflow: 'hidden',
             }}>
               <div style={{ position: 'absolute', top: -30, right: -20, width: 140, height: 120, background: 'radial-gradient(ellipse, rgba(55,138,221,0.09) 0%, transparent 70%)', pointerEvents: 'none' }} />
-
-              <div style={{ fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.25)', letterSpacing: 1.6, textTransform: 'uppercase' as const, marginBottom: 14 }}>
-                {de ? 'Career Score' : 'Career Score'}
-              </div>
-
+              <div style={{ fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.25)', letterSpacing: 1.6, textTransform: 'uppercase' as const, marginBottom: 14 }}>Career Score</div>
               <div style={{ display: 'flex', alignItems: 'flex-end', gap: 8, marginBottom: 16 }}>
-                <span style={{
-                  fontFamily: f.heading, fontSize: 54, fontWeight: 800, color: '#fff',
-                  lineHeight: 1, letterSpacing: -2, fontVariantNumeric: 'tabular-nums' as const,
-                }}>
-                  {score}
-                </span>
+                <span style={{ fontFamily: f.heading, fontSize: 54, fontWeight: 800, color: '#fff', lineHeight: 1, letterSpacing: -2, fontVariantNumeric: 'tabular-nums' as const }}>{score}</span>
                 <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.2)', marginBottom: 7 }}>/100</span>
                 <div style={{ marginLeft: 'auto', marginBottom: 5, padding: '4px 10px', borderRadius: 20, background: 'rgba(61,214,140,0.1)', border: '1px solid rgba(61,214,140,0.22)', fontSize: 11, fontWeight: 700, color: '#3DD68C' }}>
                   {de ? '↑ Stark' : '↑ Strong'}
                 </div>
               </div>
-
-              {/* Progress bar */}
               <div style={{ height: 3, background: 'rgba(255,255,255,0.05)', borderRadius: 2, overflow: 'hidden' }}>
-                <div style={{
-                  height: '100%', width: `${score}%`,
-                  background: 'linear-gradient(90deg, #2563EB, #378ADD 60%, #3DD68C)',
-                  borderRadius: 2, transition: 'width 0.08s linear',
-                }} />
+                <div style={{ height: '100%', width: `${score}%`, background: 'linear-gradient(90deg, #2563EB, #378ADD 60%, #3DD68C)', borderRadius: 2, transition: 'width 0.08s linear' }} />
               </div>
-
-              {/* Strength tags */}
               <div style={{ display: 'flex', gap: 6, marginTop: 14, flexWrap: 'wrap' as const }}>
-                {(de
-                  ? ['Produktstrategie', 'Stakeholder', 'Datenanalyse']
-                  : ['Product Strategy', 'Stakeholder Mgmt', 'Data Analysis']
-                ).map(tag => (
+                {(de ? ['Produktstrategie', 'Stakeholder', 'Datenanalyse'] : ['Product Strategy', 'Stakeholder Mgmt', 'Data Analysis']).map(tag => (
                   <span key={tag} style={{ fontSize: 10, fontWeight: 600, color: 'rgba(255,255,255,0.35)', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 5, padding: '3px 9px' }}>{tag}</span>
                 ))}
               </div>
@@ -230,17 +364,11 @@ export default function HeroEU({ lang, user }: Props) {
             <div style={{ fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.22)', letterSpacing: 1.6, textTransform: 'uppercase' as const, marginBottom: 10 }}>
               {de ? 'Passende Stellen' : 'Matched roles'}
             </div>
-
             <div style={{ display: 'flex', flexDirection: 'column' as const, gap: 7 }}>
               {JOBS.map((job, i) => (
-                visible > i ? (
-                  <div key={i} className="heu-job" style={{ animationDelay: `${i * 0.05}s` }}>
-                    <div style={{
-                      width: 33, height: 33, borderRadius: 8, flexShrink: 0,
-                      background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)',
-                      display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      fontSize: 12, fontWeight: 700, color: 'rgba(255,255,255,0.35)', fontFamily: f.heading,
-                    }}>
+                jobsVisible > i ? (
+                  <div key={i} className="heu-job">
+                    <div style={{ width: 33, height: 33, borderRadius: 8, flexShrink: 0, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700, color: 'rgba(255,255,255,0.35)', fontFamily: f.heading }}>
                       {job.company[0]}
                     </div>
                     <div style={{ flex: 1, minWidth: 0 }}>
@@ -255,7 +383,7 @@ export default function HeroEU({ lang, user }: Props) {
               ))}
             </div>
 
-            {/* Footer row */}
+            {/* Footer */}
             <div style={{ marginTop: 16, paddingTop: 14, borderTop: '1px solid rgba(255,255,255,0.05)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <span style={{ fontSize: 10.5, color: 'rgba(255,255,255,0.18)', fontFamily: f.heading }}>Job-Lens AI</span>
               <div style={{ display: 'flex', gap: 5 }}>
@@ -268,8 +396,21 @@ export default function HeroEU({ lang, user }: Props) {
         </div>
       </div>
 
+      {/* Progress bar */}
+      <ProgressBar key={active} duration={INTERVAL} color={slide.color} />
+
       {/* Section divider */}
       <div style={{ height: 1, background: 'rgba(255,255,255,0.05)' }} />
     </section>
+  )
+}
+
+function ProgressBar({ duration, color }: { duration: number; color: string }) {
+  const id = `heu-pb-${color.replace('#', '')}`
+  return (
+    <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: 2, background: 'rgba(255,255,255,0.04)' }}>
+      <style>{`@keyframes ${id} { from{width:0} to{width:100%} }`}</style>
+      <div style={{ height: '100%', background: color, animation: `${id} ${duration}ms linear forwards`, opacity: 0.7 }} />
+    </div>
   )
 }
