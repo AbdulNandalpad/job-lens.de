@@ -397,9 +397,18 @@ const MOCKS = [MockOverview, MockKira, MockAutoApply, MockJobCase]
 
 export default function HeroEU({ lang, user }: Props) {
   const [active, setActive] = useState(0)
+  const [isMobile, setIsMobile] = useState(false)
   const activeRef = useRef(0)
   const timerRef  = useRef<ReturnType<typeof setInterval> | null>(null)
   const pausedRef = useRef(false)
+
+  useEffect(() => {
+    const mq = window.matchMedia('(max-width: 960px)')
+    setIsMobile(mq.matches)
+    const handler = (e: MediaQueryListEvent) => setIsMobile(e.matches)
+    mq.addEventListener('change', handler)
+    return () => mq.removeEventListener('change', handler)
+  }, [])
 
   useEffect(() => {
     timerRef.current = setInterval(() => {
@@ -446,14 +455,15 @@ export default function HeroEU({ lang, user }: Props) {
         .heu-pill { font-size:11px; font-weight:500; border-radius:7px; padding:5px 12px; border:none; cursor:pointer; font-family:${f.heading}; transition:background 0.25s,color 0.25s,outline 0.25s; }
         .heu-ghost { background:transparent; color:rgba(255,255,255,0.55); padding:12px 24px; border-radius:9px; border:1px solid rgba(255,255,255,0.12); font-weight:600; font-size:14px; font-family:${f.heading}; text-decoration:none; display:inline-block; transition:border-color 0.16s,color 0.16s,transform 0.16s; }
         .heu-ghost:hover { border-color:rgba(255,255,255,0.3); color:#fff; transform:translateY(-1px); }
-        @media(max-width:960px){ .heu-right{display:none!important}; .heu-grid{grid-template-columns:1fr!important} }
+        @media(max-width:960px){ .heu-right{display:none!important} }
+        @media(max-width:960px){ .heu-grid{grid-template-columns:1fr!important} }
         @media(max-width:600px){ .heu-grid{padding:48px 16px 40px!important} }
       `}</style>
 
       {/* Ambient glow follows slide colour */}
       <div style={{ position: 'absolute', top: -140, right: '14%', width: 620, height: 500, background: `radial-gradient(ellipse,${slide.bg} 0%,transparent 65%)`, pointerEvents: 'none', transition: 'background 0.6s ease' }} />
 
-      <div className="heu-grid" style={{ maxWidth: 1080, margin: '0 auto', padding: '80px 24px 60px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 56, alignItems: 'center', position: 'relative', zIndex: 1 }}>
+      <div className="heu-grid" style={{ maxWidth: 1080, margin: '0 auto', padding: isMobile ? '52px 16px 44px' : '80px 24px 60px', display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: isMobile ? 32 : 56, alignItems: 'center', position: 'relative', zIndex: 1 }}>
 
         {/* LEFT */}
         <div>
@@ -521,9 +531,11 @@ export default function HeroEU({ lang, user }: Props) {
         </div>
 
         {/* RIGHT — unique mock per slide, remounts to replay animations */}
-        <div className="heu-right">
-          <Mock key={active} de={de} />
-        </div>
+        {!isMobile && (
+          <div className="heu-right">
+            <Mock key={active} de={de} />
+          </div>
+        )}
       </div>
 
       <ProgressBar key={active} duration={INTERVAL} color={slide.color} />
