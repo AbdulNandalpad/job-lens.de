@@ -1,6 +1,6 @@
 'use client'
-import HeroSlider from '@/components/HeroSlider'
+import HeroIN from '@/components/HeroIN'
 
 export default function HeroSliderIn() {
-  return <HeroSlider market="in" />
+  return <HeroIN />
 }
