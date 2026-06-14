@@ -56,7 +56,7 @@ export default function DatenschutzPage() {
             Brühlstr 15<br />
             71034 Böblingen<br />
             Deutschland<br />
-            E-Mail: <a href="mailto:munira.nandalpad@servicesphere.de" style={{ color: c.accent }}>munira.nandalpad@servicesphere.de</a>
+            E-Mail: <a href="mailto:munira.nandalpad@job-lens.de" style={{ color: c.accent }}>munira.nandalpad@job-lens.de</a>
           </p>
         </Section>
 
@@ -145,7 +145,7 @@ export default function DatenschutzPage() {
           </div>
           <p style={{ margin: '16px 0 0' }}>
             Zur Ausübung Ihrer Rechte wenden Sie sich bitte an:{' '}
-            <a href="mailto:munira.nandalpad@servicesphere.de" style={{ color: c.accent }}>munira.nandalpad@servicesphere.de</a>.
+            <a href="mailto:munira.nandalpad@job-lens.de" style={{ color: c.accent }}>munira.nandalpad@job-lens.de</a>.
             Sie haben zudem das Recht, sich bei einer Datenschutz-Aufsichtsbehörde zu beschweren. Zuständig ist die Aufsichtsbehörde Ihres Bundeslandes.
           </p>
         </Section>

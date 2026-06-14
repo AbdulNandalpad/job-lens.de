@@ -56,8 +56,8 @@ export default function PrivacyPage() {
             <strong>Munira Nandalpad</strong><br />
             Brühlstr 15, 71034 Böblingen, Germany<br />
             Email:{' '}
-            <a href="mailto:munira.nandalpad@servicesphere.de" style={{ color: saffron }}>
-              munira.nandalpad@servicesphere.de
+            <a href="mailto:munira.nandalpad@job-lens.de" style={{ color: saffron }}>
+              munira.nandalpad@job-lens.de
             </a>
           </p>
           <p style={{ margin: '12px 0 0', padding: '12px 14px', background: '#fff', borderRadius: 10, border: `1px solid ${border}` }}>
@@ -155,8 +155,8 @@ export default function PrivacyPage() {
           </div>
           <p style={{ margin: '16px 0 0' }}>
             To exercise your rights, contact us at:{' '}
-            <a href="mailto:munira.nandalpad@servicesphere.de" style={{ color: saffron }}>
-              munira.nandalpad@servicesphere.de
+            <a href="mailto:munira.nandalpad@job-lens.de" style={{ color: saffron }}>
+              munira.nandalpad@job-lens.de
             </a>
             . Under the DPDP Act 2023, you may also lodge a complaint with the Data Protection Board of India once it is operational.
           </p>
