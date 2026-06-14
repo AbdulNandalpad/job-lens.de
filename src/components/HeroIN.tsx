@@ -54,6 +54,16 @@ const SLIDES: Slide[] = [
     cta:      'Try Auto Apply',
     href:     '/in/auto-apply',
   },
+  {
+    color: '#F59E0B', bg: 'rgba(245,158,11,0.07)',
+    tag:      'Coming Soon · Job Case',
+    h1:       'More than a resume —',
+    h1Accent: 'your personal case study.',
+    sub:      'AI analyses the job posting, you supply the evidence. Recruiters get a private link — no sign-up, no PDF, just your strongest argument for the role.',
+    cta:      'Coming Soon',
+    href:     '#',
+    comingSoon: true,
+  },
 ]
 
 const INTERVAL = 5500
@@ -321,7 +331,53 @@ function MockAutoApply() {
   )
 }
 
-const MOCKS = [MockOverview, MockATS, MockKira, MockAutoApply]
+// ── mock 4 — job case ─────────────────────────────────────────────────────────
+
+const JC_REQS = [
+  { label: 'Product Roadmap',    match: true  },
+  { label: 'Stakeholder Mgmt',   match: true  },
+  { label: 'Data-driven mindset',match: true  },
+  { label: 'SCRUM / Agile',      match: false },
+]
+
+function MockJobCase() {
+  const visible = useReveal(JC_REQS.length, 450, 400)
+  return (
+    <div style={cardStyle}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
+        <div style={{ width: 38, height: 38, borderRadius: 10, background: 'rgba(245,158,11,0.15)', border: '1px solid rgba(245,158,11,0.25)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#F59E0B" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-4 0v2"/><line x1="12" y1="12" x2="12" y2="16"/><line x1="10" y1="14" x2="14" y2="14"/></svg>
+        </div>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ fontSize: 13, fontWeight: 700, color: '#fff', fontFamily: f.heading }}>Senior Product Manager</div>
+          <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)' }}>Flipkart · Bengaluru</div>
+        </div>
+        <div style={{ ...badgeStyle('#F59E0B') }}>91%</div>
+      </div>
+      <div style={{ height: 1, background: 'rgba(255,255,255,0.06)', marginBottom: 12 }} />
+      <div style={labelStyle}>Requirements</div>
+      <div style={{ display: 'flex', flexDirection: 'column' as const, gap: 7, marginTop: 10 }}>
+        {JC_REQS.map((req, i) => visible > i ? (
+          <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, animation: 'hin-in 0.28s ease both' }}>
+            <span style={{ width: 18, height: 18, borderRadius: '50%', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 9, fontWeight: 700, background: req.match ? 'rgba(61,214,140,0.12)' : 'rgba(255,255,255,0.05)', border: `1px solid ${req.match ? 'rgba(61,214,140,0.3)' : 'rgba(255,255,255,0.1)'}`, color: req.match ? '#3DD68C' : 'rgba(255,255,255,0.3)' }}>
+              {req.match ? '✓' : '○'}
+            </span>
+            <span style={{ fontSize: 12, color: req.match ? 'rgba(255,255,255,0.8)' : 'rgba(255,255,255,0.35)' }}>{req.label}</span>
+          </div>
+        ) : null)}
+      </div>
+      <div style={{ marginTop: 14, display: 'flex', alignItems: 'center', gap: 8, background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.2)', borderRadius: 9, padding: '9px 12px' }}>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#F59E0B" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg>
+        <span style={{ fontSize: 11.5, color: '#F59E0B', fontWeight: 600 }}>90s intro video · ready</span>
+      </div>
+      <div style={{ marginTop: 10, background: 'linear-gradient(135deg,#D97706,#F59E0B)', borderRadius: 9, padding: '9px 0', textAlign: 'center' as const, fontSize: 12, fontWeight: 700, color: '#fff', fontFamily: f.heading }}>
+        Send link to recruiter →
+      </div>
+    </div>
+  )
+}
+
+const MOCKS = [MockOverview, MockATS, MockKira, MockAutoApply, MockJobCase]
 
 // ── progress bar ─────────────────────────────────────────────────────────────
 
@@ -341,7 +397,7 @@ interface Props {
   user?: boolean
 }
 
-const PILL_LABELS = ['Overview', 'ATS Score', 'Kira AI', 'Auto Apply']
+const PILL_LABELS = ['Overview', 'ATS Score', 'Kira AI', 'Auto Apply', 'Job Case']
 
 export default function HeroIN({ user }: Props) {
   const [active, setActive] = useState(0)
