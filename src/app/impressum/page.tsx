@@ -51,7 +51,7 @@ export default function ImpressumPage() {
           <section>
             <h2 style={{ fontFamily: f.heading, fontSize: 16, fontWeight: 700, color: c.primary, marginBottom: 12 }}>Kontakt</h2>
             <p style={{ margin: 0 }}>
-              E-Mail: <a href="mailto:munira.nandalpad@servicesphere.de" style={{ color: c.accent }}>munira.nandalpad@servicesphere.de</a><br />
+              E-Mail: <a href="mailto:munira.nandalpad@job-lens.de" style={{ color: c.accent }}>munira.nandalpad@job-lens.de</a><br />
               Telefon: +49 151 41412851<br />
               Web: <a href="https://job-lens.de" style={{ color: c.accent }}>https://job-lens.de</a>
             </p>
