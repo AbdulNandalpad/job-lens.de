@@ -432,7 +432,7 @@ export default function HeroEU({ lang, user }: Props) {
 
   const slide   = SLIDES[active]
   const de      = lang === 'DE'
-  const go      = (path: string) => path === '#' ? '#' : user ? path : `/login?next=${encodeURIComponent(path)}`
+  const href    = (path: string) => path === '#' ? '#' : user ? path : `/login?next=${encodeURIComponent(path)}`
   const Mock    = MOCKS[active]
 
   return (
@@ -487,12 +487,12 @@ export default function HeroEU({ lang, user }: Props) {
                 </span>
               ) : (
                 <>
-                  <Link href={go(slide.href)} style={{ background: slide.color, color: '#fff', padding: '12px 26px', borderRadius: 9, fontWeight: 700, fontSize: 14, fontFamily: f.heading, textDecoration: 'none', display: 'inline-block', boxShadow: `0 6px 24px ${slide.color}35`, transition: 'opacity 0.16s,transform 0.16s' }}
+                  <Link href={href(slide.href)} style={{ background: slide.color, color: '#fff', padding: '12px 26px', borderRadius: 9, fontWeight: 700, fontSize: 14, fontFamily: f.heading, textDecoration: 'none', display: 'inline-block', boxShadow: `0 6px 24px ${slide.color}35`, transition: 'opacity 0.16s,transform 0.16s' }}
                     onMouseEnter={e => { (e.currentTarget as HTMLElement).style.opacity='0.88';(e.currentTarget as HTMLElement).style.transform='translateY(-1px)' }}
                     onMouseLeave={e => { (e.currentTarget as HTMLElement).style.opacity='1';(e.currentTarget as HTMLElement).style.transform='translateY(0)' }}>
                     {de ? slide.cta.de : slide.cta.en} →
                   </Link>
-                  <Link href={go('/app/jobs')} className="heu-ghost">{de ? 'Jobs entdecken' : 'Browse jobs'}</Link>
+                  <Link href={href('/app/jobs')} className="heu-ghost">{de ? 'Jobs entdecken' : 'Browse jobs'}</Link>
                 </>
               )}
             </div>
