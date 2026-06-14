@@ -448,8 +448,8 @@ export default function HeroIN({ user }: Props) {
         .hin-pill { font-size:11px; font-weight:500; border-radius:7px; padding:5px 12px; border:none; cursor:pointer; font-family:${f.heading}; transition:background 0.25s,color 0.25s; }
         .hin-ghost { background:transparent; color:rgba(255,255,255,0.55); padding:12px 24px; border-radius:9px; border:1px solid rgba(255,255,255,0.12); font-weight:600; font-size:14px; font-family:${f.heading}; text-decoration:none; display:inline-block; transition:border-color 0.16s,color 0.16s,transform 0.16s; }
         .hin-ghost:hover { border-color:rgba(255,255,255,0.3); color:#fff; transform:translateY(-1px); }
-        @media(max-width:960px){ .hin-right{display:none!important} }
-        @media(max-width:600px){ .hin-grid{padding:52px 16px 44px!important} }
+        @media(max-width:960px){ .hin-right{display:none!important}; .hin-grid{grid-template-columns:1fr!important} }
+        @media(max-width:600px){ .hin-grid{padding:48px 16px 40px!important} }
       `}</style>
 
       {/* Ambient glow */}

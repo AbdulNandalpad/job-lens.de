@@ -446,8 +446,8 @@ export default function HeroEU({ lang, user }: Props) {
         .heu-pill { font-size:11px; font-weight:500; border-radius:7px; padding:5px 12px; border:none; cursor:pointer; font-family:${f.heading}; transition:background 0.25s,color 0.25s,outline 0.25s; }
         .heu-ghost { background:transparent; color:rgba(255,255,255,0.55); padding:12px 24px; border-radius:9px; border:1px solid rgba(255,255,255,0.12); font-weight:600; font-size:14px; font-family:${f.heading}; text-decoration:none; display:inline-block; transition:border-color 0.16s,color 0.16s,transform 0.16s; }
         .heu-ghost:hover { border-color:rgba(255,255,255,0.3); color:#fff; transform:translateY(-1px); }
-        @media(max-width:960px){ .heu-right{display:none!important} }
-        @media(max-width:600px){ .heu-grid{padding:52px 16px 44px!important} }
+        @media(max-width:960px){ .heu-right{display:none!important}; .heu-grid{grid-template-columns:1fr!important} }
+        @media(max-width:600px){ .heu-grid{padding:48px 16px 40px!important} }
       `}</style>
 
       {/* Ambient glow follows slide colour */}
