@@ -23,6 +23,7 @@ interface AdminUser {
   created_at: string
   last_sign_in: string
   signup_country: string | null
+  market: string | null
 }
 
 interface Purchase {
@@ -41,13 +42,14 @@ type Tab = 'users' | 'purchases'
 // grid columns: User | Provider | Country | Free | IN | EU | Spent | Status | Actions
 const COLS = '2fr 100px 52px 60px 60px 60px 60px 80px 110px'
 
-// Convert ISO 3166-1 alpha-2 code (or market string) to flag emoji
-const toFlag = (code: string | null) => {
-  if (!code) return '🌍'
-  // Map market identifiers to country codes
-  const normalised = code.toLowerCase() === 'eu' ? 'DE' : code.toLowerCase() === 'in' ? 'IN' : code.toUpperCase()
-  if (normalised.length !== 2) return '🌍'
-  return String.fromCodePoint(...[...normalised].map(c => 0x1F1E0 + c.charCodeAt(0) - 65))
+const MarketBadge = ({ market }: { market: string | null }) => {
+  if (!market) return <span style={{ fontSize: 11, color: '#999' }}>—</span>
+  const isIN = market.toLowerCase() === 'in'
+  return (
+    <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 7px', borderRadius: 8, background: isIN ? '#13880815' : '#378ADD15', color: isIN ? '#138808' : '#378ADD' }}>
+      {isIN ? 'IN' : 'EU'}
+    </span>
+  )
 }
 
 export default function AdminPage() {
@@ -242,10 +244,8 @@ export default function AdminPage() {
                             {user.provider === 'linkedin_oidc' ? 'LinkedIn' : 'Google'}
                           </span>
                         </div>
-                        {/* Country */}
-                        <div title={user.signup_country ?? 'Unknown'} style={{ fontSize: 18, lineHeight: 1 }}>
-                          {toFlag(user.signup_country)}
-                        </div>
+                        {/* Market */}
+                        <div><MarketBadge market={user.market} /></div>
                         {/* Free credits (editable) */}
                         <div>
                           {user.isAdmin ? (
@@ -314,11 +314,7 @@ export default function AdminPage() {
                           <span style={{ fontSize: 11, fontWeight: 700, color: user.isAdmin ? c.accent : user.status === 'active' ? c.success : c.danger, background: user.isAdmin ? `${c.accent}15` : user.status === 'active' ? c.successLight : `${c.danger}15`, padding: '3px 8px', borderRadius: 10 }}>
                             {user.isAdmin ? 'admin' : user.status}
                           </span>
-                          {user.signup_country && (
-                            <span title={user.signup_country} style={{ fontSize: 16, lineHeight: 1 }}>
-                              {toFlag(user.signup_country)}
-                            </span>
-                          )}
+                          <MarketBadge market={user.market} />
                         </div>
                         {/* Credit pools */}
                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8 }}>

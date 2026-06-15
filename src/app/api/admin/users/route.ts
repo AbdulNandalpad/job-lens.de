@@ -58,6 +58,7 @@ export async function GET(req: NextRequest) {
       created_at: u.created_at,
       last_sign_in: u.last_sign_in_at,
       signup_country: p?.signup_country ?? p?.market ?? null,
+      market: p?.market ?? null,
     }
   })
 
