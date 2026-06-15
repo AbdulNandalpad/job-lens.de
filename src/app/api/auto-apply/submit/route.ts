@@ -1,10 +1,7 @@
 import { NextRequest } from 'next/server'
 import { createServerSupabase } from '@/lib/supabase-server'
-import type { FieldMapping } from '@/lib/auto-apply-engine'
 
 export const dynamic = 'force-dynamic'
-
-const SSRF_RE = /^(localhost|127\.|10\.|192\.168\.|172\.(1[6-9]|2[0-9]|3[01])\.|169\.254\.|::1$|fc[0-9a-f]{2}:|fd)/i
 
 function sseError(message: string): Response {
   const encoder = new TextEncoder()
@@ -22,19 +19,11 @@ export async function POST(req: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return new Response('Unauthorized', { status: 401 })
 
-  const { jobUrl, mapping, cvText, coverLetter } = (await req.json()) as {
-    jobUrl: string
-    mapping: FieldMapping[]
-    cvText: string
-    coverLetter: string
-  }
+  const body = await req.json() as { sessionId?: string }
+  const { sessionId } = body
 
-  if (!jobUrl || !jobUrl.startsWith('https://')) return sseError('Invalid job URL')
-  try {
-    const h = new URL(jobUrl).hostname
-    if (SSRF_RE.test(h)) return sseError('Invalid job URL')
-  } catch {
-    return sseError('Invalid job URL')
+  if (!sessionId || typeof sessionId !== 'string' || sessionId.length < 10) {
+    return sseError('Invalid session. Please go back and re-fill the form.')
   }
 
   const railwayUrl    = process.env.RAILWAY_BROWSER_URL
@@ -44,7 +33,7 @@ export async function POST(req: NextRequest) {
     const upstream = await fetch(`${railwayUrl}/submit`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${railwaySecret}` },
-      body: JSON.stringify({ jobUrl, mapping, cvText, coverLetter }),
+      body: JSON.stringify({ sessionId }),
     })
     if (!upstream.ok || !upstream.body) return sseError('Browser service unavailable')
     return new Response(upstream.body, {
@@ -54,13 +43,13 @@ export async function POST(req: NextRequest) {
 
   // Local dev fallback
   if (process.env.NEXT_PUBLIC_AUTO_APPLY_ENABLED === 'true') {
-    const { submitApply } = await import('@/lib/auto-apply-engine')
+    const { submitApplyBySession } = await import('@/lib/auto-apply-engine')
     const encoder = new TextEncoder()
     const stream = new ReadableStream({
       async start(controller) {
         const send = (data: unknown) => controller.enqueue(encoder.encode(`data: ${JSON.stringify(data)}\n\n`))
         try {
-          for await (const event of submitApply(jobUrl, mapping, cvText ?? '', coverLetter ?? '')) send(event)
+          for await (const event of submitApplyBySession(sessionId)) send(event)
         } catch (err) {
           send({ type: 'error', message: String(err) })
         } finally {

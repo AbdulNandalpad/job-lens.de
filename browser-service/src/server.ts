@@ -74,14 +74,15 @@ app.post('/execute', async (req: Request, res: Response) => {
   }
 })
 
+// Submit accepts only sessionId — the browser + filled page are already stored in the session store
 app.post('/submit', async (req: Request, res: Response) => {
   if (!authorized(req, res)) return
 
-  const { jobUrl, mapping, cvText, coverLetter } = req.body as {
-    jobUrl: string
-    mapping: FieldMapping[]
-    cvText: string
-    coverLetter: string
+  const { sessionId } = req.body as { sessionId: string }
+
+  if (!sessionId || typeof sessionId !== 'string') {
+    res.status(400).json({ error: 'sessionId is required' })
+    return
   }
 
   res.setHeader('Content-Type', 'text/event-stream')
@@ -91,7 +92,7 @@ app.post('/submit', async (req: Request, res: Response) => {
   const send = (data: unknown) => res.write(`data: ${JSON.stringify(data)}\n\n`)
 
   try {
-    for await (const event of submitApply(jobUrl, mapping, cvText ?? '', coverLetter ?? '')) {
+    for await (const event of submitApply(sessionId)) {
       send(event)
     }
   } catch (err) {

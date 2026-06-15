@@ -396,7 +396,11 @@ const SHARED_CSS = `
   }
   .jc-btn-ghost:hover { background: ${c.bg}; color: ${c.text}; border-color: ${c.borderLight}; }
   .jc-check { width: 16px; height: 16px; accent-color: ${c.accent}; cursor: pointer; flex-shrink: 0; }
-  @media (max-width: 768px) { .jl-dsb { display: none !important; } }
+  @media (max-width: 768px) {
+    .jl-dsb { display: none !important; }
+    .jc-step-label { display: none !important; }
+    .jc-step-active-label { display: block !important; }
+  }
 `
 
 // ── Small components ──────────────────────────────────────────────────────────
@@ -445,7 +449,11 @@ function StepProgress({ step }: { step: Step }) {
   const labels = ['Job', 'Review', 'Consent', 'Evidence', 'Questions', 'Video', 'Test', 'Done']
   const current = step === 'analysing' ? 0 : step === 'generating' ? 7 : ordered.indexOf(step)
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 0, marginBottom: 24, overflowX: 'auto', paddingBottom: 4 }}>
+    <div style={{ marginBottom: 24 }}>
+      <div className="jc-step-active-label" style={{ display: 'none', fontSize: 12, fontWeight: 700, color: c.accent, marginBottom: 8 }}>
+        Step {current + 1} of {ordered.length} — {labels[current]}
+      </div>
+    <div style={{ display: 'flex', alignItems: 'center', gap: 0, overflowX: 'auto', paddingBottom: 4 }}>
       {ordered.map((s, i) => {
         const done   = i < current
         const active = i === current
@@ -464,7 +472,7 @@ function StepProgress({ step }: { step: Step }) {
               }}>
                 {done ? '✓' : i + 1}
               </div>
-              <span style={{ fontSize: 9, color: active ? c.accent : done ? c.success : c.textFaint, fontWeight: active ? 700 : 400, whiteSpace: 'nowrap', letterSpacing: 0.3 }}>
+              <span className="jc-step-label" style={{ fontSize: 9, color: active ? c.accent : done ? c.success : c.textFaint, fontWeight: active ? 700 : 400, whiteSpace: 'nowrap', letterSpacing: 0.3 }}>
                 {labels[i]}
               </span>
             </div>
@@ -474,6 +482,7 @@ function StepProgress({ step }: { step: Step }) {
           </div>
         )
       })}
+    </div>
     </div>
   )
 }

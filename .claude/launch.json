@@ -2,12 +2,18 @@
   "version": "0.0.1",
   "configurations": [
     {
+      "name": "bms-enhanced",
+      "runtimeExecutable": "cmd",
+      "runtimeArgs": ["/c", "echo already running"],
+      "port": 8080,
+      "autoPort": false,
+      "attachExisting": true
+    },
+    {
       "name": "job-lens",
       "runtimeExecutable": "npm",
       "runtimeArgs": ["run", "dev"],
-      "port": 3000,
-      "autoPort": false,
-      "attachExisting": true
+      "port": 3000
     }
   ]
 }

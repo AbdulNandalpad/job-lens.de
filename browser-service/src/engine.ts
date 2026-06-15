@@ -33,9 +33,36 @@ export type ExecuteEvent =
   | { type: 'screenshot'; message: string; b64: string }
   | { type: 'filling'; label: string; value: string; index: number; total: number }
   | { type: 'filled'; label: string; success: boolean }
-  | { type: 'filled_preview'; b64: string; message: string }
+  | { type: 'filled_preview'; b64: string; message: string; sessionId: string }
   | { type: 'done'; confirmB64: string; message: string }
   | { type: 'error'; message: string; b64?: string }
+
+// ── Session store (Bucket 1: one browser, fill once, submit on same page) ────
+
+interface BrowserSession {
+  browser: import('playwright').Browser
+  page: import('playwright').Page
+  cvPath: string
+  clPath: string
+  createdAt: number
+}
+
+const sessions = new Map<string, BrowserSession>()
+const SESSION_TTL = 10 * 60 * 1000
+
+// Evict stale sessions every 60 s without preventing Node from exiting
+setInterval(() => {
+  const now = Date.now()
+  for (const [id, s] of sessions) {
+    if (now - s.createdAt > SESSION_TTL) {
+      s.browser.close().catch(() => {})
+      cleanupFiles(s.cvPath, s.clPath)
+      sessions.delete(id)
+    }
+  }
+}, 60_000).unref()
+
+// ── Helpers ──────────────────────────────────────────────────────────────────
 
 function parseJson<T>(text: string, fallback: T): T {
   try {
@@ -44,6 +71,70 @@ function parseJson<T>(text: string, fallback: T): T {
   } catch {
     return fallback
   }
+}
+
+function cleanupFiles(...paths: string[]) {
+  const { unlinkSync, existsSync } = require('fs') as typeof import('fs')
+  for (const p of paths) {
+    try { if (existsSync(p)) unlinkSync(p) } catch { /* ignore */ }
+  }
+}
+
+// Generate a proper PDF from CV text — ATS systems reject plain .txt files
+async function generateCvPdf(cvText: string): Promise<string> {
+  const { join } = require('path') as typeof import('path')
+  const { tmpdir } = require('os') as typeof import('os')
+  const { writeFileSync } = require('fs') as typeof import('fs')
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const PDFDocument = require('pdfkit')
+
+  const pdfPath = join(tmpdir(), `jl_cv_${Date.now()}.pdf`)
+
+  return new Promise((resolve, reject) => {
+    const doc = new PDFDocument({ margin: 50, size: 'A4' }) as NodeJS.EventEmitter & {
+      font(name: string): unknown
+      fontSize(n: number): unknown
+      text(s: string, opts?: object): unknown
+      end(): void
+    }
+    const chunks: Buffer[] = []
+    doc.on('data', (chunk: Buffer) => chunks.push(chunk))
+    doc.on('end', () => {
+      try {
+        writeFileSync(pdfPath, Buffer.concat(chunks))
+        resolve(pdfPath)
+      } catch (e) { reject(e) }
+    })
+    doc.on('error', reject)
+
+    doc.font('Helvetica')
+    doc.fontSize(11)
+    for (const line of cvText.split('\n')) {
+      doc.text(line || ' ')
+    }
+    doc.end()
+  })
+}
+
+// Normalize option text for fuzzy select matching
+function normalizeOption(s: string): string {
+  return s.toLowerCase().replace(/[-_\s]/g, '').replace(/[^a-z0-9]/g, '')
+}
+
+// Build a structured CV context with pre-extracted values as a reliable header
+function buildCvContext(cvText: string, cvValues: CvValues): string {
+  const lines = [
+    cvValues.fullName  ? `Full Name: ${cvValues.fullName}`   : '',
+    cvValues.email     ? `Email: ${cvValues.email}`           : '',
+    cvValues.phone     ? `Phone: ${cvValues.phone}`           : '',
+    cvValues.linkedin  ? `LinkedIn: ${cvValues.linkedin}`     : '',
+  ].filter(Boolean)
+
+  const header = lines.length
+    ? `=== CONTACT INFO (AUTHORITATIVE) ===\n${lines.join('\n')}\n\n=== FULL CV TEXT ===\n`
+    : ''
+
+  return header + cvText.slice(0, 8000)
 }
 
 // ── Field detection ──────────────────────────────────────────────────────────
@@ -68,15 +159,12 @@ async function grabFieldsFromDom(page: import('playwright').Page): Promise<Detec
       const placeholder = el.placeholder || ''
       const required    = el.required || el.getAttribute('aria-required') === 'true'
 
-      // ── Label resolution (4 strategies) ───────────────────────────────────
       let label = ''
 
-      // 1. Explicit <label for="id">
       if (id) {
         const lbl = document.querySelector(`label[for="${id}"]`)
         if (lbl) label = (lbl.textContent || '').trim().replace(/\s*\*\s*$/, '').trim()
       }
-      // 2. aria-label / aria-labelledby
       if (!label) {
         const aria = el.getAttribute('aria-label')
         if (aria) label = aria.trim()
@@ -88,7 +176,6 @@ async function grabFieldsFromDom(page: import('playwright').Page): Promise<Detec
           if (lblEl) label = (lblEl.textContent || '').trim()
         }
       }
-      // 3. Nearest ancestor label or field wrapper
       if (!label) {
         const parent = el.closest('label, .form-group, .field, [class*="field"], [class*="input"], [class*="form"]')
         if (parent) {
@@ -96,7 +183,6 @@ async function grabFieldsFromDom(page: import('playwright').Page): Promise<Detec
           if (lbl && lbl !== el) label = (lbl.textContent || '').trim().replace(/\s*\*\s*$/, '').trim()
         }
       }
-      // 4. Fall back to autocomplete → name → placeholder → id
       if (!label) {
         if (autocomplete && autocomplete !== 'on' && autocomplete !== 'off') label = autocomplete
         else if (name) label = name.replace(/[-_]/g, ' ').replace(/([a-z])([A-Z])/g, '$1 $2')
@@ -105,7 +191,6 @@ async function grabFieldsFromDom(page: import('playwright').Page): Promise<Detec
       }
       label = label.replace(/\s+/g, ' ').trim()
 
-      // ── Selector (prefer stable attributes) ───────────────────────────────
       let selector = ''
       if (id) selector = `#${id}`
       else if (name) selector = `[name="${name}"]`
@@ -113,9 +198,10 @@ async function grabFieldsFromDom(page: import('playwright').Page): Promise<Detec
       else if (placeholder) selector = `${el.tagName.toLowerCase()}[placeholder="${placeholder}"]`
       else selector = el.tagName.toLowerCase()
 
-      // ── Options for <select> ───────────────────────────────────────────────
       const options = el.tagName === 'SELECT'
-        ? Array.from((el as unknown as HTMLSelectElement).options).map(o => o.text.trim()).filter(t => t && t !== '--' && !t.startsWith('--'))
+        ? Array.from((el as unknown as HTMLSelectElement).options)
+            .map(o => o.text.trim())
+            .filter(t => t && t !== '--' && !t.startsWith('--'))
         : undefined
 
       if (label && selector) {
@@ -123,7 +209,6 @@ async function grabFieldsFromDom(page: import('playwright').Page): Promise<Detec
       }
     }
 
-    // Deduplicate by selector
     const seen = new Set<string>()
     return results.filter(f => {
       if (seen.has(f.selector)) return false
@@ -137,7 +222,7 @@ async function grabFieldsFromDom(page: import('playwright').Page): Promise<Detec
 
 async function mapCvToFields(
   fields: DetectedField[],
-  cvText: string,
+  cvContext: string,
   coverLetter: string | undefined,
   anthropic: Anthropic,
 ): Promise<Array<{ label: string; value: string; confidence: 'high' | 'medium' | 'low'; notes?: string }>> {
@@ -160,20 +245,20 @@ ${JSON.stringify(fields.map(f => ({
 })), null, 2)}
 
 CANDIDATE CV:
-${cvText.slice(0, 6000)}
+${cvContext}
 ${coverLetter ? `\nCOVER LETTER:\n${coverLetter.slice(0, 1000)}` : ''}
 
 MAPPING RULES — follow exactly:
 1. Name fields: split into first/last correctly. "Full Name" → full name.
-2. Email: extract the EXACT email address from the CV (look for @ symbol).
-3. Phone: extract EXACTLY as written in the CV — do NOT change format.
-4. LinkedIn: extract the full LinkedIn URL from the CV.
+2. Email: extract the EXACT email from the CONTACT INFO section at the top.
+3. Phone: extract EXACTLY as written — do NOT change format.
+4. LinkedIn: extract the full LinkedIn URL.
 5. Location/City: use city name from CV header.
-6. Current CTC / Salary: use exact number/amount written in CV. If not present, leave "".
-7. Notice Period: use exact value from CV, match closest select option if needed.
-8. Expected CTC: only if explicitly stated in CV. Otherwise "".
+6. Current CTC / Salary: use exact number/amount written. If absent, leave "".
+7. Notice Period: use exact value, match closest select option if needed.
+8. Expected CTC: only if explicitly stated. Otherwise "".
 9. File fields (CV/resume/attachment): use "__CV_FILE__". Cover letter files: "__CL_FILE__". Other file: "__SKIP_FILE__".
-10. Select / dropdown: pick the CLOSEST matching option text from the options list.
+10. Select / dropdown: pick the CLOSEST matching option text from the options list (case-insensitive). Output the exact option text.
 11. Checkbox: "true" or "false".
 12. If a field cannot be answered from the CV, return "" with confidence "low".
 13. DO NOT invent information. Extract only what is written.
@@ -192,7 +277,7 @@ Return ONLY a valid JSON array — no commentary:
   )
 }
 
-// ── Extract known values from CV text via regex ──────────────────────────────
+// ── Extract known values from CV text ────────────────────────────────────────
 
 interface CvValues {
   email?: string
@@ -206,30 +291,26 @@ interface CvValues {
 function extractCvValues(cvText: string): CvValues {
   const vals: CvValues = {}
 
-  // Email — most reliable: look for @ pattern
   const emailM = cvText.match(/[\w.+\-]+@[\w\-]+(?:\.[\w\-]+)+/i)
   if (emailM) vals.email = emailM[0].toLowerCase()
 
-  // Phone — lines or tokens that look like phone numbers
   const phoneM = cvText.match(/(?:\+\d{1,3}[\s\-.]?)?\(?\d{2,4}\)?[\s\-.]?\d{3,5}[\s\-.]?\d{3,5}(?:[\s\-.]?\d{1,4})?/)
   if (phoneM) vals.phone = phoneM[0].trim()
 
-  // LinkedIn URL
   const linkedinM = cvText.match(/(?:https?:\/\/)?(?:www\.)?linkedin\.com\/in\/[\w\-%.]+\/?/i)
   if (linkedinM) {
     vals.linkedin = linkedinM[0].startsWith('http') ? linkedinM[0] : 'https://' + linkedinM[0]
     vals.linkedin = vals.linkedin.replace(/\/$/, '')
   }
 
-  // Full name — first non-empty line that is short, has no digits, no @
   for (const line of cvText.split('\n')) {
     const t = line.trim()
     if (t.length > 2 && t.length < 55 && !t.includes('@') && !/\d/.test(t) && /[A-Za-z]/.test(t)) {
       const words = t.split(/\s+/)
       if (words.length >= 2 && words.length <= 5) {
-        vals.fullName = t
+        vals.fullName  = t
         vals.firstName = words[0]
-        vals.lastName = words.slice(1).join(' ')
+        vals.lastName  = words.slice(1).join(' ')
         break
       }
     }
@@ -238,7 +319,7 @@ function extractCvValues(cvText: string): CvValues {
   return vals
 }
 
-// ── Deterministic overrides: trust HTML attrs over Claude when confident ──────
+// ── Deterministic overrides ───────────────────────────────────────────────────
 
 function applyDeterministicOverrides(mapping: FieldMapping[], cv: CvValues): FieldMapping[] {
   return mapping.map(m => {
@@ -248,17 +329,12 @@ function applyDeterministicOverrides(mapping: FieldMapping[], cv: CvValues): Fie
     const lb  = field.label.toLowerCase().replace(/[^a-z0-9]/g, '')
     const typ = field.type
 
-    // Helper: upgrade a mapping if we have a confident value
     const override = (val: string | undefined): FieldMapping | null =>
       val ? { ...m, value: val, confidence: 'high' } : null
 
-    // 1. HTML type="email" — definitive
     if (typ === 'email') return override(cv.email) ?? m
-
-    // 2. HTML type="tel" — definitive
     if (typ === 'tel')   return override(cv.phone) ?? m
 
-    // 3. autocomplete attribute — very reliable
     if (ac === 'email')       return override(cv.email)     ?? m
     if (ac === 'tel')         return override(cv.phone)     ?? m
     if (ac === 'given-name')  return override(cv.firstName) ?? m
@@ -267,7 +343,6 @@ function applyDeterministicOverrides(mapping: FieldMapping[], cv: CvValues): Fie
     if (ac === 'url' && (nm.includes('linkedin') || lb.includes('linkedin')))
                               return override(cv.linkedin)  ?? m
 
-    // 4. name attribute patterns — reliable
     if (/email|e-?mail/.test(nm))                         return override(cv.email)     ?? m
     if (/phone|tel|mobile|mob|cell/.test(nm))             return override(cv.phone)     ?? m
     if (/linkedin|linked.?in/.test(nm))                   return override(cv.linkedin)  ?? m
@@ -275,25 +350,23 @@ function applyDeterministicOverrides(mapping: FieldMapping[], cv: CvValues): Fie
     if (/^(lastname|lname|surname|familyname)$/.test(nm)) return override(cv.lastName)  ?? m
     if (/^(fullname|name)$/.test(nm))                     return override(cv.fullName)  ?? m
 
-    // 5. Label fallback — catch anything Claude missed for high-certainty fields
     if (!m.value || m.confidence === 'low') {
-      if (/email/.test(lb))    return override(cv.email)    ?? m
-      if (/phone|mobile|tel/.test(lb)) return override(cv.phone) ?? m
-      if (/linkedin/.test(lb)) return override(cv.linkedin) ?? m
+      if (/email/.test(lb))              return override(cv.email)    ?? m
+      if (/phone|mobile|tel/.test(lb))   return override(cv.phone)   ?? m
+      if (/linkedin/.test(lb))           return override(cv.linkedin) ?? m
     }
 
     return m
   })
 }
 
-// ── Fuzzy label matching ─────────────────────────────────────────────────────
+// ── Fuzzy label matching ──────────────────────────────────────────────────────
 
 function matchLabel(fieldLabel: string, mappedLabel: string): boolean {
   const fl = fieldLabel.toLowerCase().replace(/[^a-z0-9]/g, '')
   const ml = mappedLabel.toLowerCase().replace(/[^a-z0-9]/g, '')
   if (fl === ml) return true
   if (fl.includes(ml) || ml.includes(fl)) return true
-  // common aliases
   const aliases: [string, string][] = [
     ['firstname', 'givenname'], ['lastname', 'familyname'], ['lastname', 'surname'],
     ['email', 'emailaddress'], ['phone', 'phonenumber'], ['phone', 'mobile'],
@@ -304,7 +377,67 @@ function matchLabel(fieldLabel: string, mappedLabel: string): boolean {
   return aliases.some(([a, b]) => (fl === a && ml === b) || (fl === b && ml === a))
 }
 
-// ── Analyze form ─────────────────────────────────────────────────────────────
+// ── Fill a single field ───────────────────────────────────────────────────────
+
+async function fillField(
+  page: import('playwright').Page,
+  field: DetectedField,
+  value: string,
+  cvPath: string,
+  clPath: string,
+): Promise<boolean> {
+  try {
+    if (field.type === 'file') {
+      if (value === '__SKIP_FILE__') return false
+      const filePath = value === '__CV_FILE__' ? cvPath : value === '__CL_FILE__' ? clPath : null
+      if (!filePath) return false
+      await page.setInputFiles(field.selector, filePath)
+        .catch(() => page.getByLabel(field.label, { exact: false }).setInputFiles(filePath))
+      return true
+    }
+
+    if (field.type === 'select') {
+      const normValue = normalizeOption(value)
+      // 1. Exact label match
+      const ok = await page.selectOption(field.selector, { label: value }).then(() => true).catch(() => false)
+      if (ok) return true
+      // 2. Normalized match against known options
+      if (field.options) {
+        const opt = field.options.find(o => normalizeOption(o) === normValue)
+        if (opt) {
+          return page.selectOption(field.selector, { label: opt }).then(() => true).catch(() => false)
+        }
+        // 3. Partial normalized match (e.g. "fulltime" matches "Full Time Employment")
+        const partOpt = field.options.find(o => normalizeOption(o).includes(normValue) || normValue.includes(normalizeOption(o)))
+        if (partOpt) {
+          return page.selectOption(field.selector, { label: partOpt }).then(() => true).catch(() => false)
+        }
+      }
+      // 4. Raw value fallback
+      return page.selectOption(field.selector, value).then(() => true).catch(() => false)
+    }
+
+    if (field.type === 'checkbox') {
+      const check = value.toLowerCase() === 'true' || value.toLowerCase() === 'yes'
+      if (check) await page.check(field.selector).catch(() => {})
+      else await page.uncheck(field.selector).catch(() => {})
+      return true
+    }
+
+    // text / email / tel / textarea / date / number / url
+    return page.fill(field.selector, value).then(() => true)
+      .catch(() => page.getByLabel(field.label, { exact: false }).fill(value).then(() => true)
+        .catch(() => field.placeholder
+          ? page.getByPlaceholder(field.placeholder, { exact: false }).fill(value).then(() => true).catch(() => false)
+          : Promise.resolve(false)
+        )
+      )
+  } catch {
+    return false
+  }
+}
+
+// ── Analyze form ──────────────────────────────────────────────────────────────
 
 export async function analyzeForm(
   jobUrl: string,
@@ -340,7 +473,6 @@ export async function analyzeForm(
 
     let fields = await grabFieldsFromDom(page)
 
-    // Vision fallback if DOM scan found nothing
     if (fields.length === 0) {
       const visionMsg = await anthropic.messages.create({
         model: 'claude-sonnet-4-6',
@@ -370,8 +502,9 @@ If no form visible: {"hasForm":false,"fields":[]}`,
       return { formType, pageTitle, hasForm: false, fields: [], mapping: [], screenshotB64, error: 'No application form fields detected.' }
     }
 
-    const rawMapping = await mapCvToFields(fields, cvText, coverLetter, anthropic)
-    const cvValues   = extractCvValues(cvText)
+    const cvValues  = extractCvValues(cvText)
+    const cvContext = buildCvContext(cvText, cvValues)
+    const rawMapping = await mapCvToFields(fields, cvContext, coverLetter, anthropic)
 
     const mapping: FieldMapping[] = applyDeterministicOverrides(
       fields.map(field => {
@@ -387,9 +520,8 @@ If no form visible: {"hasForm":false,"fields":[]}`,
   }
 }
 
-// ── Fill form (without submitting) ──────────────────────────────────────────
-// Yields events during fill, then yields filled_preview and closes.
-// The client shows the screenshot and asks the user to confirm before submitting.
+// ── Execute (fill form, keep browser alive) ───────────────────────────────────
+// Bucket 1: browser stays open. Session stored by UUID. Submit resumes same page.
 
 export async function* executeApply(
   jobUrl: string,
@@ -398,14 +530,24 @@ export async function* executeApply(
   coverLetter: string,
 ): AsyncGenerator<ExecuteEvent> {
   const { chromium } = await import('playwright')
-  const { writeFileSync, unlinkSync, existsSync } = await import('fs')
-  const { join } = await import('path')
-  const { tmpdir } = await import('os')
+  const { randomUUID } = await import('crypto')
+  const { join } = require('path') as typeof import('path')
+  const { tmpdir } = require('os') as typeof import('os')
+  const { writeFileSync } = require('fs') as typeof import('fs')
 
   const ts = Date.now()
-  const cvPath = join(tmpdir(), `jl_cv_${ts}.txt`)
-  const clPath = join(tmpdir(), `jl_cl_${ts}.txt`)
-  writeFileSync(cvPath, cvText || 'CV not provided', 'utf8')
+  const sessionId = randomUUID()
+  let cvPath: string
+  let clPath: string
+
+  // Generate PDF for CV — accepted by ATS, .txt is not
+  try {
+    cvPath = await generateCvPdf(cvText || 'CV not provided')
+  } catch {
+    cvPath = join(tmpdir(), `jl_cv_${ts}.txt`)
+    writeFileSync(cvPath, cvText || 'CV not provided', 'utf8')
+  }
+  clPath = join(tmpdir(), `jl_cl_${ts}.txt`)
   writeFileSync(clPath, coverLetter || 'Cover letter not provided', 'utf8')
 
   const browser = await chromium.launch({ headless: true })
@@ -438,125 +580,57 @@ export async function* executeApply(
         index: i + 1,
         total: fillable.length,
       }
-
-      let success = false
-      try {
-        if (field.type === 'file') {
-          if (value === '__SKIP_FILE__') { yield { type: 'filled', label: field.label, success: false }; continue }
-          const filePath = value === '__CV_FILE__' ? cvPath : value === '__CL_FILE__' ? clPath : null
-          if (filePath) {
-            await page.setInputFiles(field.selector, filePath)
-              .catch(async () => page.getByLabel(field.label, { exact: false }).setInputFiles(filePath))
-            success = true
-          }
-        } else if (field.type === 'select') {
-          await page.selectOption(field.selector, { label: value })
-            .catch(() => page.selectOption(field.selector, value))
-          success = true
-        } else if (field.type === 'checkbox') {
-          const check = value.toLowerCase() === 'true' || value.toLowerCase() === 'yes'
-          if (check) await page.check(field.selector).catch(() => {})
-          else await page.uncheck(field.selector).catch(() => {})
-          success = true
-        } else {
-          // Try selector first, then aria-label, then placeholder — triple fallback
-          success = await page.fill(field.selector, value).then(() => true)
-            .catch(() => page.getByLabel(field.label, { exact: false }).fill(value).then(() => true)
-              .catch(() => field.placeholder
-                ? page.getByPlaceholder(field.placeholder, { exact: false }).fill(value).then(() => true).catch(() => false)
-                : Promise.resolve(false)
-              )
-            )
-        }
-      } catch { success = false }
-
+      const success = await fillField(page, field, value, cvPath, clPath)
       yield { type: 'filled', label: field.label, success }
       await page.waitForTimeout(300)
     }
 
-    // Scroll to top so the screenshot shows the full form from the top
     await page.evaluate(() => window.scrollTo(0, 0))
     await page.waitForTimeout(500)
     const filledShot = (await page.screenshot({ fullPage: true })).toString('base64')
 
-    // Stop here — do NOT submit. Client will show screenshot and ask for confirmation.
+    // Store session — browser stays alive so submit can click on the already-filled page
+    sessions.set(sessionId, { browser, page, cvPath, clPath, createdAt: Date.now() })
+
     yield {
       type: 'filled_preview',
       b64: filledShot,
       message: `All ${fillable.length} fields filled. Review the form above and confirm to submit.`,
+      sessionId,
     }
+    // Do NOT close browser here — session store owns it now
   } catch (err) {
     const errShot = await (async () => {
       try {
-        const p = await browser.contexts()[0]?.pages()[0]
+        const p = browser.contexts()[0]?.pages()[0]
         return p ? (await p.screenshot({ fullPage: false })).toString('base64') : undefined
       } catch { return undefined }
     })()
     yield { type: 'error', message: String(err), b64: errShot }
-  } finally {
+    // On error, close and clean up (no session stored)
     await browser.close()
-    try { if (existsSync(cvPath)) unlinkSync(cvPath) } catch { /* ignore */ }
-    try { if (existsSync(clPath)) unlinkSync(clPath) } catch { /* ignore */ }
+    cleanupFiles(cvPath!, clPath)
   }
 }
 
-// ── Submit the filled form ───────────────────────────────────────────────────
-// Re-opens browser, re-fills all fields quickly, then clicks submit.
+// ── Submit (resume stored session, click submit) ──────────────────────────────
+// Bucket 1: the page is already filled. We just click the submit button.
 
-export async function* submitApply(
-  jobUrl: string,
-  mapping: FieldMapping[],
-  cvText: string,
-  coverLetter: string,
-): AsyncGenerator<ExecuteEvent> {
-  const { chromium } = await import('playwright')
-  const { writeFileSync, unlinkSync, existsSync } = await import('fs')
-  const { join } = await import('path')
-  const { tmpdir } = await import('os')
+export async function* submitApply(sessionId: string): AsyncGenerator<ExecuteEvent> {
+  const session = sessions.get(sessionId)
 
-  const ts = Date.now()
-  const cvPath = join(tmpdir(), `jl_cv_submit_${ts}.txt`)
-  const clPath = join(tmpdir(), `jl_cl_submit_${ts}.txt`)
-  writeFileSync(cvPath, cvText || 'CV not provided', 'utf8')
-  writeFileSync(clPath, coverLetter || 'Cover letter not provided', 'utf8')
+  if (!session) {
+    yield { type: 'error', message: 'Session expired. Please go back and re-fill the form (sessions last 10 minutes).' }
+    return
+  }
 
-  const browser = await chromium.launch({ headless: true })
+  // Consume — each session can only be submitted once
+  sessions.delete(sessionId)
+  const { browser, page, cvPath, clPath } = session
 
   try {
-    yield { type: 'log', message: 'Re-opening browser for submission…' }
-    const ctx = await browser.newContext({
-      viewport: { width: 1280, height: 900 },
-      userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
-    })
-    const page = await ctx.newPage()
-    await page.goto(jobUrl, { waitUntil: 'networkidle', timeout: 40000 })
-    await page.waitForTimeout(2500)
-    yield { type: 'log', message: 'Re-filling fields…' }
+    yield { type: 'log', message: 'Submitting the filled form…' }
 
-    const fillable = mapping.filter(m => m.value && m.value.trim())
-    for (const { field, value } of fillable) {
-      try {
-        if (field.type === 'file') {
-          if (value === '__SKIP_FILE__') continue
-          const filePath = value === '__CV_FILE__' ? cvPath : value === '__CL_FILE__' ? clPath : null
-          if (filePath) await page.setInputFiles(field.selector, filePath).catch(async () => page.getByLabel(field.label, { exact: false }).setInputFiles(filePath))
-        } else if (field.type === 'select') {
-          await page.selectOption(field.selector, { label: value }).catch(() => page.selectOption(field.selector, value))
-        } else if (field.type === 'checkbox') {
-          const check = value.toLowerCase() === 'true' || value.toLowerCase() === 'yes'
-          if (check) await page.check(field.selector).catch(() => {})
-          else await page.uncheck(field.selector).catch(() => {})
-        } else {
-          await page.fill(field.selector, value)
-            .catch(() => page.getByLabel(field.label, { exact: false }).fill(value)
-              .catch(() => field.placeholder ? page.getByPlaceholder(field.placeholder, { exact: false }).fill(value).catch(() => {}) : Promise.resolve())
-            )
-        }
-      } catch { /* continue */ }
-      await page.waitForTimeout(200)
-    }
-
-    yield { type: 'log', message: 'Clicking submit button…' }
     const submitted = await page
       .getByRole('button', { name: /submit application|apply now|send application|submit/i })
       .first().click({ timeout: 5000 }).then(() => true).catch(() => false)
@@ -575,7 +649,6 @@ export async function* submitApply(
     yield { type: 'error', message: String(err) }
   } finally {
     await browser.close()
-    try { if (existsSync(cvPath)) unlinkSync(cvPath) } catch { /* ignore */ }
-    try { if (existsSync(clPath)) unlinkSync(clPath) } catch { /* ignore */ }
+    cleanupFiles(cvPath, clPath)
   }
 }

@@ -99,6 +99,8 @@ export default function AutoApplyPage() {
   const [confirmShot, setConfirmShot] = useState<string>('')
   const [previewShot, setPreviewShot] = useState<string>('')
   const [error, setError] = useState<string>('')
+  const [sessionId, setSessionId] = useState<string>('')
+  const [fieldStatuses, setFieldStatuses] = useState<Record<string, boolean | null>>({})
   const logRef = useRef<HTMLDivElement>(null)
   const logCounter = useRef(0)
 
@@ -133,6 +135,8 @@ export default function AutoApplyPage() {
     setPhase('analyzing')
     setAnalyzeResult(null)
     setMapping([])
+    setSessionId('')
+    setFieldStatuses({})
 
     try {
       const res = await fetch('/api/auto-apply/analyze', {
@@ -190,11 +194,18 @@ export default function AutoApplyPage() {
             switch (ev.type) {
               case 'log':           addLog({ type: 'log', message: ev.message }); break
               case 'screenshot':    setLiveShot(ev.b64); addLog({ type: 'screenshot', message: ev.message, b64: ev.b64 }); break
-              case 'filling':       addLog({ type: 'filling', message: `Filling "${ev.label}" → ${ev.value.slice(0, 40)}` }); break
-              case 'filled':        addLog({ type: 'filled', message: `"${ev.label}" ${ev.success ? '✓ filled' : '⚠ skipped'}`, success: ev.success }); break
+              case 'filling':
+                setFieldStatuses(prev => ({ ...prev, [ev.label]: null }))
+                addLog({ type: 'filling', message: `Filling "${ev.label}" → ${ev.value.slice(0, 40)}` })
+                break
+              case 'filled':
+                setFieldStatuses(prev => ({ ...prev, [ev.label]: ev.success }))
+                addLog({ type: 'filled', message: `"${ev.label}" ${ev.success ? '✓ filled' : '⚠ skipped'}`, success: ev.success })
+                break
               case 'filled_preview':
                 setPreviewShot(ev.b64)
                 setLiveShot(ev.b64)
+                if ('sessionId' in ev) setSessionId((ev as { sessionId: string }).sessionId)
                 addLog({ type: 'log', message: ev.message })
                 setPhase('confirming')
                 break
@@ -226,6 +237,8 @@ export default function AutoApplyPage() {
     setLiveShot('')
     setConfirmShot('')
     setPreviewShot('')
+    setFieldStatuses({})
+    setSessionId('')
     await streamEvents(
       '/api/auto-apply/execute',
       { jobUrl: jobUrl.trim(), mapping, cvText, coverLetter: useCoverLetter ? coverLetter : '' },
@@ -234,13 +247,14 @@ export default function AutoApplyPage() {
   }
 
   async function handleConfirmSubmit() {
+    if (!sessionId) {
+      setError('Session lost — please go back and re-fill the form.')
+      setPhase('confirming')
+      return
+    }
     setPhase('submitting')
     setLog(prev => [...prev, { id: ++logCounter.current, type: 'log', message: 'User confirmed — submitting application…' }])
-    await streamEvents(
-      '/api/auto-apply/submit',
-      { jobUrl: jobUrl.trim(), mapping, cvText, coverLetter: useCoverLetter ? coverLetter : '' },
-      logToTracker,
-    )
+    await streamEvents('/api/auto-apply/submit', { sessionId }, () => {})
   }
 
   function logToTracker() {
@@ -308,6 +322,16 @@ export default function AutoApplyPage() {
         .log-entry { display: flex; align-items: flex-start; gap: 8px; padding: 6px 0; border-bottom: 1px solid ${c.border}; font-size: 12px; color: ${c.text}; }
         .spin { animation: spin 1s linear infinite; }
         @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+        .aa-grid { display: grid; grid-template-columns: 340px 1fr; gap: 20px; align-items: start; }
+        .aa-field-grid { display: grid; grid-template-columns: 160px 1fr 70px; }
+        .aa-steps-wrap { display: flex; align-items: center; gap: 0; background: ${c.bgCard}; border: 1px solid ${c.border}; border-radius: 10px; padding: 10px 18px; overflow: hidden; }
+        @media (max-width: 768px) {
+          .aa-grid { grid-template-columns: 1fr !important; }
+          .aa-field-grid { grid-template-columns: 1fr 1fr !important; }
+          .aa-steps-wrap { padding: 8px 10px; }
+          .aa-step-label { display: none; }
+          .aa-step-active-label { display: block !important; }
+        }
       `}</style>
 
       <Navbar />
@@ -352,7 +376,7 @@ export default function AutoApplyPage() {
 
         {/* ── ACTIVE MODE ── */}
         {mode === 'active' && (
-          <div style={{ display: 'grid', gridTemplateColumns: '340px 1fr', gap: 20, alignItems: 'start' }}>
+          <div className="aa-grid">
 
             {/* LEFT COLUMN */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
@@ -504,6 +528,52 @@ export default function AutoApplyPage() {
             {/* RIGHT COLUMN */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
 
+              {/* ── Phase step indicator ── */}
+              {phase !== 'idle' && (() => {
+                const steps: { key: Phase; label: string }[] = [
+                  { key: 'analyzing',  label: 'Analyse' },
+                  { key: 'review',     label: 'Review' },
+                  { key: 'executing',  label: 'Fill' },
+                  { key: 'confirming', label: 'Confirm' },
+                  { key: 'submitting', label: 'Submit' },
+                  { key: 'done',       label: 'Done' },
+                ]
+                const order = steps.map(s => s.key)
+                const currentIdx = order.indexOf(phase)
+                return (
+                  <div className="aa-steps-wrap">
+                    <div className="aa-step-active-label" style={{ display: 'none', fontSize: 12, fontWeight: 700, color: c.accent, padding: '0 4px' }}>
+                      Step {currentIdx + 1} of {steps.length} — {steps[currentIdx]?.label}
+                    </div>
+                    {steps.map((s, i) => {
+                      const done   = i < currentIdx
+                      const active = i === currentIdx
+                      return (
+                        <div key={s.key} style={{ display: 'flex', alignItems: 'center', flex: 1 }}>
+                          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, flex: 1 }}>
+                            <div style={{
+                              width: 24, height: 24, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                              background: done ? c.success : active ? c.accent : c.border,
+                              color: done || active ? '#fff' : c.textFaint,
+                              fontSize: 11, fontWeight: 700, flexShrink: 0,
+                              boxShadow: active ? `0 0 0 3px ${c.accentLight}` : 'none',
+                            }}>
+                              {done ? '✓' : i + 1}
+                            </div>
+                            <div className="aa-step-label" style={{ fontSize: 10, color: done ? c.success : active ? c.accent : c.textFaint, fontWeight: active ? 700 : 400, whiteSpace: 'nowrap' }}>
+                              {s.label}
+                            </div>
+                          </div>
+                          {i < steps.length - 1 && (
+                            <div style={{ flex: 1, height: 2, background: i < currentIdx ? c.success : c.border, marginBottom: 18, minWidth: 8 }} />
+                          )}
+                        </div>
+                      )
+                    })}
+                  </div>
+                )
+              })()}
+
               {phase === 'idle' && !analyzeResult && (
                 <div style={{ ...card, padding: '60px 20px', textAlign: 'center' }}>
                   <svg width="52" height="52" viewBox="0 0 52 52" fill="none" style={{ margin: '0 auto 16px' }}>
@@ -599,13 +669,13 @@ export default function AutoApplyPage() {
                       </span>
                     </div>
                     <div style={{ maxHeight: 420, overflowY: 'auto' }}>
-                      <div style={{ display: 'grid', gridTemplateColumns: '160px 1fr 70px', padding: '8px 16px', background: c.bgSubtle, borderBottom: `1px solid ${c.border}` }}>
+                      <div className="aa-field-grid" style={{ padding: '8px 16px', background: c.bgSubtle, borderBottom: `1px solid ${c.border}` }}>
                         {['Field', 'Value', 'Confidence'].map(h => (
                           <div key={h} style={{ fontSize: 10, fontWeight: 700, color: c.textFaint, textTransform: 'uppercase', letterSpacing: 0.5 }}>{h}</div>
                         ))}
                       </div>
                       {mapping.map((m, idx) => (
-                        <div key={`field-${idx}`} style={{ display: 'grid', gridTemplateColumns: '160px 1fr 70px', padding: '8px 16px', borderBottom: `1px solid ${c.border}`, alignItems: 'center', background: m.field.required && !m.value ? c.warningLight : undefined }}>
+                        <div key={`field-${idx}`} className="aa-field-grid" style={{ padding: '8px 16px', borderBottom: `1px solid ${c.border}`, alignItems: 'center', background: m.field.required && !m.value ? c.warningLight : undefined }}>
                           <div>
                             <div style={{ fontSize: 12, fontWeight: 600, color: c.text }}>
                               {m.field.label}
@@ -685,6 +755,37 @@ export default function AutoApplyPage() {
                     </div>
                   )}
                 </>
+              )}
+
+              {/* ── Live field fill status table (during execution) ── */}
+              {(phase === 'executing' || phase === 'confirming') && Object.keys(fieldStatuses).length > 0 && (
+                <div style={card}>
+                  <div style={cardHead}>Field Fill Status</div>
+                  <div style={{ maxHeight: 240, overflowY: 'auto' }}>
+                    {Object.entries(fieldStatuses).map(([label, success]) => (
+                      <div key={label} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '7px 16px', borderBottom: `1px solid ${c.border}` }}>
+                        <span style={{ fontSize: 14, flexShrink: 0 }}>
+                          {success === null ? <svg className="spin" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke={c.accent} strokeWidth="2.5"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg> : success ? '✓' : '⚠'}
+                        </span>
+                        <span style={{ fontSize: 12, color: success === null ? c.textMuted : success ? c.success : c.warning, flex: 1 }}>{label}</span>
+                        <span style={{ fontSize: 10, color: c.textFaint }}>
+                          {success === null ? 'filling…' : success ? 'filled' : 'skipped'}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                  {phase === 'confirming' && (() => {
+                    const failed = Object.entries(fieldStatuses).filter(([, s]) => s === false)
+                    return failed.length > 0 ? (
+                      <div style={{ padding: '10px 16px', background: c.warningLight, borderTop: `1px solid ${c.warningBorder ?? c.border}` }}>
+                        <div style={{ fontSize: 11, fontWeight: 700, color: c.warning, marginBottom: 4 }}>
+                          {failed.length} field{failed.length > 1 ? 's' : ''} could not be auto-filled — check the preview and fill manually if required:
+                        </div>
+                        <div style={{ fontSize: 11, color: c.warning }}>{failed.map(([l]) => l).join(' · ')}</div>
+                      </div>
+                    ) : null
+                  })()}
+                </div>
               )}
 
               {(phase === 'executing' || phase === 'submitting' || (phase === 'done' && log.length > 0)) && (

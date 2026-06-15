@@ -106,6 +106,8 @@ export default function MyJobCasesPage() {
           *, *::before, *::after { box-sizing: border-box; }
           @keyframes jcPulse { 0%,100%{opacity:1;} 50%{opacity:0.3;} }
           @keyframes jcFadeUp { from{opacity:0;transform:translateY(6px);} to{opacity:1;transform:translateY(0);} }
+          .jc-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 24px; }
+          @media (max-width: 600px) { .jc-stats { grid-template-columns: repeat(2, 1fr); } }
           .jc-card {
             background: ${c.bgCard};
             border: 1px solid ${c.border};
@@ -167,7 +169,7 @@ export default function MyJobCasesPage() {
             </div>
 
             {/* Stats strip */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12, marginBottom: 24 }}>
+            <div className="jc-stats">
               {[
                 { value: loading ? '…' : String(activeCases),  label: 'Active cases' },
                 { value: loading ? '…' : String(totalViews),   label: 'Recruiter views' },
