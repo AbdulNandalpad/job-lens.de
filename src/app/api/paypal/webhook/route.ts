@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createAdminSupabase } from '@/lib/supabase-server'
+import { reportError } from '@/lib/error-reporter'
 
 // Credit amounts per purchase price (EUR)
 const CREDIT_PACKS: Record<string, number> = {
@@ -143,6 +144,7 @@ export async function POST(req: NextRequest) {
 
   } catch (err) {
     console.error('[paypal] webhook error:', err)
+    await reportError({ route: '/api/paypal/webhook', error: err, severity: 'critical' })
     return NextResponse.json({ error: 'Internal error' }, { status: 500 })
   }
 }

@@ -80,6 +80,33 @@ export async function sendViewNotification(opts: {
   }
 }
 
+export async function sendAdminAlert(opts: {
+  subject: string
+  body: string
+}) {
+  const adminEmails = (process.env.ADMIN_EMAILS ?? '').split(',').map(e => e.trim()).filter(Boolean)
+  if (!adminEmails.length) return
+
+  const { subject, body } = opts
+  const html = `
+<div style="font-family:system-ui,sans-serif;max-width:600px;margin:0 auto;padding:24px;color:#1a2332">
+  <div style="background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:16px 20px;margin-bottom:20px">
+    <strong style="color:#dc2626">⚠ Job-Lens Admin Alert</strong>
+  </div>
+  <pre style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:6px;padding:16px;font-size:13px;line-height:1.6;white-space:pre-wrap;word-break:break-word;color:#334155">${body}</pre>
+  <p style="font-size:11px;color:#94a3b8;margin-top:16px">Sent from job-lens.de · ${new Date().toISOString()}</p>
+</div>`
+
+  if (resend) {
+    // Send to all admin emails (Resend accepts one recipient per call to keep from-address clean)
+    await Promise.allSettled(
+      adminEmails.map(to => resend!.emails.send({ from: FROM, to, subject: `[Job-Lens Alert] ${subject}`, html }))
+    )
+  } else {
+    console.error(`[admin-alert] ${subject}\n${body}`)
+  }
+}
+
 export async function sendCreditRefundNotification(opts: {
   candidateEmail: string
   candidateName: string

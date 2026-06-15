@@ -124,6 +124,7 @@ export const API = {
   jobCaseScoreSample:   '/api/job-case/score-sample',
   jobCaseList:          '/api/job-case/list',
   jobCaseRequestAccess: '/api/job-case/request-access',
+  contact:              '/api/contact',
 } as const
 
 // ── Job Case ─────────────────────────────────────────────────────────────────

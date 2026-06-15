@@ -14,6 +14,7 @@ import Anthropic from '@anthropic-ai/sdk'
 import { createServerSupabase, createAdminSupabase, checkAndDeductCredits } from '@/lib/supabase-server'
 import { JOB_CASE, MARKET } from '@/lib/constants'
 import { nanoid } from 'nanoid'
+import { reportError } from '@/lib/error-reporter'
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
 
@@ -228,6 +229,7 @@ export async function POST(req: NextRequest) {
     })
   } catch (err) {
     console.error('/api/job-case/create error:', err)
+    await reportError({ route: '/api/job-case/create', error: err, severity: 'critical' })
     return NextResponse.json({ error: 'Internal error' }, { status: 500 })
   }
 }
