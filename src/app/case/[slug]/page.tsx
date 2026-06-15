@@ -20,6 +20,7 @@ type CaseData = {
   created_at: string
   expires_at: string
   candidateName: string
+  videoSignedUrl: string | null
 }
 
 // ── Dark palette scoped to this standalone page ───────────────────────────────
@@ -79,6 +80,15 @@ export default function PublicCasePage() {
   const [granted, setGranted]   = useState(searchParams?.get('access') === 'granted')
   const [caseData, setCaseData] = useState<CaseData | null>(null)
   const [loadError, setLoadError] = useState('')
+
+  // Owner bypass: authenticated case owners skip the email gate
+  useEffect(() => {
+    if (granted || !slug) return
+    fetch(`/api/job-case/owner-check/${slug}`)
+      .then(r => r.ok ? r.json() : null)
+      .then(d => { if (d?.owner) setGranted(true) })
+      .catch(() => null) // silent — just means they're not the owner or not logged in
+  }, [slug]) // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (!granted || !slug) return
@@ -229,6 +239,23 @@ export default function PublicCasePage() {
                   <div style={{ fontSize: 11, color: D.txt3, textAlign: 'center' }}>AI match score</div>
                 </div>
               </div>
+
+              {/* Video pitch */}
+              {caseData.videoSignedUrl && (
+                <div style={{ marginBottom: 28 }}>
+                  <p style={{ fontSize: 10, fontWeight: 700, letterSpacing: 0.8, textTransform: 'uppercase', color: D.txt3, margin: '0 0 12px' }}>
+                    Video pitch
+                  </p>
+                  <div style={{ borderRadius: 12, overflow: 'hidden', border: `1px solid ${D.border}`, background: '#000', aspectRatio: '16/9' }}>
+                    <video
+                      src={caseData.videoSignedUrl}
+                      controls
+                      playsInline
+                      style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+                    />
+                  </div>
+                </div>
+              )}
 
               {/* Pitch narrative */}
               {caseData.pitch_narrative && (

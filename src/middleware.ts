@@ -56,7 +56,8 @@ export async function middleware(request: NextRequest) {
     path.startsWith('/datenschutz') ||
     path.startsWith('/agb') ||
     path.endsWith('/demo-form') ||  // sandbox demo forms — no auth needed, no data stored
-    path.endsWith('.html')
+    path.endsWith('.html') ||
+    path.startsWith('/case/')       // public recruiter view — gated by magic link, not auth
 
   if (!user && !isPublic) {
     const url = request.nextUrl.clone()

@@ -487,6 +487,8 @@ export default function JobCaseNewPage() {
 
   const [step, setStep]          = useState<Step>('paste')
   const [cvFound, setCvFound]    = useState(false)
+  const [cvUploading, setCvUploading] = useState(false)
+  const cvInputRef = useRef<HTMLInputElement>(null)
 
   const [jobText, setJobText]    = useState('')
   const [jobUrl, setJobUrl]      = useState('')
@@ -524,9 +526,11 @@ export default function JobCaseNewPage() {
   const [tabSwitches, setTabSwitches] = useState(0)
   const [submitted, setSubmitted]     = useState(false)
 
-  // Read CV text from Career Scan / CV Builder session
+  // Read CV text from Career Scan / CV Builder / ATS scan session
   useEffect(() => {
-    const cv = sessionStorage.getItem(SS.cvText) || sessionStorage.getItem(SS.cvbTailored)
+    const cv = sessionStorage.getItem(SS.cvText)
+      || sessionStorage.getItem(SS.cvbTailored)
+      || sessionStorage.getItem(SS.atsSuggestions)
     if (cv && cv.trim().length > 100) setCvFound(true)
   }, [])
 
@@ -543,6 +547,24 @@ export default function JobCaseNewPage() {
       sessionStorage.removeItem(SS.jcJob)
     } catch {}
   }, [])
+
+  async function handleCvUpload(file: File) {
+    setCvUploading(true)
+    try {
+      const form = new FormData()
+      form.append('file', file)
+      const res = await fetch(API.extractPdf, { method: 'POST', body: form })
+      const data = await res.json()
+      if (data.text && data.text.trim().length > 100) {
+        sessionStorage.setItem(SS.cvText, data.text)
+        setCvFound(true)
+      }
+    } catch {
+      // silent — CV upload is optional
+    } finally {
+      setCvUploading(false)
+    }
+  }
 
   async function analyse() {
     if (!jobText.trim() && !jobUrl.trim()) return
@@ -573,7 +595,7 @@ export default function JobCaseNewPage() {
   async function generateTest() {
     setStep('questions')
     try {
-      const cvText = sessionStorage.getItem(SS.cvText) || sessionStorage.getItem(SS.cvbTailored) || ''
+      const cvText = sessionStorage.getItem(SS.cvText) || sessionStorage.getItem(SS.cvbTailored) || sessionStorage.getItem(SS.atsSuggestions) || ''
       const res = await fetch(API.jobCaseGenerateTest, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -591,7 +613,7 @@ export default function JobCaseNewPage() {
   async function createCase() {
     setStep('generating')
     try {
-      const cvText = sessionStorage.getItem(SS.cvText) || sessionStorage.getItem(SS.cvbTailored) || ''
+      const cvText = sessionStorage.getItem(SS.cvText) || sessionStorage.getItem(SS.cvbTailored) || sessionStorage.getItem(SS.atsSuggestions) || ''
       const res = await fetch(API.jobCaseCreate, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -712,6 +734,33 @@ export default function JobCaseNewPage() {
                   <Card>
                     <input className="jc-input" placeholder="Job URL (optional)" value={jobUrl} onChange={e => setJobUrl(e.target.value)} style={{ marginBottom: 10 }} />
                     <textarea className="jc-input" placeholder="Paste the full job description here…" rows={10} value={jobText} onChange={e => setJobText(e.target.value)} style={{ minHeight: 200 }} />
+
+                    {/* CV upload — optional, improves match score and question quality */}
+                    <div style={{ marginTop: 14, padding: '12px 14px', background: cvFound ? 'rgba(29,158,117,0.06)' : 'rgba(55,138,221,0.04)', border: `1px solid ${cvFound ? 'rgba(29,158,117,0.2)' : c.border}`, borderRadius: 8 }}>
+                      <div style={{ fontSize: 11, fontWeight: 600, color: cvFound ? c.success : c.textMuted, marginBottom: cvFound ? 0 : 8 }}>
+                        {cvFound ? '✓ CV loaded — AI will use it for matching' : 'Add your CV for a better match score (optional)'}
+                      </div>
+                      {!cvFound && (
+                        <>
+                          <input
+                            ref={cvInputRef}
+                            type="file"
+                            accept=".pdf,.docx"
+                            style={{ display: 'none' }}
+                            onChange={e => { const f = e.target.files?.[0]; if (f) handleCvUpload(f); e.target.value = '' }}
+                          />
+                          <button
+                            type="button"
+                            disabled={cvUploading}
+                            onClick={() => cvInputRef.current?.click()}
+                            style={{ fontSize: 12, color: c.accent, background: 'none', border: `1px solid ${c.border}`, borderRadius: 6, padding: '6px 14px', cursor: cvUploading ? 'not-allowed' : 'pointer', fontFamily: f.body, display: 'flex', alignItems: 'center', gap: 6, opacity: cvUploading ? 0.6 : 1 }}
+                          >
+                            {cvUploading ? <><Spinner /> Extracting…</> : '↑ Upload CV (PDF / DOCX)'}
+                          </button>
+                        </>
+                      )}
+                    </div>
+
                     <div style={{ marginTop: 18, display: 'flex', justifyContent: 'flex-end' }}>
                       {step === 'analysing'
                         ? <span style={{ display: 'flex', alignItems: 'center', gap: 8, color: c.textMuted, fontSize: 13 }}><Spinner /> Analysing job description…</span>

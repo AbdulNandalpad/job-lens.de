@@ -30,7 +30,7 @@ export async function GET(
 
     const { data: view } = await admin
       .from('case_views')
-      .select('id, job_case_id, recruiter_domain, token_used_at, token_expires_at')
+      .select('id, job_case_id, recruiter_domain, token_used_at, token_expires_at, viewed_at')
       .eq('magic_token_hash', tokenHash)
       .maybeSingle()
 
@@ -51,16 +51,20 @@ export async function GET(
       return NextResponse.redirect(new URL('/case/invalid-link?reason=expired', req.url))
     }
 
-    // Mark token as used
+    const now = new Date().toISOString()
+    const alreadyViewed = !!view.viewed_at
+
+    // Mark token as used and record view time if not already set
     await admin.from('case_views').update({
-      token_used_at: new Date().toISOString(),
-      viewed_at:     new Date().toISOString(),
+      token_used_at: now,
+      viewed_at:     alreadyViewed ? view.viewed_at : now,
     }).eq('id', view.id)
 
-    // Increment view count
-    await admin.rpc('increment_case_view_count', { case_id: view.job_case_id })
+    // Only increment view count and notify if this is a new view (not already tracked via form submit)
+    if (!alreadyViewed) {
+      await admin.rpc('increment_case_view_count', { case_id: view.job_case_id })
+    }
 
-    // Fetch case + candidate info for notification
     const { data: jobCase } = await admin
       .from('job_cases')
       .select('slug, job_title, user_id')
@@ -68,20 +72,22 @@ export async function GET(
       .single()
 
     if (jobCase) {
-      const { data: candidate } = await admin
-        .from('profiles')
-        .select('full_name, email')
-        .eq('id', jobCase.user_id)
-        .maybeSingle()
+      // Notify candidate only if view wasn't already tracked (avoids duplicate notifications)
+      if (!alreadyViewed) {
+        const { data: candidate } = await admin
+          .from('profiles')
+          .select('full_name, email')
+          .eq('id', jobCase.user_id)
+          .maybeSingle()
 
-      // Notify candidate (fire and forget — don't block the redirect)
-      if (candidate?.email) {
-        sendViewNotification({
-          candidateEmail:  candidate.email,
-          candidateName:   candidate.full_name ?? 'there',
-          jobTitle:        jobCase.job_title,
-          recruiterDomain: view.recruiter_domain,
-        }).catch(err => console.error('View notification failed:', err))
+        if (candidate?.email) {
+          sendViewNotification({
+            candidateEmail:  candidate.email,
+            candidateName:   candidate.full_name ?? 'there',
+            jobTitle:        jobCase.job_title,
+            recruiterDomain: view.recruiter_domain,
+          }).catch(err => console.error('View notification failed:', err))
+        }
       }
 
       return NextResponse.redirect(new URL(`/case/${jobCase.slug}?access=granted`, req.url))

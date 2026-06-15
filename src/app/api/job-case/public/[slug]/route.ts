@@ -26,7 +26,7 @@ export async function GET(
         pitch_narrative, requirement_evidence,
         test_answers, test_overall_score,
         view_count, created_at, expires_at, status,
-        user_id
+        user_id, video_storage_key
       `)
       .eq('slug', slug)
       .eq('status', 'active')
@@ -44,9 +44,22 @@ export async function GET(
       .eq('id', jobCase.user_id)
       .maybeSingle()
 
+    // Generate a short-lived signed URL for the video (private bucket)
+    let videoSignedUrl: string | null = null
+    if (jobCase.video_storage_key) {
+      const { data: signed } = await admin.storage
+        .from('job-case-videos')
+        .createSignedUrl(jobCase.video_storage_key, 1800) // 30-min expiry
+      videoSignedUrl = signed?.signedUrl ?? null
+    }
+
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { video_storage_key, ...publicCase } = jobCase
+
     return NextResponse.json({
-      ...jobCase,
+      ...publicCase,
       candidateName: candidate?.full_name ?? 'Candidate',
+      videoSignedUrl,
     })
   } catch (err) {
     console.error('/api/job-case/public/[slug] error:', err)

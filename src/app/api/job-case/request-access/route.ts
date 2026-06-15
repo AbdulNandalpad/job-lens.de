@@ -11,7 +11,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createHash, randomBytes } from 'crypto'
 import { createAdminSupabase } from '@/lib/supabase-server'
-import { sendMagicLink } from '@/lib/job-case-email'
+import { sendMagicLink, sendViewNotification } from '@/lib/job-case-email'
 
 const MAX_REQUESTS_PER_HOUR = 5
 
@@ -101,14 +101,20 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: true, message: 'Access link already sent to your email.' })
     }
 
-    // Store view record (hashed data only)
+    // Store view record — mark as viewed immediately (recruiter sees case on form submit)
+    // viewed_at here lets the candidate see the domain; magic link click is additional verification
+    const viewedAt = new Date().toISOString()
     await admin.from('case_views').insert({
       job_case_id:          jobCase.id,
       recruiter_email_hash: emailHash,
       recruiter_domain:     domain,
       magic_token_hash:     tokenHash,
       token_expires_at:     tokenExpiresAt,
+      viewed_at:            viewedAt,
     })
+
+    // Increment view count on job_cases so candidate dashboard shows "viewed"
+    await admin.rpc('increment_case_view_count', { case_id: jobCase.id })
 
     // Fetch candidate name for the email (from profiles table)
     const { data: candidateProfile } = await admin
@@ -127,6 +133,16 @@ export async function POST(req: NextRequest) {
       company:       jobCase.company_name ?? '',
       magicToken:    rawToken,
     })
+
+    // Notify candidate (fire and forget — domain only, no recruiter email)
+    if (candidateProfile?.email) {
+      sendViewNotification({
+        candidateEmail:  candidateProfile.email,
+        candidateName:   candidateProfile.full_name ?? 'there',
+        jobTitle:        jobCase.job_title,
+        recruiterDomain: domain,
+      }).catch(err => console.error('View notification failed:', err))
+    }
 
     return NextResponse.json({ ok: true })
   } catch (err) {
