@@ -174,6 +174,24 @@ function GlowDot({ color }: { color: string }) {
   )
 }
 
+// ── Source tag — small credibility footnote at the bottom of a card ──────────
+function SourceTag({ sources }: { sources: { label: string; url?: string }[] }) {
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', marginTop: 16, paddingTop: 12, borderTop: 'rgba(255,255,255,0.07) 1px solid' }}>
+      <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.25)', letterSpacing: 0.4, flexShrink: 0 }}>Sources:</span>
+      {sources.map((s, i) => (
+        <span key={i} style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
+          {s.url
+            ? <a href={s.url} target="_blank" rel="noopener noreferrer" style={{ fontSize: 10, color: 'rgba(55,138,221,0.6)', textDecoration: 'none', borderBottom: '1px dotted rgba(55,138,221,0.3)' }}>{s.label}</a>
+            : <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)' }}>{s.label}</span>
+          }
+          {i < sources.length - 1 && <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.15)' }}>·</span>}
+        </span>
+      ))}
+    </div>
+  )
+}
+
 // ── Section header ───────────────────────────────────────────
 function SectionHeader({ icon, title, sub }: { icon: string; title: string; sub: string }) {
   return (
@@ -560,6 +578,10 @@ export default function DACHDashboard() {
                   <span style={{ fontSize: 13, fontWeight: 700, color: emerald }}>{s.growth}</span>
                 </div>
               ))}
+              <SourceTag sources={[
+                { label: 'LinkedIn Talent Insights 2025', url: 'https://business.linkedin.com/talent-solutions/talent-insights' },
+                { label: 'Stepstone Jobmarktreport 2025', url: 'https://www.stepstone.de/magazin/artikel/jobmarktreport' },
+              ]} />
             </div>
             {/* Declining */}
             <div style={cardStyle}>
@@ -570,6 +592,10 @@ export default function DACHDashboard() {
                   <span style={{ fontSize: 13, fontWeight: 700, color: red }}>{s.drop}</span>
                 </div>
               ))}
+              <SourceTag sources={[
+                { label: 'LinkedIn Talent Insights 2025', url: 'https://business.linkedin.com/talent-solutions/talent-insights' },
+                { label: 'WEF Future of Jobs 2025', url: 'https://www.weforum.org/reports/the-future-of-jobs-report-2025' },
+              ]} />
             </div>
           </div>
         </div>}
@@ -599,13 +625,17 @@ export default function DACHDashboard() {
                   {salaryExpanded ? t('Weniger anzeigen ▲', 'Show less ▲') : t(`Alle ${salaries.length} anzeigen ▼`, `Show all ${salaries.length} ▼`)}
                 </button>
               )}
+              <SourceTag sources={[
+                { label: 'Stepstone Gehaltsreport 2025', url: 'https://www.stepstone.de/magazin/artikel/gehaltsreport' },
+                { label: 'LinkedIn Salary Insights', url: 'https://www.linkedin.com/salary/' },
+              ]} />
             </div>
           </div>
         </div>}
 
         {/* ── 3. Macro Indicators ── */}
         {isVisible('macro') && <div style={{ ...cardStyle, marginBottom: 20 }}>
-          <SectionHeader icon="globe" title={`${meta.name} — ${t('Makro-Indikatoren', 'Macro Indicators')}`} sub={`Eurostat · ${t('aktualisiert jährlich', 'updated annually')}`} />
+          <SectionHeader icon="globe" title={`${meta.name} — ${t('Makro-Indikatoren', 'Macro Indicators')}`} sub={`Eurostat · Destatis · ${t('aktualisiert jährlich', 'updated annually')}`} />
           <div className="macro-grid">
             {macro.map(ind => {
               const good = ind.label === 'Unemployment' ? ind.trend === 'down' : ind.trend === 'up'
@@ -634,6 +664,7 @@ export default function DACHDashboard() {
             <span style={{ fontSize: 18, color: txt2, marginTop: -12, flexShrink: 0 }}>{aiExpanded ? '▲' : '▼'}</span>
           </div>
           {aiExpanded && (
+            <div>
             <div className="ai-heat" style={{ marginTop: 8 }}>
               {/* Creating */}
               <div>
@@ -706,6 +737,12 @@ export default function DACHDashboard() {
                   ))}
                 </div>
               </div>
+            </div>
+            <SourceTag sources={[
+              { label: 'McKinsey Global Institute 2025', url: 'https://www.mckinsey.com/mgi/our-research' },
+              { label: 'WEF Future of Jobs 2025', url: 'https://www.weforum.org/reports/the-future-of-jobs-report-2025' },
+              { label: 'Bitkom AI Report 2025', url: 'https://www.bitkom.org/Bitkom/Publikationen/Bitkom-AI-Report' },
+            ]} />
             </div>
           )}
         </div>}

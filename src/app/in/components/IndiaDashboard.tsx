@@ -117,6 +117,23 @@ function Shimmer({h=20,r=8,w='100%'}:{h?:number;r?:number;w?:string}) {
 function GlowDot({color}:{color:string}) {
   return <span style={{display:'inline-block',width:6,height:6,borderRadius:'50%',background:color,boxShadow:`0 0 6px ${color}`,animation:'pulse 2s infinite',flexShrink:0}}/>
 }
+function SourceTag({sources}:{sources:{label:string;url?:string}[]}) {
+  return (
+    <div style={{display:'flex',alignItems:'center',gap:6,flexWrap:'wrap',marginTop:16,paddingTop:12,borderTop:'rgba(255,255,255,0.07) 1px solid'}}>
+      <span style={{fontSize:10,color:'rgba(255,255,255,0.25)',letterSpacing:0.4,flexShrink:0}}>Sources:</span>
+      {sources.map((s,i)=>(
+        <span key={i} style={{display:'flex',alignItems:'center',gap:3}}>
+          {s.url
+            ? <a href={s.url} target="_blank" rel="noopener noreferrer" style={{fontSize:10,color:'rgba(255,153,51,0.6)',textDecoration:'none',borderBottom:'1px dotted rgba(255,153,51,0.3)'}}>{s.label}</a>
+            : <span style={{fontSize:10,color:'rgba(255,255,255,0.3)'}}>{s.label}</span>
+          }
+          {i<sources.length-1 && <span style={{fontSize:10,color:'rgba(255,255,255,0.15)'}}>·</span>}
+        </span>
+      ))}
+    </div>
+  )
+}
+
 function SectionHeader({icon,title,sub}:{icon:string;title:string;sub:string}) {
   return (
     <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:20}}>
@@ -455,6 +472,10 @@ export default function IndiaDashboard() {
                   <span style={{fontSize:13,fontWeight:700,color:emerald}}>{s.growth}</span>
                 </div>
               ))}
+              <SourceTag sources={[
+                {label:'LinkedIn Talent Insights 2025',url:'https://business.linkedin.com/talent-solutions/talent-insights'},
+                {label:'NASSCOM Tech Talent Report 2025',url:'https://nasscom.in/'},
+              ]}/>
             </div>
             <div style={cardStyle}>
               <SectionHeader icon="trending-down" title="Declining Demand" sub="Drop in job demand · India market"/>
@@ -464,6 +485,10 @@ export default function IndiaDashboard() {
                   <span style={{fontSize:13,fontWeight:700,color:red}}>{s.drop}</span>
                 </div>
               ))}
+              <SourceTag sources={[
+                {label:'LinkedIn Talent Insights 2025',url:'https://business.linkedin.com/talent-solutions/talent-insights'},
+                {label:'WEF Future of Jobs 2025',url:'https://www.weforum.org/reports/the-future-of-jobs-report-2025'},
+              ]}/>
             </div>
           </div>
         </div>}
@@ -499,6 +524,10 @@ export default function IndiaDashboard() {
                   {salaryExpanded ? 'Show less ▲' : `Show all ${SALARY_DATA.length} ▼`}
                 </button>
               )}
+              <SourceTag sources={[
+                {label:'AmbitionBox Salary Report 2025',url:'https://www.ambitionbox.com/salaries'},
+                {label:'Glassdoor India Salaries',url:'https://www.glassdoor.co.in/Salaries/index.htm'},
+              ]}/>
             </div>
           </div>
         </div>}
@@ -538,6 +567,7 @@ export default function IndiaDashboard() {
             <span style={{fontSize:18,color:txt2,marginTop:-12,flexShrink:0}}>{aiExpanded?'▲':'▼'}</span>
           </div>
           {aiExpanded && (
+            <div>
             <div className="ai-heat" style={{marginTop:8}}>
               {/* Creating */}
               <div>
@@ -608,6 +638,12 @@ export default function IndiaDashboard() {
                   ))}
                 </div>
               </div>
+            </div>
+            <SourceTag sources={[
+              {label:'McKinsey Global Institute 2025',url:'https://www.mckinsey.com/mgi/our-research'},
+              {label:'WEF Future of Jobs 2025',url:'https://www.weforum.org/reports/the-future-of-jobs-report-2025'},
+              {label:'NASSCOM AI Adoption Report 2025',url:'https://nasscom.in/'},
+            ]}/>
             </div>
           )}
         </div>}
