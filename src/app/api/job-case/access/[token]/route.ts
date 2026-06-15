@@ -60,9 +60,13 @@ export async function GET(
       viewed_at:     alreadyViewed ? view.viewed_at : now,
     }).eq('id', view.id)
 
-    // Only increment view count and notify if this is a new view (not already tracked via form submit)
+    // Only increment view count if not already tracked via form submit
     if (!alreadyViewed) {
-      await admin.rpc('increment_case_view_count', { case_id: view.job_case_id })
+      const { data: current } = await admin
+        .from('job_cases').select('view_count').eq('id', view.job_case_id).single()
+      await admin.from('job_cases')
+        .update({ view_count: (current?.view_count ?? 0) + 1 })
+        .eq('id', view.job_case_id)
     }
 
     const { data: jobCase } = await admin

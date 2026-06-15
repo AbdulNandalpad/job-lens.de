@@ -113,8 +113,12 @@ export async function POST(req: NextRequest) {
       viewed_at:            viewedAt,
     })
 
-    // Increment view count on job_cases so candidate dashboard shows "viewed"
-    await admin.rpc('increment_case_view_count', { case_id: jobCase.id })
+    // Increment view count — direct update avoids relying on a Supabase RPC that may not exist
+    const { data: current } = await admin
+      .from('job_cases').select('view_count').eq('id', jobCase.id).single()
+    await admin.from('job_cases')
+      .update({ view_count: (current?.view_count ?? 0) + 1 })
+      .eq('id', jobCase.id)
 
     // Fetch candidate name for the email (from profiles table)
     const { data: candidateProfile } = await admin

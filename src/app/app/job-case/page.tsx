@@ -229,8 +229,12 @@ export default function MyJobCasesPage() {
 
                     <div style={{ display: 'flex', gap: 8, marginTop: 16, paddingTop: 14, borderTop: `1px solid ${c.border}`, flexWrap: 'wrap' }}>
                       <Link href={`/case/${jc.slug}`} className="jc-btn-ghost" target="_blank">Preview as recruiter →</Link>
-                      <button onClick={() => copyLink(jc.slug)} className="jc-btn-ghost">
-                        {copied === jc.slug ? '✓ Copied' : 'Copy link'}
+                      <button
+                        onClick={() => copyLink(jc.slug)}
+                        className="jc-btn-ghost"
+                        style={copied === jc.slug ? { borderColor: c.success, color: c.success, background: c.successLight } : undefined}
+                      >
+                        {copied === jc.slug ? '✓ Copied!' : '⎘ Copy link'}
                       </button>
                       <button
                         onClick={() => deleteCase(jc.id)}

@@ -80,14 +80,20 @@ export default function PublicCasePage() {
   const [granted, setGranted]   = useState(searchParams?.get('access') === 'granted')
   const [caseData, setCaseData] = useState<CaseData | null>(null)
   const [loadError, setLoadError] = useState('')
+  const [isOwner, setIsOwner]   = useState(false)
 
   // Owner bypass: authenticated case owners skip the email gate
   useEffect(() => {
-    if (granted || !slug) return
+    if (!slug) return
     fetch(`/api/job-case/owner-check/${slug}`)
       .then(r => r.ok ? r.json() : null)
-      .then(d => { if (d?.owner) setGranted(true) })
-      .catch(() => null) // silent — just means they're not the owner or not logged in
+      .then(d => {
+        if (d?.owner) {
+          setIsOwner(true)
+          setGranted(true)
+        }
+      })
+      .catch(() => null)
   }, [slug]) // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
@@ -145,17 +151,26 @@ export default function PublicCasePage() {
           position: 'sticky', top: 0,
           background: 'rgba(6,20,34,0.94)', backdropFilter: 'blur(16px)', zIndex: 50,
         }}>
-          <Link href="/" style={{ display: 'flex', alignItems: 'center', gap: 9, textDecoration: 'none' }}>
-            <svg width="20" height="20" viewBox="0 0 44 44">
-              <circle cx="20" cy="20" r="13" fill="none" stroke={c.accent} strokeWidth="2.5"/>
-              <circle cx="20" cy="20" r="8"  fill="none" stroke={c.accentLight} strokeWidth="1.2"/>
-              <circle cx="20" cy="20" r="3"  fill={c.accent}/>
-              <line x1="28" y1="28" x2="36" y2="36" stroke={c.accent} strokeWidth="3" strokeLinecap="round"/>
-            </svg>
-            <span style={{ fontFamily: f.heading, fontSize: 14, fontWeight: 700, color: D.txt1 }}>
-              Job-Lens <span style={{ color: c.accent }}>AI</span>
-            </span>
-          </Link>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+            {isOwner && (
+              <Link href="/app/job-case" style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 12, color: D.txt3, textDecoration: 'none', fontFamily: f.body, padding: '5px 10px', borderRadius: 7, border: `1px solid ${D.border}`, transition: 'color 0.15s' }}
+                onMouseEnter={e => (e.currentTarget.style.color = D.txt1)}
+                onMouseLeave={e => (e.currentTarget.style.color = D.txt3)}>
+                ← My Cases
+              </Link>
+            )}
+            <Link href="/" style={{ display: 'flex', alignItems: 'center', gap: 9, textDecoration: 'none' }}>
+              <svg width="20" height="20" viewBox="0 0 44 44">
+                <circle cx="20" cy="20" r="13" fill="none" stroke={c.accent} strokeWidth="2.5"/>
+                <circle cx="20" cy="20" r="8"  fill="none" stroke={c.accentLight} strokeWidth="1.2"/>
+                <circle cx="20" cy="20" r="3"  fill={c.accent}/>
+                <line x1="28" y1="28" x2="36" y2="36" stroke={c.accent} strokeWidth="3" strokeLinecap="round"/>
+              </svg>
+              <span style={{ fontFamily: f.heading, fontSize: 14, fontWeight: 700, color: D.txt1 }}>
+                Job-Lens <span style={{ color: c.accent }}>AI</span>
+              </span>
+            </Link>
+          </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <span style={{ fontSize: 11, padding: '3px 10px', borderRadius: 20, background: 'rgba(55,138,221,0.1)', color: c.accent, fontWeight: 600, border: '1px solid rgba(55,138,221,0.2)' }}>
               Verified Job Case

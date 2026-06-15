@@ -36,14 +36,15 @@ export async function GET() {
       }
     })
 
-    // Fetch viewer domains for cases that have views
-    const viewedIds = rows.filter(r => r.viewCount > 0).map(r => r.id)
+    // Fetch viewer domains for all cases — don't gate on view_count since the
+    // increment may have lagged; viewed_at IS NOT NULL is the source of truth
+    const allIds = rows.map(r => r.id)
     let domainMap: Record<string, string[]> = {}
-    if (viewedIds.length > 0) {
+    if (allIds.length > 0) {
       const { data: views } = await admin
         .from('case_views')
         .select('job_case_id, recruiter_domain')
-        .in('job_case_id', viewedIds)
+        .in('job_case_id', allIds)
         .not('viewed_at', 'is', null)
       for (const v of views ?? []) {
         if (!domainMap[v.job_case_id]) domainMap[v.job_case_id] = []
@@ -54,7 +55,14 @@ export async function GET() {
     }
 
     return NextResponse.json({
-      cases: rows.map(r => ({ ...r, viewerDomains: domainMap[r.id] ?? [] })),
+      cases: rows.map(r => {
+        const viewerDomains = domainMap[r.id] ?? []
+        // Re-derive status using actual domain data — more reliable than view_count
+        const status = r.status === 'expired' ? 'expired'
+                     : viewerDomains.length > 0 ? 'viewed'
+                     : 'active'
+        return { ...r, status, viewerDomains }
+      }),
     })
   } catch (err) {
     console.error('/api/job-case/list error:', err)

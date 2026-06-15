@@ -73,6 +73,8 @@ export const SS = {
 
   // Job Case — pre-fill from job search
   jcJob:               'jl_jc_job',
+  // Job Case new-page draft — persists form state across accidental navigation
+  jcDraft:             'jl_jc_draft',
 
   // Interview Prep — written by interview page, read by Kira
   interviewRole:       'jl_interview_role',

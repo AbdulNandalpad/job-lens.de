@@ -177,10 +177,11 @@ function SampleTest({ questions }: { questions: Question[] }) {
 
 // ── Sidebar content per step ─────────────────────────────────────────────────
 
-function SidebarContent({ step, credits, cvFound, questions }: {
+function SidebarContent({ step, credits, cvFound, cvSource, questions }: {
   step: Step
   credits: number | null
   cvFound: boolean
+  cvSource: 'session' | 'upload' | null
   questions: Question[]
 }) {
   if (step === 'paste' || step === 'analysing') return (
@@ -203,7 +204,9 @@ function SidebarContent({ step, credits, cvFound, questions }: {
         <>
           <SBDivider />
           <div style={{ padding: '9px 11px', background: 'rgba(29,158,117,0.08)', border: '1px solid rgba(29,158,117,0.18)', borderRadius: 8 }}>
-            <div style={{ fontSize: 11, color: c.success, fontWeight: 600, marginBottom: 3 }}>CV found from Career Scan</div>
+            <div style={{ fontSize: 11, color: c.success, fontWeight: 600, marginBottom: 3 }}>
+              ✓ CV loaded{cvSource === 'upload' ? ' from file' : cvSource === 'session' ? ' from previous scan' : ''}
+            </div>
             <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.45)', lineHeight: 1.5 }}>AI will use your CV to pre-fill evidence and tailor the test questions.</div>
           </div>
         </>
@@ -487,7 +490,9 @@ export default function JobCaseNewPage() {
 
   const [step, setStep]          = useState<Step>('paste')
   const [cvFound, setCvFound]    = useState(false)
+  const [cvSource, setCvSource]  = useState<'session' | 'upload' | null>(null)
   const [cvUploading, setCvUploading] = useState(false)
+  const [cvRequired, setCvRequired] = useState(false) // shows error if user tries to analyse without CV
   const cvInputRef = useRef<HTMLInputElement>(null)
 
   const [jobText, setJobText]    = useState('')
@@ -506,6 +511,7 @@ export default function JobCaseNewPage() {
   const [caseUrl, setCaseUrl]    = useState('')
   const [videoStorageKey, setVideoStorageKey] = useState<string | null>(null)
   const [uploading, setUploading] = useState(false)
+  const [fromJobSearch, setFromJobSearch] = useState(false)
 
   const [countdown, setCountdown] = useState(0)
   const [recording, setRecording] = useState(false)
@@ -531,22 +537,54 @@ export default function JobCaseNewPage() {
     const cv = sessionStorage.getItem(SS.cvText)
       || sessionStorage.getItem(SS.cvbTailored)
       || sessionStorage.getItem(SS.atsSuggestions)
-    if (cv && cv.trim().length > 100) setCvFound(true)
+    if (cv && cv.trim().length > 100) {
+      setCvFound(true)
+      setCvSource('session')
+    }
   }, [])
 
-  // Pre-fill from job search if navigated via Job Case button
+  // Pre-fill from job search if navigated via Job Case button, else restore draft
   useEffect(() => {
-    const raw = sessionStorage.getItem(SS.jcJob)
-    if (!raw) return
-    try {
-      const job = JSON.parse(raw)
-      if (job.job_description) setJobText(job.job_description)
-      if (job.job_apply_link)  setJobUrl(job.job_apply_link)
-      if (job.job_title)       setJobTitle(job.job_title)
-      if (job.employer_name)   setCompany(job.employer_name)
-      sessionStorage.removeItem(SS.jcJob)
-    } catch {}
+    const jobRaw = sessionStorage.getItem(SS.jcJob)
+    if (jobRaw) {
+      try {
+        const job = JSON.parse(jobRaw)
+        if (job.job_description) setJobText(job.job_description)
+        if (job.job_apply_link)  setJobUrl(job.job_apply_link)
+        if (job.job_title)       setJobTitle(job.job_title)
+        if (job.employer_name)   setCompany(job.employer_name)
+        setFromJobSearch(true)
+        sessionStorage.removeItem(SS.jcJob)
+      } catch {}
+      return // jcJob wins over draft
+    }
+    // Restore draft if user navigated away accidentally
+    const draftRaw = sessionStorage.getItem(SS.jcDraft)
+    if (draftRaw) {
+      try {
+        const d = JSON.parse(draftRaw)
+        if (d.jobText)  setJobText(d.jobText)
+        if (d.jobUrl)   setJobUrl(d.jobUrl)
+        if (d.jobTitle) setJobTitle(d.jobTitle)
+        if (d.company)  setCompany(d.company)
+      } catch {}
+    }
   }, [])
+
+  // Persist form draft to sessionStorage whenever jobText/jobUrl changes
+  useEffect(() => {
+    if (!jobText && !jobUrl) return
+    try {
+      sessionStorage.setItem(SS.jcDraft, JSON.stringify({ jobText, jobUrl, jobTitle, company }))
+    } catch {}
+  }, [jobText, jobUrl, jobTitle, company])
+
+  // Clear draft once case is successfully created
+  useEffect(() => {
+    if (step === 'done') {
+      try { sessionStorage.removeItem(SS.jcDraft) } catch {}
+    }
+  }, [step])
 
   async function handleCvUpload(file: File) {
     setCvUploading(true)
@@ -558,9 +596,11 @@ export default function JobCaseNewPage() {
       if (data.text && data.text.trim().length > 100) {
         sessionStorage.setItem(SS.cvText, data.text)
         setCvFound(true)
+        setCvSource('upload')
+        setCvRequired(false)
       }
     } catch {
-      // silent — CV upload is optional
+      // upload failed — let user try again
     } finally {
       setCvUploading(false)
     }
@@ -718,7 +758,7 @@ export default function JobCaseNewPage() {
 
           {/* ── Sidebar ──────────────────────────────────────────────────── */}
           <div className="jl-dsb" style={{ width: 260, flexShrink: 0, background: `linear-gradient(180deg, ${SB} 0%, #0e1a28 100%)`, padding: '28px 18px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 0, position: 'sticky', top: 52, height: 'calc(100vh - 52px)' }}>
-            <SidebarContent step={step} credits={credits} cvFound={cvFound} questions={questions} />
+            <SidebarContent step={step} credits={credits} cvFound={cvFound} cvSource={cvSource} questions={questions} />
           </div>
 
           {/* ── Main content ─────────────────────────────────────────────── */}
@@ -732,33 +772,51 @@ export default function JobCaseNewPage() {
                   <SectionLabel>Step 1 of 7</SectionLabel>
                   <StepHeading title="Paste the job posting" sub="Add the full description or a URL. AI extracts what the role actually requires." />
                   <Card>
+                    {fromJobSearch && (
+                      <div style={{ marginBottom: 12, padding: '10px 12px', background: 'rgba(55,138,221,0.06)', border: `1px solid rgba(55,138,221,0.2)`, borderRadius: 8, fontSize: 12, color: c.textMuted, lineHeight: 1.6 }}>
+                        <strong style={{ color: c.accent }}>Pre-filled from job search.</strong> Adzuna summaries are often shortened — visit the job posting for the full description and paste it below for the best AI matching.
+                        {jobUrl && <> <a href={jobUrl} target="_blank" rel="noopener noreferrer" style={{ color: c.accent, marginLeft: 4 }}>Open job posting →</a></>}
+                      </div>
+                    )}
                     <input className="jc-input" placeholder="Job URL (optional)" value={jobUrl} onChange={e => setJobUrl(e.target.value)} style={{ marginBottom: 10 }} />
                     <textarea className="jc-input" placeholder="Paste the full job description here…" rows={10} value={jobText} onChange={e => setJobText(e.target.value)} style={{ minHeight: 200 }} />
 
-                    {/* CV upload — optional, improves match score and question quality */}
-                    <div style={{ marginTop: 14, padding: '12px 14px', background: cvFound ? 'rgba(29,158,117,0.06)' : 'rgba(55,138,221,0.04)', border: `1px solid ${cvFound ? 'rgba(29,158,117,0.2)' : c.border}`, borderRadius: 8 }}>
-                      <div style={{ fontSize: 11, fontWeight: 600, color: cvFound ? c.success : c.textMuted, marginBottom: cvFound ? 0 : 8 }}>
-                        {cvFound ? '✓ CV loaded — AI will use it for matching' : 'Add your CV for a better match score (optional)'}
-                      </div>
-                      {!cvFound && (
+                    {/* CV — required for AI skill matching */}
+                    <div style={{ marginTop: 14, padding: '12px 14px', background: cvFound ? 'rgba(29,158,117,0.06)' : cvRequired ? 'rgba(226,75,74,0.05)' : 'rgba(55,138,221,0.04)', border: `1px solid ${cvFound ? 'rgba(29,158,117,0.2)' : cvRequired ? 'rgba(226,75,74,0.3)' : c.border}`, borderRadius: 8 }}>
+                      {cvFound ? (
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
+                          <div style={{ fontSize: 11, fontWeight: 600, color: c.success }}>
+                            ✓ CV loaded{cvSource === 'session' ? ' from your previous scan' : ' from file'}
+                          </div>
+                          <button type="button" onClick={() => cvInputRef.current?.click()} style={{ fontSize: 11, color: c.textMuted, background: 'none', border: `1px solid ${c.border}`, borderRadius: 5, padding: '3px 9px', cursor: 'pointer', fontFamily: f.body }}>
+                            Replace
+                          </button>
+                        </div>
+                      ) : (
                         <>
-                          <input
-                            ref={cvInputRef}
-                            type="file"
-                            accept=".pdf,.docx"
-                            style={{ display: 'none' }}
-                            onChange={e => { const f = e.target.files?.[0]; if (f) handleCvUpload(f); e.target.value = '' }}
-                          />
+                          <div style={{ fontSize: 12, fontWeight: 600, color: cvRequired ? c.danger : c.text, marginBottom: 6 }}>
+                            {cvRequired ? '⚠ CV required — without it AI cannot match your skills to the job' : 'Your CV is required to match your skills to this job'}
+                          </div>
+                          <div style={{ fontSize: 11, color: c.textMuted, marginBottom: 8 }}>
+                            Already did a Career Scan or CV Build? Your CV is auto-loaded. Otherwise upload below.
+                          </div>
                           <button
                             type="button"
                             disabled={cvUploading}
                             onClick={() => cvInputRef.current?.click()}
-                            style={{ fontSize: 12, color: c.accent, background: 'none', border: `1px solid ${c.border}`, borderRadius: 6, padding: '6px 14px', cursor: cvUploading ? 'not-allowed' : 'pointer', fontFamily: f.body, display: 'flex', alignItems: 'center', gap: 6, opacity: cvUploading ? 0.6 : 1 }}
+                            style={{ fontSize: 12, color: '#fff', background: g.button, border: 'none', borderRadius: 7, padding: '8px 16px', cursor: cvUploading ? 'not-allowed' : 'pointer', fontFamily: f.body, display: 'flex', alignItems: 'center', gap: 6, opacity: cvUploading ? 0.6 : 1, boxShadow: sh.glow }}
                           >
-                            {cvUploading ? <><Spinner /> Extracting…</> : '↑ Upload CV (PDF / DOCX)'}
+                            {cvUploading ? <><Spinner light /> Extracting CV…</> : '↑ Upload CV (PDF / DOCX)'}
                           </button>
                         </>
                       )}
+                      <input
+                        ref={cvInputRef}
+                        type="file"
+                        accept=".pdf,.docx"
+                        style={{ display: 'none' }}
+                        onChange={e => { const f = e.target.files?.[0]; if (f) handleCvUpload(f); e.target.value = '' }}
+                      />
                     </div>
 
                     <div style={{ marginTop: 18, display: 'flex', justifyContent: 'flex-end' }}>
@@ -766,7 +824,10 @@ export default function JobCaseNewPage() {
                         ? <span style={{ display: 'flex', alignItems: 'center', gap: 8, color: c.textMuted, fontSize: 13 }}><Spinner /> Analysing job description…</span>
                         : <>
                             {analyseError && <p style={{ fontSize: 12, color: c.danger, margin: '0 0 10px', textAlign: 'right' }}>{analyseError}</p>}
-                            <button className="jc-btn" onClick={analyse} disabled={!jobText.trim() && !jobUrl.trim()}>Analyse →</button>
+                            <button className="jc-btn" onClick={() => {
+                              if (!cvFound) { setCvRequired(true); return }
+                              analyse()
+                            }} disabled={!jobText.trim() && !jobUrl.trim()}>Analyse →</button>
                           </>
                       }
                     </div>
