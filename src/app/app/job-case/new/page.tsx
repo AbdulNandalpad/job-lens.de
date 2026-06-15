@@ -499,7 +499,7 @@ export default function JobCaseNewPage() {
   const [jobUrl, setJobUrl]      = useState('')
   const [quality, setQuality]    = useState<JobQuality>('clear')
   const [qualityReason, setQualityReason] = useState('')
-  const [matchScore, setMatchScore] = useState(0)
+  const [matchScore, setMatchScore] = useState<number | null>(null)
   const [jobTitle, setJobTitle]  = useState('')
   const [company, setCompany]    = useState('')
   const [reqs, setReqs]          = useState<Requirement[]>([])
@@ -611,10 +611,11 @@ export default function JobCaseNewPage() {
     setAnalyseError('')
     setStep('analysing')
     try {
+      const cvText = sessionStorage.getItem(SS.cvText) || sessionStorage.getItem(SS.cvbTailored) || sessionStorage.getItem(SS.atsSuggestions) || ''
       const res = await fetch(API.jobCaseAnalyse, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ jobText, jobUrl }),
+        body: JSON.stringify({ jobText, jobUrl, cvText }),
       })
       const data = await res.json()
       if (!res.ok) { setAnalyseError(data.error ?? 'Analysis failed'); setStep('paste'); return }
@@ -622,7 +623,8 @@ export default function JobCaseNewPage() {
       setCompany(data.companyName ?? '')
       setQuality(data.qualityScore ?? 'clear')
       setQualityReason(data.qualityReason ?? '')
-      setMatchScore(data.matchScore ?? 0)
+      // matchScore is null when no CV was provided — display as "—" not a fake number
+      setMatchScore(data.matchScore ?? null)
       setReqs(data.requirements ?? [])
       setEvidence((data.requirements ?? []).map((r: Requirement) => ({ requirementId: r.id, text: '', url: '' })))
       setStep('review')
@@ -845,13 +847,35 @@ export default function JobCaseNewPage() {
                       <div>
                         <div style={{ fontFamily: f.heading, fontSize: 16, fontWeight: 700, color: c.text, marginBottom: 6 }}>{jobTitle} · {company}</div>
                         <QualityBadge q={quality} />
+                        {qualityReason && <div style={{ fontSize: 11, color: c.textMuted, marginTop: 5, lineHeight: 1.5 }}>{qualityReason}</div>}
                       </div>
-                      <div style={{ textAlign: 'right' }}>
-                        <div style={{ fontFamily: f.heading, fontSize: 34, fontWeight: 700, color: c.accent, lineHeight: 1 }}>{matchScore}%</div>
-                        <div style={{ fontSize: 11, color: c.textFaint, marginTop: 2 }}>profile match</div>
+                      <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                        {matchScore !== null ? (
+                          <>
+                            <div style={{ fontFamily: f.heading, fontSize: 34, fontWeight: 700, color: matchScore >= 70 ? c.success : c.accent, lineHeight: 1 }}>{matchScore}%</div>
+                            <div style={{ fontSize: 11, color: c.textFaint, marginTop: 2 }}>CV match</div>
+                          </>
+                        ) : (
+                          <>
+                            <div style={{ fontFamily: f.heading, fontSize: 28, fontWeight: 700, color: c.textFaint, lineHeight: 1 }}>—</div>
+                            <div style={{ fontSize: 11, color: c.textFaint, marginTop: 2 }}>no CV</div>
+                          </>
+                        )}
                       </div>
                     </div>
-                    <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: 0.8, textTransform: 'uppercase', color: c.textMuted, marginBottom: 10 }}>Requirements</div>
+
+                    {/* What "CV match" means */}
+                    <div style={{ marginBottom: 14, padding: '10px 12px', background: c.bg, border: `1px solid ${c.border}`, borderRadius: 8, fontSize: 12, color: c.textMuted, lineHeight: 1.6 }}>
+                      <strong style={{ color: c.text }}>CV match</strong> — how well your uploaded CV covers the requirements below, scored by AI against each skill. A higher % means your existing experience is a strong fit. It does <em>not</em> affect the recruiter view — it's a signal for you to decide whether to proceed.
+                      {matchScore === null && <span style={{ color: c.warning }}> Upload a CV on the previous step to see your actual score.</span>}
+                    </div>
+
+                    {/* What "test questions" means */}
+                    <div style={{ marginBottom: 14, padding: '10px 12px', background: 'rgba(55,138,221,0.04)', border: `1px solid rgba(55,138,221,0.15)`, borderRadius: 8, fontSize: 12, color: c.textMuted, lineHeight: 1.6 }}>
+                      <strong style={{ color: c.text }}>Skill test questions</strong> — after the video, you answer 3 AI-generated questions specific to the requirements below. Recruiters see your answers and an AI-scored result (0–100). You will preview all 3 questions <em>before</em> the timer starts and before any credits are deducted — you can abort at that point for a full refund.
+                    </div>
+
+                    <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: 0.8, textTransform: 'uppercase', color: c.textMuted, marginBottom: 10 }}>Requirements extracted from this posting</div>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                       {reqs.map(r => (
                         <div key={r.id} style={{ display: 'flex', gap: 10, padding: '10px 12px', background: c.bg, borderRadius: 8, border: `1px solid ${c.border}` }}>

@@ -69,7 +69,7 @@ export async function POST(req: NextRequest) {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-    const { jobText, jobUrl } = await req.json()
+    const { jobText, jobUrl, cvText } = await req.json()
     if (!jobText?.trim() && !jobUrl?.trim()) {
       return NextResponse.json({ error: 'Job text or URL required' }, { status: 400 })
     }
@@ -85,24 +85,26 @@ export async function POST(req: NextRequest) {
     }
 
     // GDPR: scrub any PII before sending to Anthropic
-    const cleanText = scrubPii(fullText.slice(0, 12000))
+    const cleanJobText = scrubPii(fullText.slice(0, 12000))
+    const cleanCvText  = cvText?.trim() ? scrubPii((cvText as string).slice(0, 8000)) : ''
+    const hasCv = cleanCvText.length > 100
 
-    const msg = await anthropic.messages.create({
-      model: 'claude-haiku-4-5-20251001',
-      max_tokens: 1200,
-      messages: [{
-        role: 'user',
-        content: `You are a job requirements analyst. Extract the top 5–7 concrete requirements from this job posting. Return JSON only — no markdown, no backticks.
+    const prompt = hasCv
+      ? `You are a job requirements analyst. Extract the top 5–7 concrete requirements from this job posting, then score how well the candidate's CV covers each requirement. Return JSON only — no markdown, no backticks.
 
 Job posting:
-${cleanText}
+${cleanJobText}
+
+Candidate CV:
+${cleanCvText}
 
 Return this exact JSON shape:
 {
   "job_title": "<role title>",
   "company_name": "<company name or empty string>",
   "quality_score": "clear" | "vague" | "poor",
-  "quality_reason": "<one sentence>",
+  "quality_reason": "<one sentence explaining the quality score>",
+  "match_score": <integer 0-100 reflecting how well the CV covers the requirements overall>,
   "requirements": [
     { "id": "1", "skill": "<skill name>", "description": "<1 sentence>", "essential": true | false }
   ]
@@ -111,8 +113,38 @@ Return this exact JSON shape:
 quality_score rules:
 - "clear": specific, measurable requirements with years/technologies named
 - "vague": generic buzzwords without specifics
-- "poor": < 3 concrete requirements or incomprehensible posting`,
-      }],
+- "poor": < 3 concrete requirements or incomprehensible posting
+
+match_score rules:
+- Score based only on evidence in the CV — do not assume skills not mentioned
+- 80–100: strong overlap, most essential requirements clearly evidenced
+- 50–79: partial match, some essential requirements missing or unclear
+- 0–49: weak match, most essential requirements not evidenced`
+      : `You are a job requirements analyst. Extract the top 5–7 concrete requirements from this job posting. Return JSON only — no markdown, no backticks.
+
+Job posting:
+${cleanJobText}
+
+Return this exact JSON shape:
+{
+  "job_title": "<role title>",
+  "company_name": "<company name or empty string>",
+  "quality_score": "clear" | "vague" | "poor",
+  "quality_reason": "<one sentence explaining the quality score>",
+  "requirements": [
+    { "id": "1", "skill": "<skill name>", "description": "<1 sentence>", "essential": true | false }
+  ]
+}
+
+quality_score rules:
+- "clear": specific, measurable requirements with years/technologies named
+- "vague": generic buzzwords without specifics
+- "poor": < 3 concrete requirements or incomprehensible posting`
+
+    const msg = await anthropic.messages.create({
+      model: 'claude-haiku-4-5-20251001',
+      max_tokens: 1200,
+      messages: [{ role: 'user', content: prompt }],
     })
 
     const raw = (msg.content[0] as { text: string }).text.trim()
@@ -123,6 +155,8 @@ quality_score rules:
       companyName:  json.company_name ?? '',
       qualityScore: json.quality_score,
       qualityReason: json.quality_reason ?? '',
+      // null when no CV — UI shows "—" instead of a meaningless number
+      matchScore:   hasCv && typeof json.match_score === 'number' ? json.match_score : null,
       requirements: (json.requirements ?? []).slice(0, 7).map((r: { id?: string; skill: string; description: string; essential: boolean }, i: number) => ({
         id:          String(r.id ?? i + 1),
         skill:       r.skill,
