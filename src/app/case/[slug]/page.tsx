@@ -77,6 +77,7 @@ export default function PublicCasePage() {
   const [email, setEmail]       = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [submitError, setSubmitError] = useState('')
+  const [emailSent, setEmailSent]   = useState(false)
   const [granted, setGranted]   = useState(searchParams?.get('access') === 'granted')
   const [caseData, setCaseData] = useState<CaseData | null>(null)
   const [loadError, setLoadError] = useState('')
@@ -118,8 +119,7 @@ export default function PublicCasePage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ slug, email }),
       })
-      // Grant access immediately — email delivery is handled server-side when configured
-      setGranted(true)
+      setEmailSent(true)
     } catch {
       setSubmitError('Something went wrong — please try again.')
     } finally {
@@ -182,7 +182,7 @@ export default function PublicCasePage() {
         <div style={{ maxWidth: 700, margin: '0 auto', padding: '52px 20px 80px' }}>
 
           {/* ── GATE ─────────────────────────────────────────────────────── */}
-          {!granted && (
+          {!granted && !emailSent && (
             <div className="jc-fade" style={{ maxWidth: 400, margin: '0 auto', textAlign: 'center' }}>
               <div style={{ width: 52, height: 52, borderRadius: '50%', background: 'rgba(55,138,221,0.08)', border: '1px solid rgba(55,138,221,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22, margin: '0 auto 20px' }}>
                 🔒
@@ -191,7 +191,7 @@ export default function PublicCasePage() {
                 Access this Job Case
               </h1>
               <p style={{ fontSize: 14, color: D.txt2, lineHeight: 1.7, margin: '0 0 28px' }}>
-                Enter your work email to view the candidate's verified profile.
+                Enter your work email. We'll send you a secure link — click it to view the candidate's verified profile.
               </p>
 
               <form onSubmit={requestAccess} style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
@@ -208,12 +208,36 @@ export default function PublicCasePage() {
                   disabled={submitting}
                   style={{ background: g.button, color: '#fff', border: 'none', borderRadius: 10, padding: '13px 0', fontSize: 14, fontWeight: 700, cursor: submitting ? 'not-allowed' : 'pointer', fontFamily: f.heading, boxShadow: sh.glow, opacity: submitting ? 0.6 : 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}
                 >
-                  {submitting ? <><div style={{ width: 14, height: 14, border: '2px solid rgba(255,255,255,0.3)', borderTopColor: '#fff', borderRadius: '50%', animation: 'jcSpin 0.8s linear infinite' }} /> Verifying…</> : 'View Job Case'}
+                  {submitting ? <><div style={{ width: 14, height: 14, border: '2px solid rgba(255,255,255,0.3)', borderTopColor: '#fff', borderRadius: '50%', animation: 'jcSpin 0.8s linear infinite' }} /> Sending…</> : 'Send me the access link'}
                 </button>
                 <p style={{ fontSize: 11, color: D.txt3, lineHeight: 1.7, margin: '4px 0 0' }}>
                   Your email domain (e.g. company.com) is shared with the candidate as a view confirmation. Your full email is never stored.
                 </p>
               </form>
+            </div>
+          )}
+
+          {/* ── CHECK INBOX ──────────────────────────────────────────────── */}
+          {!granted && emailSent && (
+            <div className="jc-fade" style={{ maxWidth: 400, margin: '0 auto', textAlign: 'center' }}>
+              <div style={{ width: 52, height: 52, borderRadius: '50%', background: 'rgba(29,158,117,0.08)', border: '1px solid rgba(29,158,117,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22, margin: '0 auto 20px' }}>
+                ✉️
+              </div>
+              <h1 style={{ fontFamily: f.heading, fontSize: 22, fontWeight: 700, color: D.txt1, margin: '0 0 10px' }}>
+                Check your inbox
+              </h1>
+              <p style={{ fontSize: 14, color: D.txt2, lineHeight: 1.7, margin: '0 0 8px' }}>
+                We've sent a secure access link to <strong style={{ color: D.txt1 }}>{email}</strong>.
+              </p>
+              <p style={{ fontSize: 13, color: D.txt3, lineHeight: 1.7, margin: '0 0 28px' }}>
+                Click the link in that email to open this Job Case. The link expires in 24 hours and can only be used once.
+              </p>
+              <button
+                onClick={() => { setEmailSent(false); setEmail('') }}
+                style={{ fontSize: 13, color: D.txt3, background: 'none', border: `1px solid ${D.border}`, borderRadius: 8, padding: '8px 18px', cursor: 'pointer', fontFamily: f.body }}
+              >
+                Use a different email
+              </button>
             </div>
           )}
 
