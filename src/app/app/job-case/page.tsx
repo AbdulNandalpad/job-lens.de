@@ -204,7 +204,7 @@ export default function MyJobCasesPage() {
                         <div style={{ fontSize: 13, color: c.textMuted, marginBottom: 10 }}>
                           {jc.company} · Created {jc.createdAt}
                         </div>
-                        <StatusPill status={jc.status} viewCount={jc.viewCount} />
+                        <StatusPill status={jc.status} viewCount={jc.viewerDomains.length} />
                       </div>
                       <div style={{ textAlign: 'right', flexShrink: 0 }}>
                         <div style={{ fontFamily: f.heading, fontSize: 28, fontWeight: 700, color: jc.matchScore >= 80 ? c.success : c.accent, lineHeight: 1 }}>
