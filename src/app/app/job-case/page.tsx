@@ -8,7 +8,7 @@ import { JOB_CASE, API } from '@/lib/constants'
 import { useCredits } from '@/lib/useCredits'
 import AdminGate from '@/components/AdminGate'
 
-type CaseStatus = 'active' | 'viewed' | 'expired'
+type CaseStatus = 'active' | 'viewed' | 'interested' | 'expired'
 
 type JobCase = {
   id: string
@@ -19,11 +19,17 @@ type JobCase = {
   status: CaseStatus
   viewCount: number
   viewerDomains: string[]
+  interestedRecruiter: { email: string; domain: string } | null
   createdAt: string
   daysLeft: number
 }
 
 function StatusPill({ status, viewCount }: { status: CaseStatus; viewCount: number }) {
+  if (status === 'interested') return (
+    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '3px 10px', borderRadius: 20, background: 'rgba(186,117,23,0.1)', color: '#b47500', fontSize: 11, fontWeight: 600, border: '1px solid rgba(186,117,23,0.25)' }}>
+      ★ Recruiter interested
+    </span>
+  )
   if (status === 'viewed') return (
     <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '3px 10px', borderRadius: 20, background: c.successLight, color: c.success, fontSize: 11, fontWeight: 600 }}>
       <span style={{ width: 5, height: 5, borderRadius: '50%', background: c.success }} />
@@ -214,7 +220,15 @@ export default function MyJobCasesPage() {
                       </div>
                     </div>
 
-                    {jc.viewerDomains.length > 0 && (
+                    {jc.interestedRecruiter && (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 12, flexWrap: 'wrap' }}>
+                        <span style={{ fontSize: 11, color: '#b47500', fontWeight: 600 }}>★ Interested:</span>
+                        <a href={`mailto:${jc.interestedRecruiter.email}`} style={{ padding: '2px 9px', background: 'rgba(186,117,23,0.08)', color: '#b47500', borderRadius: 20, fontSize: 11, fontWeight: 600, border: '1px solid rgba(186,117,23,0.2)', textDecoration: 'none' }}>
+                          {jc.interestedRecruiter.email}
+                        </a>
+                      </div>
+                    )}
+                    {!jc.interestedRecruiter && jc.viewerDomains.length > 0 && (
                       <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 12, flexWrap: 'wrap' }}>
                         <span style={{ fontSize: 11, color: c.textMuted }}>Viewed by</span>
                         {jc.viewerDomains.map(d => (

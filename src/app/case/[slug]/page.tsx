@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useParams, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { c, f, g, sh } from '@/lib/theme'
@@ -79,6 +79,14 @@ export default function PublicCasePage() {
   const [submitError, setSubmitError] = useState('')
   const [emailSent, setEmailSent]   = useState(false)
   const [granted, setGranted]   = useState(searchParams?.get('access') === 'granted')
+
+  // Recruiter interest state
+  const [interestEmail, setInterestEmail]     = useState('')
+  const [interestConsent, setInterestConsent] = useState(false)
+  const [interestSubmitting, setInterestSubmitting] = useState(false)
+  const [interestError, setInterestError]     = useState('')
+  const [interestDone, setInterestDone]       = useState(false)
+  const interestRef = useRef<HTMLDivElement>(null)
   const [caseData, setCaseData] = useState<CaseData | null>(null)
   const [loadError, setLoadError] = useState('')
   const [isOwner, setIsOwner]   = useState(false)
@@ -124,6 +132,27 @@ export default function PublicCasePage() {
       setSubmitError('Something went wrong — please try again.')
     } finally {
       setSubmitting(false)
+    }
+  }
+
+  async function expressInterest(e: React.FormEvent) {
+    e.preventDefault()
+    if (!interestConsent) { setInterestError('Please tick the consent box to continue.'); return }
+    setInterestError('')
+    setInterestSubmitting(true)
+    try {
+      const res = await fetch(API.jobCaseRecruiterInterest, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ recruiterEmail: interestEmail, consent: interestConsent, slug }),
+      })
+      const data = await res.json()
+      if (!res.ok) { setInterestError(data.error ?? 'Something went wrong — please try again.'); return }
+      setInterestDone(true)
+    } catch {
+      setInterestError('Network error — please try again.')
+    } finally {
+      setInterestSubmitting(false)
     }
   }
 
@@ -362,6 +391,63 @@ export default function PublicCasePage() {
                   </div>
                 </div>
               ) : null}
+
+              {/* Recruiter interest — not shown to owner */}
+              {!isOwner && (
+                <div ref={interestRef} style={{ margin: '0 0 28px', padding: '24px', background: 'rgba(55,138,221,0.05)', border: `1px solid rgba(55,138,221,0.18)`, borderRadius: 14 }}>
+                  {interestDone ? (
+                    <div style={{ textAlign: 'center', padding: '8px 0' }}>
+                      <div style={{ fontSize: 28, marginBottom: 10 }}>✓</div>
+                      <div style={{ fontFamily: f.heading, fontSize: 16, fontWeight: 700, color: D.txt1, marginBottom: 6 }}>
+                        Candidate notified
+                      </div>
+                      <p style={{ fontSize: 13, color: D.txt2, margin: 0, lineHeight: 1.7 }}>
+                        We've sent your email to the candidate. Expect a reply directly to your inbox.
+                      </p>
+                    </div>
+                  ) : (
+                    <>
+                      <h3 style={{ fontFamily: f.heading, fontSize: 17, fontWeight: 700, color: D.txt1, margin: '0 0 6px' }}>
+                        Interested in this candidate?
+                      </h3>
+                      <p style={{ fontSize: 13, color: D.txt2, lineHeight: 1.7, margin: '0 0 18px' }}>
+                        Share your email with them and we'll notify them immediately. They'll reply to you directly — no platform middleman.
+                      </p>
+                      <form onSubmit={expressInterest} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                        <input
+                          type="email" required
+                          value={interestEmail}
+                          onChange={e => setInterestEmail(e.target.value)}
+                          placeholder="your@company.com"
+                          style={{ width: '100%', background: 'rgba(255,255,255,0.06)', border: `1px solid ${D.border}`, borderRadius: 8, padding: '11px 14px', color: D.txt1, fontSize: 13, fontFamily: f.body, outline: 'none' }}
+                        />
+                        <label style={{ display: 'flex', gap: 10, cursor: 'pointer', alignItems: 'flex-start' }}>
+                          <input
+                            type="checkbox"
+                            checked={interestConsent}
+                            onChange={e => setInterestConsent(e.target.checked)}
+                            style={{ marginTop: 2, width: 15, height: 15, accentColor: c.accent, flexShrink: 0, cursor: 'pointer' }}
+                          />
+                          <span style={{ fontSize: 12, color: D.txt2, lineHeight: 1.65 }}>
+                            I consent to Job-Lens storing my email and sharing it with this candidate so they can contact me directly.
+                            My email will be deleted when this Job Case expires ({expiresLabel}).
+                          </span>
+                        </label>
+                        {interestError && <p style={{ fontSize: 12, color: c.danger, margin: 0 }}>{interestError}</p>}
+                        <button
+                          type="submit"
+                          disabled={interestSubmitting}
+                          style={{ background: g.button, color: '#fff', border: 'none', borderRadius: 8, padding: '11px 24px', fontSize: 13, fontWeight: 700, cursor: interestSubmitting ? 'not-allowed' : 'pointer', fontFamily: f.heading, boxShadow: sh.glow, opacity: interestSubmitting ? 0.6 : 1, alignSelf: 'flex-start', display: 'flex', alignItems: 'center', gap: 8 }}
+                        >
+                          {interestSubmitting
+                            ? <><div style={{ width: 13, height: 13, border: '2px solid rgba(255,255,255,0.3)', borderTopColor: '#fff', borderRadius: '50%', animation: 'jcSpin 0.8s linear infinite' }} /> Sending…</>
+                            : 'Notify candidate of my interest →'}
+                        </button>
+                      </form>
+                    </>
+                  )}
+                </div>
+              )}
 
               {/* Footer */}
               <div style={{ padding: '14px 18px', background: D.card, border: `1px solid ${D.border}`, borderRadius: 10, display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8 }}>

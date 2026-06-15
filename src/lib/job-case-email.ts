@@ -107,6 +107,43 @@ export async function sendAdminAlert(opts: {
   }
 }
 
+export async function sendInterestNotification(opts: {
+  candidateEmail: string
+  candidateName: string
+  jobTitle: string
+  company: string
+  recruiterEmail: string
+  recruiterDomain: string
+}) {
+  const { candidateEmail, candidateName, jobTitle, company, recruiterEmail, recruiterDomain } = opts
+
+  const subject = `A recruiter from @${recruiterDomain} is interested — ${jobTitle}`
+  const html = `
+<div style="font-family:system-ui,sans-serif;max-width:520px;margin:0 auto;padding:32px 24px;color:#1a2332">
+  <h2 style="font-size:20px;font-weight:700;margin:0 0 12px">You have an interested recruiter 🎉</h2>
+  <p style="color:#6b7c93;font-size:14px;line-height:1.7;margin:0 0 20px">
+    Hi ${candidateName}, a recruiter from <strong>@${recruiterDomain}</strong> has expressed
+    interest in your Job Case for <strong>${jobTitle}</strong> at <strong>${company}</strong>.
+  </p>
+  <div style="background:#f0f7ff;border:1px solid #bfdbfe;border-radius:8px;padding:16px 20px;margin:0 0 20px">
+    <p style="margin:0 0 4px;font-size:12px;color:#6b7c93;font-weight:600;text-transform:uppercase;letter-spacing:0.5px">Reply directly to</p>
+    <a href="mailto:${recruiterEmail}" style="font-size:16px;font-weight:700;color:#185FA5;text-decoration:none">${recruiterEmail}</a>
+    <p style="margin:8px 0 0;font-size:11px;color:#6b7c93">
+      The recruiter explicitly consented to sharing their email with you.
+    </p>
+  </div>
+  <p style="color:#6b7c93;font-size:13px;line-height:1.7;margin:0">
+    Reply to them directly — no need to go through Job-Lens. Good luck!
+  </p>
+</div>`
+
+  if (resend) {
+    await resend.emails.send({ from: FROM, to: candidateEmail, subject, html })
+  } else {
+    console.error(`[job-case-email] Interest notification for ${candidateEmail} from ${recruiterEmail}`)
+  }
+}
+
 export async function sendCreditRefundNotification(opts: {
   candidateEmail: string
   candidateName: string

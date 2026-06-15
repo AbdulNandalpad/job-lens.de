@@ -36,32 +36,40 @@ export async function GET() {
       }
     })
 
-    // Fetch viewer domains for all cases — don't gate on view_count since the
-    // increment may have lagged; viewed_at IS NOT NULL is the source of truth
+    // Fetch viewer domains + interest signals for all cases
     const allIds = rows.map(r => r.id)
-    let domainMap: Record<string, string[]> = {}
+    let domainMap:    Record<string, string[]> = {}
+    let interestMap:  Record<string, { email: string; domain: string }> = {}
+
     if (allIds.length > 0) {
       const { data: views } = await admin
         .from('case_views')
-        .select('job_case_id, recruiter_domain')
+        .select('job_case_id, recruiter_domain, recruiter_email, interest_expressed_at')
         .in('job_case_id', allIds)
         .not('viewed_at', 'is', null)
+
       for (const v of views ?? []) {
+        // Viewer domains
         if (!domainMap[v.job_case_id]) domainMap[v.job_case_id] = []
         if (v.recruiter_domain && !domainMap[v.job_case_id].includes(v.recruiter_domain)) {
           domainMap[v.job_case_id].push(v.recruiter_domain)
+        }
+        // Interest signal — take the most recent if multiple
+        if (v.interest_expressed_at && v.recruiter_email) {
+          interestMap[v.job_case_id] = { email: v.recruiter_email, domain: v.recruiter_domain }
         }
       }
     }
 
     return NextResponse.json({
       cases: rows.map(r => {
-        const viewerDomains = domainMap[r.id] ?? []
-        // Re-derive status using actual domain data — more reliable than view_count
+        const viewerDomains      = domainMap[r.id] ?? []
+        const interestedRecruiter = interestMap[r.id] ?? null
         const status = r.status === 'expired' ? 'expired'
+                     : interestedRecruiter    ? 'interested'
                      : viewerDomains.length > 0 ? 'viewed'
                      : 'active'
-        return { ...r, status, viewerDomains }
+        return { ...r, status, viewerDomains, interestedRecruiter }
       }),
     })
   } catch (err) {

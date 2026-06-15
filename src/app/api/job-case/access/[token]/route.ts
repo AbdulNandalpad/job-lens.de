@@ -94,7 +94,17 @@ export async function GET(
         }
       }
 
-      return NextResponse.redirect(new URL(`/case/${jobCase.slug}?access=granted`, req.url))
+      // Set a short-lived httpOnly cookie so the recruiter-interest route can
+      // identify this view without re-collecting personal data.
+      const res = NextResponse.redirect(new URL(`/case/${jobCase.slug}?access=granted`, req.url))
+      res.cookies.set('jl_cv', view.id, {
+        httpOnly: true,
+        secure:   process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        maxAge:   86400, // 24 h — same as token expiry
+        path:     `/case/${jobCase.slug}`,
+      })
+      return res
     }
 
     return NextResponse.redirect(new URL('/case/invalid-link', req.url))
