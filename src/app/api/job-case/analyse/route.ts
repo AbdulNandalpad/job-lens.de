@@ -19,6 +19,50 @@ function scrubPii(text: string): string {
     .replace(/(\+?\d[\d\s\-().]{7,}\d)/g, '[phone]')
 }
 
+/** Strip HTML tags and collapse whitespace to extract readable text. */
+function stripHtml(html: string): string {
+  return html
+    .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, ' ')
+    .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, ' ')
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/&nbsp;/g, ' ')
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/\s{2,}/g, ' ')
+    .trim()
+}
+
+/**
+ * Fetch the job posting URL and extract readable text.
+ * Times out after 8 s to avoid blocking the API response.
+ * Returns null if the fetch fails or the page is not HTML.
+ */
+async function fetchJobText(url: string): Promise<string | null> {
+  try {
+    const controller = new AbortController()
+    const timeout = setTimeout(() => controller.abort(), 8000)
+    const res = await fetch(url, {
+      signal: controller.signal,
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (compatible; JobLens/1.0; +https://job-lens.de)',
+        'Accept': 'text/html,application/xhtml+xml',
+      },
+      redirect: 'follow',
+    })
+    clearTimeout(timeout)
+    const contentType = res.headers.get('content-type') ?? ''
+    if (!contentType.includes('text/html')) return null
+    const html = await res.text()
+    const text = stripHtml(html)
+    return text.length > 200 ? text : null
+  } catch {
+    return null
+  }
+}
+
 export async function POST(req: NextRequest) {
   try {
     const supabase = await createServerSupabase()
@@ -30,8 +74,18 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Job text or URL required' }, { status: 400 })
     }
 
+    // If a URL is provided, fetch the full page text and prefer it over the
+    // (often truncated) Adzuna search snippet in jobText.
+    let fullText = (jobText ?? '').trim()
+    if (jobUrl?.trim()) {
+      const fetched = await fetchJobText(jobUrl.trim())
+      if (fetched && fetched.length > fullText.length) {
+        fullText = fetched
+      }
+    }
+
     // GDPR: scrub any PII before sending to Anthropic
-    const cleanText = scrubPii((jobText ?? '').slice(0, 12000))
+    const cleanText = scrubPii(fullText.slice(0, 12000))
 
     const msg = await anthropic.messages.create({
       model: 'claude-haiku-4-5-20251001',
