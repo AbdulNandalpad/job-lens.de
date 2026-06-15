@@ -94,6 +94,7 @@ export default function AdminPage() {
     setPurchasesLoading(true)
     const res = await fetch('/api/admin/purchases')
     const data = await res.json()
+    if (data.error) { setError(data.error); setPurchasesLoading(false); return }
     setPurchases(data.purchases || [])
     setMissingTable(!!data.missing_table)
     setPurchasesLoading(false)
