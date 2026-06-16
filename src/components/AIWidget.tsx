@@ -966,6 +966,7 @@ export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
         realtimeStreamRef.current = stream
 
         const ctx = new AudioContext({ sampleRate: 24000 })
+        if (ctx.state === 'suspended') await ctx.resume()
         realtimeCtxRef.current    = ctx
         realtimeNextTimeRef.current = 0
 
