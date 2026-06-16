@@ -28,6 +28,23 @@ type VoiceState = 'idle' | 'listening' | 'processing' | 'speaking'
 
 const AGENT = 'Kira'
 
+// ── Kira mode cards ──────────────────────────────────────────────────────────
+const KIRA_MODES = [
+  { id: 'job_search',      icon: '🔍', label: 'Find Jobs',        desc: 'Search live listings by role & location' },
+  { id: 'market_insights', icon: '📊', label: 'Market Insights',  desc: 'Salaries, trends & in-demand skills'     },
+  { id: 'cv_review',       icon: '📄', label: 'CV Review',        desc: 'Get honest feedback on your CV'          },
+  { id: 'interview_prep',  icon: '🎯', label: 'Interview Prep',   desc: 'STAR answers & role-specific practice'   },
+  { id: 'feature_help',    icon: '💡', label: 'How it works',     desc: 'Which Job-Lens tool to use & when'       },
+]
+
+const MODE_OPENINGS: Record<string, Record<string, string>> = {
+  job_search:      { eu_DE: 'Welche Stelle suchst du? Titel und Ort — ich suche live.', eu_EN: "What role are you looking for? Give me the title and location and I'll pull up live listings.", in_EN: "What role are you looking for? Tell me the title and location." },
+  market_insights: { eu_DE: 'Welchen Markt soll ich analysieren? Rolle, Skill oder Stadt?', eu_EN: 'What market do you want to know about? A role, a skill, or a city?', in_EN: 'What market do you want to know about? A role, a skill, or a city?' },
+  cv_review:       { eu_DE: 'Lass uns deinen Lebenslauf besprechen. Welche Art Stelle suchst du gerade?', eu_EN: "Let's look at your CV. What kind of role are you going for?", in_EN: "Let's look at your CV. What kind of role are you going for?" },
+  interview_prep:  { eu_DE: 'Für welche Stelle und welches Unternehmen bereitest du dich vor?', eu_EN: "Which role and company are you preparing for? I'll tailor everything to it.", in_EN: "Which role and company are you preparing for? I'll tailor everything to it." },
+  feature_help:    { eu_DE: 'Was möchtest du tun? Ich zeige dir das richtige Tool.', eu_EN: "What are you trying to do? I'll point you to the right tool.", in_EN: "What are you trying to do? I'll point you to the right tool." },
+}
+
 const SUGGESTIONS: Record<string, string[]> = {
   eu_DE: ['Softwareentwickler Jobs in München', 'Remote Marketing Jobs in Deutschland', 'Wie gut passt mein Lebenslauf zu diesen Jobs?'],
   eu_EN: ['Software developer jobs in Munich', 'Remote jobs in Germany', 'Does my CV match a Senior React Developer role?'],
@@ -272,6 +289,7 @@ export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
   const [voiceMode,     setVoiceMode]     = useState(false)
   const [voiceState,    setVoiceState]    = useState<VoiceState>('idle')
   const [cvDiscussMode, setCvDiscussMode] = useState(false)
+  const [kiraMode,      setKiraMode]      = useState('')
   const [isMobile,      setIsMobile]      = useState(false)
   const [mounted,       setMounted]       = useState(false)
 
@@ -788,6 +806,13 @@ export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
     setCoachUnlocking(false)
   }
 
+  // ── Mode selection ───────────────────────────────────────────────────────
+  function selectMode(mode: typeof KIRA_MODES[number]) {
+    setKiraMode(mode.id)
+    const opening = MODE_OPENINGS[mode.id]?.[key] || MODE_OPENINGS[mode.id]?.['eu_EN'] || ''
+    setMsgs([{ role: 'assistant', content: opening }])
+  }
+
   // ── CV Discussion ────────────────────────────────────────────────────────
   function startCvDiscussion() {
     if (!cvRef.current) {
@@ -839,7 +864,7 @@ export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
           cvText: cvRef.current,
           market,
           isVoice,
-          ...(cvDiscussModeRef.current ? { mode: 'cv_discuss' } : {}),
+          mode: cvDiscussModeRef.current ? 'cv_discuss' : kiraMode || undefined,
           interviewCtx: (() => {
             const r = sessionStorage.getItem(SS.interviewRole)
             const c = sessionStorage.getItem(SS.interviewCompany)
@@ -944,6 +969,7 @@ export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
         .kira-send:hover:not(:disabled){ opacity:.85 }
         .kira-send:disabled        { opacity:.4;cursor:not-allowed }
         .kira-suggest:hover        { border-color:${accent} !important;color:${accent} !important;background:${accent}0f !important }
+        .kira-mode-card:hover      { border-color:${accent}66 !important;background:${accent}0d !important;transform:translateY(-1px) }
         .kira-close:hover          { background:rgba(255,255,255,.15) !important }
         .kira-input:focus          { outline:none }
         .kira-job-card:hover       { border-color:${accent}66 !important;background:rgba(255,255,255,.08) !important }
@@ -1040,7 +1066,7 @@ export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
             )}
 
             {msgs.length > 0 && !voiceMode && (
-              <button onClick={() => { setMsgs([]); greetedRef.current = false; cvDiscussModeRef.current = false; setCvDiscussMode(false); localStorage.removeItem(LS.aiMessages) }}
+              <button onClick={() => { setMsgs([]); setKiraMode(''); greetedRef.current = false; cvDiscussModeRef.current = false; setCvDiscussMode(false); localStorage.removeItem(LS.aiMessages) }}
                 style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,.3)', fontSize: 10, cursor: 'pointer', padding: '2px 4px', fontFamily: f.body, flexShrink: 0 }}>
                 Clear
               </button>
@@ -1244,22 +1270,36 @@ export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
                 </div>
               )}
 
-              {/* Suggestion chips — shown after greeting or on empty state */}
-              {showSuggestions && (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: msgs.length > 0 ? 10 : 0 }}>
-                  {cvName && (
-                    <button className="kira-suggest" onClick={startCvDiscussion}
-                      style={{ textAlign: 'left', padding: '8px 12px', borderRadius: 10, background: `${accent}12`, border: `1px solid ${accent}44`, color: accent, fontSize: 12, fontWeight: 600, cursor: 'pointer', transition: 'all .15s', fontFamily: f.body, display: 'flex', alignItems: 'center', gap: 7 }}>
-                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10a7 7 0 0 0 14 0"/><line x1="12" y1="19" x2="12" y2="22"/></svg>
-                      {lang === 'DE' ? 'Lebenslauf besprechen →' : 'Discuss my CV →'}
-                    </button>
-                  )}
-                  {suggestions.map(s => (
-                    <button key={s} className="kira-suggest" onClick={() => send(s)}
-                      style={{ textAlign: 'left', padding: '7px 12px', borderRadius: 10, background: 'rgba(255,255,255,.04)', border: '1px solid rgba(255,255,255,.1)', color: 'rgba(255,255,255,.5)', fontSize: 12, cursor: 'pointer', transition: 'all .15s', fontFamily: f.body }}>
-                      {s}
-                    </button>
-                  ))}
+              {/* Mode cards — shown before a mode is selected */}
+              {!kiraMode && msgs.length <= 1 && !loading && (
+                <div style={{ padding: '4px 0 8px' }}>
+                  <div style={{ fontSize: 11, color: 'rgba(255,255,255,.3)', marginBottom: 10, fontFamily: f.body, letterSpacing: .3 }}>
+                    {lang === 'DE' ? 'Womit kann ich helfen?' : 'What do you need help with?'}
+                  </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 7 }}>
+                    {KIRA_MODES.map(mode => (
+                      <button key={mode.id} onClick={() => selectMode(mode)}
+                        className="kira-mode-card"
+                        style={{ textAlign: 'left', padding: '11px 12px', borderRadius: 11, background: 'rgba(255,255,255,.05)', border: '1px solid rgba(255,255,255,.09)', cursor: 'pointer', transition: 'all .15s', fontFamily: f.body, display: 'flex', flexDirection: 'column', gap: 4 }}>
+                        <span style={{ fontSize: 18, lineHeight: 1 }}>{mode.icon}</span>
+                        <span style={{ fontSize: 12, fontWeight: 700, color: '#fff', fontFamily: f.heading }}>{mode.label}</span>
+                        <span style={{ fontSize: 10, color: 'rgba(255,255,255,.4)', lineHeight: 1.4 }}>{mode.desc}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Active mode badge + change button */}
+              {kiraMode && msgs.length <= 2 && !loading && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6 }}>
+                  <span style={{ fontSize: 10, color: accent, fontWeight: 700, fontFamily: f.heading }}>
+                    {KIRA_MODES.find(m => m.id === kiraMode)?.icon} {KIRA_MODES.find(m => m.id === kiraMode)?.label}
+                  </span>
+                  <button onClick={() => { setMsgs([]); setKiraMode('') }}
+                    style={{ fontSize: 10, color: 'rgba(255,255,255,.3)', background: 'none', border: 'none', cursor: 'pointer', fontFamily: f.body, padding: '1px 4px' }}>
+                    change →
+                  </button>
                 </div>
               )}
 
