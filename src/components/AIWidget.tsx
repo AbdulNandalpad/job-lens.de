@@ -5,7 +5,7 @@ import { createPortal } from 'react-dom'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { theme } from '@/lib/theme'
-import { SS, LS, API } from '@/lib/constants'
+import { SS, LS, API, CREDIT_COST, LIVE_VOICE_MAX_SECONDS } from '@/lib/constants'
 import SvgIcon from '@/components/SvgIcon'
 import { useLanguage } from '@/lib/i18n'
 
@@ -364,6 +364,9 @@ export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
   const realtimeModeRef     = useRef(false)
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const realtimeProcessorRef = useRef<any>(null)
+  const [realtimeSecsLeft, setRealtimeSecsLeft] = useState(LIVE_VOICE_MAX_SECONDS)
+  const realtimeTimerRef = useRef<ReturnType<typeof setInterval> | null>(null)
+  const [realtimeConnecting, setRealtimeConnecting] = useState(false)
 
   useEffect(() => { voiceModeRef.current  = voiceMode     }, [voiceMode])
   useEffect(() => { cvDiscussModeRef.current = cvDiscussMode }, [cvDiscussMode])
@@ -948,13 +951,39 @@ export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
 
   async function enterRealtimeMode() {
     if (!isAdmin) return
+    if (realtimeConnecting || realtimeMode) return
     const wsBase = process.env.NEXT_PUBLIC_REALTIME_WS_URL
     if (!wsBase) { alert('Realtime service URL not configured'); return }
     if (voiceMode) exitVoiceMode()
 
+    // Deduct credits up-front for the session
+    setRealtimeConnecting(true)
+    try {
+      const res = await fetch(API.aiVoiceSession, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ market }),
+      })
+      if (res.status === 402) {
+        setRealtimeConnecting(false)
+        setMsgs(prev => [...prev, { role: 'assistant', content: lang === 'DE'
+          ? `Nicht genug Credits. Live-Voice kostet ${CREDIT_COST.liveVoice} Credits pro Sitzung.`
+          : `Not enough credits. Live voice costs ${CREDIT_COST.liveVoice} credits per session.` }])
+        return
+      }
+      if (!res.ok) throw new Error('voice-session failed')
+    } catch {
+      setRealtimeConnecting(false)
+      setMsgs(prev => [...prev, { role: 'assistant', content: lang === 'DE'
+        ? 'Live-Voice konnte nicht gestartet werden. Bitte versuche es erneut.'
+        : 'Could not start live voice. Please try again.' }])
+      return
+    }
+
     realtimeModeRef.current = true
     setRealtimeMode(true)
     setRealtimeState('connecting')
+    setRealtimeSecsLeft(LIVE_VOICE_MAX_SECONDS)
 
     const secret = process.env.NEXT_PUBLIC_RAILWAY_SECRET || ''
     const ws = new WebSocket(`${wsBase}?secret=${encodeURIComponent(secret)}&market=${market}`)
@@ -986,6 +1015,23 @@ export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
           const i16 = float32ToInt16(f32)
           ws.send(JSON.stringify({ type: 'input_audio_buffer.append', audio: bufferToBase64(i16.buffer as ArrayBuffer) }))
         }
+
+        setRealtimeConnecting(false)
+
+        // Start the 5-minute session countdown — auto-disconnect at 0
+        if (realtimeTimerRef.current) clearInterval(realtimeTimerRef.current)
+        realtimeTimerRef.current = setInterval(() => {
+          setRealtimeSecsLeft(prev => {
+            if (prev <= 1) {
+              setMsgs(m => [...m, { role: 'assistant', content: lang === 'DE'
+                ? 'Live-Voice-Sitzung beendet (5-Minuten-Limit).'
+                : 'Live voice session ended (5-minute limit).' }])
+              exitRealtimeMode()
+              return 0
+            }
+            return prev - 1
+          })
+        }, 1000)
       } catch (micErr) {
         console.error('[realtime] mic/audio setup error:', micErr)
         setMsgs(prev => [...prev, { role: 'assistant', content: `Mic error: ${(micErr as Error)?.message || micErr}` }])
@@ -1014,7 +1060,9 @@ export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
   function exitRealtimeMode() {
     realtimeModeRef.current = false
     setRealtimeMode(false)
+    setRealtimeConnecting(false)
     setRealtimeState('connecting')
+    if (realtimeTimerRef.current) { clearInterval(realtimeTimerRef.current); realtimeTimerRef.current = null }
     stopRealtimePlayback()
     try { realtimeProcessorRef.current?.disconnect() } catch { /* ignore */ }
     try { realtimeCtxRef.current?.close() } catch { /* ignore */ }
@@ -1273,33 +1321,17 @@ export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
               </button>
             ) : (
               <>
-                {/* Standard voice */}
-                <button className="kira-mic-btn"
-                  title={voiceMode ? 'End voice' : lang === 'DE' ? 'Sprachassistentin' : 'Voice mode'}
-                  onClick={voiceMode ? exitVoiceMode : enterVoiceMode}
-                  style={{
-                    width: 28, height: 28, borderRadius: 7, border: 'none',
-                    background: voiceMode ? `${accent}33` : 'rgba(255,255,255,.08)',
-                    cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    flexShrink: 0, transition: 'all .15s',
-                    boxShadow: voiceMode ? `0 0 10px ${accent}55` : 'none',
-                  }}>
-                  {voiceMode
-                    ? <svg width="12" height="12" viewBox="0 0 20 20" fill="none"><path d="M5 5l10 10M15 5L5 15" stroke={accent} strokeWidth="2.2" strokeLinecap="round"/></svg>
-                    : <MicIcon size={13} color="rgba(255,255,255,.55)"/>
-                  }
-                </button>
-
-                {/* Live voice (Realtime API) */}
+                {/* Live voice (Realtime API) — the only voice mode */}
                 {process.env.NEXT_PUBLIC_REALTIME_WS_URL && (
                   <button className="kira-mic-btn"
-                    title={realtimeMode ? 'End live voice' : 'Live voice (beta)'}
+                    title={realtimeMode ? 'End live voice' : `Live voice · ${CREDIT_COST.liveVoice} credits / 5 min`}
+                    disabled={realtimeConnecting}
                     onClick={realtimeMode ? exitRealtimeMode : enterRealtimeMode}
                     style={{
                       width: 28, height: 28, borderRadius: 7, border: 'none',
                       background: realtimeMode ? '#10b98133' : 'rgba(255,255,255,.08)',
-                      cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      flexShrink: 0, transition: 'all .15s',
+                      cursor: realtimeConnecting ? 'wait' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      flexShrink: 0, transition: 'all .15s', opacity: realtimeConnecting ? .5 : 1,
                       boxShadow: realtimeMode ? '0 0 10px #10b98155' : 'none',
                     }}>
                     {realtimeMode
@@ -1346,7 +1378,10 @@ export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
           {realtimeMode ? (
             <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 20, padding: '24px 20px', overflowY: 'auto' }}>
               <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: 1.5, color: '#10b981', textTransform: 'uppercase' }}>
-                Live Voice · GPT-4o
+                Live Voice
+              </div>
+              <div style={{ fontSize: 22, fontWeight: 700, fontFamily: f.heading, color: realtimeSecsLeft <= 30 ? '#f87171' : 'rgba(255,255,255,.85)', letterSpacing: 1 }}>
+                {String(Math.floor(realtimeSecsLeft / 60)).padStart(1, '0')}:{String(realtimeSecsLeft % 60).padStart(2, '0')}
               </div>
               <VoiceOrb state={
                 realtimeState === 'listening'   ? 'listening'  :

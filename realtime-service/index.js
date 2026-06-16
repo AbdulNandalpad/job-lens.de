@@ -56,7 +56,7 @@ wss.on('connection', (clientWs, req) => {
 
   // Open connection to OpenAI Realtime API
   const openaiWs = new WebSocket(
-    'wss://api.openai.com/v1/realtime?model=gpt-realtime-2025-08-28',
+    'wss://api.openai.com/v1/realtime?model=gpt-realtime-mini-2025-12-15',
     {
       headers: {
         'Authorization': `Bearer ${OPENAI_KEY}`,

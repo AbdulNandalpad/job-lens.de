@@ -13,7 +13,11 @@ export const CREDIT_COST = {
   interviewPrep:   1,  // /api/interview/questions — generate 5 interview questions
   interviewCoach:  1,  // /api/interview/coaching — unlock Kira full interview coaching
   salarySim:       1,  // /api/salary-sim — start a salary negotiation session
+  liveVoice:       3,  // /api/ai/voice-session — deducted on connect, 5-min session
 } as const
+
+// ── Live voice (Realtime API) session limit, in seconds ──────────────────────
+export const LIVE_VOICE_MAX_SECONDS = 5 * 60
 
 // First N Kira messages are free; 1 credit charged per N messages after that
 export const AI_CHAT_FREE_MESSAGES = 20
@@ -113,6 +117,7 @@ export const API = {
   aiChat:               '/api/ai/chat',
   aiTts:                '/api/ai/tts',
   aiStt:                '/api/ai/stt',
+  aiVoiceSession:       '/api/ai/voice-session',
   careerProfile:        '/api/profile/career',
   applications:         '/api/applications',
   interviewQuestions:   '/api/interview/questions',
