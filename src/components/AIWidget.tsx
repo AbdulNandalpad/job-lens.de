@@ -313,6 +313,7 @@ export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
   const [cvName,      setCvName]      = useState('')
   const [cvUploading, setCvUploading] = useState(false)
   const [userName,    setUserName]    = useState('')
+  const [isAdmin,     setIsAdmin]     = useState(false)
 
   // ── Voice state ──────────────────────────────────────────────────────────
   const [voiceMode,     setVoiceMode]     = useState(false)
@@ -399,10 +400,13 @@ export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
       }
     } catch { /* ignore */ }
 
-    // Fetch first name for personalised greeting
+    // Fetch first name + admin status
     fetch('/api/user/profile')
       .then(r => r.json())
-      .then((d: { full_name?: string }) => { if (d.full_name) setUserName(d.full_name.split(' ')[0]) })
+      .then((d: { full_name?: string; isAdmin?: boolean }) => {
+        if (d.full_name) setUserName(d.full_name.split(' ')[0])
+        if (d.isAdmin) setIsAdmin(true)
+      })
       .catch(() => {})
   }, [])
 
@@ -1036,7 +1040,7 @@ export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
 
   // ── Send ─────────────────────────────────────────────────────────────────
   async function send(text: string) {
-    if (!text.trim() || loading) return
+    if (!text.trim() || loading || !isAdmin) return
 
     const isVoice = voiceModeRef.current
 
@@ -1524,8 +1528,21 @@ export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
                 </div>
               )}
 
+              {/* Maintenance gate — non-admin users see this instead of Kira */}
+              {!isAdmin && (
+                <div style={{ padding: '20px 8px', textAlign: 'center' }}>
+                  <div style={{ fontSize: 28, marginBottom: 12 }}>🔧</div>
+                  <div style={{ fontSize: 14, fontWeight: 700, color: 'rgba(255,255,255,.9)', fontFamily: f.heading, marginBottom: 6 }}>
+                    Kira is under maintenance
+                  </div>
+                  <div style={{ fontSize: 12, color: 'rgba(255,255,255,.45)', fontFamily: f.body, lineHeight: 1.6 }}>
+                    We&apos;re upgrading Kira with new features. She&apos;ll be back very soon.
+                  </div>
+                </div>
+              )}
+
               {/* Mode cards — shown before a mode is selected */}
-              {!kiraMode && msgs.length <= 1 && !loading && (
+              {isAdmin && !kiraMode && msgs.length <= 1 && !loading && (
                 <div style={{ padding: '4px 0 8px' }}>
                   <div style={{ fontSize: 11, color: 'rgba(255,255,255,.3)', marginBottom: 10, fontFamily: f.body, letterSpacing: .3 }}>
                     {lang === 'DE' ? 'Womit kann ich helfen?' : 'What do you need help with?'}
