@@ -29,12 +29,41 @@ type VoiceState = 'idle' | 'listening' | 'processing' | 'speaking'
 const AGENT = 'Kira'
 
 // ── Kira mode cards ──────────────────────────────────────────────────────────
+function ModeIcon({ id, size = 16, color = 'currentColor' }: { id: string; size?: number; color?: string }) {
+  if (id === 'job_search') return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="11" cy="11" r="7"/><line x1="16.5" y1="16.5" x2="22" y2="22"/>
+    </svg>
+  )
+  if (id === 'market_insights') return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+    </svg>
+  )
+  if (id === 'cv_review') return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="13" y2="17"/>
+    </svg>
+  )
+  if (id === 'interview_prep') return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+    </svg>
+  )
+  // feature_help
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+    </svg>
+  )
+}
+
 const KIRA_MODES = [
-  { id: 'job_search',      icon: '🔍', label: 'Find Jobs',        desc: 'Search live listings by role & location' },
-  { id: 'market_insights', icon: '📊', label: 'Market Insights',  desc: 'Salaries, trends & in-demand skills'     },
-  { id: 'cv_review',       icon: '📄', label: 'CV Review',        desc: 'Get honest feedback on your CV'          },
-  { id: 'interview_prep',  icon: '🎯', label: 'Interview Prep',   desc: 'STAR answers & role-specific practice'   },
-  { id: 'feature_help',    icon: '💡', label: 'How it works',     desc: 'Which Job-Lens tool to use & when'       },
+  { id: 'job_search',      label: 'Find Jobs',       desc: 'Search live listings by role & location' },
+  { id: 'market_insights', label: 'Market Insights', desc: 'Salaries, trends & in-demand skills'     },
+  { id: 'cv_review',       label: 'CV Review',       desc: 'Get honest feedback on your CV'          },
+  { id: 'interview_prep',  label: 'Interview Prep',  desc: 'STAR answers & role-specific practice'   },
+  { id: 'feature_help',    label: 'How it works',    desc: 'Which Job-Lens tool to use & when'       },
 ]
 
 const MODE_OPENINGS: Record<string, Record<string, string>> = {
@@ -1281,7 +1310,7 @@ export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
                       <button key={mode.id} onClick={() => selectMode(mode)}
                         className="kira-mode-card"
                         style={{ textAlign: 'left', padding: '11px 12px', borderRadius: 11, background: 'rgba(255,255,255,.05)', border: '1px solid rgba(255,255,255,.09)', cursor: 'pointer', transition: 'all .15s', fontFamily: f.body, display: 'flex', flexDirection: 'column', gap: 4 }}>
-                        <span style={{ fontSize: 18, lineHeight: 1 }}>{mode.icon}</span>
+                        <ModeIcon id={mode.id} size={16} color="rgba(255,255,255,.6)"/>
                         <span style={{ fontSize: 12, fontWeight: 700, color: '#fff', fontFamily: f.heading }}>{mode.label}</span>
                         <span style={{ fontSize: 10, color: 'rgba(255,255,255,.4)', lineHeight: 1.4 }}>{mode.desc}</span>
                       </button>
@@ -1294,7 +1323,7 @@ export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
               {kiraMode && msgs.length <= 2 && !loading && (
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6 }}>
                   <span style={{ fontSize: 10, color: accent, fontWeight: 700, fontFamily: f.heading }}>
-                    {KIRA_MODES.find(m => m.id === kiraMode)?.icon} {KIRA_MODES.find(m => m.id === kiraMode)?.label}
+                    <ModeIcon id={kiraMode} size={11} color={accent}/>{' '}{KIRA_MODES.find(m => m.id === kiraMode)?.label}
                   </span>
                   <button onClick={() => { setMsgs([]); setKiraMode('') }}
                     style={{ fontSize: 10, color: 'rgba(255,255,255,.3)', background: 'none', border: 'none', cursor: 'pointer', fontFamily: f.body, padding: '1px 4px' }}>
