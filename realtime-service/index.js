@@ -51,7 +51,6 @@ wss.on('connection', (clientWs, req) => {
     {
       headers: {
         'Authorization': `Bearer ${OPENAI_KEY}`,
-        'OpenAI-Beta':   'realtime=v1',
       },
     }
   )
