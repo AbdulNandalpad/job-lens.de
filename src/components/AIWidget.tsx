@@ -898,6 +898,7 @@ export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
   function handleRealtimeEvent(evt: any) {
     switch (evt.type) {
       case 'session.created':
+      case 'session.updated':
         setRealtimeState('ready')
         break
       case 'input_audio_buffer.speech_started':
@@ -907,9 +908,11 @@ export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
       case 'input_audio_buffer.speech_stopped':
         setRealtimeState('processing')
         break
-      case 'response.output_audio.delta':
-        if (evt.delta) { playRealtimeChunk(evt.delta); setRealtimeState('speaking') }
+      case 'response.output_audio.delta': {
+        const chunk = evt.delta ?? evt.audio ?? evt.data
+        if (chunk) { playRealtimeChunk(chunk); setRealtimeState('speaking') }
         break
+      }
       case 'response.output_audio.done':
       case 'response.done':
         setRealtimeState('ready')

@@ -97,7 +97,10 @@ wss.on('connection', (clientWs, req) => {
   openaiWs.on('message', (data) => {
     try {
       const evt = JSON.parse(data)
-      if (evt.type !== 'response.audio.delta' && evt.type !== 'input_audio_buffer.append') {
+      if (evt.type === 'response.output_audio.delta') {
+        const keys = Object.keys(evt).filter(k => k !== 'type' && k !== 'event_id' && k !== 'response_id' && k !== 'item_id' && k !== 'output_index' && k !== 'content_index')
+        console.log('[realtime] audio.delta keys:', keys)
+      } else if (evt.type !== 'input_audio_buffer.append') {
         console.log('[realtime] OpenAI event:', evt.type, evt.error ? JSON.stringify(evt.error) : '')
       }
     } catch { /* non-JSON */ }
