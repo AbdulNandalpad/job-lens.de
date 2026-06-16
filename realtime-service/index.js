@@ -71,7 +71,7 @@ wss.on('connection', (clientWs, req) => {
     openaiWs.send(JSON.stringify({
       type: 'session.update',
       session: {
-        type:                 'conversation',
+        type:                 'realtime',
         modalities:           ['audio', 'text'],
         voice:                'nova',
         input_audio_format:   'pcm16',
