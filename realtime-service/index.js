@@ -21,6 +21,15 @@ VOICE RULES:
 - Plain spoken English. No lists, no markdown, no bullet points.
 - Be warm and direct. Sound like a person, not an assistant.`
 
+// Log available realtime models on startup
+fetch('https://api.openai.com/v1/models', { headers: { 'Authorization': `Bearer ${OPENAI_KEY}` } })
+  .then(r => r.json())
+  .then(d => {
+    const rt = d.data?.filter(m => m.id.includes('realtime')).map(m => m.id)
+    console.log('[realtime] available realtime models:', rt)
+  })
+  .catch(e => console.error('[realtime] models fetch failed:', e.message))
+
 const server = http.createServer((req, res) => {
   if (req.url === '/health') { res.writeHead(200); res.end('ok'); return }
   res.writeHead(404); res.end()
