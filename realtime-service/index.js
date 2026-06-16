@@ -47,7 +47,7 @@ wss.on('connection', (clientWs, req) => {
 
   // Open connection to OpenAI Realtime API
   const openaiWs = new WebSocket(
-    'wss://api.openai.com/v1/realtime?model=gpt-4o-realtime-preview-2024-12-17',
+    'wss://api.openai.com/v1/realtime?model=gpt-4o-realtime-preview',
     {
       headers: {
         'Authorization': `Bearer ${OPENAI_KEY}`,
@@ -107,9 +107,21 @@ wss.on('connection', (clientWs, req) => {
   openaiWs.on('error', (err) => {
     console.error('[realtime] OpenAI WS error:', err.message)
     if (clientWs.readyState === WebSocket.OPEN) {
-      clientWs.send(JSON.stringify({ type: 'error', message: 'Connection failed' }))
+      clientWs.send(JSON.stringify({ type: 'error', message: `OpenAI connection failed: ${err.message}` }))
       clientWs.close()
     }
+  })
+
+  openaiWs.on('unexpected-response', (req, res) => {
+    let body = ''
+    res.on('data', (d) => { body += d })
+    res.on('end', () => {
+      console.error('[realtime] OpenAI unexpected response:', res.statusCode, body)
+      if (clientWs.readyState === WebSocket.OPEN) {
+        clientWs.send(JSON.stringify({ type: 'error', message: `OpenAI rejected (${res.statusCode}): ${body.slice(0, 200)}` }))
+        clientWs.close()
+      }
+    })
   })
 
   clientWs.on('error', (err) => {

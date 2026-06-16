@@ -921,9 +921,13 @@ export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
         }
         break
       }
-      case 'error':
-        console.error('[realtime]', evt.error)
+      case 'error': {
+        const msg = evt.error?.message || evt.message || 'Unknown error'
+        console.error('[realtime]', msg)
+        setMsgs(prev => [...prev, { role: 'assistant', content: `Voice connection error: ${msg}` }])
+        exitRealtimeMode()
         break
+      }
     }
   }
 
@@ -973,8 +977,19 @@ export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
     ws.onmessage = (e) => {
       try { handleRealtimeEvent(JSON.parse(e.data as string)) } catch { /* ignore */ }
     }
-    ws.onclose  = () => { if (realtimeModeRef.current) exitRealtimeMode() }
-    ws.onerror  = () => exitRealtimeMode()
+    ws.onclose  = (e) => {
+      if (realtimeModeRef.current) {
+        const reason = e.reason || `code ${e.code}`
+        setMsgs(prev => [...prev, { role: 'assistant', content: `Live voice disconnected: ${reason}` }])
+        exitRealtimeMode()
+      }
+    }
+    ws.onerror  = () => {
+      if (realtimeModeRef.current) {
+        setMsgs(prev => [...prev, { role: 'assistant', content: 'Could not connect to live voice service. Check Railway logs.' }])
+        exitRealtimeMode()
+      }
+    }
   }
 
   function exitRealtimeMode() {
