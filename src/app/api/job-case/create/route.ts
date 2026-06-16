@@ -140,6 +140,7 @@ export async function POST(req: NextRequest) {
       questions, answers, tabSwitches,
       videoStorageKey, videoDurationSeconds,
       consent, cvText,
+      market,
     } = body
 
     // Validate consent
@@ -147,13 +148,13 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'All three consents required' }, { status: 400 })
     }
 
-    // Deduct credits (uses existing DACH credit system)
+    const creditMarket = market === MARKET.in ? MARKET.in : MARKET.eu
     const deduction = await checkAndDeductCredits(
       user.id,
       JOB_CASE.creditCost,
       'job_case_creation',
       user.email,
-      MARKET.eu
+      creditMarket
     )
     if (!deduction.ok) {
       return NextResponse.json({ error: 'Insufficient credits', remaining: deduction.remaining }, { status: 402 })

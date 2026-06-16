@@ -80,6 +80,7 @@ export default function NavbarIndia() {
     { label: 'CV Builder',   href: '/in/cv-builder' },
     { label: 'Cover Letter', href: '/in/cover-letter' },
     { label: 'Auto Apply',   href: '/in/auto-apply' },
+    { label: 'Job Case',     href: '/in/job-case' },
     { label: 'Work Visa DE',  href: '/in/visa' },
     { label: 'Account',       href: '/in/account' },
   ]
