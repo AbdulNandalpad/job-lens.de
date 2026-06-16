@@ -907,15 +907,22 @@ export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
       case 'input_audio_buffer.speech_stopped':
         setRealtimeState('processing')
         break
-      case 'response.audio.delta':
+      case 'response.output_audio.delta':
         if (evt.delta) { playRealtimeChunk(evt.delta); setRealtimeState('speaking') }
         break
+      case 'response.output_audio.done':
       case 'response.done':
         setRealtimeState('ready')
         break
       case 'conversation.item.input_audio_transcription.completed':
+      case 'conversation.item.input_audio_transcription.delta':
         if (evt.transcript?.trim()) {
           setMsgs(prev => [...prev, { role: 'user', content: evt.transcript.trim() }])
+        }
+        break
+      case 'response.output_audio_transcript.done':
+        if (evt.transcript?.trim()) {
+          setMsgs(prev => [...prev, { role: 'assistant', content: evt.transcript.trim() }])
         }
         break
       case 'response.output_item.done': {

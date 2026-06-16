@@ -73,7 +73,7 @@ wss.on('connection', (clientWs, req) => {
       session: {
         type:              'realtime',
         instructions:      KIRA_SYSTEM + marketCtx,
-        output_modalities: ['audio', 'text'],
+        output_modalities: ['audio'],
         audio: {
           input: {
             format: { type: 'audio/pcm', rate: 24000 },
