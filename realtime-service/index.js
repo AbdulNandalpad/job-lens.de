@@ -93,8 +93,8 @@ wss.on('connection', (clientWs, req) => {
     }))
   })
 
-  // Forward messages: OpenAI → client
-  openaiWs.on('message', (data) => {
+  // Forward messages: OpenAI → client (preserve text/binary frame type)
+  openaiWs.on('message', (data, isBinary) => {
     try {
       const evt = JSON.parse(data)
       if (evt.type === 'response.output_audio.delta') {
@@ -105,7 +105,7 @@ wss.on('connection', (clientWs, req) => {
       }
     } catch { /* non-JSON */ }
     if (clientWs.readyState === WebSocket.OPEN) {
-      clientWs.send(data)
+      clientWs.send(isBinary ? data : data.toString(), { binary: isBinary })
     }
   })
 
