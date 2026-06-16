@@ -1,0 +1,123 @@
+const http  = require('http')
+const { WebSocketServer, WebSocket } = require('ws')
+
+const PORT   = process.env.PORT || 3002
+const SECRET = process.env.RAILWAY_SECRET
+const OPENAI_KEY = process.env.OPENAI_API_KEY
+
+if (!OPENAI_KEY) { console.error('OPENAI_API_KEY missing'); process.exit(1) }
+
+const KIRA_SYSTEM = `You are Kira, an AI career assistant built into Job-Lens. Warm, direct, genuinely helpful — like a smart friend who knows the job market inside out.
+
+PERSONALITY: Conversational. Use contractions. React naturally — "Oh nice!", "Got it —", "Found some good ones." Never sound like a report.
+
+WHAT YOU DO:
+- Career advice, salary guidance, job search help, CV feedback, interview prep
+- Salary ranges DACH: entry €45-65k, mid €65-90k, senior €90-130k+. India: entry 4-8 LPA, mid 8-20 LPA, senior 20-50 LPA.
+- Know Job-Lens features: Career Scan (2cr), CV Builder (1cr), Cover Letter (1cr), Auto Apply (3cr), Job Case (6cr)
+
+VOICE RULES:
+- 1-2 sentences only. Never longer.
+- Plain spoken English. No lists, no markdown, no bullet points.
+- Be warm and direct. Sound like a person, not an assistant.`
+
+const server = http.createServer((req, res) => {
+  if (req.url === '/health') { res.writeHead(200); res.end('ok'); return }
+  res.writeHead(404); res.end()
+})
+
+const wss = new WebSocketServer({ server })
+
+wss.on('connection', (clientWs, req) => {
+  // Verify shared secret
+  const url    = new URL(req.url, `http://localhost`)
+  const secret = url.searchParams.get('secret')
+  if (SECRET && secret !== SECRET) {
+    clientWs.close(1008, 'Unauthorized')
+    return
+  }
+
+  const market = url.searchParams.get('market') || 'eu'
+
+  const marketCtx = market === 'in'
+    ? '\n\nMARKET: India. Use INR/LPA for salaries. Cities: Bangalore, Hyderabad, Mumbai, Pune, Delhi NCR.'
+    : '\n\nMARKET: DACH (Germany, Austria, Switzerland). Use EUR/CHF. Respond in German if user speaks German.'
+
+  console.log(`[realtime] client connected — market: ${market}`)
+
+  // Open connection to OpenAI Realtime API
+  const openaiWs = new WebSocket(
+    'wss://api.openai.com/v1/realtime?model=gpt-4o-realtime-preview-2024-12-17',
+    {
+      headers: {
+        'Authorization': `Bearer ${OPENAI_KEY}`,
+        'OpenAI-Beta':   'realtime=v1',
+      },
+    }
+  )
+
+  openaiWs.on('open', () => {
+    console.log('[realtime] OpenAI connected')
+
+    // Configure the session
+    openaiWs.send(JSON.stringify({
+      type: 'session.update',
+      session: {
+        modalities:           ['audio', 'text'],
+        voice:                'nova',
+        input_audio_format:   'pcm16',
+        output_audio_format:  'pcm16',
+        input_audio_transcription: { model: 'whisper-1' },
+        turn_detection: {
+          type:                 'server_vad',
+          threshold:            0.5,
+          prefix_padding_ms:    300,
+          silence_duration_ms:  700,
+        },
+        instructions: KIRA_SYSTEM + marketCtx,
+        temperature: 0.8,
+        max_response_output_tokens: 200,
+      },
+    }))
+  })
+
+  // Forward messages: OpenAI → client
+  openaiWs.on('message', (data) => {
+    if (clientWs.readyState === WebSocket.OPEN) {
+      clientWs.send(data)
+    }
+  })
+
+  // Forward messages: client → OpenAI
+  clientWs.on('message', (data) => {
+    if (openaiWs.readyState === WebSocket.OPEN) {
+      openaiWs.send(data)
+    }
+  })
+
+  clientWs.on('close', () => {
+    console.log('[realtime] client disconnected')
+    if (openaiWs.readyState === WebSocket.OPEN) openaiWs.close()
+  })
+
+  openaiWs.on('close', () => {
+    if (clientWs.readyState === WebSocket.OPEN) clientWs.close()
+  })
+
+  openaiWs.on('error', (err) => {
+    console.error('[realtime] OpenAI WS error:', err.message)
+    if (clientWs.readyState === WebSocket.OPEN) {
+      clientWs.send(JSON.stringify({ type: 'error', message: 'Connection failed' }))
+      clientWs.close()
+    }
+  })
+
+  clientWs.on('error', (err) => {
+    console.error('[realtime] client WS error:', err.message)
+    if (openaiWs.readyState === WebSocket.OPEN) openaiWs.close()
+  })
+})
+
+server.listen(PORT, () => {
+  console.log(`[realtime] listening on port ${PORT}`)
+})
