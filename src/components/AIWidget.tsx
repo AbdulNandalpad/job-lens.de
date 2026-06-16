@@ -600,6 +600,7 @@ export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
 
   // ── Voice mode control ───────────────────────────────────────────────────
   function enterVoiceMode() {
+    if (!isAdmin) return
     if (loading) return
     unlockAudio()   // synchronous — must stay before any await
     voiceModeRef.current = true
@@ -946,6 +947,7 @@ export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
   }
 
   async function enterRealtimeMode() {
+    if (!isAdmin) return
     const wsBase = process.env.NEXT_PUBLIC_REALTIME_WS_URL
     if (!wsBase) { alert('Realtime service URL not configured'); return }
     if (voiceMode) exitVoiceMode()
@@ -1026,6 +1028,7 @@ export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
 
   // ── Mode selection ───────────────────────────────────────────────────────
   function selectMode(mode: typeof KIRA_MODES[number]) {
+    if (!isAdmin) return
     setKiraMode(mode.id)
     const opening = MODE_OPENINGS[mode.id]?.[key] || MODE_OPENINGS[mode.id]?.['eu_EN'] || ''
     setMsgs([{ role: 'assistant', content: opening }])
@@ -1033,6 +1036,7 @@ export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
 
   // ── CV Discussion ────────────────────────────────────────────────────────
   function startCvDiscussion() {
+    if (!isAdmin) return
     if (!cvRef.current) {
       setMsgs(prev => [...prev, { role: 'assistant', content: lang === 'DE'
         ? 'Lade deinen Lebenslauf hoch (Büroklammer oben) — dann können wir ihn gemeinsam besprechen.'
@@ -1248,6 +1252,7 @@ export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
             <input ref={fileInputRef} type="file" accept=".pdf,.doc,.docx,.txt" style={{ display: 'none' }} onChange={handleCvUpload}/>
 
             {/* Upload CV */}
+            {isAdmin && (
             <button title={lang === 'DE' ? 'Lebenslauf hochladen' : 'Upload CV'} onClick={() => fileInputRef.current?.click()} disabled={cvUploading}
               style={{ width: 28, height: 28, borderRadius: 7, border: 'none', background: cvName ? `${accent}22` : 'rgba(255,255,255,.08)', cursor: 'pointer', color: cvName ? accent : 'rgba(255,255,255,.55)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, transition: 'all .15s' }}>
               {cvUploading
@@ -1255,9 +1260,10 @@ export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
                 : <svg width="13" height="13" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10 3v10M6 7l4-4 4 4"/><path d="M3 17h14"/></svg>
               }
             </button>
+            )}
 
             {/* Mic toggle — desktop only */}
-            {isMobile ? (
+            {isAdmin && (isMobile ? (
               <button
                 onClick={() => setMsgs(prev => [...prev, { role: 'assistant', content: lang === 'DE'
                   ? 'Sprache ist nur am PC verfügbar. Bitte öffne die App auf einem Computer.'
@@ -1303,7 +1309,7 @@ export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
                   </button>
                 )}
               </>
-            )}
+            ))}
 
             {msgs.length > 0 && !voiceMode && (
               <button onClick={() => { setMsgs([]); setKiraMode(''); greetedRef.current = false; cvDiscussModeRef.current = false; setCvDiscussMode(false); localStorage.removeItem(LS.aiMessages) }}
@@ -1590,7 +1596,7 @@ export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
           )}
 
           {/* ── Text input — hidden in voice or realtime mode ── */}
-          {!voiceMode && !realtimeMode && (
+          {isAdmin && !voiceMode && !realtimeMode && (
             <div style={{ padding: '10px 12px 12px', borderTop: '1px solid rgba(255,255,255,.07)', flexShrink: 0 }}>
               <div style={{ display: 'flex', alignItems: 'flex-end', gap: 6, background: 'rgba(255,255,255,.07)', border: '1px solid rgba(255,255,255,.12)', borderRadius: 12, padding: '7px 8px' }}>
                 <textarea ref={inputRef} className="kira-input"
