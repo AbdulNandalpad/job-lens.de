@@ -102,10 +102,10 @@ wss.on('connection', (clientWs, req) => {
     }
   })
 
-  // Forward messages: client → OpenAI
-  clientWs.on('message', (data) => {
+  // Forward messages: client → OpenAI (always text frames)
+  clientWs.on('message', (data, isBinary) => {
     if (openaiWs.readyState === WebSocket.OPEN) {
-      openaiWs.send(data)
+      openaiWs.send(isBinary ? data : data.toString(), { binary: isBinary })
     }
   })
 
