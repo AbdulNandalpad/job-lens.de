@@ -71,13 +71,8 @@ wss.on('connection', (clientWs, req) => {
     openaiWs.send(JSON.stringify({
       type: 'session.update',
       session: {
-        type:                'realtime',
-        input_audio_format:  'pcm16',
-        output_audio_format: 'pcm16',
-        turn_detection: {
-          type:               'server_vad',
-          silence_duration_ms: 700,
-        },
+        type: 'realtime',
+        turn_detection: { type: 'server_vad', silence_duration_ms: 700 },
         instructions: KIRA_SYSTEM + marketCtx,
       },
     }))
