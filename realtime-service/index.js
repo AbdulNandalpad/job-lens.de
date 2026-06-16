@@ -76,7 +76,7 @@ wss.on('connection', (clientWs, req) => {
         output_modalities: ['audio', 'text'],
         audio: {
           input: {
-            format: { type: 'pcm16' },
+            format: { type: 'audio/pcm' },
             turn_detection: {
               type:               'server_vad',
               silence_duration_ms: 700,
@@ -84,7 +84,7 @@ wss.on('connection', (clientWs, req) => {
             },
           },
           output: {
-            format: { type: 'pcm16' },
+            format: { type: 'audio/pcm' },
             voice:  'coral',
             speed:  1.1,
           },
