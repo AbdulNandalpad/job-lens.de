@@ -6,15 +6,12 @@ export async function POST(req: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return new Response('Unauthorized', { status: 401 })
 
-  const { text, market } = await req.json()
+  const { text } = await req.json()
   if (!text?.trim()) return new Response('No text', { status: 400 })
   if (typeof text !== 'string' || text.length > 1000) return new Response('Text too long', { status: 400 })
 
   const apiKey = process.env.OPENAI_API_KEY
   if (!apiKey) return new Response('TTS not configured', { status: 503 })
-
-  // shimmer suits Indian English better; nova for DACH
-  const voice = market === 'in' ? 'shimmer' : 'nova'
 
   try {
     const res = await fetch('https://api.openai.com/v1/audio/speech', {
@@ -24,9 +21,9 @@ export async function POST(req: NextRequest) {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'tts-1',
+        model: 'tts-1-hd',
         input: text.slice(0, 4096),
-        voice,
+        voice: 'nova',
         response_format: 'mp3',
         speed: 1.15,
       }),
