@@ -72,7 +72,6 @@ wss.on('connection', (clientWs, req) => {
       type: 'session.update',
       session: {
         type:                'realtime',
-        voice:               'nova',
         input_audio_format:  'pcm16',
         output_audio_format: 'pcm16',
         turn_detection: {
