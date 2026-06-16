@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
-import NavbarIndia from '../../components/NavbarIndia'
 import { c, f, sh } from '@/lib/theme'
 import { JOB_CASE, SS, API, MARKET } from '@/lib/constants'
 import { useCredits } from '@/lib/useCredits'
@@ -633,7 +632,6 @@ export default function JobCaseNewPageIndia() {
     <AdminGate>
       <>
         <style>{SHARED_CSS}</style>
-        <NavbarIndia />
 
         <div style={{ display: 'flex', minHeight: 'calc(100vh - 52px)', fontFamily: f.body }}>
 

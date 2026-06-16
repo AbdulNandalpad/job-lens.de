@@ -2,7 +2,6 @@
 
 import Link from 'next/link'
 import { useState, useEffect } from 'react'
-import NavbarIndia from '../components/NavbarIndia'
 import { c, f, sh } from '@/lib/theme'
 import { JOB_CASE, API } from '@/lib/constants'
 import { useCredits } from '@/lib/useCredits'
@@ -150,8 +149,6 @@ export default function MyJobCasesPageIndia() {
           }
           .jc-btn-danger:hover { background: rgba(226,75,74,0.06); border-color: ${c.danger}; }
         `}</style>
-
-        <NavbarIndia />
 
         <div style={{ minHeight: 'calc(100vh - 52px)', background: c.bg, fontFamily: f.body }}>
           <div style={{ maxWidth: 760, margin: '0 auto', padding: '32px 20px 80px' }}>
