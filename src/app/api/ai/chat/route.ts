@@ -477,10 +477,10 @@ export async function POST(req: NextRequest) {
             messages:   currentMsgs,
           })
 
-          // Stream text tokens to client as they arrive
-          stream.on('text', (text) => {
-            if (text) safeSend({ text })
-          })
+          // Buffer text — only flush to client if this is the final round (not a tool-use round).
+          // Sending text from tool-use rounds causes double TTS in voice mode.
+          const textBuffer: string[] = []
+          stream.on('text', (text) => { if (text) textBuffer.push(text) })
 
           const response = await stream.finalMessage()
 
@@ -549,7 +549,8 @@ export async function POST(req: NextRequest) {
             ]
 
           } else {
-            // Text already streamed via stream.on('text') above
+            // Final round — flush buffered text tokens to client now
+            for (const t of textBuffer) safeSend({ text: t })
             break
           }
         }
