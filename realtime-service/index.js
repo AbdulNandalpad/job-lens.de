@@ -21,14 +21,14 @@ VOICE RULES:
 - Plain spoken English. No lists, no markdown, no bullet points.
 - Be warm and direct. Sound like a person, not an assistant.`
 
-// Log available realtime models on startup
-fetch('https://api.openai.com/v1/models', { headers: { 'Authorization': `Bearer ${OPENAI_KEY}` } })
-  .then(r => r.json())
-  .then(d => {
-    const rt = d.data?.filter(m => m.id.includes('realtime')).map(m => m.id)
-    console.log('[realtime] available realtime models:', rt)
-  })
-  .catch(e => console.error('[realtime] models fetch failed:', e.message))
+// Per-mode focus — mirrors the text chat mode cards, adapted for spoken voice
+const MODE_FOCUS = {
+  job_search:      `\n\nFOCUS: Job search. Ask what role and location they want, give salary ranges, suggest tailoring their CV next. Stay on job search.`,
+  market_insights: `\n\nFOCUS: Job market analysis. Give specific salary ranges, hiring trends, in-demand skills. Be data-driven and specific, never vague.`,
+  cv_review:       `\n\nFOCUS: CV coaching. One question at a time, natural back-and-forth. After a few exchanges give a quick verdict — score out of ten, strengths, gaps.`,
+  interview_prep:  `\n\nFOCUS: Interview prep. Ask what role and company first, then give STAR-style answers and likely questions specific to that role.`,
+  feature_help:    `\n\nFOCUS: Explaining Job-Lens tools — Career Scan, CV Builder, Cover Letter, Auto Apply, Job Case. Point them to the right tool for their need.`,
+}
 
 const server = http.createServer((req, res) => {
   if (req.url === '/health') { res.writeHead(200); res.end('ok'); return }
@@ -47,12 +47,15 @@ wss.on('connection', (clientWs, req) => {
   }
 
   const market = url.searchParams.get('market') || 'eu'
+  const mode   = url.searchParams.get('mode') || ''
 
   const marketCtx = market === 'in'
     ? '\n\nMARKET: India. Use INR/LPA for salaries. Cities: Bangalore, Hyderabad, Mumbai, Pune, Delhi NCR.'
     : '\n\nMARKET: DACH (Germany, Austria, Switzerland). Use EUR/CHF. Respond in German if user speaks German.'
 
-  console.log(`[realtime] client connected — market: ${market}`)
+  const modeCtx = MODE_FOCUS[mode] || ''
+
+  console.log(`[realtime] client connected — market: ${market}, mode: ${mode || 'none'}`)
 
   // Open connection to OpenAI Realtime API
   const openaiWs = new WebSocket(
@@ -72,7 +75,7 @@ wss.on('connection', (clientWs, req) => {
       type: 'session.update',
       session: {
         type:              'realtime',
-        instructions:      KIRA_SYSTEM + marketCtx,
+        instructions:      KIRA_SYSTEM + marketCtx + modeCtx,
         output_modalities: ['audio'],
         audio: {
           input: {

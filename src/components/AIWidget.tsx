@@ -951,6 +951,7 @@ export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
 
   async function enterRealtimeMode() {
     if (!isAdmin) return
+    if (!kiraMode) return   // a mode must be chosen first
     if (realtimeConnecting || realtimeMode) return
     const wsBase = process.env.NEXT_PUBLIC_REALTIME_WS_URL
     if (!wsBase) { alert('Realtime service URL not configured'); return }
@@ -986,7 +987,7 @@ export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
     setRealtimeSecsLeft(LIVE_VOICE_MAX_SECONDS)
 
     const secret = process.env.NEXT_PUBLIC_RAILWAY_SECRET || ''
-    const ws = new WebSocket(`${wsBase}?secret=${encodeURIComponent(secret)}&market=${market}`)
+    const ws = new WebSocket(`${wsBase}?secret=${encodeURIComponent(secret)}&market=${market}&mode=${encodeURIComponent(kiraMode)}`)
     realtimeWsRef.current = ws
 
     ws.onopen = async () => {
@@ -1321,8 +1322,8 @@ export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
               </button>
             ) : (
               <>
-                {/* Live voice (Realtime API) — the only voice mode */}
-                {process.env.NEXT_PUBLIC_REALTIME_WS_URL && (
+                {/* Live voice (Realtime API) — only after a mode is chosen */}
+                {process.env.NEXT_PUBLIC_REALTIME_WS_URL && (kiraMode || realtimeMode) && (
                   <button className="kira-mic-btn"
                     title={realtimeMode ? 'End live voice' : `Live voice · ${CREDIT_COST.liveVoice} credits / 5 min`}
                     disabled={realtimeConnecting}
