@@ -83,6 +83,12 @@ wss.on('connection', (clientWs, req) => {
 
   // Forward messages: OpenAI → client
   openaiWs.on('message', (data) => {
+    try {
+      const evt = JSON.parse(data)
+      if (evt.type !== 'response.audio.delta' && evt.type !== 'input_audio_buffer.append') {
+        console.log('[realtime] OpenAI event:', evt.type, evt.error ? JSON.stringify(evt.error) : '')
+      }
+    } catch { /* non-JSON */ }
     if (clientWs.readyState === WebSocket.OPEN) {
       clientWs.send(data)
     }
@@ -100,7 +106,8 @@ wss.on('connection', (clientWs, req) => {
     if (openaiWs.readyState === WebSocket.OPEN) openaiWs.close()
   })
 
-  openaiWs.on('close', () => {
+  openaiWs.on('close', (code, reason) => {
+    console.log('[realtime] OpenAI closed:', code, reason?.toString())
     if (clientWs.readyState === WebSocket.OPEN) clientWs.close()
   })
 
