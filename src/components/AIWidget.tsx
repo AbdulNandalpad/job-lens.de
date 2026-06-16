@@ -428,19 +428,59 @@ export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
     return new Promise<void>((resolve) => {
       ttsResolveRef.current = resolve
       const done = () => { ttsResolveRef.current = null; resolve() }
+
       fetch(API.aiTts, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text: text.slice(0, 800) }),
+        body: JSON.stringify({ text: text.slice(0, 800), market }),
       }).then(async res => {
-        if (!res.ok) { done(); return }
-        const blob  = await res.blob()
-        const url   = URL.createObjectURL(blob)
-        const audio = new Audio(url)
-        audioRef.current = audio
-        audio.onended = () => { URL.revokeObjectURL(url); audioRef.current = null; done() }
-        audio.onerror = () => { URL.revokeObjectURL(url); audioRef.current = null; done() }
-        audio.play().catch(done)
+        if (!res.ok || !res.body) { done(); return }
+
+        // Streaming playback via MediaSource — audio starts before full download
+        if (
+          typeof MediaSource !== 'undefined' &&
+          MediaSource.isTypeSupported('audio/mpeg')
+        ) {
+          const ms  = new MediaSource()
+          const url = URL.createObjectURL(ms)
+          const audio = new Audio(url)
+          audioRef.current = audio
+          audio.onended = () => { URL.revokeObjectURL(url); audioRef.current = null; done() }
+          audio.onerror = () => { URL.revokeObjectURL(url); audioRef.current = null; done() }
+
+          ms.addEventListener('sourceopen', async () => {
+            let sb: SourceBuffer
+            try { sb = ms.addSourceBuffer('audio/mpeg') } catch { done(); return }
+
+            const appendChunk = (chunk: Uint8Array) =>
+              new Promise<void>(r => {
+                sb.addEventListener('updateend', () => r(), { once: true })
+                sb.appendBuffer(chunk)
+              })
+
+            const reader = res.body!.getReader()
+            let started = false
+            try {
+              while (true) {
+                const { done: doneReading, value } = await reader.read()
+                if (doneReading) { ms.endOfStream(); break }
+                if (value) {
+                  await appendChunk(value)
+                  if (!started) { started = true; audio.play().catch(done) }
+                }
+              }
+            } catch { ms.endOfStream() }
+          }, { once: true })
+        } else {
+          // Fallback for browsers without MediaSource MP3 support (some Safari versions)
+          const blob  = await res.blob()
+          const url   = URL.createObjectURL(blob)
+          const audio = new Audio(url)
+          audioRef.current = audio
+          audio.onended = () => { URL.revokeObjectURL(url); audioRef.current = null; done() }
+          audio.onerror = () => { URL.revokeObjectURL(url); audioRef.current = null; done() }
+          audio.play().catch(done)
+        }
       }).catch(done)
     })
   }
