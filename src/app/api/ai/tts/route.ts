@@ -28,7 +28,7 @@ export async function POST(req: NextRequest) {
         input: text.slice(0, 4096),
         voice,
         response_format: 'mp3',
-        speed: 1.0,
+        speed: 1.15,
       }),
     })
 

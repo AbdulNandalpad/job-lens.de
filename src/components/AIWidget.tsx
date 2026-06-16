@@ -300,6 +300,11 @@ export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
   const stoppingRef      = useRef(false)   // true while we deliberately stop, blocks onend re-arm
   const silenceCountRef  = useRef(0)       // consecutive silent rounds — limit to prevent stuck loop
   const greetedRef       = useRef(false)
+  const ttsCancelledRef  = useRef(false)   // set true to abort pending TTS chain
+  const ttsChainRef      = useRef<Promise<void>>(Promise.resolve())
+  const interruptRecRef  = useRef<any>(null)  // eslint-disable-line @typescript-eslint/no-explicit-any
+  const interimRef       = useRef('')         // live interim transcript
+  const [interimText, setInterimText] = useState('')
 
   useEffect(() => { voiceModeRef.current  = voiceMode     }, [voiceMode])
   useEffect(() => { cvDiscussModeRef.current = cvDiscussMode }, [cvDiscussMode])
@@ -422,9 +427,41 @@ export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
     if (ttsResolveRef.current) { ttsResolveRef.current(); ttsResolveRef.current = null }
   }
 
+  function stopInterruptListener() {
+    try { interruptRecRef.current?.stop() } catch { /* ignore */ }
+    interruptRecRef.current = null
+  }
+
+  function startInterruptListener() {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
+    if (!SR || !voiceModeRef.current) return
+    stopInterruptListener()
+    const rec = new SR()
+    rec.lang           = getSttLang()
+    rec.continuous     = false
+    rec.interimResults = false
+    interruptRecRef.current = rec
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    rec.onresult = (e: any) => {
+      const t = Array.from(e.results as unknown[]).map((r: any) => (r as any)[0].transcript).join('').trim()
+      if (t && voiceModeRef.current) {
+        stopInterruptListener()
+        ttsCancelledRef.current = true
+        stopAudio()
+        if (ttsResolveRef.current) { ttsResolveRef.current(); ttsResolveRef.current = null }
+        setVoiceState('processing')
+        void send(t)
+      }
+    }
+    rec.onerror = () => { interruptRecRef.current = null }
+    rec.onend   = () => { interruptRecRef.current = null }
+    try { rec.start() } catch { interruptRecRef.current = null }
+  }
+
   function playTts(text: string): Promise<void> {
     stopAudio()
-    if (!text.trim()) return Promise.resolve()
+    if (!text.trim() || ttsCancelledRef.current) return Promise.resolve()
     return new Promise<void>((resolve) => {
       ttsResolveRef.current = resolve
       const done = () => { ttsResolveRef.current = null; resolve() }
@@ -455,7 +492,7 @@ export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
             const appendChunk = (chunk: Uint8Array) =>
               new Promise<void>(r => {
                 sb.addEventListener('updateend', () => r(), { once: true })
-                sb.appendBuffer(chunk)
+                sb.appendBuffer(chunk.buffer.slice(chunk.byteOffset, chunk.byteOffset + chunk.byteLength) as ArrayBuffer)
               })
 
             const reader = res.body!.getReader()
@@ -510,13 +547,16 @@ export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
   }
 
   function exitVoiceMode() {
-    voiceModeRef.current   = false
+    voiceModeRef.current     = false
     cvDiscussModeRef.current = false
     silenceCountRef.current  = 0
+    ttsCancelledRef.current  = true
     setVoiceMode(false)
     setVoiceState('idle')
+    setInterimText('')
     setCvDiscussMode(false)
     stopListening()
+    stopInterruptListener()
     stopAudio()
   }
 
@@ -539,21 +579,31 @@ export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
       const rec = new SR()
       rec.lang           = getSttLang()
       rec.continuous     = false
-      rec.interimResults = false
+      rec.interimResults = true
       transcriptRef.current = ''
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       rec.onresult = (e: any) => {
         if (listenTimerRef.current) clearTimeout(listenTimerRef.current)
-        silenceCountRef.current = 0   // reset — user spoke
+        silenceCountRef.current = 0
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const t = Array.from(e.results as unknown[]).map((r: any) => r[0].transcript).join('')
-        transcriptRef.current = t
+        const results = Array.from(e.results as unknown[]) as any[]
+        let interim = '', final = ''
+        for (const r of results) {
+          if (r.isFinal) final += r[0].transcript
+          else interim += r[0].transcript
+        }
+        if (final) transcriptRef.current = final
+        const display = (final || interim).trim()
+        interimRef.current = display
+        setInterimText(display)
       }
 
       rec.onend = () => {
         if (listenTimerRef.current) clearTimeout(listenTimerRef.current)
         recognitionRef.current = null
+        setInterimText('')
+        interimRef.current = ''
         const t = transcriptRef.current.trim()
         transcriptRef.current = ''
         if (t && voiceModeRef.current) {
@@ -647,7 +697,7 @@ export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
           silenceStart   = 0
         } else if (speechDetected) {
           if (!silenceStart) silenceStart = Date.now()
-          if (Date.now() - silenceStart > 2000) {
+          if (Date.now() - silenceStart > 700) {
             clearInterval(silenceCheck)
             source.disconnect()
             mr.stop()
@@ -776,7 +826,9 @@ export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
     // Sentence-streaming TTS: first sentence fires mid-stream, rest queued after
     let pendingVoice   = ''
     let firstTtsFired  = false
-    let ttsChain       = Promise.resolve() as Promise<void>
+    ttsCancelledRef.current = false
+    ttsChainRef.current = Promise.resolve()
+    let ttsChain = ttsChainRef.current
 
     try {
       const res = await fetch(API.aiChat, {
@@ -818,16 +870,20 @@ export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
             if (evt.text) {
               assembled += evt.text
               setMsgs(prev => { const cp = [...prev]; cp[idx] = { role: 'assistant', content: assembled, jobs: cp[idx]?.jobs, action: cp[idx]?.action }; return cp })
-              // Fire TTS for first complete sentence as soon as it arrives
+              // Fire TTS for first sentence or after 8 words — whichever comes first
               if (isVoice && !firstTtsFired) {
                 pendingVoice += evt.text
-                const m = pendingVoice.match(/^(.+?[.!?])(?:\s|$)/)
-                if (m) {
+                const byPunct = pendingVoice.match(/^(.+?[.!?])(?:\s|$)/)
+                const wordCount = pendingVoice.trim().split(/\s+/).length
+                const byWords = wordCount >= 8 ? pendingVoice.trim() : null
+                const chunk = byPunct ? byPunct[1].trim() : byWords
+                if (chunk) {
                   firstTtsFired = true
-                  const sentence = m[1].trim()
-                  pendingVoice   = pendingVoice.slice(m[0].length).trimStart()
+                  pendingVoice  = byPunct ? pendingVoice.slice(byPunct[0].length).trimStart() : ''
                   setVoiceState('speaking')
-                  ttsChain = ttsChain.then(() => voiceModeRef.current ? playTts(sentence) : Promise.resolve())
+                  startInterruptListener()
+                  ttsChain = ttsChain.then(() => voiceModeRef.current && !ttsCancelledRef.current ? playTts(chunk) : Promise.resolve())
+                  ttsChainRef.current = ttsChain
                 }
               } else if (isVoice) {
                 pendingVoice += evt.text
@@ -851,17 +907,19 @@ export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
     setLoading(false)
     refreshInterviewCtx()
 
-    if (isVoice && voiceModeRef.current) {
+    if (isVoice && voiceModeRef.current && !ttsCancelledRef.current) {
       // Queue any remaining text after sentence boundary (or full response if no boundary found)
       const remainder = firstTtsFired ? pendingVoice.trim() : assembled.trim()
       if (remainder) {
-        ttsChain = ttsChain.then(() => voiceModeRef.current ? playTts(remainder) : Promise.resolve())
+        ttsChain = ttsChain.then(() => voiceModeRef.current && !ttsCancelledRef.current ? playTts(remainder) : Promise.resolve())
+        ttsChainRef.current = ttsChain
       }
-      if (!firstTtsFired) setVoiceState('speaking')
+      if (!firstTtsFired) { setVoiceState('speaking'); startInterruptListener() }
       await ttsChain
-      if (voiceModeRef.current) {
+      stopInterruptListener()
+      if (voiceModeRef.current && !ttsCancelledRef.current) {
         setVoiceState('idle')
-        setTimeout(() => startListening(), 400)
+        setTimeout(() => startListening(), 100)
       }
     }
     if (!isVoice) inputRef.current?.focus()
@@ -1023,7 +1081,7 @@ export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
               <VoiceOrb state={voiceState} large={maximized}/>
 
               <div style={{ fontSize: 13, color: voiceState === 'idle' ? 'rgba(255,255,255,.35)' : 'rgba(255,255,255,.6)', fontFamily: f.body, textAlign: 'center', letterSpacing: .2 }}>
-                {voiceLabel}
+                {voiceState === 'listening' && interimText ? interimText : voiceLabel}
               </div>
 
               {voiceState === 'idle' && (
