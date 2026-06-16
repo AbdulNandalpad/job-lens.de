@@ -72,7 +72,6 @@ wss.on('connection', (clientWs, req) => {
       type: 'session.update',
       session: {
         type: 'realtime',
-        turn_detection: { type: 'server_vad', silence_duration_ms: 700 },
         instructions: KIRA_SYSTEM + marketCtx,
       },
     }))
