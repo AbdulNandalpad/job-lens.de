@@ -947,7 +947,7 @@ export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
     ws.onopen = async () => {
       try {
         const stream = await navigator.mediaDevices.getUserMedia({
-          audio: { sampleRate: 24000, channelCount: 1, echoCancellation: true, noiseSuppression: true } as MediaTrackConstraints,
+          audio: { channelCount: 1, echoCancellation: true, noiseSuppression: true },
         })
         realtimeStreamRef.current = stream
 
@@ -969,7 +969,9 @@ export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
           const i16 = float32ToInt16(f32)
           ws.send(JSON.stringify({ type: 'input_audio_buffer.append', audio: bufferToBase64(i16.buffer as ArrayBuffer) }))
         }
-      } catch {
+      } catch (micErr) {
+        console.error('[realtime] mic/audio setup error:', micErr)
+        setMsgs(prev => [...prev, { role: 'assistant', content: `Mic error: ${(micErr as Error)?.message || micErr}` }])
         exitRealtimeMode()
       }
     }
