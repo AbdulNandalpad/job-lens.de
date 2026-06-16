@@ -85,7 +85,7 @@ wss.on('connection', (clientWs, req) => {
           },
           output: {
             format: { type: 'audio/pcm', rate: 24000 },
-            voice:  'coral',
+            voice:  'marin',
             speed:  1.1,
           },
         },
