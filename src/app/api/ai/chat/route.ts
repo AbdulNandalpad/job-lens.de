@@ -380,8 +380,14 @@ export async function POST(req: NextRequest) {
       : `\n\nINTERVIEW LIMITED MODE: The user is on the Interview Prep page for a ${interviewCtx.role} role${interviewCtx.company ? ` at ${interviewCtx.company}` : ''}. Give ONE short general tip only (e.g. STAR method overview, or a quick confidence tip). Then say you can give them fully tailored coaching — STAR answers specific to their questions, mock Q&A, and role-specific advice — for 1 credit, and ask if they'd like to unlock it. Do not give role-specific or question-specific advice until unlocked.`
     : ''
 
+  const voiceAccentCtx = isVoice
+    ? market === 'in'
+      ? '\n\nVOICE MODE — INDIA: Short, natural sentences. Clear Indian English. Warm and direct. No jargon. No markdown.'
+      : '\n\nVOICE MODE — DACH: Short, natural sentences. Clear European English or German matching the user\'s language. No jargon. No markdown.'
+    : ''
+
   const basePrompt = mode === 'cv_discuss' ? CV_DISCUSS_SYSTEM : BASE_SYSTEM
-  const systemContent = basePrompt + marketCtx + cvCtx + interviewCtxStr
+  const systemContent = basePrompt + marketCtx + cvCtx + interviewCtxStr + voiceAccentCtx
 
   // Stream setup
   const encoder = new TextEncoder()
@@ -418,13 +424,20 @@ export async function POST(req: NextRequest) {
 
         // Agentic loop — max 3 rounds
         for (let round = 0; round < 3; round++) {
-          const response = await client.messages.create({
-            model:      isVoice ? 'claude-haiku-4-5-20251001' : 'claude-sonnet-4-6',
+          const stream = client.messages.stream({
+            model:      'claude-haiku-4-5-20251001',
             max_tokens: isVoice ? 150 : 700,
             system:     systemContent,
             tools,
             messages:   currentMsgs,
           })
+
+          // Stream text tokens to client as they arrive
+          stream.on('text', (text) => {
+            if (text) safeSend({ text })
+          })
+
+          const response = await stream.finalMessage()
 
           if (response.stop_reason === 'tool_use') {
             const toolUses = response.content.filter(
@@ -491,17 +504,7 @@ export async function POST(req: NextRequest) {
             ]
 
           } else {
-            // Final text — stream in small word chunks
-            const fullText = response.content
-              .filter((b): b is Anthropic.Messages.TextBlock => b.type === 'text')
-              .map(b => b.text)
-              .join('')
-
-            const words = fullText.split(/(\s+)/)
-            for (let w = 0; w < words.length; w += 3) {
-              const chunk = words.slice(w, w + 3).join('')
-              if (chunk) safeSend({ text: chunk })
-            }
+            // Text already streamed via stream.on('text') above
             break
           }
         }
