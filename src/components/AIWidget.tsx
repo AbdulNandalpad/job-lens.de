@@ -347,11 +347,22 @@ export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
   const stoppingRef      = useRef(false)   // true while we deliberately stop, blocks onend re-arm
   const silenceCountRef  = useRef(0)       // consecutive silent rounds — limit to prevent stuck loop
   const greetedRef       = useRef(false)
-  const ttsCancelledRef  = useRef(false)   // set true to abort pending TTS chain
+  const ttsCancelledRef  = useRef(false)
   const ttsChainRef      = useRef<Promise<void>>(Promise.resolve())
   const interruptRecRef  = useRef<any>(null)  // eslint-disable-line @typescript-eslint/no-explicit-any
-  const interimRef       = useRef('')         // live interim transcript
+  const interimRef       = useRef('')
   const [interimText, setInterimText] = useState('')
+
+  // ── Realtime voice refs ───────────────────────────────────────────────────
+  const [realtimeMode,  setRealtimeMode]  = useState(false)
+  const [realtimeState, setRealtimeState] = useState<'connecting'|'ready'|'listening'|'processing'|'speaking'>('connecting')
+  const realtimeWsRef       = useRef<WebSocket | null>(null)
+  const realtimeCtxRef      = useRef<AudioContext | null>(null)
+  const realtimeStreamRef   = useRef<MediaStream | null>(null)
+  const realtimeNextTimeRef = useRef(0)
+  const realtimeModeRef     = useRef(false)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const realtimeProcessorRef = useRef<any>(null)
 
   useEffect(() => { voiceModeRef.current  = voiceMode     }, [voiceMode])
   useEffect(() => { cvDiscussModeRef.current = cvDiscussMode }, [cvDiscussMode])
@@ -835,6 +846,152 @@ export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
     setCoachUnlocking(false)
   }
 
+  // ── Realtime voice helpers ───────────────────────────────────────────────
+  function float32ToInt16(f32: Float32Array): Int16Array {
+    const i16 = new Int16Array(f32.length)
+    for (let i = 0; i < f32.length; i++) {
+      const s = Math.max(-1, Math.min(1, f32[i]))
+      i16[i] = s < 0 ? s * 0x8000 : s * 0x7FFF
+    }
+    return i16
+  }
+
+  function bufferToBase64(buffer: ArrayBuffer): string {
+    const bytes = new Uint8Array(buffer)
+    let bin = ''
+    for (let i = 0; i < bytes.length; i += 8192) {
+      bin += String.fromCharCode(...bytes.subarray(i, i + 8192))
+    }
+    return btoa(bin)
+  }
+
+  function playRealtimeChunk(base64: string) {
+    const ctx = realtimeCtxRef.current
+    if (!ctx) return
+    const binary = atob(base64)
+    const bytes  = new Uint8Array(binary.length)
+    for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i)
+    const i16  = new Int16Array(bytes.buffer)
+    const f32  = new Float32Array(i16.length)
+    for (let i = 0; i < i16.length; i++) f32[i] = i16[i] / 0x8000
+    const buf  = ctx.createBuffer(1, f32.length, 24000)
+    buf.copyToChannel(f32, 0)
+    const src  = ctx.createBufferSource()
+    src.buffer = buf
+    src.connect(ctx.destination)
+    const now   = ctx.currentTime
+    const start = Math.max(now, realtimeNextTimeRef.current)
+    src.start(start)
+    realtimeNextTimeRef.current = start + buf.duration
+  }
+
+  function stopRealtimePlayback() {
+    const ctx = realtimeCtxRef.current
+    if (ctx) realtimeNextTimeRef.current = ctx.currentTime
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  function handleRealtimeEvent(evt: any) {
+    switch (evt.type) {
+      case 'session.created':
+        setRealtimeState('ready')
+        break
+      case 'input_audio_buffer.speech_started':
+        setRealtimeState('listening')
+        stopRealtimePlayback()
+        break
+      case 'input_audio_buffer.speech_stopped':
+        setRealtimeState('processing')
+        break
+      case 'response.audio.delta':
+        if (evt.delta) { playRealtimeChunk(evt.delta); setRealtimeState('speaking') }
+        break
+      case 'response.done':
+        setRealtimeState('ready')
+        break
+      case 'conversation.item.input_audio_transcription.completed':
+        if (evt.transcript?.trim()) {
+          setMsgs(prev => [...prev, { role: 'user', content: evt.transcript.trim() }])
+        }
+        break
+      case 'response.output_item.done': {
+        const textBlock = evt.item?.content?.find((c: { type: string; text?: string }) => c.type === 'text')
+        if (textBlock?.text) {
+          setMsgs(prev => [...prev, { role: 'assistant', content: textBlock.text }])
+        }
+        break
+      }
+      case 'error':
+        console.error('[realtime]', evt.error)
+        break
+    }
+  }
+
+  async function enterRealtimeMode() {
+    const wsBase = process.env.NEXT_PUBLIC_REALTIME_WS_URL
+    if (!wsBase) { alert('Realtime service URL not configured'); return }
+    if (voiceMode) exitVoiceMode()
+
+    realtimeModeRef.current = true
+    setRealtimeMode(true)
+    setRealtimeState('connecting')
+
+    const secret = process.env.NEXT_PUBLIC_RAILWAY_SECRET || ''
+    const ws = new WebSocket(`${wsBase}?secret=${encodeURIComponent(secret)}&market=${market}`)
+    realtimeWsRef.current = ws
+
+    ws.onopen = async () => {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({
+          audio: { sampleRate: 24000, channelCount: 1, echoCancellation: true, noiseSuppression: true } as MediaTrackConstraints,
+        })
+        realtimeStreamRef.current = stream
+
+        const ctx = new AudioContext({ sampleRate: 24000 })
+        realtimeCtxRef.current    = ctx
+        realtimeNextTimeRef.current = 0
+
+        const source    = ctx.createMediaStreamSource(stream)
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const processor = (ctx as any).createScriptProcessor(4096, 1, 1)
+        realtimeProcessorRef.current = processor
+        source.connect(processor)
+        processor.connect(ctx.destination)
+
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        processor.onaudioprocess = (e: any) => {
+          if (!realtimeModeRef.current || ws.readyState !== WebSocket.OPEN) return
+          const f32 = e.inputBuffer.getChannelData(0) as Float32Array
+          const i16 = float32ToInt16(f32)
+          ws.send(JSON.stringify({ type: 'input_audio_buffer.append', audio: bufferToBase64(i16.buffer as ArrayBuffer) }))
+        }
+      } catch {
+        exitRealtimeMode()
+      }
+    }
+
+    ws.onmessage = (e) => {
+      try { handleRealtimeEvent(JSON.parse(e.data as string)) } catch { /* ignore */ }
+    }
+    ws.onclose  = () => { if (realtimeModeRef.current) exitRealtimeMode() }
+    ws.onerror  = () => exitRealtimeMode()
+  }
+
+  function exitRealtimeMode() {
+    realtimeModeRef.current = false
+    setRealtimeMode(false)
+    setRealtimeState('connecting')
+    stopRealtimePlayback()
+    try { realtimeProcessorRef.current?.disconnect() } catch { /* ignore */ }
+    try { realtimeCtxRef.current?.close() } catch { /* ignore */ }
+    realtimeCtxRef.current = null
+    realtimeProcessorRef.current = null
+    realtimeStreamRef.current?.getTracks().forEach(t => t.stop())
+    realtimeStreamRef.current = null
+    try { realtimeWsRef.current?.close() } catch { /* ignore */ }
+    realtimeWsRef.current = null
+  }
+
   // ── Mode selection ───────────────────────────────────────────────────────
   function selectMode(mode: typeof KIRA_MODES[number]) {
     setKiraMode(mode.id)
@@ -1077,21 +1234,43 @@ export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
                 <MicIcon size={13} color="rgba(255,255,255,.55)"/>
               </button>
             ) : (
-              <button className="kira-mic-btn"
-                title={voiceMode ? 'End voice' : lang === 'DE' ? 'Sprachassistentin' : 'Voice mode'}
-                onClick={voiceMode ? exitVoiceMode : enterVoiceMode}
-                style={{
-                  width: 28, height: 28, borderRadius: 7, border: 'none',
-                  background: voiceMode ? `${accent}33` : 'rgba(255,255,255,.08)',
-                  cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  flexShrink: 0, transition: 'all .15s',
-                  boxShadow: voiceMode ? `0 0 10px ${accent}55` : 'none',
-                }}>
-                {voiceMode
-                  ? <svg width="12" height="12" viewBox="0 0 20 20" fill="none"><path d="M5 5l10 10M15 5L5 15" stroke={accent} strokeWidth="2.2" strokeLinecap="round"/></svg>
-                  : <MicIcon size={13} color="rgba(255,255,255,.55)"/>
-                }
-              </button>
+              <>
+                {/* Standard voice */}
+                <button className="kira-mic-btn"
+                  title={voiceMode ? 'End voice' : lang === 'DE' ? 'Sprachassistentin' : 'Voice mode'}
+                  onClick={voiceMode ? exitVoiceMode : enterVoiceMode}
+                  style={{
+                    width: 28, height: 28, borderRadius: 7, border: 'none',
+                    background: voiceMode ? `${accent}33` : 'rgba(255,255,255,.08)',
+                    cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    flexShrink: 0, transition: 'all .15s',
+                    boxShadow: voiceMode ? `0 0 10px ${accent}55` : 'none',
+                  }}>
+                  {voiceMode
+                    ? <svg width="12" height="12" viewBox="0 0 20 20" fill="none"><path d="M5 5l10 10M15 5L5 15" stroke={accent} strokeWidth="2.2" strokeLinecap="round"/></svg>
+                    : <MicIcon size={13} color="rgba(255,255,255,.55)"/>
+                  }
+                </button>
+
+                {/* Live voice (Realtime API) */}
+                {process.env.NEXT_PUBLIC_REALTIME_WS_URL && (
+                  <button className="kira-mic-btn"
+                    title={realtimeMode ? 'End live voice' : 'Live voice (beta)'}
+                    onClick={realtimeMode ? exitRealtimeMode : enterRealtimeMode}
+                    style={{
+                      width: 28, height: 28, borderRadius: 7, border: 'none',
+                      background: realtimeMode ? '#10b98133' : 'rgba(255,255,255,.08)',
+                      cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      flexShrink: 0, transition: 'all .15s',
+                      boxShadow: realtimeMode ? '0 0 10px #10b98155' : 'none',
+                    }}>
+                    {realtimeMode
+                      ? <svg width="12" height="12" viewBox="0 0 20 20" fill="none"><path d="M5 5l10 10M15 5L5 15" stroke="#10b981" strokeWidth="2.2" strokeLinecap="round"/></svg>
+                      : <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,.55)" strokeWidth="2" strokeLinecap="round"><path d="M12 2a3 3 0 0 1 3 3v7a3 3 0 0 1-6 0V5a3 3 0 0 1 3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="22"/><circle cx="12" cy="12" r="1" fill="rgba(16,185,129,.9)" stroke="none"/></svg>
+                    }
+                  </button>
+                )}
+              </>
             )}
 
             {msgs.length > 0 && !voiceMode && (
@@ -1125,8 +1304,37 @@ export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
             </button>
           </div>
 
-          {/* ── Voice overlay ── */}
-          {voiceMode ? (
+          {/* ── Realtime voice overlay ── */}
+          {realtimeMode ? (
+            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 20, padding: '24px 20px', overflowY: 'auto' }}>
+              <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: 1.5, color: '#10b981', textTransform: 'uppercase' }}>
+                Live Voice · GPT-4o
+              </div>
+              <VoiceOrb state={
+                realtimeState === 'listening'   ? 'listening'  :
+                realtimeState === 'processing'  ? 'processing' :
+                realtimeState === 'speaking'    ? 'speaking'   : 'idle'
+              } large={maximized}/>
+              <div style={{ fontSize: 13, color: 'rgba(255,255,255,.5)', fontFamily: f.body, textAlign: 'center' }}>
+                {realtimeState === 'connecting' ? 'Connecting…' :
+                 realtimeState === 'ready'      ? 'Speak anytime — Kira is listening' :
+                 realtimeState === 'listening'  ? 'Listening…' :
+                 realtimeState === 'processing' ? 'Thinking…' :
+                 realtimeState === 'speaking'   ? 'Speaking…' : ''}
+              </div>
+              {msgs.filter(m => m.role === 'user').length > 0 && (
+                <div style={{ fontSize: 11, color: 'rgba(255,255,255,.2)', fontFamily: f.body, textAlign: 'center' }}>
+                  {msgs.filter(m => m.role === 'user').length} exchanges · end to see transcript
+                </div>
+              )}
+              <button onClick={exitRealtimeMode}
+                style={{ padding: '8px 20px', borderRadius: 20, border: '1px solid rgba(255,255,255,.1)', background: 'rgba(255,255,255,.04)', color: 'rgba(255,255,255,.35)', fontSize: 12, cursor: 'pointer', fontFamily: f.body }}>
+                End live voice
+              </button>
+            </div>
+
+          ) : /* ── Standard voice overlay ── */
+          voiceMode ? (
             <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: maximized ? 24 : 16, padding: maximized ? '32px 40px' : '16px 20px', overflowY: 'auto' }}>
               {cvDiscussMode && (
                 <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: 1, color: accent, textTransform: 'uppercase', opacity: .8 }}>
@@ -1336,8 +1544,8 @@ export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
             </div>
           )}
 
-          {/* ── Text input — hidden in voice mode ── */}
-          {!voiceMode && (
+          {/* ── Text input — hidden in voice or realtime mode ── */}
+          {!voiceMode && !realtimeMode && (
             <div style={{ padding: '10px 12px 12px', borderTop: '1px solid rgba(255,255,255,.07)', flexShrink: 0 }}>
               <div style={{ display: 'flex', alignItems: 'flex-end', gap: 6, background: 'rgba(255,255,255,.07)', border: '1px solid rgba(255,255,255,.12)', borderRadius: 12, padding: '7px 8px' }}>
                 <textarea ref={inputRef} className="kira-input"
