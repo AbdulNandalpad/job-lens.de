@@ -57,6 +57,8 @@ export default function IndiaAccountPage() {
   const [kiraDataDeleted, setKiraDataDeleted] = useState(false)
   const [buying, setBuying] = useState<string | null>(null)
   const [payMsg, setPayMsg] = useState<{ ok: boolean; text: string } | null>(null)
+  const [addrPack, setAddrPack] = useState<string | null>(null)   // pack amount awaiting address
+  const [addr, setAddr] = useState({ name: '', contact: '', line1: '', line2: '', city: '', state: '', zipcode: '' })
 
 
   useEffect(() => {
@@ -78,10 +80,23 @@ export default function IndiaAccountPage() {
     })
   }
 
-  async function buyPack(amount: string) {
+  // Step 1 — open the billing-address modal (Import Flow requires a shipping address)
+  function buyPack(amount: string) {
     if (buying) return
     setPayMsg(null)
+    setAddr(a => ({ ...a, name: a.name || profile?.full_name || '' }))
+    setAddrPack(amount)
+  }
+
+  // Step 2 — create the order with the address, then open Razorpay checkout
+  async function submitPurchase() {
+    const amount = addrPack
+    if (!amount) return
+    for (const f of ['name', 'contact', 'line1', 'city', 'state', 'zipcode'] as const) {
+      if (!addr[f].trim()) { setPayMsg({ ok: false, text: 'Please fill all required address fields.' }); return }
+    }
     setBuying(amount)
+    setAddrPack(null)
     try {
       const loaded = await loadRazorpayScript()
       if (!loaded || !window.Razorpay) {
@@ -91,7 +106,7 @@ export default function IndiaAccountPage() {
 
       const res = await fetch(API.razorpayOrder, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ amount }),
+        body: JSON.stringify({ amount, customer: { ...addr, email: profile?.email || '' } }),
       })
       if (!res.ok) {
         const e = await res.json().catch(() => ({}))
@@ -107,7 +122,9 @@ export default function IndiaAccountPage() {
         name:        'Job-Lens',
         description: `${order.credits} credits`,
         order_id:    order.orderId,
-        prefill:     { name: profile?.full_name || '', email: profile?.email || '' },
+        customer_id: order.customerId,
+        prefill:     { name: addr.name, email: profile?.email || '', contact: addr.contact },
+        notes:       { invoice_number: order.invoiceNumber, goods_description: `${order.credits} credits` },
         theme:       { color: orange },
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         handler: async (resp: any) => {
@@ -442,6 +459,46 @@ export default function IndiaAccountPage() {
           )}
         </div>
       </div>
+
+      {/* Billing-address modal — required by Razorpay Import Flow */}
+      {addrPack && (
+        <div onClick={() => setAddrPack(null)} style={{ position: 'fixed', inset: 0, background: 'rgba(4,44,83,.45)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 16 }}>
+          <div onClick={e => e.stopPropagation()} style={{ background: '#fff', borderRadius: 16, padding: 24, width: '100%', maxWidth: 440, maxHeight: '90vh', overflowY: 'auto', boxShadow: '0 20px 60px rgba(4,44,83,.25)' }}>
+            <div style={{ fontFamily: "'Outfit', sans-serif", fontSize: 17, fontWeight: 700, color: navy, marginBottom: 4 }}>Billing details</div>
+            <div style={{ fontSize: 12, color: '#6b7c93', marginBottom: 16 }}>Required for international payment processing.</div>
+
+            {([
+              { k: 'name',    label: 'Full name *',      ph: 'Gaurav Kumar' },
+              { k: 'contact', label: 'Phone *',          ph: '9876543210' },
+              { k: 'line1',   label: 'Address line 1 *', ph: 'Flat / building, street' },
+              { k: 'line2',   label: 'Address line 2',   ph: 'Area (optional)' },
+              { k: 'city',    label: 'City *',           ph: 'Bengaluru' },
+              { k: 'state',   label: 'State *',          ph: 'Karnataka' },
+              { k: 'zipcode', label: 'PIN code *',       ph: '560032' },
+            ] as const).map(f => (
+              <div key={f.k} style={{ marginBottom: 10 }}>
+                <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: '#6b7c93', marginBottom: 4 }}>{f.label}</label>
+                <input
+                  value={addr[f.k]}
+                  onChange={e => setAddr(a => ({ ...a, [f.k]: e.target.value }))}
+                  placeholder={f.ph}
+                  style={{ width: '100%', padding: '9px 11px', borderRadius: 8, border: '1.5px solid #edf1f6', fontSize: 13, fontFamily: "'Outfit', sans-serif", boxSizing: 'border-box' }}
+                />
+              </div>
+            ))}
+            <div style={{ fontSize: 11, color: '#9aafbc', margin: '4px 0 16px' }}>Country: India</div>
+
+            <div style={{ display: 'flex', gap: 10 }}>
+              <button onClick={submitPurchase} style={{ flex: 1, padding: '11px 0', borderRadius: 8, border: 'none', background: `linear-gradient(135deg, ${orange}, #e67300)`, color: '#fff', fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: "'Outfit', sans-serif" }}>
+                Continue to payment
+              </button>
+              <button onClick={() => setAddrPack(null)} style={{ padding: '11px 16px', borderRadius: 8, border: '1px solid #edf1f6', background: 'transparent', color: '#6b7c93', fontSize: 13, cursor: 'pointer', fontFamily: "'Outfit', sans-serif" }}>
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   )
 }

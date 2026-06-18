@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { verifyWebhookSignature, creditRazorpayPurchase } from '@/lib/razorpay'
+import { verifyWebhookSignature, creditRazorpayPurchase, fetchOrderNotes } from '@/lib/razorpay'
 import { RAZORPAY_PACKS } from '@/lib/constants'
 import { reportError } from '@/lib/error-reporter'
 
@@ -25,12 +25,15 @@ export async function POST(req: NextRequest) {
     const payment = event.payload?.payment?.entity
     if (!payment) return NextResponse.json({ ok: false }, { status: 400 })
 
-    const userId    = payment.notes?.user_id
+    // Resolve the buyer from the ORDER notes (server-set, untampered) — not the
+    // payment notes (which originate from the client checkout options).
+    const orderNotes = await fetchOrderNotes(payment.order_id ?? '')
+    const userId    = orderNotes?.user_id
     const amountInr = Math.round((payment.amount ?? 0) / 100)
     const credits   = RAZORPAY_PACKS[String(amountInr)]
 
     if (!userId || !UUID_RE.test(userId)) {
-      console.warn('[razorpay/webhook] missing/invalid user_id in notes')
+      console.warn('[razorpay/webhook] missing/invalid user_id in order notes')
       return NextResponse.json({ ok: false }, { status: 400 })
     }
     if (!credits) {

@@ -8,6 +8,21 @@ export function razorpayAuthHeader(): string {
   return 'Basic ' + Buffer.from(`${keyId}:${secret}`).toString('base64')
 }
 
+// Fetch an order's server-set notes (trustworthy — never tampered by the client).
+// Used by the webhook to resolve the buyer from order_id.
+export async function fetchOrderNotes(orderId: string): Promise<Record<string, string> | null> {
+  if (!orderId) return null
+  const res = await fetch(`https://api.razorpay.com/v1/orders/${orderId}`, {
+    headers: { 'Authorization': razorpayAuthHeader() },
+  })
+  if (!res.ok) {
+    console.error('[razorpay] order fetch failed:', res.status)
+    return null
+  }
+  const order = await res.json()
+  return (order.notes ?? {}) as Record<string, string>
+}
+
 // Verify the checkout callback signature: HMAC_SHA256(order_id|payment_id, secret).
 export function verifyPaymentSignature(orderId: string, paymentId: string, signature: string): boolean {
   const secret = process.env.RAZORPAY_KEY_SECRET || ''
