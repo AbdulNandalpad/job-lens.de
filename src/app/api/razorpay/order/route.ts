@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerSupabase, createAdminSupabase } from '@/lib/supabase-server'
-import { razorpayAuthHeader } from '@/lib/razorpay'
+import { razorpayAuthHeader, findExistingCustomer } from '@/lib/razorpay'
 import { RAZORPAY_PACKS } from '@/lib/constants'
 
 // Creates a Razorpay Import Flow order for a fixed credit pack.
@@ -42,7 +42,7 @@ export async function POST(req: NextRequest) {
       .eq('id', user.id)
       .single()
 
-    let customerId = prof?.razorpay_customer_id as string | null
+    let customerId = (prof?.razorpay_customer_id as string | null) || null
 
     if (!customerId) {
       const custRes = await fetch('https://api.razorpay.com/v1/customers', {
@@ -50,11 +50,23 @@ export async function POST(req: NextRequest) {
         headers: { 'Authorization': razorpayAuthHeader(), 'Content-Type': 'application/json' },
         body: JSON.stringify({ name: c.name, contact: c.contact, email, fail_existing: 0 }),
       })
-      if (!custRes.ok) {
-        console.error('[razorpay/order] customer create failed:', custRes.status, await custRes.text())
-        return NextResponse.json({ error: 'Could not create customer' }, { status: 502 })
+
+      if (custRes.ok) {
+        customerId = (await custRes.json()).id
+      } else {
+        const errText = await custRes.text()
+        // Razorpay returns 400 "already exists" instead of honouring fail_existing:0.
+        // Recover the existing customer by matching email/contact in the list.
+        if (errText.includes('already exists')) {
+          customerId = await findExistingCustomer(email, c.contact)
+        }
+        if (!customerId) {
+          console.error('[razorpay/order] customer create failed:', custRes.status, errText)
+          return NextResponse.json({ error: 'Could not create customer' }, { status: 502 })
+        }
       }
-      customerId = (await custRes.json()).id
+
+      // Best-effort persist (no-op if migration 007 not yet applied)
       await admin.from('profiles').update({ razorpay_customer_id: customerId }).eq('id', user.id)
     }
 

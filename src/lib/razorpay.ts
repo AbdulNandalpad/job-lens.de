@@ -8,6 +8,31 @@ export function razorpayAuthHeader(): string {
   return 'Basic ' + Buffer.from(`${keyId}:${secret}`).toString('base64')
 }
 
+// Recover an existing Razorpay customer id by matching email/contact.
+// Needed because customer-create returns 400 "already exists" rather than
+// honouring fail_existing:0. Razorpay has no filter-by-contact endpoint, so we
+// page through the customer list (fine in practice — small customer counts).
+export async function findExistingCustomer(email: string, contact: string): Promise<string | null> {
+  const digits = (contact || '').replace(/\D/g, '').slice(-10)
+  let skip = 0
+  for (let page = 0; page < 20; page++) {
+    const res = await fetch(`https://api.razorpay.com/v1/customers?count=100&skip=${skip}`, {
+      headers: { 'Authorization': razorpayAuthHeader() },
+    })
+    if (!res.ok) return null
+    const data = await res.json()
+    const items: Array<{ id: string; email?: string; contact?: string }> = data.items ?? []
+    const match = items.find(it =>
+      (email && it.email && it.email.toLowerCase() === email.toLowerCase()) ||
+      (digits && it.contact && it.contact.replace(/\D/g, '').slice(-10) === digits)
+    )
+    if (match) return match.id
+    if (items.length < 100) return null
+    skip += 100
+  }
+  return null
+}
+
 // Fetch an order's server-set notes (trustworthy — never tampered by the client).
 // Used by the webhook to resolve the buyer from order_id.
 export async function fetchOrderNotes(orderId: string): Promise<Record<string, string> | null> {
