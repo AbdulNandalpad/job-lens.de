@@ -468,13 +468,13 @@ export default function IndiaAccountPage() {
             <div style={{ fontSize: 12, color: '#6b7c93', marginBottom: 16 }}>Required for international payment processing.</div>
 
             {([
-              { k: 'name',    label: 'Full name *',      ph: 'Gaurav Kumar' },
-              { k: 'contact', label: 'Phone *',          ph: '9876543210' },
-              { k: 'line1',   label: 'Address line 1 *', ph: 'Flat / building, street' },
-              { k: 'line2',   label: 'Address line 2',   ph: 'Area (optional)' },
-              { k: 'city',    label: 'City *',           ph: 'Bengaluru' },
-              { k: 'state',   label: 'State *',          ph: 'Karnataka' },
-              { k: 'zipcode', label: 'PIN code *',       ph: '560032' },
+              { k: 'name',    label: 'Full name *',      ph: 'e.g. your full name' },
+              { k: 'contact', label: 'Phone *',          ph: 'e.g. 9876543210' },
+              { k: 'line1',   label: 'Address line 1 *', ph: 'e.g. flat / building, street' },
+              { k: 'line2',   label: 'Address line 2',   ph: 'e.g. area (optional)' },
+              { k: 'city',    label: 'City *',           ph: 'e.g. Bengaluru' },
+              { k: 'state',   label: 'State *',          ph: 'e.g. Karnataka' },
+              { k: 'zipcode', label: 'PIN code *',       ph: 'e.g. 560032' },
             ] as const).map(f => (
               <div key={f.k} style={{ marginBottom: 10 }}>
                 <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: '#6b7c93', marginBottom: 4 }}>{f.label}</label>

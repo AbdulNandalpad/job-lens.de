@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createServerSupabase } from '@/lib/supabase-server'
+import { createServerSupabase, createAdminSupabase } from '@/lib/supabase-server'
 import { razorpayAuthHeader } from '@/lib/razorpay'
 import { RAZORPAY_PACKS } from '@/lib/constants'
 
@@ -32,17 +32,31 @@ export async function POST(req: NextRequest) {
     }
     const email = c.email || user.email || ''
 
-    // 1. Create (or reuse) the Razorpay customer
-    const custRes = await fetch('https://api.razorpay.com/v1/customers', {
-      method: 'POST',
-      headers: { 'Authorization': razorpayAuthHeader(), 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name: c.name, contact: c.contact, email, fail_existing: 0 }),
-    })
-    if (!custRes.ok) {
-      console.error('[razorpay/order] customer create failed:', custRes.status, await custRes.text())
-      return NextResponse.json({ error: 'Could not create customer' }, { status: 502 })
+    // 1. Reuse the stored Razorpay customer, or create one once and persist it.
+    // fail_existing:0 → if a customer with the same contact already exists,
+    // Razorpay returns it instead of erroring (handles the first migration).
+    const admin = createAdminSupabase()
+    const { data: prof } = await admin
+      .from('profiles')
+      .select('razorpay_customer_id')
+      .eq('id', user.id)
+      .single()
+
+    let customerId = prof?.razorpay_customer_id as string | null
+
+    if (!customerId) {
+      const custRes = await fetch('https://api.razorpay.com/v1/customers', {
+        method: 'POST',
+        headers: { 'Authorization': razorpayAuthHeader(), 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: c.name, contact: c.contact, email, fail_existing: 0 }),
+      })
+      if (!custRes.ok) {
+        console.error('[razorpay/order] customer create failed:', custRes.status, await custRes.text())
+        return NextResponse.json({ error: 'Could not create customer' }, { status: 502 })
+      }
+      customerId = (await custRes.json()).id
+      await admin.from('profiles').update({ razorpay_customer_id: customerId }).eq('id', user.id)
     }
-    const customerId = (await custRes.json()).id
 
     const invoiceNumber = `INV-${Date.now()}-${user.id.slice(0, 6)}`
 
