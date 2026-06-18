@@ -482,7 +482,7 @@ export default function IndiaAccountPage() {
                   value={addr[f.k]}
                   onChange={e => setAddr(a => ({ ...a, [f.k]: e.target.value }))}
                   placeholder={f.ph}
-                  style={{ width: '100%', padding: '9px 11px', borderRadius: 8, border: '1.5px solid #edf1f6', fontSize: 13, fontFamily: "'Outfit', sans-serif", boxSizing: 'border-box' }}
+                  style={{ width: '100%', padding: '9px 11px', borderRadius: 8, border: '1.5px solid #d6dee8', fontSize: 13, fontFamily: "'Outfit', sans-serif", boxSizing: 'border-box', color: navy, background: '#fff' }}
                 />
               </div>
             ))}
