@@ -3,8 +3,12 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase'
-import { MARKET } from '@/lib/constants'
+import { MARKET, API } from '@/lib/constants'
 import SvgIcon, { getIcon } from '@/components/SvgIcon'
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type RazorpayCtor = new (opts: any) => { open: () => void }
+declare global { interface Window { Razorpay?: RazorpayCtor } }
 
 const orange = '#FF9933'
 const navy = '#042C53'
@@ -51,6 +55,8 @@ export default function IndiaAccountPage() {
   const [showDeleteKiraConfirm, setShowDeleteKiraConfirm] = useState(false)
   const [deletingKiraData, setDeletingKiraData] = useState(false)
   const [kiraDataDeleted, setKiraDataDeleted] = useState(false)
+  const [buying, setBuying] = useState<string | null>(null)
+  const [payMsg, setPayMsg] = useState<{ ok: boolean; text: string } | null>(null)
 
 
   useEffect(() => {
@@ -59,6 +65,73 @@ export default function IndiaAccountPage() {
       .then(data => { setProfile(data); setLoading(false) })
       .catch(() => setLoading(false))
   }, [])
+
+  function loadRazorpayScript(): Promise<boolean> {
+    return new Promise(resolve => {
+      if (typeof window === 'undefined') return resolve(false)
+      if (window.Razorpay) return resolve(true)
+      const s = document.createElement('script')
+      s.src = 'https://checkout.razorpay.com/v1/checkout.js'
+      s.onload = () => resolve(true)
+      s.onerror = () => resolve(false)
+      document.body.appendChild(s)
+    })
+  }
+
+  async function buyPack(amount: string) {
+    if (buying) return
+    setPayMsg(null)
+    setBuying(amount)
+    try {
+      const loaded = await loadRazorpayScript()
+      if (!loaded || !window.Razorpay) {
+        setPayMsg({ ok: false, text: 'Could not load the payment gateway. Please try again.' })
+        setBuying(null); return
+      }
+
+      const res = await fetch(API.razorpayOrder, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ amount }),
+      })
+      if (!res.ok) {
+        const e = await res.json().catch(() => ({}))
+        setPayMsg({ ok: false, text: e.error || 'Could not start payment.' })
+        setBuying(null); return
+      }
+      const order = await res.json()
+
+      const rzp = new window.Razorpay({
+        key:         order.keyId,
+        amount:      order.amount,
+        currency:    order.currency,
+        name:        'Job-Lens',
+        description: `${order.credits} credits`,
+        order_id:    order.orderId,
+        prefill:     { name: profile?.full_name || '', email: profile?.email || '' },
+        theme:       { color: orange },
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        handler: async (resp: any) => {
+          const vr = await fetch(API.razorpayVerify, {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(resp),
+          })
+          if (vr.ok) {
+            const p = await fetch('/api/user/profile').then(r => r.json())
+            setProfile(p)
+            setPayMsg({ ok: true, text: 'Payment successful — credits added!' })
+          } else {
+            setPayMsg({ ok: true, text: 'Payment received — credits will appear shortly.' })
+          }
+          setBuying(null)
+        },
+        modal: { ondismiss: () => setBuying(null) },
+      })
+      rzp.open()
+    } catch {
+      setPayMsg({ ok: false, text: 'Something went wrong. Please try again.' })
+      setBuying(null)
+    }
+  }
 
   function clearSessionData() {
     Object.keys(sessionStorage).filter(k => k.startsWith('jl_')).forEach(k => sessionStorage.removeItem(k))
@@ -213,13 +286,19 @@ export default function IndiaAccountPage() {
                       <div style={{ fontSize: 11, color: '#6b7c93', marginBottom: 8, lineHeight: 1.4 }}>{pack.desc}</div>
                       <div style={{ fontSize: 20, fontWeight: 700, color: orange, fontFamily: "'Outfit', sans-serif", marginBottom: 2 }}>{pack.price}</div>
                       <div style={{ fontSize: 11, color: '#6b7c93', marginBottom: 12 }}>{pack.credits} credits</div>
-                      <button style={{ width: '100%', padding: '8px 0', borderRadius: 7, border: 'none', background: pack.popular ? `linear-gradient(135deg, ${orange}, #e67300)` : '#edf1f6', color: pack.popular ? '#fff' : navy, fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: "'Outfit', sans-serif" }}>
-                        Coming soon
+                      <button
+                        onClick={() => buyPack(pack.amount)}
+                        disabled={buying !== null}
+                        style={{ width: '100%', padding: '8px 0', borderRadius: 7, border: 'none', background: pack.popular ? `linear-gradient(135deg, ${orange}, #e67300)` : '#edf1f6', color: pack.popular ? '#fff' : navy, fontSize: 12, fontWeight: 700, cursor: buying ? 'wait' : 'pointer', opacity: buying && buying !== pack.amount ? .5 : 1, fontFamily: "'Outfit', sans-serif" }}>
+                        {buying === pack.amount ? 'Processing…' : 'Buy credits'}
                       </button>
                     </div>
                   ))}
                 </div>
-                <div style={{ fontSize: 11, color: '#9aafbc', marginTop: 10 }}>Razorpay payments coming soon. Contact us to top up credits manually.</div>
+                {payMsg && (
+                  <div style={{ fontSize: 12, fontWeight: 600, color: payMsg.ok ? green : red, marginTop: 10 }}>{payMsg.text}</div>
+                )}
+                <div style={{ fontSize: 11, color: '#9aafbc', marginTop: 10 }}>Secure payments via Razorpay. Credits are added instantly after payment.</div>
               </div>
 
               {/* Usage log */}

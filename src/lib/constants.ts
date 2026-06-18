@@ -133,7 +133,18 @@ export const API = {
   jobCaseRequestAccess:    '/api/job-case/request-access',
   jobCaseRecruiterInterest: '/api/job-case/recruiter-interest',
   contact:              '/api/contact',
+  razorpayOrder:        '/api/razorpay/order',
+  razorpayVerify:       '/api/razorpay/verify',
 } as const
+
+// ── Razorpay credit packs (India) ────────────────────────────────────────────
+// amount in INR (rupees) → credits granted. Single source of truth shared by
+// the account page UI, order route, verify route, and webhook.
+export const RAZORPAY_PACKS: Record<string, number> = {
+  '149': 10,
+  '499': 35,
+  '999': 70,
+}
 
 // ── Job Case ─────────────────────────────────────────────────────────────────
 export const JOB_CASE = {
