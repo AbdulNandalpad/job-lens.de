@@ -81,9 +81,12 @@ wss.on('connection', (clientWs, req) => {
           input: {
             format: { type: 'audio/pcm', rate: 24000 },
             turn_detection: {
-              type:               'server_vad',
-              silence_duration_ms: 700,
-              threshold:           0.5,
+              type:                'server_vad',
+              threshold:           0.7,   // less sensitive — ignore small background noise
+              prefix_padding_ms:   300,
+              silence_duration_ms: 900,   // wait longer before ending a turn
+              interrupt_response:  true,  // a real new turn cancels the current reply
+              create_response:     true,
             },
           },
           output: {

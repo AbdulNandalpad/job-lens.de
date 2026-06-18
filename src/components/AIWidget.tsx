@@ -1012,6 +1012,10 @@ export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         processor.onaudioprocess = (e: any) => {
           if (!realtimeModeRef.current || ws.readyState !== WebSocket.OPEN) return
+          // Half-duplex: while Kira's audio is still scheduled/playing, don't feed
+          // mic audio back — stops her own voice (via speakers) re-triggering the
+          // VAD. Covers the playback tail after response.done, not just 'speaking'.
+          if (ctx.currentTime < realtimeNextTimeRef.current - 0.05) return
           const f32 = e.inputBuffer.getChannelData(0) as Float32Array
           const i16 = float32ToInt16(f32)
           ws.send(JSON.stringify({ type: 'input_audio_buffer.append', audio: bufferToBase64(i16.buffer as ArrayBuffer) }))
