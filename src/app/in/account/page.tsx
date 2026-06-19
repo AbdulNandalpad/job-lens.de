@@ -304,18 +304,18 @@ export default function IndiaAccountPage() {
                       <div style={{ fontSize: 20, fontWeight: 700, color: orange, fontFamily: "'Outfit', sans-serif", marginBottom: 2 }}>{pack.price}</div>
                       <div style={{ fontSize: 11, color: '#6b7c93', marginBottom: 12 }}>{pack.credits} credits</div>
                       <button
-                        onClick={() => buyPack(pack.amount)}
-                        disabled={buying !== null}
-                        style={{ width: '100%', padding: '8px 0', borderRadius: 7, border: 'none', background: pack.popular ? `linear-gradient(135deg, ${orange}, #e67300)` : '#edf1f6', color: pack.popular ? '#fff' : navy, fontSize: 12, fontWeight: 700, cursor: buying ? 'wait' : 'pointer', opacity: buying && buying !== pack.amount ? .5 : 1, fontFamily: "'Outfit', sans-serif" }}>
-                        {buying === pack.amount ? 'Processing…' : 'Buy credits'}
+                        onClick={() => isAdmin && buyPack(pack.amount)}
+                        disabled={!isAdmin || buying !== null}
+                        style={{ width: '100%', padding: '8px 0', borderRadius: 7, border: 'none', background: !isAdmin ? '#edf1f6' : pack.popular ? `linear-gradient(135deg, ${orange}, #e67300)` : '#edf1f6', color: !isAdmin ? '#94a3b8' : pack.popular ? '#fff' : navy, fontSize: 12, fontWeight: 700, cursor: !isAdmin ? 'not-allowed' : buying ? 'wait' : 'pointer', opacity: buying && buying !== pack.amount ? .5 : 1, fontFamily: "'Outfit', sans-serif" }}>
+                        {!isAdmin ? 'Coming soon' : buying === pack.amount ? 'Processing…' : 'Buy credits'}
                       </button>
                     </div>
                   ))}
                 </div>
-                {payMsg && (
+                {isAdmin && payMsg && (
                   <div style={{ fontSize: 12, fontWeight: 600, color: payMsg.ok ? green : red, marginTop: 10 }}>{payMsg.text}</div>
                 )}
-                <div style={{ fontSize: 11, color: '#9aafbc', marginTop: 10 }}>Secure payments via Razorpay. Credits are added instantly after payment.</div>
+                <div style={{ fontSize: 11, color: '#9aafbc', marginTop: 10 }}>{isAdmin ? 'Secure payments via Razorpay. Credits are added instantly after payment.' : 'Razorpay payments coming soon. Contact us to top up credits manually.'}</div>
               </div>
 
               {/* Usage log */}

@@ -13,6 +13,12 @@ export async function POST(req: NextRequest) {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return NextResponse.json({ error: 'Unauthorised' }, { status: 401 })
 
+    // Test phase — Razorpay is admin-only until live keys are in place.
+    const adminEmails = (process.env.ADMIN_EMAILS || '').split(',').map(e => e.trim().toLowerCase())
+    if (!user.email || !adminEmails.includes(user.email.toLowerCase())) {
+      return NextResponse.json({ error: 'Payments coming soon' }, { status: 403 })
+    }
+
     if (!process.env.RAZORPAY_KEY_ID || !process.env.RAZORPAY_KEY_SECRET) {
       return NextResponse.json({ error: 'Payments not configured' }, { status: 503 })
     }
