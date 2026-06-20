@@ -70,10 +70,13 @@ ${context.slice(0, 6000)}`,
 
 // ── Save: extract facts from an interaction, embed, upsert ────────────────────
 export async function saveMemoriesFromInteraction(userId: string, context: string): Promise<number> {
-  if (!memoryEnabled()) return 0
+  if (!memoryEnabled()) { console.log('[memory] disabled (MEMORY_ENABLED != true) — skipping save'); return 0 }
   const facts = await extractFacts(context)
+  console.log(`[memory] extracted ${facts.length} facts for user ${userId.slice(0, 8)}`)
   if (facts.length === 0) return 0
-  return saveMemories(userId, facts)
+  const saved = await saveMemories(userId, facts)
+  console.log(`[memory] saved ${saved}/${facts.length} memories`)
+  return saved
 }
 
 export async function saveMemories(userId: string, facts: string[]): Promise<number> {
