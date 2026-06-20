@@ -738,6 +738,8 @@ export default function CVBuilderPage() {
   const [fileLoading, setFileLoading] = useState(false)
   const [job, setJob] = useState<{ job_title: string; employer_name: string; job_description?: string } | null>(null)
   const [jobLabel, setJobLabel] = useState('')
+  const [jobDesc, setJobDesc] = useState('')        // editable full job description
+  const [jobDescOpen, setJobDescOpen] = useState(false)
   const [template, setTemplate] = useState<Template>('executive')
   const [tone, setTone] = useState<Tone>('professional')
   const [lang, setLang] = useState<Lang>('EN')
@@ -843,6 +845,7 @@ export default function CVBuilderPage() {
         const parsed = JSON.parse(jobRaw)
         setJob(parsed)
         setJobLabel(`${parsed.employer_name} - ${parsed.job_title}`)
+        setJobDesc(parsed.job_description || '')
       } catch { }
     } else if (savedRole) {
       setJobLabel(savedRole)
@@ -871,10 +874,12 @@ export default function CVBuilderPage() {
     setLoading(true); setCvData(null); setRawCv('')
 
     try {
+      // Use the edited full job description if the user provided one
+      const effJob = job ? { ...job, job_description: jobDesc || job.job_description } : job
       const res = await fetch(API.tailorCv, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ cvText, job, template, tone, lang, confirmedSkills, returnJson: true }),
+        body: JSON.stringify({ cvText, job: effJob, template, tone, lang, confirmedSkills, returnJson: true }),
       })
       if (res.status === 402) { const d = await res.json(); if (typeof d.credits === 'number') setCredits(d.credits); setLoading(false); alert('Not enough credits. Please top up on the Account page.'); return }
       const data = await res.json()
@@ -895,13 +900,14 @@ export default function CVBuilderPage() {
   }
 
   async function runSkillGapThenGenerate() {
-    if (job?.job_description && cvText) {
+    const fullJd = jobDesc || job?.job_description
+    if (fullJd && cvText) {
       setSkillGapLoading(true)
       try {
         const res = await fetch('/api/cv/skill-gap', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ cvText, jobDescription: job.job_description }),
+          body: JSON.stringify({ cvText, jobDescription: fullJd }),
         })
         const data = await res.json()
         setSkillGapLoading(false)
@@ -933,11 +939,12 @@ export default function CVBuilderPage() {
     const isChargeCall = feedbackCount % 4 === 3
 
     try {
+      const effJob = job ? { ...job, job_description: jobDesc || job.job_description } : job
       const res = await fetch(API.tailorCv, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          cvText, job, template, tone, lang, returnJson: true,
+          cvText, job: effJob, template, tone, lang, returnJson: true,
           feedback, currentCv: rawCv,
           market: MARKET.eu,
           skipCredit: !isChargeCall,
@@ -1383,6 +1390,36 @@ export default function CVBuilderPage() {
               <div style={{ marginTop: 12, padding: '8px 10px', background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 8 }}>
                 <div style={{ fontSize: 9, color: currentAccent, fontWeight: 700, letterSpacing: 0.8, textTransform: 'uppercase', marginBottom: 3 }}>{t.cvBuilder.sidebar.targetJobLabel}</div>
                 <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.8)', lineHeight: 1.4 }}>{jobLabel}</div>
+              </div>
+            )}
+
+            {/* Editable full job description — better JD = better tailoring */}
+            {jobLabel && (
+              <div style={{ marginTop: 8 }}>
+                <button
+                  onClick={() => setJobDescOpen(o => !o)}
+                  style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'none', border: 'none', cursor: 'pointer', padding: '4px 2px', color: 'rgba(255,255,255,0.6)', fontSize: 11, fontWeight: 600 }}>
+                  <span>{lang === 'DE' ? 'Vollständige Stellenbeschreibung' : 'Full job description'}{jobDesc ? ` · ${jobDesc.length}` : ''}</span>
+                  <span style={{ transform: jobDescOpen ? 'rotate(180deg)' : 'none', transition: 'transform .15s' }}>▾</span>
+                </button>
+                {jobDescOpen && (
+                  <>
+                    <textarea
+                      value={jobDesc}
+                      onChange={e => setJobDesc(e.target.value)}
+                      placeholder={lang === 'DE'
+                        ? 'Füge die komplette Stellenanzeige ein — je vollständiger, desto besser passt der Lebenslauf.'
+                        : 'Paste the complete job posting here — the fuller it is, the better the CV is tailored.'}
+                      rows={6}
+                      style={{ width: '100%', marginTop: 6, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 7, color: '#E6F1FB', fontSize: 12, padding: '8px 10px', resize: 'vertical', fontFamily: "'DM Sans', sans-serif", outline: 'none', boxSizing: 'border-box', lineHeight: 1.5 }}
+                    />
+                    <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.35)', marginTop: 4, lineHeight: 1.4 }}>
+                      {lang === 'DE'
+                        ? 'Tipp: Stellenbörsen kürzen oft die Beschreibung. Füge den vollständigen Text von der Original-Anzeige ein.'
+                        : 'Tip: job boards often shorten descriptions. Paste the full text from the original posting for best results.'}
+                    </div>
+                  </>
+                )}
               </div>
             )}
             <input ref={fileInputRef} type="file" accept=".pdf,.doc,.docx,.txt" style={{ display: 'none' }}

@@ -85,7 +85,7 @@ Rules:
 - highlights: 4-6 punchy career highlights
 - tone: ${tone || 'professional'}, output language: ${lang || 'EN'}
 ${job ? `- Tailor for this role: ${job.job_title} at ${job.employer_name}` : ''}
-${job?.job_description ? `- Job description context: ${job.job_description.slice(0, 1000)}` : ''}
+${job?.job_description ? `- Job description context: ${job.job_description.slice(0, 6000)}` : ''}
 ${confirmedSkills.length > 0 ? `- User confirmed they also have these skills (include them): ${confirmedSkills.join(', ')}` : ''}`
 
       const userContent = feedback && currentCv
@@ -104,7 +104,7 @@ Return ONLY the updated JSON object. No markdown, no backticks, no explanation.`
 ${cvText.slice(0, 30000)}
 
 ${job ? `Target Job: ${job.job_title} at ${job.employer_name}` : ''}
-${job?.job_description ? `Job Description: ${job.job_description.slice(0, 800)}` : ''}
+${job?.job_description ? `Job Description: ${job.job_description.slice(0, 6000)}` : ''}
 
 Return ONLY the JSON object. No markdown, no backticks, no explanation.`
 
@@ -123,7 +123,7 @@ Return ONLY the JSON object. No markdown, no backticks, no explanation.`
     // -- MODE 2: Plain text tailoring -----------------------------------------
     const jobTitle = job?.job_title || 'the role'
     const company = job?.employer_name || 'the company'
-    const jobDesc = (job?.job_description || '').slice(0, 1500)
+    const jobDesc = (job?.job_description || '').slice(0, 6000)
 
     const toneInstruction = tone === 'concise'
       ? 'Be concise and sharp. Use short punchy sentences.'
