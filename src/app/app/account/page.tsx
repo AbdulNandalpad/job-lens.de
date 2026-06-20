@@ -6,7 +6,7 @@ import Navbar from '../components/Navbar'
 import { createClient } from '@/lib/supabase'
 import { theme } from '@/lib/theme'
 import { useLanguage } from '@/lib/i18n'
-import { MARKET, CREDIT_COST, AI_CHAT_FREE_MESSAGES } from '@/lib/constants'
+import { MARKET, CREDIT_COST, AI_CHAT_FREE_MESSAGES, API } from '@/lib/constants'
 import { getIcon } from '@/components/SvgIcon'
 
 const { colors: c, gradients: g, fonts: f } = theme
@@ -73,6 +73,7 @@ export default function AccountPage() {
 
   async function deleteAccount() {
     setDeleting(true)
+    try { await fetch(API.accountDelete, { method: 'POST' }) } catch {}
     clearAllJLData()
     const supabase = createClient()
     await supabase.auth.signOut()

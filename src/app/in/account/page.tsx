@@ -167,6 +167,7 @@ export default function IndiaAccountPage() {
 
   async function deleteAccount() {
     setDeleting(true)
+    try { await fetch(API.accountDelete, { method: 'POST' }) } catch {}
     clearAllJLData()
     const supabase = createClient()
     await supabase.auth.signOut()
