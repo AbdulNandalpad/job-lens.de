@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { after } from 'next/server'
 import Anthropic from '@anthropic-ai/sdk'
 import { createServerSupabase, checkAndDeductCredits } from '@/lib/supabase-server'
 import { CREDIT_COST, MARKET } from '@/lib/constants'
+import { retrieveMemories, formatMemoriesForPrompt, saveMemoriesFromInteraction } from '@/lib/memory'
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
 const COST = CREDIT_COST.tailorCv
@@ -33,6 +35,11 @@ export async function POST(req: NextRequest) {
   }
 
   try {
+    // Recall durable facts about this user for prompt injection
+    const memories = await retrieveMemories(user.id, `${job?.job_title ?? ''} ${cvText.slice(0, 500)}`, 5)
+    const memBlock = formatMemoriesForPrompt(memories)
+    const saveCtx  = `User tailored their CV${job ? ` for ${job.job_title} at ${job.employer_name}` : ''}.\nCV: ${cvText.slice(0, 1500)}`
+
     // -- MODE 1: Structured JSON for visual CV rendering ----------------------
     if (returnJson) {
       // System prompt is always server-side — never accepted from client
@@ -104,11 +111,12 @@ Return ONLY the JSON object. No markdown, no backticks, no explanation.`
       const message = await anthropic.messages.create({
         model: 'claude-sonnet-4-6',
         max_tokens: 8000,
-        system: serverSystemPrompt,
+        system: serverSystemPrompt + memBlock,
         messages: [{ role: 'user', content: userContent }],
       })
 
       const cv = (message.content[0] as { text: string }).text
+      after(() => saveMemoriesFromInteraction(user.id, saveCtx))
       return NextResponse.json({ cv, creditsRemaining: credits.remaining })
     }
 
@@ -135,6 +143,7 @@ Return ONLY the JSON object. No markdown, no backticks, no explanation.`
     const message = await anthropic.messages.create({
       model: 'claude-sonnet-4-6',
       max_tokens: 2000,
+      system: memBlock || undefined,
       messages: [{
         role: 'user',
         content: `You are a professional CV writer. Tailor this CV for the job below.
@@ -156,6 +165,7 @@ Return the tailored CV in plain text format.`,
     })
 
     const cv = (message.content[0] as { text: string }).text
+    after(() => saveMemoriesFromInteraction(user.id, saveCtx))
     return NextResponse.json({ cv, creditsRemaining: credits.remaining })
 
   } catch (err) {

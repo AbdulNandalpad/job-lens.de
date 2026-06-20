@@ -135,6 +135,8 @@ export const API = {
   contact:              '/api/contact',
   razorpayOrder:        '/api/razorpay/order',
   razorpayVerify:       '/api/razorpay/verify',
+  memory:               '/api/memory',
+  feedback:             '/api/feedback',
 } as const
 
 // ── Razorpay credit packs (India) ────────────────────────────────────────────

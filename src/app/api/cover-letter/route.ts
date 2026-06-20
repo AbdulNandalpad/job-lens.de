@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { after } from 'next/server'
 import Anthropic from '@anthropic-ai/sdk'
 import { createServerSupabase, checkAndDeductCredits } from '@/lib/supabase-server'
 import { CREDIT_COST, MARKET } from '@/lib/constants'
+import { retrieveMemories, formatMemoriesForPrompt, saveMemoriesFromInteraction } from '@/lib/memory'
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
 const COST = CREDIT_COST.coverLetter
@@ -24,6 +26,10 @@ export async function POST(req: NextRequest) {
   }
 
   try {
+
+    // Recall what we know about this user and inject it into the prompt
+    const memories = await retrieveMemories(user.id, `${job?.job_title ?? ''} ${cvText.slice(0, 500)}`, 5)
+    const memBlock = formatMemoriesForPrompt(memories)
 
     const lengthGuide = length === 'short' ? '~150 words' : length === 'long' ? '~450 words' : '~300 words'
     const toneGuide = tone === 'formal' ? 'formal German business style' : tone === 'warm' ? 'personal and genuine' : 'confident and direct'
@@ -57,10 +63,18 @@ Write the cover letter:`
     const message = await anthropic.messages.create({
       model: 'claude-sonnet-4-6',
       max_tokens: 1000,
+      system: memBlock || undefined,
       messages: [{ role: 'user', content: basePrompt }],
     })
 
     const coverLetter = (message.content[0] as { text: string }).text
+
+    // Extract + persist durable facts after the response (non-blocking)
+    after(() => saveMemoriesFromInteraction(
+      user.id,
+      `User applied for ${job?.job_title} at ${job?.employer_name}.\nCV: ${cvText.slice(0, 1500)}`,
+    ))
+
     return NextResponse.json({ coverLetter, creditsRemaining: credits.remaining })
   } catch (err) {
     console.error('Cover letter error:', err)

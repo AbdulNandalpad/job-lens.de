@@ -1,8 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { after } from 'next/server'
 import { createHash } from 'crypto'
 import Anthropic from '@anthropic-ai/sdk'
 import { createServerSupabase, checkAndDeductCredits, refundCredits, createAdminSupabase } from '@/lib/supabase-server'
 import { CREDIT_COST, MARKET } from '@/lib/constants'
+import { saveMemoriesFromInteraction } from '@/lib/memory'
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
 const COST = CREDIT_COST.careerScan
@@ -80,7 +82,7 @@ Return ONLY valid JSON matching this schema exactly:
 
 function extractJson(raw: string): string {
   // Strip markdown fences
-  let s = raw.replace(/```json\s*/g, '').replace(/```\s*/g, '').trim()
+  const s = raw.replace(/```json\s*/g, '').replace(/```\s*/g, '').trim()
   // Find outermost JSON object
   const start = s.indexOf('{')
   const end = s.lastIndexOf('}')
@@ -174,6 +176,13 @@ export async function POST(req: NextRequest) {
     // Cache result so re-scanning same CV+role is free
     admin.from('profiles').update({ scan_cache: { hash, result: safe } }).eq('id', user.id)
       .then(() => null, () => null)
+
+    // Extract durable facts from the scan (no injection here — scan is
+    // deterministic + cached on CV/role, so memory must not alter its output)
+    after(() => saveMemoriesFromInteraction(
+      user.id,
+      `Career scan for target role "${role}" (${market}). Headline: ${safe.headline}. CV: ${cvText.slice(0, 1500)}`,
+    ))
 
     return NextResponse.json(safe)
   } catch (err) {
