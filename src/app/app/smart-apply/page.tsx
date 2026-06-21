@@ -312,11 +312,21 @@ function SmartJobSearchPage() {
     router.push('/app/cover-letter')
   }
 
-  function openJobCase(job: Job) {
+  async function openJobCase(job: Job) {
+    let jd = job.job_description
+    try {
+      const res = await fetch(API.fetchJd, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url: job.job_apply_link }),
+      })
+      const data = await res.json()
+      if (data.text) jd = data.text
+    } catch { /* use Adzuna snippet */ }
     sessionStorage.setItem(SS.jcJob, JSON.stringify({
       job_title:       job.job_title,
       employer_name:   job.employer_name,
-      job_description: job.job_description,
+      job_description: jd,
       job_apply_link:  job.job_apply_link,
     }))
     router.push('/app/job-case/new')

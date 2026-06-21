@@ -723,7 +723,7 @@ Rules:
 - tools: 10-20 specific technologies
 - tone: ${tone}, language: ${lang}
 ${job ? `- Tailor for: ${job.job_title} at ${job.employer_name}` : ''}
-${job?.job_description ? `- Job context: ${job.job_description.slice(0, 800)}` : ''}
+${job?.job_description ? `- Job context: ${job.job_description}` : ''}
 ${confirmedSkills.length > 0 ? `- User confirmed they also have these skills (include them): ${confirmedSkills.join(', ')}` : ''}
 ${atsSuggestions?.missing_keywords?.length ? `- ATS PRIORITY: Naturally incorporate these missing keywords: ${atsSuggestions.missing_keywords.join(', ')}` : ''}
 ${atsSuggestions?.quick_fixes?.length ? `- ATS QUICK FIXES:\n${atsSuggestions.quick_fixes.map((f: string) => `  * ${f}`).join('\n')}` : ''}
