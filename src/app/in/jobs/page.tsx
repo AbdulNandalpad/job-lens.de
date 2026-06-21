@@ -183,7 +183,7 @@ export default function IndiaJobsPage() {
       job_description: job.job_description,
       job_apply_link:  job.job_apply_link,
     }))
-    router.push('/app/job-case/new')
+    router.push('/in/job-case/new')
   }
 
   return (
