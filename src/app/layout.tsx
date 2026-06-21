@@ -16,22 +16,25 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Job-Lens AI — Find your next role in DACH",
-  description: "AI-powered career platform for Germany, Switzerland and Austria. CV analysis, job matching, tailored applications.",
+  title: "Job-Lens AI — AI Career Platform for DACH & India",
+  description: "AI-powered career platform for Germany, Austria, Switzerland and India. CV analysis, job matching, tailored applications and cover letters.",
   manifest: "/manifest.json",
   metadataBase: new URL("https://job-lens.de"),
   openGraph: {
-    title: "Job-Lens AI — Find your next role in DACH",
-    description: "AI-powered career platform for Germany, Switzerland and Austria. CV analysis, job matching, tailored applications.",
+    title: "Job-Lens AI — AI Career Platform for DACH & India",
+    description: "AI-powered career platform for Germany, Austria, Switzerland and India. CV analysis, job matching, tailored applications and cover letters.",
     url: "https://job-lens.de",
     siteName: "Job-Lens AI",
     locale: "en_US",
     type: "website",
   },
   icons: {
-    icon: { url: "/favicon.svg", type: "image/svg+xml" },
-    shortcut: "/favicon.svg",
-    apple: { url: "/favicon.svg", type: "image/svg+xml" },
+    icon: [
+      { url: "/favicon.svg", type: "image/svg+xml" },
+      { url: "/favicon.png", type: "image/png" },
+    ],
+    shortcut: "/favicon.png",
+    apple: { url: "/favicon.png", type: "image/png" },
   },
 };
 
