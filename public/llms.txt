@@ -1,0 +1,76 @@
+# Job-Lens AI
+
+> AI-powered career platform for job seekers in Germany, Austria, Switzerland (DACH) and India.
+
+Job-Lens AI helps professionals find jobs, tailor their CV, write cover letters, auto-apply, and prepare for interviews — all with AI assistance. Free to start with 5 credits on signup.
+
+## What Job-Lens AI does
+
+- **AI Job Search** — searches thousands of jobs in Germany, Austria, Switzerland and India, scored and ranked by CV match
+- **CV Tailoring** — rewrites your CV for a specific job description using Claude AI, section by section
+- **Cover Letter Generation** — writes a personalised cover letter matched to the job and your CV in seconds
+- **ATS Score / Career Scan** — scores your CV against a job description, identifies gaps, and suggests improvements
+- **Auto-Apply** — fills and submits job application forms automatically using browser automation
+- **Job Case** — saves your job applications as structured cases: CV, cover letter, contacts, notes and status tracking
+- **Interview Prep** — AI-generated interview questions and answers based on your CV and target role
+- **Salary Simulator** — estimates salary range for a role in Germany, Austria, Switzerland or India
+- **Work Visa Guidance** — AI guidance on work visa requirements for DACH countries
+- **Zeugnis Analyser** (DACH) — analyses German work references (Arbeitszeugnisse) and decodes hidden meanings
+- **Profile Analysis** (India) — deep career analysis for the Indian job market, sector trends and upskilling advice
+- **AI Assistant** — conversational AI assistant that can search jobs and score them in real time
+
+## Who it is for
+
+- Job seekers in Germany, Austria, Switzerland looking for work in any sector
+- Indian professionals applying to jobs in India or looking to migrate to DACH countries
+- Career changers who need to reposition their CV quickly
+- Developers, engineers, finance professionals, healthcare workers, and anyone who applies to multiple jobs
+
+## Markets
+
+| Market | URL | Language | Currency |
+|--------|-----|----------|----------|
+| DACH (Germany, Austria, Switzerland) | https://job-lens.de/ | German / English | EUR |
+| India | https://job-lens.de/in | English | INR |
+
+## Pricing
+
+- Free plan: 5 credits on signup, no credit card required
+- DACH paid credits: available via PayPal (EUR)
+- India paid credits: available via Razorpay (INR) — from ₹149
+
+## Credit costs
+
+- CV tailoring: 1 credit
+- Cover letter: 1 credit
+- Career scan / ATS score: 2 credits
+- Auto-apply: 3 credits
+- Job search, AI assistant, profile analysis: free
+
+## Key URLs
+
+- DACH home: https://job-lens.de/
+- India home: https://job-lens.de/in
+- DACH job search: https://job-lens.de/app/smart-apply
+- India job search: https://job-lens.de/in/jobs
+- CV builder: https://job-lens.de/app/cv-builder
+- ATS career scan: https://job-lens.de/app/career-scan
+- Auto-apply: https://job-lens.de/app/auto-apply
+- Interview prep: https://job-lens.de/app/interview
+- Salary simulator: https://job-lens.de/app/salary-sim
+- Job case tracker: https://job-lens.de/app/job-case
+- India CV builder: https://job-lens.de/in/cv-builder
+- India career scan: https://job-lens.de/in/career-scan
+- India profile analysis: https://job-lens.de/in/profile-analysis
+- India auto-apply: https://job-lens.de/in/auto-apply
+- Login (DACH): https://job-lens.de/login
+- Login (India): https://job-lens.de/in/login
+
+## Alternatives Job-Lens AI is compared to
+
+Kickresume, Resume.io, Jobscan, Teal, LinkedIn Easy Apply, Indeed, Naukri, Rezi, EnhanCV
+
+## Contact
+
+Website: https://job-lens.de
+Support: via contact form at https://job-lens.de/contact

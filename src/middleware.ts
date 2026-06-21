@@ -63,6 +63,7 @@ export async function middleware(request: NextRequest) {
     path === '/app' ||        // DACH dashboard (handles own auth check)
     path === '/sitemap.xml' ||
     path === '/robots.txt' ||
+    path === '/llms.txt' ||
     path.startsWith('/api/') ||   // all API routes handle their own auth
     path.startsWith('/login') ||
     path.startsWith('/in/login') ||
