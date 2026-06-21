@@ -279,7 +279,7 @@ export default function IndiaDashboard() {
           position:relative;overflow:hidden;
           border-bottom:1px solid ${border};
         }
-        .kpi-grid {display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:24px}
+        .kpi-grid {display:grid;grid-template-columns:repeat(6,1fr);gap:14px;margin-bottom:24px}
         .kpi-card {background:${card};border:1px solid ${border};border-radius:16px;padding:20px;transition:all .2s;animation:fadeUp .4s ease both}
         .kpi-card:hover{background:${cardHov};border-color:${borderH}}
         .two-col   {display:grid;grid-template-columns:1fr 1fr;gap:18px}
@@ -295,9 +295,12 @@ export default function IndiaDashboard() {
         .news-card:hover{background:${cardHov};border-color:${borderH};transform:translateY(-2px);box-shadow:0 8px 32px rgba(0,0,0,.4)}
         .expand-btn{background:none;border:1px solid rgba(255,255,255,.1);color:${txt2};border-radius:8px;padding:6px 18px;font-size:12px;cursor:pointer;margin-top:14px;width:100%;font-family:inherit;transition:all .15s}
         .expand-btn:hover{border-color:rgba(255,153,51,.4);color:${saffron}}
-        .goto-app-btn{display:flex;align-items:center;gap:7px;padding:10px 20px;border-radius:12px;border:1px solid rgba(255,153,51,.35);background:rgba(255,153,51,.1);color:${saffron};font-size:13px;font-weight:700;cursor:pointer;font-family:"Outfit",sans-serif;transition:all .2s}
-        .goto-app-btn:hover{background:rgba(255,153,51,.18);border-color:rgba(255,153,51,.6);transform:translateY(-1px)}
+        .goto-app-btn{display:flex;align-items:center;gap:7px;padding:10px 20px;border-radius:12px;border:1px solid rgba(255,153,51,.6);background:linear-gradient(135deg,rgba(255,153,51,.2),rgba(255,153,51,.1));color:${saffron};font-size:13px;font-weight:700;cursor:pointer;font-family:"Outfit",sans-serif;transition:all .2s;animation:glow 3s infinite}
+        .goto-app-btn:hover{background:linear-gradient(135deg,rgba(255,153,51,.35),rgba(255,153,51,.2));border-color:${saffron};transform:translateY(-1px);box-shadow:0 4px 20px rgba(255,153,51,.35)}
 
+        @media(max-width:1100px){
+          .kpi-grid    {grid-template-columns:repeat(3,1fr)!important}
+        }
         @media(max-width:900px){
           .kpi-grid    {grid-template-columns:repeat(2,1fr)!important}
           .two-col     {grid-template-columns:1fr!important}
@@ -439,10 +442,12 @@ export default function IndiaDashboard() {
         {/* ── KPI snapshot ── */}
         {isVisible('kpi') && <div className="kpi-grid">
           {([
-            {label:'Open Roles',     value:loadingM?null:fmt(totalJobs),                       sub:'across all sectors',      color:saffron, icon:'clipboard'    as IconName},
-            {label:'Hottest Sector', value:loadingM?null:(topCat?.label??'—'),                 sub:`${fmt(topCat?.count??0)} listings`, color:cyan,    icon:'flame'        as IconName},
-            {label:'Top City',       value:loadingM?null:(topCity?.city??'—'),                 sub:`${fmt(topCity?.count??0)} openings`,color:emerald, icon:'pin'          as IconName},
-            {label:'Most In-Demand', value:loadingM?null:(topRole?.title?.split(' ')[0]??'—'), sub:'trending role right now', color:purple,  icon:'star'         as IconName},
+            {label:'Open Roles',        value:loadingM?null:fmt(totalJobs),                       sub:'across all sectors',       color:saffron, icon:'clipboard'   as IconName},
+            {label:'Hottest Sector',    value:loadingM?null:(topCat?.label??'—'),                 sub:`${fmt(topCat?.count??0)} listings`,  color:cyan,    icon:'flame'       as IconName},
+            {label:'Top City',          value:loadingM?null:(topCity?.city??'—'),                 sub:`${fmt(topCity?.count??0)} openings`, color:emerald, icon:'pin'         as IconName},
+            {label:'Most In-Demand',    value:loadingM?null:(topRole?.title?.split(' ')[0]??'—'), sub:'trending role right now',  color:purple,  icon:'star'        as IconName},
+            {label:'Top Skill',         value:'Gen AI',                                           sub:'+312% YoY demand',         color:orange,  icon:'rocket'      as IconName},
+            {label:'Salary Growth',     value:'9.4%',                                             sub:'avg CTC increase 2025–26', color:red,     icon:'trending-up' as IconName},
           ] as {label:string;value:string|null;sub:string;color:string;icon:IconName}[]).map(k=>(
             <div key={k.label} className="kpi-card">
               <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:12}}>

@@ -41,22 +41,28 @@ const COUNTRIES: { code: Country; flag: IconName; name: string }[] = [
 
 const KPI_DATA: Record<Country, { label: string; value: string; sub: string; color: string; icon: IconName }[]> = {
   de: [
-    { label: 'Open Roles',     value: '186k',      sub: 'Adzuna Deutschland', color: blue,    icon: 'clipboard' },
-    { label: 'Hottest Sector', value: 'IT & Tech', sub: '42k listings',       color: cyan,    icon: 'flame'     },
-    { label: 'Top City',       value: 'Berlin',    sub: '28k openings',       color: emerald, icon: 'pin'       },
-    { label: 'Fastest Rising', value: 'KI-Ing.',   sub: 'trending role 2026', color: purple,  icon: 'star'      },
+    { label: 'Open Roles',       value: '186k',      sub: 'Adzuna Deutschland',  color: blue,    icon: 'clipboard'    },
+    { label: 'Hottest Sector',   value: 'IT & Tech', sub: '42k listings',        color: cyan,    icon: 'flame'        },
+    { label: 'Top City',         value: 'Berlin',    sub: '28k openings',        color: emerald, icon: 'pin'          },
+    { label: 'Fastest Rising',   value: 'KI-Ing.',   sub: 'trending role 2026',  color: purple,  icon: 'star'         },
+    { label: 'Top Skill',        value: 'Gen AI',    sub: '+290% YoY demand',    color: orange,  icon: 'rocket'       },
+    { label: 'Avg. Time to Hire',value: '28 days',   sub: 'DACH market avg 2026',color: red,     icon: 'trending-up'  },
   ],
   ch: [
-    { label: 'Open Roles',     value: '67k',      sub: 'Adzuna Schweiz',     color: blue,    icon: 'clipboard' },
-    { label: 'Hottest Sector', value: 'Finance',  sub: '18k listings',       color: cyan,    icon: 'flame'     },
-    { label: 'Top City',       value: 'Zürich',   sub: '22k openings',       color: emerald, icon: 'pin'       },
-    { label: 'Fastest Rising', value: 'Cloud',    sub: 'trending role 2026', color: purple,  icon: 'star'      },
+    { label: 'Open Roles',       value: '67k',       sub: 'Adzuna Schweiz',      color: blue,    icon: 'clipboard'    },
+    { label: 'Hottest Sector',   value: 'Finance',   sub: '18k listings',        color: cyan,    icon: 'flame'        },
+    { label: 'Top City',         value: 'Zürich',    sub: '22k openings',        color: emerald, icon: 'pin'          },
+    { label: 'Fastest Rising',   value: 'Cloud',     sub: 'trending role 2026',  color: purple,  icon: 'star'         },
+    { label: 'Top Skill',        value: 'MLOps',     sub: '+180% YoY demand',    color: orange,  icon: 'rocket'       },
+    { label: 'Avg. Time to Hire',value: '24 days',   sub: 'CH market avg 2026',  color: red,     icon: 'trending-up'  },
   ],
   at: [
-    { label: 'Open Roles',     value: '45k',        sub: 'Adzuna Österreich',  color: blue,    icon: 'clipboard' },
-    { label: 'Hottest Sector', value: 'Engineering', sub: '14k listings',       color: cyan,    icon: 'flame'     },
-    { label: 'Top City',       value: 'Wien',        sub: '18k openings',       color: emerald, icon: 'pin'       },
-    { label: 'Fastest Rising', value: 'DevOps',      sub: 'trending role 2026', color: purple,  icon: 'star'      },
+    { label: 'Open Roles',       value: '45k',         sub: 'Adzuna Österreich',   color: blue,    icon: 'clipboard'    },
+    { label: 'Hottest Sector',   value: 'Engineering', sub: '14k listings',        color: cyan,    icon: 'flame'        },
+    { label: 'Top City',         value: 'Wien',        sub: '18k openings',        color: emerald, icon: 'pin'          },
+    { label: 'Fastest Rising',   value: 'DevOps',      sub: 'trending role 2026',  color: purple,  icon: 'star'         },
+    { label: 'Top Skill',        value: 'Cloud',       sub: '+88% YoY demand',     color: orange,  icon: 'rocket'       },
+    { label: 'Avg. Time to Hire',value: '31 days',     sub: 'AT market avg 2026',  color: red,     icon: 'trending-up'  },
   ],
 }
 
@@ -332,7 +338,7 @@ export default function DACHDashboard() {
           border-bottom:1px solid ${border};
         }
         /* KPI */
-        .kpi-grid { display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:24px }
+        .kpi-grid { display:grid;grid-template-columns:repeat(6,1fr);gap:14px;margin-bottom:24px }
         .kpi-card { background:${card};border:1px solid ${border};border-radius:16px;padding:20px;transition:all .2s }
         .kpi-card:hover { background:${cardHov};border-color:rgba(255,255,255,.18) }
         /* Two column layouts */
@@ -348,9 +354,12 @@ export default function DACHDashboard() {
         .expand-btn { background:none;border:1px solid rgba(255,255,255,.1);color:${txt2};border-radius:8px;padding:6px 18px;font-size:12px;cursor:pointer;margin-top:14px;width:100%;font-family:inherit;transition:all .15s }
         .expand-btn:hover { border-color:rgba(55,138,221,.4);color:${blue} }
         /* go to app button */
-        .goto-app-btn { display:flex;align-items:center;gap:7px;padding:10px 20px;border-radius:12px;border:1px solid rgba(55,138,221,.35);background:rgba(55,138,221,.1);color:${blue};font-size:13px;font-weight:700;cursor:pointer;font-family:"Outfit",sans-serif;transition:all .2s }
-        .goto-app-btn:hover { background:rgba(55,138,221,.18);border-color:rgba(55,138,221,.6);transform:translateY(-1px) }
+        .goto-app-btn { display:flex;align-items:center;gap:7px;padding:10px 20px;border-radius:12px;border:1px solid rgba(55,138,221,.6);background:linear-gradient(135deg,rgba(55,138,221,.2),rgba(55,138,221,.1));color:${blue};font-size:13px;font-weight:700;cursor:pointer;font-family:"Outfit",sans-serif;transition:all .2s;animation:glow 3s infinite }
+        .goto-app-btn:hover { background:linear-gradient(135deg,rgba(55,138,221,.35),rgba(55,138,221,.2));border-color:${blue};transform:translateY(-1px);box-shadow:0 4px 20px rgba(55,138,221,.35) }
 
+        @media(max-width:1100px){
+          .kpi-grid    { grid-template-columns:repeat(3,1fr)!important }
+        }
         @media(max-width:900px){
           .kpi-grid    { grid-template-columns:repeat(2,1fr)!important }
           .two-col     { grid-template-columns:1fr!important }
