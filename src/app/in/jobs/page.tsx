@@ -63,6 +63,8 @@ export default function IndiaJobsPage() {
   const [usedQuery, setUsedQuery] = useState('')
   const autoSearched = useRef(false)
   const [expandedDescs, setExpandedDescs] = useState<Set<string>>(new Set())
+  const [fetchingJd, setFetchingJd] = useState(false)
+  const [jdFallback, setJdFallback] = useState<{ job: Job; manualJd: string } | null>(null)
   function toggleDesc(id: string, e: React.MouseEvent) {
     e.stopPropagation()
     setExpandedDescs(prev => { const next = new Set(prev); next.has(id) ? next.delete(id) : next.add(id); return next })
@@ -169,6 +171,36 @@ export default function IndiaJobsPage() {
       job_city: job.job_city,
       job_apply_link: job.job_apply_link,
     }))
+  }
+
+  async function openCvBuilder(job: Job) {
+    setFetchingJd(true)
+    try {
+      const res = await fetch(API.fetchJd, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url: job.job_apply_link }),
+      })
+      const data = await res.json()
+      if (data.text) {
+        const enriched = { ...job, job_description: data.text }
+        sessionStorage.setItem(SS.inSelectedJob, JSON.stringify(enriched))
+        sessionStorage.removeItem('jl_ats_suggestions')
+        router.push('/in/cv-builder')
+        return
+      }
+    } catch { /* fall through */ }
+    setFetchingJd(false)
+    setJdFallback({ job, manualJd: '' })
+  }
+
+  function confirmJdFallback() {
+    if (!jdFallback) return
+    const enriched = { ...jdFallback.job, job_description: jdFallback.manualJd || jdFallback.job.job_description }
+    sessionStorage.setItem(SS.inSelectedJob, JSON.stringify(enriched))
+    sessionStorage.removeItem('jl_ats_suggestions')
+    setJdFallback(null)
+    router.push('/in/cv-builder')
   }
 
   function goTo(path: string) {
@@ -340,9 +372,10 @@ export default function IndiaJobsPage() {
                       <div onClick={e => e.stopPropagation()} style={{ marginTop: 18, paddingTop: 16, borderTop: `1px solid ${orange}20` }}>
                         <div style={{ fontSize: 11, fontWeight: 700, color: orange, letterSpacing: 0.5, textTransform: 'uppercase', marginBottom: 10 }}>What do you want to do?</div>
                         <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-                          <button className="jl-action-btn" onClick={() => goTo('/in/cv-builder')}
-                            style={{ padding: '10px 18px', borderRadius: 9, border: 'none', background: `linear-gradient(135deg, ${orange}, #e67300)`, color: '#fff', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: "'Outfit',sans-serif" }}>
-                            Build CV for this job
+                          <button className="jl-action-btn" onClick={() => openCvBuilder(job)}
+                            disabled={fetchingJd}
+                            style={{ padding: '10px 18px', borderRadius: 9, border: 'none', background: fetchingJd ? '#ccc' : `linear-gradient(135deg, ${orange}, #e67300)`, color: '#fff', fontSize: 12, fontWeight: 700, cursor: fetchingJd ? 'not-allowed' : 'pointer', fontFamily: "'Outfit',sans-serif" }}>
+                            {fetchingJd ? 'Fetching JD…' : 'Build CV for this job'}
                           </button>
                           <button className="jl-action-btn" onClick={() => goTo('/in/cover-letter')}
                             style={{ padding: '10px 18px', borderRadius: 9, border: `1px solid ${blue}40`, background: blue + '10', color: blue, fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: "'Outfit',sans-serif" }}>
@@ -384,6 +417,36 @@ export default function IndiaJobsPage() {
           )}
         </div>
       </div>
+
+      {jdFallback && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
+          <div style={{ background: '#fff', borderRadius: 14, padding: 28, maxWidth: 520, width: '100%', boxShadow: '0 8px 40px rgba(0,0,0,0.18)' }}>
+            <div style={{ fontWeight: 700, fontSize: 17, marginBottom: 8, color: '#042C53' }}>Paste the job description</div>
+            <p style={{ fontSize: 13, color: '#6b7c93', marginBottom: 16, lineHeight: 1.6 }}>
+              We couldn&apos;t fetch the full job description from this site — it&apos;s likely blocking automated access.
+              Please open the job posting and paste the description below so we can tailor your CV accurately.
+            </p>
+            <a href={jdFallback.job.job_apply_link} target="_blank" rel="noopener noreferrer" style={{ fontSize: 12, color: orange, display: 'inline-block', marginBottom: 14 }}>
+              Open job posting →
+            </a>
+            <textarea
+              rows={8}
+              placeholder="Paste the full job description here…"
+              value={jdFallback.manualJd}
+              onChange={e => setJdFallback(f => f ? { ...f, manualJd: e.target.value } : f)}
+              style={{ width: '100%', borderRadius: 8, border: '1px solid #d0dae6', padding: '10px 12px', fontSize: 13, fontFamily: 'inherit', resize: 'vertical', boxSizing: 'border-box', marginBottom: 16 }}
+            />
+            <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
+              <button onClick={() => setJdFallback(null)} style={{ padding: '9px 20px', borderRadius: 8, border: '1px solid #d0dae6', background: '#fff', color: '#6b7c93', cursor: 'pointer', fontSize: 13, fontFamily: 'inherit' }}>
+                Cancel
+              </button>
+              <button onClick={confirmJdFallback} style={{ padding: '9px 20px', borderRadius: 8, border: 'none', background: `linear-gradient(135deg, ${orange}, #e67300)`, color: '#fff', cursor: 'pointer', fontSize: 13, fontWeight: 700, fontFamily: 'inherit' }}>
+                Build CV
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   )
 }
