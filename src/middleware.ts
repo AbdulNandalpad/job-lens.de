@@ -61,11 +61,14 @@ export async function middleware(request: NextRequest) {
     path === '/' ||
     path === '/in' ||
     path === '/app' ||        // DACH dashboard (handles own auth check)
+    path === '/sitemap.xml' ||
+    path === '/robots.txt' ||
     path.startsWith('/api/') ||   // all API routes handle their own auth
     path.startsWith('/login') ||
     path.startsWith('/in/login') ||
     path.startsWith('/auth') ||
     path.startsWith('/impressum') ||
+    path.startsWith('/privacy') ||
     path.startsWith('/datenschutz') ||
     path.startsWith('/agb') ||
     path.endsWith('/demo-form') ||  // sandbox demo forms — no auth needed, no data stored
