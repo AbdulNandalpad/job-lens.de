@@ -81,7 +81,7 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(url)
   }
 
-  // Check blocked status for app routes (both DE and IN markets)
+  // Check blocked status + market lock for app routes (both DE and IN markets)
   if (user && (path.startsWith('/app') || path.startsWith('/in/'))) {
     const admin = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -90,7 +90,7 @@ export async function middleware(request: NextRequest) {
     )
     const { data: profile } = await admin
       .from('profiles')
-      .select('status')
+      .select('status, market')
       .eq('id', user.id)
       .single()
 
@@ -99,6 +99,15 @@ export async function middleware(request: NextRequest) {
       url.pathname = '/login'
       url.searchParams.set('error', 'blocked')
       url.searchParams.delete('next')
+      return NextResponse.redirect(url)
+    }
+
+    // Account market lock (VPN-proof): a user who registered via the India link
+    // is bound to the India site — redirect any /app access to /in. Admin exempt.
+    if (!isAdmin && profile?.market === 'in' && (path === '/app' || path.startsWith('/app/'))) {
+      const url = request.nextUrl.clone()
+      url.pathname = '/in' + path.slice('/app'.length)
+      url.search = ''
       return NextResponse.redirect(url)
     }
   }
