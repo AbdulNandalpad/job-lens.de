@@ -53,17 +53,17 @@ Keep it ${lengthGuide}. Tone: ${toneGuide}. ${langGuide} Plain text only.
 Job Title: ${job?.job_title}
 Company: ${job?.employer_name}
 Location: ${job?.job_city || ''} ${(job as { job_country?: string })?.job_country || ''}
-Job Description: ${((job as { job_description?: string })?.job_description || '').slice(0, 1000)}
+Job Description: ${((job as { job_description?: string })?.job_description || '').slice(0, 6000)}
 
 Applicant CV:
-${cvText.slice(0, 2000)}
+${cvText.slice(0, 15000)}
 
 Write the cover letter:`
 
     const message = await anthropic.messages.create({
       model: 'claude-sonnet-4-6',
-      max_tokens: 1000,
-      system: memBlock || undefined,
+      max_tokens: 1500,
+      system: `You are an expert cover letter writer. Write compelling, personalised cover letters that directly address the job description and showcase the applicant's most relevant experience. Never invent facts not present in the CV.${memBlock ? '\n' + memBlock : ''}`,
       messages: [{ role: 'user', content: basePrompt }],
     })
 

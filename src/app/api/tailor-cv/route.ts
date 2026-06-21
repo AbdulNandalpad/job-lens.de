@@ -142,25 +142,30 @@ Return ONLY the JSON object. No markdown, no backticks, no explanation.`
 
     const message = await anthropic.messages.create({
       model: 'claude-sonnet-4-6',
-      max_tokens: 2000,
-      system: memBlock || undefined,
-      messages: [{
-        role: 'user',
-        content: `You are a professional CV writer. Tailor this CV for the job below.
+      max_tokens: 4000,
+      system: `You are an expert CV writer and career consultant. Your job is to tailor CVs precisely to job descriptions.
 
 ${toneInstruction}
 ${langInstruction}
 ${pagesInstruction}
-Highlight relevant experience, use keywords from the job description. Return plain text only, no markdown.
+- Highlight relevant experience and skills that match the job description
+- Use keywords and phrases from the job description naturally throughout
+- Preserve all factual information — never invent roles, dates, or achievements
+- Return plain text only, no markdown, no backticks
+${memBlock}`,
+      messages: [{
+        role: 'user',
+        content: `Tailor this CV for the following role.
 
 Job Title: ${jobTitle}
 Company: ${company}
-Job Description: ${jobDesc}
+Job Description:
+${jobDesc}
 
 Original CV:
 ${cvText.slice(0, 25000)}${feedbackSection}
 
-Return the tailored CV in plain text format.`,
+Return the complete tailored CV in plain text format.`,
       }],
     })
 
