@@ -25,10 +25,23 @@ export async function middleware(request: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser()
 
   const path = request.nextUrl.pathname
+  const country = request.headers.get('x-vercel-ip-country') ?? ''
+
+  const adminEmails = (process.env.ADMIN_EMAILS || '').split(',').map(e => e.trim().toLowerCase())
+  const isAdmin = !!user?.email && adminEmails.includes(user.email.toLowerCase())
+
+  // Hard geo-gate: India IPs may never reach the DACH (/app) site — even by
+  // typing the URL directly. Redirect to the matching India page. Admins are
+  // exempt so they can test both markets.
+  if (country === 'IN' && !isAdmin && (path === '/app' || path.startsWith('/app/'))) {
+    const url = request.nextUrl.clone()
+    url.pathname = '/in' + path.slice('/app'.length)  // /app → /in, /app/x → /in/x
+    url.search = ''
+    return NextResponse.redirect(url)
+  }
 
   // IP-based and auth-based root routing
   if (path === '/') {
-    const country = request.headers.get('x-vercel-ip-country') ?? ''
     if (country === 'IN') {
       // India IP → always show India site
       const url = request.nextUrl.clone()
