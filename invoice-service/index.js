@@ -23,9 +23,12 @@ const {
   POLL_INTERVAL_MS = '600000', // 10 min
 } = process.env
 
-const required = { SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, RAZORPAY_MID, SFTP_USER, SFTP_PRIVATE_KEY, BUSINESS_NAME, BUSINESS_ADDRESS }
+const required = { SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, RAZORPAY_MID, BUSINESS_NAME, BUSINESS_ADDRESS }
 for (const [k, v] of Object.entries(required)) {
   if (!v) { console.error(`[invoice] missing env ${k}`); process.exit(1) }
+}
+if (!SFTP_USER || !SFTP_PRIVATE_KEY) {
+  console.log('[invoice] SFTP_USER or SFTP_PRIVATE_KEY not set yet — standing by, will retry on next poll')
 }
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
@@ -88,6 +91,7 @@ function renderInvoice(row) {
 }
 
 async function processBatch() {
+  if (!SFTP_USER || !SFTP_PRIVATE_KEY) { console.log('[invoice] SFTP not configured yet — skipping'); return }
   const { data: rows, error } = await supabase
     .from('purchase_events')
     .select('id, razorpay_payment_id, razorpay_order_id, amount_inr, credits_added, invoice_number, customer_name, customer_address, customer_contact, created_at')
