@@ -76,6 +76,8 @@ function SmartJobSearchPage() {
   const [activeRight, setActiveRight] = useState<RightTab>('description')
   const [loggedJobs, setLoggedJobs] = useState<Set<string>>(new Set())
   const [mobOpen, setMobOpen] = useState(false)
+  const [fetchingJd, setFetchingJd] = useState(false)
+  const [jdFallback, setJdFallback] = useState<{ job: Job; manualJd: string } | null>(null)
 
   const hasProfile = !!(linkedinText || cvText)
   const autoSearchDone = useRef(false)
@@ -271,11 +273,36 @@ function SmartJobSearchPage() {
     setLoading(false)
   }
 
-  // Save job to sessionStorage and navigate to CV Builder
-  function openCvBuilder(job: Job) {
-    sessionStorage.setItem(SS.cvbJob, JSON.stringify(job))
-    // Clear any previously tailored CV so builder starts fresh for this job
+  // Try to scrape full JD from the job URL; fall back to manual paste if blocked
+  async function openCvBuilder(job: Job) {
+    setFetchingJd(true)
+    try {
+      const res = await fetch(API.fetchJd, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url: job.job_apply_link }),
+      })
+      const data = await res.json()
+      if (data.text) {
+        // Scrape succeeded — enrich job with full JD and navigate
+        const enriched = { ...job, job_description: data.text }
+        sessionStorage.setItem(SS.cvbJob, JSON.stringify(enriched))
+        sessionStorage.removeItem(SS.cvbTailored)
+        router.push('/app/cv-builder')
+        return
+      }
+    } catch { /* fall through to manual */ }
+    setFetchingJd(false)
+    // Scrape blocked — show paste fallback
+    setJdFallback({ job, manualJd: '' })
+  }
+
+  function confirmJdFallback() {
+    if (!jdFallback) return
+    const enriched = { ...jdFallback.job, job_description: jdFallback.manualJd || jdFallback.job.job_description }
+    sessionStorage.setItem(SS.cvbJob, JSON.stringify(enriched))
     sessionStorage.removeItem(SS.cvbTailored)
+    setJdFallback(null)
     router.push('/app/cv-builder')
   }
 
@@ -385,10 +412,10 @@ function SmartJobSearchPage() {
           {/* Build CV -- saves job + navigates to CV Builder */}
           <button
             onClick={() => openCvBuilder(job)}
-            disabled={!cvText}
-            style={{ fontSize: 11, padding: '5px 12px', borderRadius: 7, border: 'none', background: cvText ? 'linear-gradient(135deg, #042C53, #185FA5)' : '#e8ecf1', color: cvText ? '#fff' : '#8fa3b8', cursor: cvText ? 'pointer' : 'not-allowed', fontFamily: 'inherit', fontWeight: 600 }}
+            disabled={!cvText || fetchingJd}
+            style={{ fontSize: 11, padding: '5px 12px', borderRadius: 7, border: 'none', background: cvText ? 'linear-gradient(135deg, #042C53, #185FA5)' : '#e8ecf1', color: cvText ? '#fff' : '#8fa3b8', cursor: cvText && !fetchingJd ? 'pointer' : 'not-allowed', fontFamily: 'inherit', fontWeight: 600 }}
           >
-            {t.smartApply.results.buildCv}
+            {fetchingJd ? 'Fetching JD…' : t.smartApply.results.buildCv}
           </button>
           {/* Cover Letter -- saves job + navigates to Cover Letter Builder */}
           <button
@@ -585,9 +612,10 @@ function SmartJobSearchPage() {
               {cvText && (
                 <button
                   onClick={() => openCvBuilder(selectedJob)}
-                  style={{ padding: '11px 28px', borderRadius: 10, background: 'linear-gradient(135deg, #042C53, #185FA5)', color: '#fff', border: 'none', cursor: 'pointer', fontFamily: "'Outfit', sans-serif", fontSize: 14, fontWeight: 700 }}
+                  disabled={fetchingJd}
+                  style={{ padding: '11px 28px', borderRadius: 10, background: fetchingJd ? '#8fa3b8' : 'linear-gradient(135deg, #042C53, #185FA5)', color: '#fff', border: 'none', cursor: fetchingJd ? 'not-allowed' : 'pointer', fontFamily: "'Outfit', sans-serif", fontSize: 14, fontWeight: 700 }}
                 >
-                  {t.smartApply.results.openCvBuilder}
+                  {fetchingJd ? 'Fetching job description…' : t.smartApply.results.openCvBuilder}
                 </button>
               )}
             </div>
@@ -843,6 +871,37 @@ function SmartJobSearchPage() {
           </div>
         </div>
       </div>
+
+      {/* JD fallback modal — shown when scraping is blocked */}
+      {jdFallback && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
+          <div style={{ background: '#fff', borderRadius: 14, padding: 28, maxWidth: 520, width: '100%', boxShadow: '0 8px 40px rgba(0,0,0,0.18)' }}>
+            <div style={{ fontWeight: 700, fontSize: 17, marginBottom: 8, color: '#152233' }}>Paste the job description</div>
+            <p style={{ fontSize: 13, color: '#6b7c93', marginBottom: 16, lineHeight: 1.6 }}>
+              We couldn&apos;t fetch the full job description from this site — it&apos;s likely blocking automated access.
+              Please open the job posting and paste the description below so we can tailor your CV accurately.
+            </p>
+            <a href={jdFallback.job.job_apply_link} target="_blank" rel="noopener noreferrer" style={{ fontSize: 12, color: '#378ADD', display: 'inline-block', marginBottom: 14 }}>
+              Open job posting →
+            </a>
+            <textarea
+              rows={8}
+              placeholder="Paste the full job description here…"
+              value={jdFallback.manualJd}
+              onChange={e => setJdFallback(f => f ? { ...f, manualJd: e.target.value } : f)}
+              style={{ width: '100%', borderRadius: 8, border: '1px solid #d0dae6', padding: '10px 12px', fontSize: 13, fontFamily: 'inherit', resize: 'vertical', boxSizing: 'border-box', marginBottom: 16 }}
+            />
+            <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
+              <button onClick={() => setJdFallback(null)} style={{ padding: '9px 20px', borderRadius: 8, border: '1px solid #d0dae6', background: '#fff', color: '#6b7c93', cursor: 'pointer', fontSize: 13, fontFamily: 'inherit' }}>
+                Cancel
+              </button>
+              <button onClick={confirmJdFallback} style={{ padding: '9px 20px', borderRadius: 8, border: 'none', background: 'linear-gradient(135deg, #042C53, #185FA5)', color: '#fff', cursor: 'pointer', fontSize: 13, fontWeight: 700, fontFamily: 'inherit' }}>
+                Build CV
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

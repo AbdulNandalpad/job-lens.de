@@ -133,6 +133,7 @@ export const API = {
   jobCaseRequestAccess:    '/api/job-case/request-access',
   jobCaseRecruiterInterest: '/api/job-case/recruiter-interest',
   contact:              '/api/contact',
+  fetchJd:              '/api/fetch-jd',
   razorpayOrder:        '/api/razorpay/order',
   razorpayVerify:       '/api/razorpay/verify',
   memory:               '/api/memory',
