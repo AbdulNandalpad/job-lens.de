@@ -1,0 +1,7 @@
+User-agent: *
+Allow: /
+Disallow: /app/account
+Disallow: /in/account
+Disallow: /api/
+
+Sitemap: https://job-lens.de/sitemap.xml
