@@ -100,8 +100,17 @@ export async function POST(req: NextRequest) {
             zipcode: c.zipcode,
           },
         },
-        // Server-set notes — the webhook resolves the buyer from here (untampered)
-        notes: { user_id: user.id, credits: String(credits), amount_inr: amountStr, invoice_number: invoiceNumber },
+        // Server-set notes — the webhook resolves the buyer + billing from here
+        // (untampered). Used to render the Razorpay invoice PDF later.
+        notes: {
+          user_id:        user.id,
+          credits:        String(credits),
+          amount_inr:     amountStr,
+          invoice_number: invoiceNumber,
+          c_name:         c.name,
+          c_contact:      c.contact,
+          c_address:      `${c.line1}${c.line2 ? ', ' + c.line2 : ''}, ${c.city}, ${c.state} ${c.zipcode}, India`,
+        },
       }),
     })
 

@@ -90,12 +90,19 @@ export async function creditRazorpayPurchase(opts: {
     return 'error'
   }
 
+  // Pull billing + invoice number from the (untampered) order notes for the invoice
+  const notes = await fetchOrderNotes(orderId)
+
   const { error: insertErr } = await admin.from('purchase_events').insert({
     user_id:             userId,
     razorpay_payment_id: paymentId,
     razorpay_order_id:   orderId,
     amount_inr:          amountInr,
     credits_added:       credits,
+    invoice_number:      notes?.invoice_number ?? null,
+    customer_name:       notes?.c_name ?? null,
+    customer_address:    notes?.c_address ?? null,
+    customer_contact:    notes?.c_contact ?? null,
   })
 
   if (insertErr) {
