@@ -16,13 +16,13 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Job-Lens AI — AI Career Platform for DACH & India",
-  description: "AI-powered career platform for Germany, Austria, Switzerland and India. CV analysis, job matching, tailored applications and cover letters.",
+  title: "Job-Lens AI — Search, Apply & Land Jobs with AI",
+  description: "More than CV optimization. Job-Lens AI searches jobs, tailors your CV, writes cover letters, auto-applies and preps you for interviews — for DACH and India.",
   manifest: "/manifest.json",
   metadataBase: new URL("https://job-lens.de"),
   openGraph: {
     title: "Job-Lens AI — AI Career Platform for DACH & India",
-    description: "AI-powered career platform for Germany, Austria, Switzerland and India. CV analysis, job matching, tailored applications and cover letters.",
+    description: "More than CV optimization. Job-Lens AI searches jobs, tailors your CV, writes cover letters, auto-applies and preps you for interviews — for DACH and India.",
     url: "https://job-lens.de",
     siteName: "Job-Lens AI",
     locale: "en_US",
