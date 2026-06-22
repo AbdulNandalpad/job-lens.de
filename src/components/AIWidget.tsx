@@ -1327,7 +1327,7 @@ export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
             ) : (
               <>
                 {/* Live voice (Realtime API) — only after a mode is chosen */}
-                {process.env.NEXT_PUBLIC_REALTIME_WS_URL && (kiraMode || realtimeMode) && (
+                {process.env.NEXT_PUBLIC_REALTIME_WS_URL && (
                   <button className="kira-mic-btn"
                     title={realtimeMode ? 'End live voice' : `Live voice · ${CREDIT_COST.liveVoice} credits / 5 min`}
                     disabled={realtimeConnecting}
@@ -1598,42 +1598,6 @@ export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
                 </div>
               )}
 
-              {/* Mode cards — shown before a mode is selected */}
-              {isAdmin && !kiraMode && msgs.length <= 1 && !loading && (
-                <div style={{ padding: '4px 0 8px' }}>
-                  <div style={{ fontSize: 11, color: 'rgba(255,255,255,.3)', marginBottom: 6, fontFamily: f.body, letterSpacing: .3 }}>
-                    {lang === 'DE' ? 'Womit kann ich helfen?' : 'What do you need help with?'}
-                  </div>
-                  <div style={{ fontSize: 10, color: 'rgba(255,255,255,.2)', marginBottom: 10, fontFamily: f.body, display: 'flex', alignItems: 'center', gap: 5 }}>
-                    <MicIcon size={10} color="rgba(255,255,255,.2)"/>
-                    {lang === 'DE' ? 'Mikrofon erscheint nach Auswahl eines Themas' : 'Voice activates once you pick a topic below'}
-                  </div>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 7 }}>
-                    {KIRA_MODES.map(mode => (
-                      <button key={mode.id} onClick={() => selectMode(mode)}
-                        className="kira-mode-card"
-                        style={{ textAlign: 'left', padding: '11px 12px', borderRadius: 11, background: 'rgba(255,255,255,.05)', border: '1px solid rgba(255,255,255,.09)', cursor: 'pointer', transition: 'all .15s', fontFamily: f.body, display: 'flex', flexDirection: 'column', gap: 4 }}>
-                        <ModeIcon id={mode.id} size={16} color="rgba(255,255,255,.6)"/>
-                        <span style={{ fontSize: 12, fontWeight: 700, color: '#fff', fontFamily: f.heading }}>{mode.label}</span>
-                        <span style={{ fontSize: 10, color: 'rgba(255,255,255,.4)', lineHeight: 1.4 }}>{mode.desc}</span>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Active mode badge + change button */}
-              {kiraMode && msgs.length <= 2 && !loading && (
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6 }}>
-                  <span style={{ fontSize: 10, color: accent, fontWeight: 700, fontFamily: f.heading }}>
-                    <ModeIcon id={kiraMode} size={11} color={accent}/>{' '}{KIRA_MODES.find(m => m.id === kiraMode)?.label}
-                  </span>
-                  <button onClick={() => { setMsgs([]); setKiraMode('') }}
-                    style={{ fontSize: 10, color: 'rgba(255,255,255,.3)', background: 'none', border: 'none', cursor: 'pointer', fontFamily: f.body, padding: '1px 4px' }}>
-                    change →
-                  </button>
-                </div>
-              )}
 
               <div ref={bottomRef}/>
             </div>
