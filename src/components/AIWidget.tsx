@@ -1601,8 +1601,12 @@ export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
               {/* Mode cards — shown before a mode is selected */}
               {isAdmin && !kiraMode && msgs.length <= 1 && !loading && (
                 <div style={{ padding: '4px 0 8px' }}>
-                  <div style={{ fontSize: 11, color: 'rgba(255,255,255,.3)', marginBottom: 10, fontFamily: f.body, letterSpacing: .3 }}>
+                  <div style={{ fontSize: 11, color: 'rgba(255,255,255,.3)', marginBottom: 6, fontFamily: f.body, letterSpacing: .3 }}>
                     {lang === 'DE' ? 'Womit kann ich helfen?' : 'What do you need help with?'}
+                  </div>
+                  <div style={{ fontSize: 10, color: 'rgba(255,255,255,.2)', marginBottom: 10, fontFamily: f.body, display: 'flex', alignItems: 'center', gap: 5 }}>
+                    <MicIcon size={10} color="rgba(255,255,255,.2)"/>
+                    {lang === 'DE' ? 'Mikrofon erscheint nach Auswahl eines Themas' : 'Voice activates once you pick a topic below'}
                   </div>
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 7 }}>
                     {KIRA_MODES.map(mode => (
