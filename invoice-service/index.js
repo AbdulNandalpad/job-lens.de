@@ -6,6 +6,7 @@
 // `npm start` polls forever; `npm run once` does a single pass (for cron).
 
 const { createClient } = require('@supabase/supabase-js')
+const ws = require('ws')
 const PDFDocument = require('pdfkit')
 const SftpClient = require('ssh2-sftp-client')
 
@@ -33,6 +34,7 @@ if (!SFTP_USER || !SFTP_PRIVATE_KEY) {
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
   auth: { autoRefreshToken: false, persistSession: false },
+  realtime: { transport: ws },
 })
 
 const inr = (rupees) => `INR ${Number(rupees || 0).toFixed(2)}`
