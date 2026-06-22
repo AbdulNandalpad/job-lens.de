@@ -949,7 +949,6 @@ export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
   }
 
   async function enterRealtimeMode() {
-    if (!kiraMode) return   // a mode must be chosen first
     if (realtimeConnecting || realtimeMode) return
     const wsBase = process.env.NEXT_PUBLIC_REALTIME_WS_URL
     if (!wsBase) { alert('Realtime service URL not configured'); return }
