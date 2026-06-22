@@ -603,7 +603,6 @@ export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
 
   // ── Voice mode control ───────────────────────────────────────────────────
   function enterVoiceMode() {
-    if (!isAdmin) return
     if (loading) return
     unlockAudio()   // synchronous — must stay before any await
     voiceModeRef.current = true
@@ -950,7 +949,6 @@ export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
   }
 
   async function enterRealtimeMode() {
-    if (!isAdmin) return
     if (!kiraMode) return   // a mode must be chosen first
     if (realtimeConnecting || realtimeMode) return
     const wsBase = process.env.NEXT_PUBLIC_REALTIME_WS_URL
@@ -1089,7 +1087,6 @@ export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
 
   // ── CV Discussion ────────────────────────────────────────────────────────
   function startCvDiscussion() {
-    if (!isAdmin) return
     if (!cvRef.current) {
       setMsgs(prev => [...prev, { role: 'assistant', content: lang === 'DE'
         ? 'Lade deinen Lebenslauf hoch (Büroklammer oben) — dann können wir ihn gemeinsam besprechen.'
