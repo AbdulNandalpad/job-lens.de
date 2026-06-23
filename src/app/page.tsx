@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { useState, useEffect, type ReactNode } from 'react'
+import { useState, useEffect, useRef, type ReactNode } from 'react'
 import { createClient } from '@/lib/supabase'
 import { theme } from '@/lib/theme'
 import { useLanguage, DEFlag, GBFlag } from '@/lib/i18n'
@@ -304,6 +304,41 @@ export default function HomePage() {
 
   const go = (path: string) => user ? path : `/login?next=${encodeURIComponent(path)}`
 
+  // Trust bar count-up animation
+  const trustRef = useRef<HTMLDivElement>(null)
+  const [trustSeen, setTrustSeen] = useState(false)
+  const [count1, setCount1] = useState(7140)   // CVs scanned (start near target)
+  const [count2, setCount2] = useState(158000) // DACH jobs live
+  const [count3, setCount3] = useState(78)     // ATS score lift %
+
+  useEffect(() => {
+    const el = trustRef.current
+    if (!el) return
+    const obs = new IntersectionObserver(([entry]) => {
+      if (entry.isIntersecting) { setTrustSeen(true); obs.disconnect() }
+    }, { threshold: 0.2 })
+    obs.observe(el)
+    return () => obs.disconnect()
+  }, [])
+
+  useEffect(() => {
+    if (!trustSeen) return
+    const run = (from: number, to: number, set: (v: number) => void) => {
+      const dur = 1800
+      const t0 = Date.now()
+      const tick = () => {
+        const p = Math.min((Date.now() - t0) / dur, 1)
+        const e = 1 - Math.pow(1 - p, 3)
+        set(Math.round(from + (to - from) * e))
+        if (p < 1) requestAnimationFrame(tick)
+      }
+      requestAnimationFrame(tick)
+    }
+    run(7140, 8400, setCount1)
+    run(158000, 186000, setCount2)
+    run(78, 92, setCount3)
+  }, [trustSeen])
+
   // Order: Career Scan, Job Search, CV+CL, Interview, Salary Sim, Career Card, Tracker, Auto Apply
   const featureBgs    = [c.primaryLight, c.successLight,  c.warningLight, c.primaryLight, c.successLight, c.aiLight, c.warningLight, c.aiLight]
   const featureColors = [c.navy,         c.success,       c.warning,      c.accent,       c.success,      c.ai,      c.warning,     c.ai]
@@ -561,6 +596,24 @@ export default function HomePage() {
       {/* ── Hero ── */}
       <HeroEU lang={lang} user={user} />
 
+      {/* ── Trust Bar ── */}
+      <div ref={trustRef} style={{ background: 'linear-gradient(90deg,#07111f 0%,#0d1e30 50%,#07111f 100%)', borderBottom: '1px solid rgba(55,138,221,0.10)' }}>
+        <div style={{ maxWidth: 1100, margin: '0 auto', padding: '0 24px', display: 'grid', gridTemplateColumns: 'repeat(4,1fr)' }}>
+          {([
+            { val: count1.toLocaleString('de-DE') + '+', label: lang === 'DE' ? 'analysierte Lebensläufe' : 'CVs improved', color: c.accent },
+            { val: (count2 / 1000).toFixed(0) + 'k+', label: lang === 'DE' ? 'offene DACH-Stellen jetzt' : 'open DACH jobs right now', color: '#10b981' },
+            { val: count3 + '%', label: lang === 'DE' ? 'ø ATS-Score-Verbesserung' : 'avg ATS score improvement', color: '#a855f7' },
+            { val: '4.8★', label: lang === 'DE' ? 'Nutzerbewertung' : 'user rating', color: '#f59e0b' },
+          ] as const).map((s, i) => (
+            <div key={i} style={{ textAlign: 'center', padding: '24px 12px', borderRight: i < 3 ? '1px solid rgba(255,255,255,0.05)' : 'none' }}>
+              <div style={{ fontFamily: f.heading, fontSize: 'clamp(20px,2.8vw,30px)', fontWeight: 800, color: s.color, lineHeight: 1, letterSpacing: -0.5, fontVariantNumeric: 'tabular-nums', transition: 'color 0.3s' }}>{s.val}</div>
+              <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.32)', marginTop: 6, lineHeight: 1.45 }}>{s.label}</div>
+            </div>
+          ))}
+        </div>
+        <style>{`@media(max-width:640px){.jl-trust-grid{grid-template-columns:1fr 1fr!important}}`}</style>
+      </div>
+
       {/* ── Features ── */}
       <div className="jl-section" style={{ maxWidth: 1100, margin: '0 auto' }}>
         <div style={{ textAlign: 'center', marginBottom: 44 }}>
@@ -676,6 +729,104 @@ export default function HomePage() {
             }
           `}</style>
         </div>}
+
+        {/* ── The DACH Reality ── */}
+        <div className="jl-subsection">
+          <div style={{ background: '#fff', borderRadius: 20, border: '1px solid #edf1f6', borderTop: '4px solid #E24B4A', padding: 'clamp(28px,5vw,52px) clamp(20px,5vw,44px)', boxShadow: '0 4px 32px rgba(4,44,83,0.06)' }}>
+            {/* Header */}
+            <div style={{ textAlign: 'center', marginBottom: 36 }}>
+              <div style={{ fontSize: 11, fontWeight: 700, color: '#E24B4A', letterSpacing: 2.5, textTransform: 'uppercase', marginBottom: 14 }}>
+                {lang === 'DE' ? 'Die DACH-Realität' : 'The DACH Reality'}
+              </div>
+              <h2 style={{ fontFamily: f.heading, fontSize: 'clamp(20px,3.5vw,30px)', fontWeight: 700, color: c.primary, lineHeight: 1.25, maxWidth: 560, margin: '0 auto 14px' }}>
+                {lang === 'DE'
+                  ? 'Die meisten Bewerber wissen nicht, was mit ihrem Lebenslauf passiert.'
+                  : "Most job seekers don't realise what's happening to their CV."}
+              </h2>
+              <p style={{ fontSize: 14, color: c.textMuted, maxWidth: 480, margin: '0 auto', lineHeight: 1.75 }}>
+                {lang === 'DE'
+                  ? 'Bevor dein Lebenslauf einen Recruiter erreicht, durchläuft er automatische KI-Filter — und die meisten scheitern unsichtbar.'
+                  : 'Before your CV reaches a recruiter, it passes through automated AI filters — and most are rejected invisibly.'}
+              </p>
+            </div>
+
+            {/* Stat cards */}
+            <div className="jl-reality-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 16, marginBottom: 40 }}>
+              {([
+                { stat: '75%', color: '#E24B4A', label: lang === 'DE' ? 'Lebensläufe werden von ATS abgelehnt, bevor ein Mensch sie sieht' : 'CVs are auto-rejected by ATS before any human reads them' },
+                { stat: '6 Sek', color: '#f59e0b', label: lang === 'DE' ? 'verbringt ein Recruiter im Schnitt mit jedem Lebenslauf' : 'is all a recruiter spends on each CV that does get through' },
+                { stat: '3 Mon.', color: c.navy, label: lang === 'DE' ? 'dauert die durchschnittliche Jobsuche in Deutschland' : 'is the average job search duration in the DACH region' },
+                { stat: '0', color: '#10b981', label: lang === 'DE' ? 'andere DACH-Plattformen bieten ATS-Scan + Anpassung + Auto-Bewerbung in einem' : 'other DACH platforms offer full ATS scan + tailoring + Auto Apply in one place' },
+              ] as const).map((item, i) => (
+                <div key={i} style={{ padding: '22px 18px', borderRadius: 14, background: '#f8fafd', border: '1px solid #edf1f6', borderTop: `3px solid ${item.color}` }}>
+                  <div style={{ fontFamily: f.heading, fontSize: 'clamp(24px,3vw,36px)', fontWeight: 800, color: item.color, marginBottom: 10, lineHeight: 1 }}>{item.stat}</div>
+                  <div style={{ fontSize: 13, color: c.textMuted, lineHeight: 1.6 }}>{item.label}</div>
+                </div>
+              ))}
+            </div>
+
+            {/* ATS flow diagram */}
+            <div style={{ background: '#f4f7fa', borderRadius: 16, padding: '28px 24px', marginBottom: 32 }}>
+              <div style={{ fontSize: 11, color: c.textMuted, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1.5, textAlign: 'center', marginBottom: 22 }}>
+                {lang === 'DE' ? 'Was mit deiner Bewerbung passiert' : 'What actually happens to your application'}
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, flexWrap: 'wrap' }}>
+                {/* Step: You Apply */}
+                <div style={{ textAlign: 'center', padding: '14px 18px', background: '#fff', borderRadius: 14, border: '1px solid #dce4ef', minWidth: 110 }}>
+                  <div style={{ width: 48, height: 48, borderRadius: 12, background: '#E6F1FB', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 10px' }}>
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={c.accent} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/>
+                    </svg>
+                  </div>
+                  <div style={{ fontFamily: f.heading, fontSize: 12, fontWeight: 700, color: c.primary }}>{lang === 'DE' ? 'Du bewirbst dich' : 'You Apply'}</div>
+                  <div style={{ fontSize: 11, color: c.textMuted, marginTop: 3 }}>{lang === 'DE' ? 'Lebenslauf absenden' : 'Submit your CV'}</div>
+                </div>
+                <div style={{ fontSize: 22, color: '#c8d6e5', fontWeight: 300 }}>→</div>
+                {/* Step: ATS Bot */}
+                <div style={{ textAlign: 'center', padding: '14px 18px', background: c.navy, borderRadius: 14, minWidth: 120 }}>
+                  <div style={{ width: 48, height: 48, borderRadius: 12, background: 'rgba(255,255,255,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 10px' }}>
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                      <rect x="3" y="5" width="18" height="14" rx="2" stroke="white" strokeWidth="1.6"/>
+                      <line x1="8" y1="10" x2="16" y2="10" stroke="#FF9933" strokeWidth="1.6" strokeLinecap="round"/>
+                      <line x1="8" y1="14" x2="13" y2="14" stroke="#E24B4A" strokeWidth="1.6" strokeLinecap="round"/>
+                      <circle cx="6.5" cy="10" r="1" fill="#FF9933"/>
+                      <circle cx="6.5" cy="14" r="1" fill="#E24B4A"/>
+                    </svg>
+                  </div>
+                  <div style={{ fontFamily: f.heading, fontSize: 12, fontWeight: 700, color: '#fff' }}>{lang === 'DE' ? 'ATS-Bot scannt' : 'ATS Bot Reads'}</div>
+                  <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)', marginTop: 3, maxWidth: 110, margin: '3px auto 0' }}>{lang === 'DE' ? 'Sucht Keywords aus der Stelle' : 'Hunts for job keywords'}</div>
+                </div>
+                <div style={{ fontSize: 22, color: '#c8d6e5', fontWeight: 300 }}>→</div>
+                {/* Decision split */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                  <div style={{ textAlign: 'center', padding: '12px 18px', background: 'rgba(16,185,129,0.07)', borderRadius: 12, border: '2px solid rgba(16,185,129,0.25)', minWidth: 140 }}>
+                    <div style={{ fontFamily: f.heading, fontSize: 12, fontWeight: 700, color: '#10b981' }}>✓ {lang === 'DE' ? 'Keywords passen' : 'Keywords match'}</div>
+                    <div style={{ fontSize: 11, color: c.textMuted, marginTop: 2 }}>{lang === 'DE' ? 'Weiter zum Recruiter (25%)' : 'Reaches recruiter (25%)'}</div>
+                  </div>
+                  <div style={{ textAlign: 'center', padding: '12px 18px', background: 'rgba(226,75,74,0.07)', borderRadius: 12, border: '2px solid rgba(226,75,74,0.25)', minWidth: 140 }}>
+                    <div style={{ fontFamily: f.heading, fontSize: 12, fontWeight: 700, color: '#E24B4A' }}>✗ {lang === 'DE' ? 'Keywords fehlen' : 'Keywords missing'}</div>
+                    <div style={{ fontSize: 11, color: c.textMuted, marginTop: 2 }}>{lang === 'DE' ? 'Automatisch abgelehnt (75%)' : 'Auto rejected (75%)'}</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* CTA */}
+            <div style={{ textAlign: 'center' }}>
+              <Link href={go('/app/career-scan')} className="jl-btn-primary" style={{ display: 'inline-block', padding: '14px 34px', borderRadius: 10, color: '#fff', textDecoration: 'none', fontWeight: 700, fontFamily: f.heading, fontSize: 15 }}>
+                {lang === 'DE' ? 'Meinen Lebenslauf jetzt prüfen →' : 'Check my CV against ATS now →'}
+              </Link>
+              <div style={{ fontSize: 12, color: c.textMuted, marginTop: 10 }}>
+                {lang === 'DE' ? '5 kostenlose Credits · keine Kreditkarte · 30 Sekunden' : '5 free credits · no card needed · 30 seconds'}
+              </div>
+            </div>
+          </div>
+
+          <style>{`
+            @media(max-width:768px){ .jl-reality-grid{ grid-template-columns:1fr 1fr!important } }
+            @media(max-width:480px){ .jl-reality-grid{ grid-template-columns:1fr!important } }
+          `}</style>
+        </div>
 
         {/* ── How it works ── */}
         <div className="jl-subsection">
