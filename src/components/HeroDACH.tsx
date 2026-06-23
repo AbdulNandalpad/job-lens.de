@@ -83,6 +83,18 @@ const features = [
       EN: { tag: 'Job Case', h1: 'Replace the cover letter with a 5-minute proof', sub: 'Record yourself, answer role-specific scenarios and send recruiters a personal application page — no account needed on their side.', cta: 'Create Job Case →' },
     },
   },
+  {
+    icon: <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>,
+    name: { DE: 'Kira AI', EN: 'Kira AI' },
+    desc: { DE: 'Dein Karriere-Coach', EN: 'Your career coach' },
+    grad: 'linear-gradient(175deg, #30102a 0%, #1c0919 100%)',
+    accent: '#ec4899',
+    href: '/app/ai',
+    hover: {
+      DE: { tag: 'Kira AI', h1: 'Dein persönlicher KI-Karrierecoach — jederzeit', sub: 'Kira beantwortet Fragen zu deiner Bewerbung, hilft bei der Interview-Vorbereitung und gibt dir ehrliches, sofortiges Feedback.', cta: 'Kira fragen →' },
+      EN: { tag: 'Kira AI', h1: 'Your personal AI career coach — always on', sub: 'Kira answers questions about your application, helps you prep for interviews and gives honest, instant feedback.', cta: 'Ask Kira →' },
+    },
+  },
 ]
 
 export default function HeroDACH({ lang, user }: Props) {
