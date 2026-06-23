@@ -641,6 +641,15 @@ export default function IndiaCVBuilderPage() {
   const [jdFetchError,    setJdFetchError]    = useState<string | null>(null)
 
   const { credits, setCredits, needsCrossMarket, crossMarketAmount } = useCredits()
+
+  // Sync enriched jobDesc back to sessionStorage so cover letter always gets the full JD
+  useEffect(() => {
+    if (!job || !jobDesc) return
+    try {
+      const updated = { ...job, job_description: jobDesc }
+      sessionStorage.setItem(SS.cvbJob, JSON.stringify(updated))
+    } catch { }
+  }, [jobDesc, job])
   const CV_COST = CREDIT_COST.tailorCv
   const [crossWarnPending, setCrossWarnPending] = useState<(() => void) | null>(null)
 

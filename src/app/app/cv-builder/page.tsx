@@ -742,6 +742,7 @@ export default function CVBuilderPage() {
   const [jobDescOpen, setJobDescOpen] = useState(false)
   const [fetchingJd, setFetchingJd] = useState(false)
   const [jdFetchError, setJdFetchError] = useState<string | null>(null)
+  const [langMismatch, setLangMismatch] = useState(false)
   const [template, setTemplate] = useState<Template>('executive')
   const [tone, setTone] = useState<Tone>('professional')
   const [lang, setLang] = useState<Lang>('EN')
@@ -858,6 +859,24 @@ export default function CVBuilderPage() {
     if (saved) setRawCv(saved)
     if (savedData) { try { setCvData(normalizeCv(JSON.parse(savedData))) } catch { } }
   }, [])
+
+  // Sync enriched jobDesc back to sessionStorage so cover letter always gets the full JD
+  useEffect(() => {
+    if (!job || !jobDesc) return
+    try {
+      const updated = { ...job, job_description: jobDesc }
+      sessionStorage.setItem(SS.cvbJob, JSON.stringify(updated))
+    } catch { }
+  }, [jobDesc, job])
+
+  // Detect language mismatch: German JD + English CV output setting
+  useEffect(() => {
+    if (!jobDesc && !job?.job_description) return
+    const text = (jobDesc || job?.job_description || '').slice(0, 600).toLowerCase()
+    const germanHits = ['aufgaben', 'anforderungen', 'wir bieten', 'kenntnisse', 'erfahrung', ' und ', ' für ', ' die ', ' der ', 'bewerbung', 'stellenanzeige']
+    const isGerman = germanHits.filter(w => text.includes(w)).length >= 3
+    setLangMismatch(isGerman && lang === 'EN')
+  }, [jobDesc, job?.job_description, lang])
 
   useEffect(() => {
     function calc() {
@@ -1645,6 +1664,15 @@ export default function CVBuilderPage() {
                   {/* Language */}
                   <div>
                     <div style={{ fontSize: 10, fontWeight: 600, color: 'rgba(255,255,255,0.4)', letterSpacing: 0.5, textTransform: 'uppercase', marginBottom: 8 }}>{t.cvBuilder.sidebar.languageLabel}</div>
+                    {langMismatch && (
+                      <div style={{ fontSize: 11, color: '#fbbf24', background: 'rgba(251,191,36,0.08)', border: '1px solid rgba(251,191,36,0.22)', borderRadius: 8, padding: '8px 10px', marginBottom: 8, lineHeight: 1.5 }}>
+                        {lang === 'DE' ? 'Die Stelle ist auf Deutsch — CV auf Deutsch erstellen?' : 'This job posting is in German — write the CV in German?'}
+                        {' '}
+                        <button onClick={() => setLang('DE')} style={{ color: '#fbbf24', fontWeight: 700, background: 'none', border: 'none', cursor: 'pointer', padding: 0, textDecoration: 'underline', fontSize: 11 }}>
+                          {lang === 'DE' ? 'Ja, Deutsch' : 'Switch to German'}
+                        </button>
+                      </div>
+                    )}
                     <div style={{ display: 'flex', gap: 6 }}>
                       {(['EN', 'DE'] as Lang[]).map(l => (
                         <button key={l} onClick={() => setLang(l)}
