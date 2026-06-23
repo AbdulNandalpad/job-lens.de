@@ -126,6 +126,7 @@ export default function IndiaAccountPage() {
         prefill:     { name: addr.name, email: profile?.email || '', contact: addr.contact },
         notes:       { invoice_number: order.invoiceNumber, goods_description: `${order.credits} credits` },
         theme:       { color: orange },
+        method:      { upi: '1', card: '1', netbanking: '1', wallet: '0', paylater: '0' },
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         handler: async (resp: any) => {
           const vr = await fetch(API.razorpayVerify, {
