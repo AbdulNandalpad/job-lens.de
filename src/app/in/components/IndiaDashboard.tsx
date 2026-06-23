@@ -466,13 +466,12 @@ export default function IndiaDashboard() {
           </div>
           <div className="more-tools">
             {([
-              {label:'Cover Letter',    icon:'email'   as IconName, href:'/in/cover-letter'},
-              {label:'Auto Apply',      icon:'bot'     as IconName, href:'/in/jobs'},
-              {label:'Interview Prep',  icon:'mic'     as IconName, href:'/in/interview'},
-              {label:'Salary Sim.',     icon:'coin'    as IconName, href:'/in/salary-sim'},
-              {label:'Tracker',         icon:'clipboard'as IconName,href:'/in/tracker'},
-              {label:'Work Visa DE',    icon:'passport'as IconName, href:'/in/visa'},
-              {label:'Kira AI',         icon:'bot'     as IconName, href:'/in/ai'},
+              {label:'Cover Letter',    icon:'email'    as IconName, href:'/in/cover-letter'},
+              {label:'Auto Apply',      icon:'bot'      as IconName, href:'/in/auto-apply'},
+              {label:'Interview Prep',  icon:'mic'      as IconName, href:'/in/interview'},
+              {label:'Salary Sim.',     icon:'coin'     as IconName, href:'/in/salary-sim'},
+              {label:'Tracker',         icon:'clipboard' as IconName,href:'/in/tracker'},
+              {label:'Work Visa DE',    icon:'passport'  as IconName, href:'/in/visa'},
             ] as {label:string;icon:IconName;href:string}[]).map(a=>(
               <button key={a.href} onClick={()=>router.push(a.href)}
                 style={{display:'flex',alignItems:'center',gap:8,padding:'10px 12px',borderRadius:10,border:`1px solid ${border}`,background:'rgba(255,255,255,.04)',color:txt2,fontSize:12,fontWeight:500,cursor:'pointer',fontFamily:"'DM Sans',sans-serif",transition:'all .15s',textAlign:'left' as const}}
