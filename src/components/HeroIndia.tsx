@@ -107,10 +107,14 @@ export default function HeroIndia({ user }: Props) {
         .hero-in-panel:hover .in-panel-bar { opacity: 1 !important; }
         @media(max-width:960px){
           .hero-in-layout{ grid-template-columns:1fr!important; padding:48px 24px 0!important; min-height:auto!important; }
-          .hero-in-panels{ justify-content:center!important; margin-top:40px; padding-bottom:48px; }
-          .hero-in-panel{ width:88px!important; }
+          .hero-in-panels{ justify-content:flex-start!important; margin-top:36px; padding:0 24px 48px; overflow-x:auto!important; -webkit-overflow-scrolling:touch; scrollbar-width:none; }
+          .hero-in-panels::-webkit-scrollbar{ display:none; }
+          .hero-in-panel{ width:90px!important; }
         }
-        @media(max-width:520px){ .hero-in-panels{ display:none!important; } .hero-in-layout{ padding-bottom:48px!important; } }
+        @media(max-width:520px){
+          .hero-in-panels{ height:200px!important; padding:0 16px 40px; }
+          .hero-in-panel{ width:80px!important; }
+        }
       `}</style>
 
       <div style={{ background:'linear-gradient(145deg,#0d0800 0%,#110c02 50%,#150e03 100%)', minHeight:'88vh', display:'flex', alignItems:'center', overflow:'hidden', position:'relative' }}>

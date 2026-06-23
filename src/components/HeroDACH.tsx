@@ -115,10 +115,14 @@ export default function HeroDACH({ lang, user }: Props) {
         .hero-panel:hover .panel-bar { opacity: 1 !important; }
         @media(max-width:960px){
           .hero-dach-layout{ grid-template-columns:1fr!important; padding:48px 24px 0!important; min-height:auto!important; }
-          .hero-dach-panels{ justify-content:center!important; margin-top:40px; padding-bottom:48px; }
-          .hero-panel{ width:88px!important; }
+          .hero-dach-panels{ justify-content:flex-start!important; margin-top:36px; padding:0 24px 48px; overflow-x:auto!important; -webkit-overflow-scrolling:touch; scrollbar-width:none; }
+          .hero-dach-panels::-webkit-scrollbar{ display:none; }
+          .hero-panel{ width:90px!important; }
         }
-        @media(max-width:520px){ .hero-dach-panels{ display:none!important; } .hero-dach-layout{ padding-bottom:48px!important; } }
+        @media(max-width:520px){
+          .hero-dach-panels{ height:200px!important; padding:0 16px 40px; }
+          .hero-panel{ width:80px!important; }
+        }
       `}</style>
 
       <div style={{ background:'linear-gradient(145deg,#030f1c 0%,#04111f 50%,#071929 100%)', minHeight:'88vh', display:'flex', alignItems:'center', overflow:'hidden', position:'relative' }}>
