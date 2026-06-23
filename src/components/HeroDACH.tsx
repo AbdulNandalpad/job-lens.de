@@ -116,15 +116,15 @@ export default function HeroDACH({ lang, user }: Props) {
         @media(max-width:960px){
           .hero-dach-layout{ grid-template-columns:1fr!important; padding:32px 24px 48px!important; min-height:auto!important; gap:28px!important; }
           .hero-dach-panels{ order:-1; justify-content:center!important; overflow:visible!important; padding:8px 0 0!important; margin:0!important; }
-          .hero-panels-inner{ height:118px!important; }
+          .hero-panels-inner{ height:160px!important; }
           .hero-panel{ width:58px!important; padding:0 2px!important; margin-left:-10px!important; z-index:0!important; transform:skewX(0deg)!important; border-radius:12px!important; }
           .hero-panel-first{ margin-left:0!important; }
           .hero-panel:hover{ transform:skewX(0deg) translateY(-8px)!important; z-index:10!important; }
-          .panel-content{ transform:skewX(0deg)!important; gap:6px!important; }
+          .panel-content{ transform:skewX(0deg)!important; gap:10px!important; }
           .panel-desc{ display:none!important; }
-          .panel-icon{ width:30px!important; height:30px!important; border-radius:8px!important; }
-          .panel-icon svg{ width:15px!important; height:15px!important; }
-          .panel-name{ font-size:8px!important; margin-bottom:0!important; letter-spacing:-0.2px!important; }
+          .panel-icon{ width:36px!important; height:36px!important; border-radius:10px!important; }
+          .panel-icon svg{ width:18px!important; height:18px!important; }
+          .panel-name{ font-size:9px!important; margin-bottom:0!important; letter-spacing:-0.2px!important; }
         }
       `}</style>
 
