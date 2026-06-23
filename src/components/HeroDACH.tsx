@@ -114,14 +114,17 @@ export default function HeroDACH({ lang, user }: Props) {
         .hero-panel:hover { transform: skewX(-6deg) translateY(-14px) !important; z-index: 10 !important; }
         .hero-panel:hover .panel-bar { opacity: 1 !important; }
         @media(max-width:960px){
-          .hero-dach-layout{ grid-template-columns:1fr!important; padding:32px 24px 48px!important; min-height:auto!important; gap:32px!important; }
-          .hero-dach-panels{ order:-1; justify-content:center!important; overflow:visible!important; padding:0!important; margin:0!important; }
-          .hero-panels-inner{ height:180px!important; }
-          .hero-panel{ width:76px!important; }
-        }
-        @media(max-width:520px){
-          .hero-panels-inner{ height:160px!important; }
-          .hero-panel{ width:68px!important; }
+          .hero-dach-layout{ grid-template-columns:1fr!important; padding:32px 24px 48px!important; min-height:auto!important; gap:28px!important; }
+          .hero-dach-panels{ order:-1; justify-content:center!important; overflow:visible!important; padding:8px 0 0!important; margin:0!important; }
+          .hero-panels-inner{ height:118px!important; }
+          .hero-panel{ width:58px!important; padding:0 2px!important; margin-left:-10px!important; z-index:0!important; transform:skewX(0deg)!important; border-radius:12px!important; }
+          .hero-panel-first{ margin-left:0!important; }
+          .hero-panel:hover{ transform:skewX(0deg) translateY(-8px)!important; z-index:10!important; }
+          .panel-content{ transform:skewX(0deg)!important; gap:6px!important; }
+          .panel-desc{ display:none!important; }
+          .panel-icon{ width:30px!important; height:30px!important; border-radius:8px!important; }
+          .panel-icon svg{ width:15px!important; height:15px!important; }
+          .panel-name{ font-size:8px!important; margin-bottom:0!important; letter-spacing:-0.2px!important; }
         }
       `}</style>
 
@@ -211,20 +214,20 @@ export default function HeroDACH({ lang, user }: Props) {
                 <Link
                   key={i}
                   href={go(feat.href)}
-                  className="hero-panel"
+                  className={`hero-panel${i === 0 ? ' hero-panel-first' : ''}`}
                   onMouseEnter={() => handleEnter(i)}
                   onMouseLeave={handleLeave}
                   style={{ flex:'0 0 auto', width:112, marginLeft:i===0?0:-24, background:feat.grad, borderRadius:18, border:`1px solid ${feat.accent}1a`, transform:'skewX(-6deg)', display:'flex', flexDirection:'column' as const, alignItems:'center', justifyContent:'center', padding:'0 12px', textDecoration:'none', boxShadow:`0 16px 48px rgba(0,0,0,0.38), inset 0 1px 0 rgba(255,255,255,0.04)`, position:'relative', overflow:'hidden', zIndex:features.length-i }}
                 >
                   <div className="panel-bar" style={{ position:'absolute', top:0, left:0, right:0, height:3, background:`linear-gradient(90deg,transparent,${feat.accent},transparent)`, opacity:0.45, transition:'opacity 0.25s' }} />
                   <div style={{ position:'absolute', bottom:0, left:0, right:0, height:80, background:'linear-gradient(0deg,rgba(0,0,0,0.35) 0%,transparent 100%)', pointerEvents:'none' }} />
-                  <div style={{ transform:'skewX(6deg)', display:'flex', flexDirection:'column' as const, alignItems:'center', gap:14, textAlign:'center' as const }}>
-                    <div style={{ width:50, height:50, borderRadius:14, background:`${feat.accent}16`, border:`1px solid ${feat.accent}30`, color:feat.accent, display:'flex', alignItems:'center', justifyContent:'center', boxShadow:`0 4px 18px ${feat.accent}18` }}>
+                  <div className="panel-content" style={{ transform:'skewX(6deg)', display:'flex', flexDirection:'column' as const, alignItems:'center', gap:14, textAlign:'center' as const }}>
+                    <div className="panel-icon" style={{ width:50, height:50, borderRadius:14, background:`${feat.accent}16`, border:`1px solid ${feat.accent}30`, color:feat.accent, display:'flex', alignItems:'center', justifyContent:'center', boxShadow:`0 4px 18px ${feat.accent}18` }}>
                       {feat.icon}
                     </div>
                     <div>
-                      <div style={{ fontFamily:f.heading, fontSize:12, fontWeight:700, color:'#fff', marginBottom:6, lineHeight:1.3 }}>{feat.name[lang]}</div>
-                      <div style={{ fontSize:10, color:'rgba(255,255,255,0.35)', lineHeight:1.55, maxWidth:80 }}>{feat.desc[lang]}</div>
+                      <div className="panel-name" style={{ fontFamily:f.heading, fontSize:12, fontWeight:700, color:'#fff', marginBottom:6, lineHeight:1.3 }}>{feat.name[lang]}</div>
+                      <div className="panel-desc" style={{ fontSize:10, color:'rgba(255,255,255,0.35)', lineHeight:1.55, maxWidth:80 }}>{feat.desc[lang]}</div>
                     </div>
                   </div>
                 </Link>
