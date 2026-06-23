@@ -380,6 +380,10 @@ export default function DACHDashboard() {
         @media(max-width:380px){
           .kpi-grid    { grid-template-columns:1fr!important }
         }
+        .start-cards { display:grid;grid-template-columns:repeat(3,1fr);gap:14px }
+        .more-tools  { display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:8px }
+        @media(max-width:768px){ .start-cards { grid-template-columns:1fr!important } }
+        @media(max-width:500px){ .more-tools  { grid-template-columns:repeat(2,1fr)!important } }
       `}</style>
 
       {/* ── HERO ─────────────────────────────────────── */}
@@ -528,30 +532,75 @@ export default function DACHDashboard() {
       {/* ── ANALYTICS BODY ───────────────────────────── */}
       <div className="dash-page" style={{ maxWidth: 1100, margin: '0 auto', padding: '28px 20px 80px' }}>
 
-        {/* ── Quick Actions ── */}
-        {isVisible('quick_actions') && (
-          <div style={{ ...cardStyle, marginBottom: 20 }}>
-            <SectionHeader icon="lightning" title={t('Schnellzugriff', 'Quick Actions')} sub={t('Direkt zu deinen Tools', 'Jump straight to your tools')} />
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: 10 }}>
-              {([
-                { label: t('Career Scan', 'Career Scan'),          icon: 'target'    as IconName, href: '/app/career-scan'  },
-                { label: t('Job-Suche', 'Job Search'),              icon: 'search'    as IconName, href: '/app/jobs'          },
-                { label: t('Lebenslauf', 'CV Builder'),             icon: 'document'  as IconName, href: '/app/cv-builder'    },
-                { label: t('Anschreiben', 'Cover Letter'),          icon: 'email'     as IconName, href: '/app/cover-letter'  },
-                { label: t('Auto Apply', 'Auto Apply'),             icon: 'bot'       as IconName, href: '/app/auto-apply'    },
-                { label: t('Zeugnis-Decoder', 'Zeugnis Decoder'),   icon: 'flag-de'   as IconName, href: '/app/zeugnis'       },
-              ] as { label: string; icon: IconName; href: string }[]).map(a => (
-                <button key={a.href} onClick={() => router.push(a.href)}
-                  style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '11px 14px', borderRadius: 12, border: `1px solid ${border}`, background: 'rgba(255,255,255,.04)', color: txt2, fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: "'DM Sans',sans-serif", transition: 'all .15s', textAlign: 'left' }}
-                  onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.borderColor = blue + '60'; (e.currentTarget as HTMLButtonElement).style.color = '#fff' }}
-                  onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.borderColor = border; (e.currentTarget as HTMLButtonElement).style.color = txt2 }}>
-                  <SvgIcon name={a.icon} size={16} color="currentColor" />
-                  <span>{a.label}</span>
-                </button>
-              ))}
-            </div>
+        {/* ── Start Here — 3 prominent action cards ── */}
+        <div style={{ marginBottom: 20 }}>
+          <div style={{ fontSize: 11, color: txt3, letterSpacing: 1, textTransform: 'uppercase' as const, marginBottom: 14, fontWeight: 600 }}>
+            {t('Wo möchtest du starten?', 'Where would you like to start?')}
           </div>
-        )}
+          <div className="start-cards">
+            {([
+              {
+                step: 'STEP 1', color: blue, href: '/app/career-scan', icon: 'target' as IconName,
+                title: t('Career Scan', 'Career Scan'),
+                desc: t('KI analysiert deinen Lebenslauf in 30 Sek. — Score, Gehaltsspanne & Skill-Lücken.', 'AI analyses your CV in 30s — score, salary range and skill gaps.'),
+                cta: t('Jetzt starten →', 'Start now →'),
+              },
+              {
+                step: 'STEP 2', color: emerald, href: '/app/jobs', icon: 'search' as IconName,
+                title: t('Jobs finden', 'Find Jobs'),
+                desc: t('KI-Jobsuche im DACH-Markt — passend zu deinem Profil und deiner Erfahrung.', 'AI job search across DACH — matched to your profile and experience.'),
+                cta: t('Jobs durchsuchen →', 'Browse jobs →'),
+              },
+              {
+                step: 'STEP 3', color: purple, href: '/app/cv-builder', icon: 'document' as IconName,
+                title: t('Bewerben', 'Apply'),
+                desc: t('Lebenslauf & Anschreiben auf jede Stelle zuschneiden — ein Klick, ATS-optimiert.', 'Tailor your CV and cover letter to every job — one click, ATS-optimised.'),
+                cta: t('CV Builder öffnen →', 'Open CV Builder →'),
+              },
+            ]).map(card => (
+              <button key={card.href} onClick={() => router.push(card.href)}
+                style={{ background: `linear-gradient(135deg,${card.color}18,${card.color}08)`, border: `1.5px solid ${card.color}40`, borderRadius: 18, padding: '24px 20px', cursor: 'pointer', textAlign: 'left' as const, fontFamily: "'DM Sans',sans-serif", transition: 'all .2s', width: '100%' }}
+                onMouseEnter={e => { e.currentTarget.style.borderColor = card.color; e.currentTarget.style.background = `linear-gradient(135deg,${card.color}28,${card.color}12)` }}
+                onMouseLeave={e => { e.currentTarget.style.borderColor = `${card.color}40`; e.currentTarget.style.background = `linear-gradient(135deg,${card.color}18,${card.color}08)` }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
+                  <div style={{ width: 44, height: 44, borderRadius: 12, background: `${card.color}20`, border: `1px solid ${card.color}30`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <SvgIcon name={card.icon} size={22} color={card.color} />
+                  </div>
+                  <span style={{ fontSize: 10, fontWeight: 700, color: card.color, background: `${card.color}15`, padding: '3px 10px', borderRadius: 20, letterSpacing: 0.5 }}>{card.step}</span>
+                </div>
+                <div style={{ fontFamily: "'Outfit',sans-serif", fontSize: 17, fontWeight: 700, color: txt1, marginBottom: 6 }}>{card.title}</div>
+                <div style={{ fontSize: 13, color: txt2, lineHeight: 1.55 }}>{card.desc}</div>
+                <div style={{ marginTop: 16, fontSize: 12, color: card.color, fontWeight: 600 }}>{card.cta}</div>
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* ── More Tools ── */}
+        <div style={{ ...cardStyle, marginBottom: 20 }}>
+          <div style={{ fontSize: 11, color: txt3, letterSpacing: 1, textTransform: 'uppercase' as const, marginBottom: 12, fontWeight: 600 }}>
+            {t('Weitere Tools', 'More Tools')}
+          </div>
+          <div className="more-tools">
+            {([
+              { label: t('Anschreiben', 'Cover Letter'), icon: 'email'    as IconName, href: '/app/cover-letter' },
+              { label: t('Auto Apply',  'Auto Apply'),   icon: 'bot'      as IconName, href: '/app/auto-apply'   },
+              { label: t('Interview',   'Interview'),    icon: 'mic'      as IconName, href: '/app/interview'    },
+              { label: t('Gehalt Sim.', 'Salary Sim.'),  icon: 'coin'     as IconName, href: '/app/salary-sim'   },
+              { label: t('Tracker',     'Tracker'),      icon: 'clipboard'as IconName, href: '/app/tracker'      },
+              { label: t('Zeugnis',     'Zeugnis'),      icon: 'flag-de'  as IconName, href: '/app/zeugnis'      },
+              { label: 'Kira AI',                        icon: 'bot'      as IconName, href: '/app/ai'           },
+            ] as { label: string; icon: IconName; href: string }[]).map(a => (
+              <button key={a.href} onClick={() => router.push(a.href)}
+                style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 12px', borderRadius: 10, border: `1px solid ${border}`, background: 'rgba(255,255,255,.04)', color: txt2, fontSize: 12, fontWeight: 500, cursor: 'pointer', fontFamily: "'DM Sans',sans-serif", transition: 'all .15s', textAlign: 'left' as const }}
+                onMouseEnter={e => { e.currentTarget.style.borderColor = blue + '60'; e.currentTarget.style.color = '#fff' }}
+                onMouseLeave={e => { e.currentTarget.style.borderColor = border; e.currentTarget.style.color = txt2 }}>
+                <SvgIcon name={a.icon} size={15} color="currentColor" />
+                <span>{a.label}</span>
+              </button>
+            ))}
+          </div>
+        </div>
 
         {/* ── Career Intelligence Panel ── */}
         {isVisible('career_intel') && <CareerIntelPanel accentColor={blue} market="eu" />}

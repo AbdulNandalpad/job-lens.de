@@ -319,6 +319,10 @@ export default function IndiaDashboard() {
         @media(max-width:380px){
           .kpi-grid{grid-template-columns:1fr!important}
         }
+        .start-cards{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+        .more-tools{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:8px}
+        @media(max-width:768px){.start-cards{grid-template-columns:1fr!important}}
+        @media(max-width:500px){.more-tools{grid-template-columns:repeat(2,1fr)!important}}
       `}</style>
 
       {/* ── HERO ── */}
@@ -411,30 +415,75 @@ export default function IndiaDashboard() {
       {/* ── ANALYTICS BODY ── */}
       <div className="dash-page" style={{maxWidth:1100,margin:'0 auto',padding:'28px 20px 80px'}}>
 
-        {/* ── Quick Actions ── */}
-        {isVisible('quick_actions') && (
-          <div style={{...cardStyle,marginBottom:20}}>
-            <SectionHeader icon="lightning" title="Quick Actions" sub="Jump straight to your tools"/>
-            <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill, minmax(140px, 1fr))',gap:10}}>
-              {([
-                {label:'ATS Score',       icon:'clipboard' as IconName, href:'/in/career-scan'},
-                {label:'Career Analysis', icon:'target'    as IconName, href:'/in/profile-analysis'},
-                {label:'Job Search',      icon:'search'    as IconName, href:'/in/jobs'},
-                {label:'CV Builder',      icon:'document'  as IconName, href:'/in/cv-builder'},
-                {label:'Cover Letter',    icon:'email'     as IconName, href:'/in/cover-letter'},
-                {label:'Work Visa DE',    icon:'passport'  as IconName, href:'/in/visa'},
-              ] as {label:string;icon:IconName;href:string}[]).map(a=>(
-                <button key={a.href} onClick={()=>router.push(a.href)}
-                  style={{display:'flex',alignItems:'center',gap:9,padding:'11px 14px',borderRadius:12,border:`1px solid ${border}`,background:'rgba(255,255,255,.04)',color:txt2,fontSize:12,fontWeight:600,cursor:'pointer',fontFamily:"'DM Sans',sans-serif",transition:'all .15s',textAlign:'left'}}
-                  onMouseEnter={e=>{(e.currentTarget as HTMLButtonElement).style.borderColor=saffron+'60';(e.currentTarget as HTMLButtonElement).style.color='#fff'}}
-                  onMouseLeave={e=>{(e.currentTarget as HTMLButtonElement).style.borderColor=border;(e.currentTarget as HTMLButtonElement).style.color=txt2}}>
-                  <SvgIcon name={a.icon} size={16} color="currentColor" />
-                  <span>{a.label}</span>
-                </button>
-              ))}
-            </div>
+        {/* ── Start Here — 3 prominent action cards ── */}
+        <div style={{marginBottom:20}}>
+          <div style={{fontSize:11,color:txt3,letterSpacing:1,textTransform:'uppercase' as const,marginBottom:14,fontWeight:600}}>
+            Where would you like to start?
           </div>
-        )}
+          <div className="start-cards">
+            {([
+              {
+                step:'STEP 1', color:saffron, href:'/in/career-scan', icon:'target' as IconName,
+                title:'ATS Score',
+                desc:'Paste your CV and any job description. Get an instant ATS score, keyword gaps and fix suggestions.',
+                cta:'Get my ATS score →',
+              },
+              {
+                step:'STEP 2', color:emerald, href:'/in/jobs', icon:'search' as IconName,
+                title:'Find Jobs',
+                desc:'AI job search across Bangalore, Hyderabad, Mumbai and more — matched to your profile.',
+                cta:'Browse jobs →',
+              },
+              {
+                step:'STEP 3', color:purple, href:'/in/cv-builder', icon:'document' as IconName,
+                title:'Tailor & Apply',
+                desc:'Rewrite your CV and cover letter for any job description — ATS-optimised in one click.',
+                cta:'Open CV Builder →',
+              },
+            ]).map(card=>(
+              <button key={card.href} onClick={()=>router.push(card.href)}
+                style={{background:`linear-gradient(135deg,${card.color}18,${card.color}08)`,border:`1.5px solid ${card.color}40`,borderRadius:18,padding:'24px 20px',cursor:'pointer',textAlign:'left' as const,fontFamily:"'DM Sans',sans-serif",transition:'all .2s',width:'100%'}}
+                onMouseEnter={e=>{e.currentTarget.style.borderColor=card.color;e.currentTarget.style.background=`linear-gradient(135deg,${card.color}28,${card.color}12)`}}
+                onMouseLeave={e=>{e.currentTarget.style.borderColor=`${card.color}40`;e.currentTarget.style.background=`linear-gradient(135deg,${card.color}18,${card.color}08)`}}>
+                <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:14}}>
+                  <div style={{width:44,height:44,borderRadius:12,background:`${card.color}20`,border:`1px solid ${card.color}30`,display:'flex',alignItems:'center',justifyContent:'center'}}>
+                    <SvgIcon name={card.icon} size={22} color={card.color}/>
+                  </div>
+                  <span style={{fontSize:10,fontWeight:700,color:card.color,background:`${card.color}15`,padding:'3px 10px',borderRadius:20,letterSpacing:0.5}}>{card.step}</span>
+                </div>
+                <div style={{fontFamily:"'Outfit',sans-serif",fontSize:17,fontWeight:700,color:txt1,marginBottom:6}}>{card.title}</div>
+                <div style={{fontSize:13,color:txt2,lineHeight:1.55}}>{card.desc}</div>
+                <div style={{marginTop:16,fontSize:12,color:card.color,fontWeight:600}}>{card.cta}</div>
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* ── More Tools ── */}
+        <div style={{...cardStyle,marginBottom:20}}>
+          <div style={{fontSize:11,color:txt3,letterSpacing:1,textTransform:'uppercase' as const,marginBottom:12,fontWeight:600}}>
+            More Tools
+          </div>
+          <div className="more-tools">
+            {([
+              {label:'Cover Letter',    icon:'email'   as IconName, href:'/in/cover-letter'},
+              {label:'Auto Apply',      icon:'bot'     as IconName, href:'/in/jobs'},
+              {label:'Interview Prep',  icon:'mic'     as IconName, href:'/in/interview'},
+              {label:'Salary Sim.',     icon:'coin'    as IconName, href:'/in/salary-sim'},
+              {label:'Tracker',         icon:'clipboard'as IconName,href:'/in/tracker'},
+              {label:'Work Visa DE',    icon:'passport'as IconName, href:'/in/visa'},
+              {label:'Kira AI',         icon:'bot'     as IconName, href:'/in/ai'},
+            ] as {label:string;icon:IconName;href:string}[]).map(a=>(
+              <button key={a.href} onClick={()=>router.push(a.href)}
+                style={{display:'flex',alignItems:'center',gap:8,padding:'10px 12px',borderRadius:10,border:`1px solid ${border}`,background:'rgba(255,255,255,.04)',color:txt2,fontSize:12,fontWeight:500,cursor:'pointer',fontFamily:"'DM Sans',sans-serif",transition:'all .15s',textAlign:'left' as const}}
+                onMouseEnter={e=>{e.currentTarget.style.borderColor=saffron+'60';e.currentTarget.style.color='#fff'}}
+                onMouseLeave={e=>{e.currentTarget.style.borderColor=border;e.currentTarget.style.color=txt2}}>
+                <SvgIcon name={a.icon} size={15} color="currentColor"/>
+                <span>{a.label}</span>
+              </button>
+            ))}
+          </div>
+        </div>
 
         {/* ── Career Intelligence Panel ── */}
         {isVisible('career_intel') && <CareerIntelPanel accentColor={saffron} market="in" />}

@@ -596,8 +596,8 @@ export default function HomePage() {
           ))}
         </div>
 
-        {/* ── Auto Apply spotlight ── */}
-        <div className="jl-subsection">
+        {/* ── Auto Apply spotlight — removed, covered by hero slider + feature grid ── */}
+        {false && <div className="jl-subsection">
           <div className="aa-spotlight-grid" style={{
             background: 'linear-gradient(160deg, #0d1f30 0%, #091624 100%)',
             borderRadius: 20,
@@ -675,7 +675,7 @@ export default function HomePage() {
               .aa-spotlight-grid { grid-template-columns: 1fr !important; padding: 28px 20px !important; gap: 32px !important; }
             }
           `}</style>
-        </div>
+        </div>}
 
         {/* ── How it works ── */}
         <div className="jl-subsection">
@@ -791,8 +791,8 @@ export default function HomePage() {
           </div>
         </div>
 
-        {/* ── Job Case Coming Soon ── */}
-        <div className="jl-subsection">
+        {/* ── Job Case Coming Soon — hidden until ready ── */}
+        {false && <div className="jl-subsection">
           <div style={{
             background: 'linear-gradient(160deg, #0d1f30 0%, #091624 100%)',
             borderRadius: 20,
@@ -901,7 +901,7 @@ export default function HomePage() {
               .jc-hero-grid > div:last-child { display: none !important; }
             }
           `}</style>
-        </div>
+        </div>}
 
         {/* ── Pricing ── */}
         <div className="jl-subsection">
