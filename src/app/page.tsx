@@ -562,6 +562,62 @@ export default function HomePage() {
       {/* ── Hero ── */}
       <HeroDACH lang={lang} user={user} />
 
+      {/* ── Job Case spotlight ── */}
+      <div style={{ background: 'linear-gradient(135deg, #081410 0%, #0a1f12 50%, #071a0f 100%)', borderTop: '1px solid rgba(34,197,94,0.12)', borderBottom: '1px solid rgba(34,197,94,0.12)', padding: '52px 24px' }}>
+        <div style={{ maxWidth: 1100, margin: '0 auto', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 56, alignItems: 'center' }}>
+          {/* Left: copy */}
+          <div>
+            <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: 'rgba(34,197,94,0.10)', border: '1px solid rgba(34,197,94,0.22)', borderRadius: 20, padding: '5px 14px', marginBottom: 20 }}>
+              <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#22c55e', display: 'inline-block', boxShadow: '0 0 6px #22c55e' }} />
+              <span style={{ fontSize: 11, fontWeight: 700, color: '#22c55e', letterSpacing: 1.2, textTransform: 'uppercase' as const }}>
+                {lang === 'DE' ? 'Neu — Job Case' : 'New — Job Case'}
+              </span>
+            </div>
+            <h2 style={{ fontFamily: f.heading, fontSize: 'clamp(22px,3vw,36px)', fontWeight: 800, color: '#fff', lineHeight: 1.12, letterSpacing: -1, margin: '0 0 16px' }}>
+              {lang === 'DE'
+                ? <><span style={{ color: 'rgba(255,255,255,0.9)' }}>Ersetze das Anschreiben</span><br /><span style={{ color: '#22c55e' }}>durch einen 5-Minuten-Beweis.</span></>
+                : <><span style={{ color: 'rgba(255,255,255,0.9)' }}>Replace the cover letter</span><br /><span style={{ color: '#22c55e' }}>with a 5-minute proof.</span></>}
+            </h2>
+            <p style={{ fontSize: 15, color: 'rgba(255,255,255,0.45)', lineHeight: 1.8, margin: '0 0 28px', maxWidth: 420 }}>
+              {lang === 'DE'
+                ? 'Nimm dich auf, beantworte zwei rollenspezifische Szenarien und sende Recruitern einen persönlichen Link — ohne dass sie einen Account brauchen.'
+                : 'Record yourself, answer two role-specific scenarios on video and send recruiters a personal link — no account needed on their side.'}
+            </p>
+            <a href={user ? '/app/job-case/new' : `/login?next=${encodeURIComponent('/app/job-case/new')}`} style={{ display: 'inline-block', background: '#22c55e', color: '#000', padding: '13px 28px', borderRadius: 10, fontFamily: f.heading, fontWeight: 700, fontSize: 14, textDecoration: 'none', boxShadow: '0 4px 20px rgba(34,197,94,0.35)', letterSpacing: -0.2 }}>
+              {lang === 'DE' ? 'Job Case erstellen →' : 'Create Job Case →'}
+            </a>
+          </div>
+          {/* Right: 3 feature points */}
+          <div style={{ display: 'flex', flexDirection: 'column' as const, gap: 16 }}>
+            {([
+              {
+                icon: '🎥',
+                title: lang === 'DE' ? '5-Minuten-Video-Interview' : '5-minute video interview',
+                body: lang === 'DE' ? 'Stelle dich vor (2 Min.) und beantworte 2 echte Szenarien aus der Stellenanzeige (je 1,5 Min.) — die Fragen werden während der Aufnahme eingeblendet.' : 'Intro (2 min) + 2 real scenarios from the job posting (1.5 min each) — prompts shown on screen while recording.',
+              },
+              {
+                icon: '✅',
+                title: lang === 'DE' ? 'Kompetenznachweis + Matching' : 'Skill proof + match score',
+                body: lang === 'DE' ? 'KI vergleicht deinen Lebenslauf mit den Anforderungen und zeigt Recruitern, wie gut du passt — mit konkreten Belegen statt leerer Worte.' : 'AI maps your CV against job requirements and shows recruiters exactly how well you match — with concrete evidence, not empty claims.',
+              },
+              {
+                icon: '🔗',
+                title: lang === 'DE' ? 'Persönlicher Recruiter-Link' : 'Personal recruiter link',
+                body: lang === 'DE' ? 'Füge den Link in deine Bewerbung ein. Recruiter öffnen ihn direkt — kein Account, kein Download. Du wirst benachrichtigt, wenn jemand schaut.' : 'Paste the link into your application. Recruiters open it instantly — no account, no download. You get notified when someone views it.',
+              },
+            ] as { icon: string; title: string; body: string }[]).map((item, i) => (
+              <div key={i} style={{ display: 'flex', gap: 14, padding: '16px 18px', background: 'rgba(34,197,94,0.05)', border: '1px solid rgba(34,197,94,0.12)', borderRadius: 14 }}>
+                <span style={{ fontSize: 22, flexShrink: 0, marginTop: 2 }}>{item.icon}</span>
+                <div>
+                  <div style={{ fontFamily: f.heading, fontSize: 14, fontWeight: 700, color: '#fff', marginBottom: 4 }}>{item.title}</div>
+                  <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.45)', lineHeight: 1.65 }}>{item.body}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
       {/* ── Market Facts Bar ── */}
       <div ref={trustRef} style={{ background: 'linear-gradient(90deg,#07111f 0%,#0d1e30 50%,#07111f 100%)', borderBottom: '1px solid rgba(55,138,221,0.10)' }}>
         <div className="jl-trust-grid" style={{ maxWidth: 1100, margin: '0 auto', padding: '0 24px', display: 'grid', gridTemplateColumns: 'repeat(4,1fr)' }}>
