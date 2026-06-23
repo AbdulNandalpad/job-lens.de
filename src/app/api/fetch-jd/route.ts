@@ -50,5 +50,17 @@ export async function POST(req: NextRequest) {
   const text = await fetchJobText(url.trim())
   if (!text) return NextResponse.json({ blocked: true }, { status: 200 })
 
+  // Detect blocked/CAPTCHA pages — these contain no real JD content
+  const lower = text.toLowerCase()
+  const blockSignals = [
+    'zugriff verweigert', 'access denied', 'are you a robot', 'are you human',
+    'captcha', 'cloudflare', 'unusual traffic', 'suspicious activity',
+    'select your country', 'verdächtiges verhalten', 'ungewöhnliches verhalten',
+    'melde dich an um fortzufahren', 'sign in to continue', 'enable javascript',
+    'please enable cookies', 'just a moment', 'checking your browser',
+  ]
+  const isBlocked = blockSignals.some(s => lower.includes(s))
+  if (isBlocked) return NextResponse.json({ blocked: true }, { status: 200 })
+
   return NextResponse.json({ text })
 }
