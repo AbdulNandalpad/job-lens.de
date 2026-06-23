@@ -740,6 +740,7 @@ export default function CVBuilderPage() {
   const [jobLabel, setJobLabel] = useState('')
   const [jobDesc, setJobDesc] = useState('')        // editable full job description
   const [jobDescOpen, setJobDescOpen] = useState(false)
+  const [fetchingJd, setFetchingJd] = useState(false)
   const [template, setTemplate] = useState<Template>('executive')
   const [tone, setTone] = useState<Tone>('professional')
   const [lang, setLang] = useState<Lang>('EN')
@@ -867,6 +868,18 @@ export default function CVBuilderPage() {
     window.addEventListener('resize', calc)
     return () => window.removeEventListener('resize', calc)
   }, [])
+
+  async function fetchFullJd() {
+    const url = (job as any)?.job_apply_link
+    if (!url) return
+    setFetchingJd(true)
+    try {
+      const res = await fetch('/api/fetch-jd', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ url }) })
+      const data = await res.json()
+      if (data.text) { setJobDesc(data.text); setJobDescOpen(true) }
+    } catch { /* ignore */ }
+    setFetchingJd(false)
+  }
 
   async function generate(confirmedSkills: string[] = []) {
     if (!cvText.trim()) return
@@ -1396,10 +1409,36 @@ export default function CVBuilderPage() {
             {/* Editable full job description — better JD = better tailoring */}
             {jobLabel && (
               <div style={{ marginTop: 8 }}>
+                {/* JD quality indicator */}
+                {(() => {
+                  const jdLen = (jobDesc || job?.job_description || '').length
+                  const hasUrl = !!(job as any)?.job_apply_link
+                  const quality = jdLen < 300 ? 'short' : jdLen < 800 ? 'partial' : 'full'
+                  const dot = quality === 'full' ? '#4ade80' : quality === 'partial' ? '#fbbf24' : '#f87171'
+                  const label = quality === 'full'
+                    ? (lang === 'DE' ? `Vollständig · ${jdLen} Zeichen` : `Full JD · ${jdLen} chars`)
+                    : quality === 'partial'
+                    ? (lang === 'DE' ? `Möglicherweise unvollständig · ${jdLen} Zeichen` : `May be incomplete · ${jdLen} chars`)
+                    : (lang === 'DE' ? `Zu kurz · ${jdLen} Zeichen — für bessere Ergebnisse vollständige Beschreibung einfügen` : `Too short · ${jdLen} chars — paste the full JD for better tailoring`)
+                  return (
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginBottom: 4 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 10, color: 'rgba(255,255,255,0.5)' }}>
+                        <span style={{ width: 6, height: 6, borderRadius: '50%', background: dot, flexShrink: 0, display: 'inline-block' }}/>
+                        {label}
+                      </div>
+                      {quality !== 'full' && hasUrl && (
+                        <button onClick={fetchFullJd} disabled={fetchingJd}
+                          style={{ fontSize: 10, fontWeight: 700, color: currentAccent, background: 'none', border: 'none', cursor: fetchingJd ? 'wait' : 'pointer', padding: 0, opacity: fetchingJd ? .6 : 1, whiteSpace: 'nowrap', flexShrink: 0 }}>
+                          {fetchingJd ? (lang === 'DE' ? 'Lädt…' : 'Fetching…') : (lang === 'DE' ? '↓ Volltext laden' : '↓ Fetch full JD')}
+                        </button>
+                      )}
+                    </div>
+                  )
+                })()}
                 <button
                   onClick={() => setJobDescOpen(o => !o)}
                   style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'none', border: 'none', cursor: 'pointer', padding: '4px 2px', color: 'rgba(255,255,255,0.6)', fontSize: 11, fontWeight: 600 }}>
-                  <span>{lang === 'DE' ? 'Vollständige Stellenbeschreibung' : 'Full job description'}{jobDesc ? ` · ${jobDesc.length}` : ''}</span>
+                  <span>{lang === 'DE' ? 'Vollständige Stellenbeschreibung' : 'Full job description'}</span>
                   <span style={{ transform: jobDescOpen ? 'rotate(180deg)' : 'none', transition: 'transform .15s' }}>▾</span>
                 </button>
                 {jobDescOpen && (

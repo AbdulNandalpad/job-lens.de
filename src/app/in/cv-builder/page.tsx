@@ -635,6 +635,9 @@ export default function IndiaCVBuilderPage() {
   const [previewTab,      setPreviewTab]      = useState<'original' | 'generated'>('generated')
   const [originalFileUrl, setOriginalFileUrl] = useState<string | null>(null)
   const [originalFileIsPdf, setOriginalFileIsPdf] = useState(true)
+  const [jobDesc,         setJobDesc]         = useState('')
+  const [jobDescOpen,     setJobDescOpen]     = useState(false)
+  const [fetchingJd,      setFetchingJd]      = useState(false)
 
   const { credits, setCredits, needsCrossMarket, crossMarketAmount } = useCredits()
   const CV_COST = CREDIT_COST.tailorCv
@@ -666,7 +669,7 @@ export default function IndiaCVBuilderPage() {
     const jobRaw    = sessionStorage.getItem(SS.inSelectedJob) || sessionStorage.getItem(SS.cvbJob)
     const savedRole = sessionStorage.getItem(SS.sjsTargetRole) || ''
     setCvText(cv)
-    if (jobRaw) { try { const p = JSON.parse(jobRaw); setJob(p); setJobLabel(`${p.employer_name} - ${p.job_title}`) } catch { } }
+    if (jobRaw) { try { const p = JSON.parse(jobRaw); setJob(p); setJobLabel(`${p.employer_name} - ${p.job_title}`); if (p.job_description) setJobDesc(p.job_description) } catch { } }
     else if (savedRole) setJobLabel(savedRole)
     const saved     = sessionStorage.getItem(SS.cvbTailored)
     const savedData = sessionStorage.getItem(SS.cvbData)
@@ -677,6 +680,18 @@ export default function IndiaCVBuilderPage() {
       try { const s = JSON.parse(atsRaw); setAtsSuggestions(s); setTemplate('clean'); setAtsFromScan(true) } catch { }
     }
   }, [])
+
+  async function fetchFullJd() {
+    const url = (job as any)?.job_apply_link
+    if (!url) return
+    setFetchingJd(true)
+    try {
+      const res = await fetch('/api/fetch-jd', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ url }) })
+      const data = await res.json()
+      if (data.text) { setJobDesc(data.text); setJobDescOpen(true) }
+    } catch { /* ignore */ }
+    setFetchingJd(false)
+  }
 
   async function handleCvFile(file: File) {
     setCvFileName(file.name); setCvText(''); setFileLoading(true)
@@ -723,7 +738,7 @@ Rules:
 - tools: 10-20 specific technologies
 - tone: ${tone}, language: ${lang}
 ${job ? `- Tailor for: ${job.job_title} at ${job.employer_name}` : ''}
-${job?.job_description ? `- Job context: ${job.job_description}` : ''}
+${(jobDesc || job?.job_description) ? `- Job context: ${jobDesc || job?.job_description}` : ''}
 ${confirmedSkills.length > 0 ? `- User confirmed they also have these skills (include them): ${confirmedSkills.join(', ')}` : ''}
 ${atsSuggestions?.missing_keywords?.length ? `- ATS PRIORITY: Naturally incorporate these missing keywords: ${atsSuggestions.missing_keywords.join(', ')}` : ''}
 ${atsSuggestions?.quick_fixes?.length ? `- ATS QUICK FIXES:\n${atsSuggestions.quick_fixes.map((f: string) => `  * ${f}`).join('\n')}` : ''}
@@ -1056,6 +1071,55 @@ ${atsSuggestions?.section_gaps?.length ? `- ATS SECTION GAPS to address: ${atsSu
               </span>
             </div>
             {jobLabel && <div style={{ marginTop: 12, padding: '8px 10px', background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 8 }}><div style={{ fontSize: 9, color: accent, fontWeight: 700, letterSpacing: 0.8, textTransform: 'uppercase', marginBottom: 3 }}>Tailoring for</div><div style={{ fontSize: 11, color: 'rgba(255,255,255,0.8)', lineHeight: 1.4 }}>{jobLabel}</div></div>}
+
+            {/* JD quality indicator + editable field */}
+            {jobLabel && (
+              <div style={{ marginTop: 8 }}>
+                {(() => {
+                  const jdLen = (jobDesc || job?.job_description || '').length
+                  const hasUrl = !!(job as any)?.job_apply_link
+                  const quality = jdLen < 300 ? 'short' : jdLen < 800 ? 'partial' : 'full'
+                  const dot = quality === 'full' ? '#4ade80' : quality === 'partial' ? '#fbbf24' : '#f87171'
+                  const label = quality === 'full'
+                    ? `Full JD · ${jdLen} chars`
+                    : quality === 'partial'
+                    ? `May be incomplete · ${jdLen} chars`
+                    : `Too short · ${jdLen} chars — paste full JD for better tailoring`
+                  return (
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginBottom: 4 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 10, color: 'rgba(255,255,255,0.5)' }}>
+                        <span style={{ width: 6, height: 6, borderRadius: '50%', background: dot, flexShrink: 0, display: 'inline-block' }}/>
+                        {label}
+                      </div>
+                      {quality !== 'full' && hasUrl && (
+                        <button onClick={fetchFullJd} disabled={fetchingJd}
+                          style={{ fontSize: 10, fontWeight: 700, color: accent, background: 'none', border: 'none', cursor: fetchingJd ? 'wait' : 'pointer', padding: 0, opacity: fetchingJd ? .6 : 1, whiteSpace: 'nowrap', flexShrink: 0 }}>
+                          {fetchingJd ? 'Fetching…' : '↓ Fetch full JD'}
+                        </button>
+                      )}
+                    </div>
+                  )
+                })()}
+                <button onClick={() => setJobDescOpen(o => !o)}
+                  style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'none', border: 'none', cursor: 'pointer', padding: '4px 2px', color: 'rgba(255,255,255,0.6)', fontSize: 11, fontWeight: 600 }}>
+                  <span>Full job description</span>
+                  <span style={{ transform: jobDescOpen ? 'rotate(180deg)' : 'none', transition: 'transform .15s' }}>▾</span>
+                </button>
+                {jobDescOpen && (
+                  <>
+                    <textarea value={jobDesc} onChange={e => setJobDesc(e.target.value)}
+                      placeholder="Paste the complete job posting here — the fuller it is, the better the CV is tailored."
+                      rows={6}
+                      style={{ width: '100%', marginTop: 6, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 7, color: '#E6F1FB', fontSize: 12, padding: '8px 10px', resize: 'vertical', fontFamily: 'inherit', outline: 'none', boxSizing: 'border-box', lineHeight: 1.5 }}
+                    />
+                    <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.35)', marginTop: 4, lineHeight: 1.4 }}>
+                      Tip: job boards often shorten descriptions. Paste the full text from the original posting for best results.
+                    </div>
+                  </>
+                )}
+              </div>
+            )}
+
             <input ref={fileInputRef} type="file" accept=".pdf,.doc,.docx,.txt" style={{ display: 'none' }} onChange={e => e.target.files?.[0] && handleCvFile(e.target.files[0])} />
             {!cvText ? (
               <div onClick={() => fileInputRef.current?.click()} onDragOver={e => e.preventDefault()} onDrop={e => { e.preventDefault(); e.dataTransfer.files?.[0] && handleCvFile(e.dataTransfer.files[0]) }}
