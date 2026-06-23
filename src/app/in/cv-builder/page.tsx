@@ -638,6 +638,7 @@ export default function IndiaCVBuilderPage() {
   const [jobDesc,         setJobDesc]         = useState('')
   const [jobDescOpen,     setJobDescOpen]     = useState(false)
   const [fetchingJd,      setFetchingJd]      = useState(false)
+  const [jdFetchError,    setJdFetchError]    = useState<string | null>(null)
 
   const { credits, setCredits, needsCrossMarket, crossMarketAmount } = useCredits()
   const CV_COST = CREDIT_COST.tailorCv
@@ -691,13 +692,14 @@ export default function IndiaCVBuilderPage() {
       if (data.text) {
         setJobDesc(data.text)
         setJobDescOpen(true)
+        setJdFetchError(null)
       } else {
         setJobDescOpen(true)
-        alert('Could not fetch the job posting (site blocked it). Please paste the full JD manually below.')
+        setJdFetchError('Site blocked the fetch. Open the job posting, copy the full description and paste it below:')
       }
     } catch {
       setJobDescOpen(true)
-      alert('Connection error — please paste the full JD manually below.')
+      setJdFetchError('Connection error. Open the job posting and paste the description manually below:')
     }
     setFetchingJd(false)
   }
@@ -1100,15 +1102,35 @@ ${atsSuggestions?.section_gaps?.length ? `- ATS SECTION GAPS to address: ${atsSu
                         <span style={{ width: 6, height: 6, borderRadius: '50%', background: dot, flexShrink: 0, display: 'inline-block' }}/>
                         {label}
                       </div>
-                      {quality !== 'full' && hasUrl && (
-                        <button onClick={fetchFullJd} disabled={fetchingJd}
-                          style={{ fontSize: 10, fontWeight: 700, color: accent, background: 'none', border: 'none', cursor: fetchingJd ? 'wait' : 'pointer', padding: 0, opacity: fetchingJd ? .6 : 1, whiteSpace: 'nowrap', flexShrink: 0 }}>
-                          {fetchingJd ? 'Fetching…' : '↓ Fetch full JD'}
-                        </button>
-                      )}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
+                        {quality !== 'full' && hasUrl && (
+                          <button onClick={fetchFullJd} disabled={fetchingJd}
+                            style={{ fontSize: 10, fontWeight: 700, color: accent, background: 'none', border: 'none', cursor: fetchingJd ? 'wait' : 'pointer', padding: 0, opacity: fetchingJd ? .6 : 1, whiteSpace: 'nowrap' }}>
+                            {fetchingJd ? 'Fetching…' : '↓ Fetch full JD'}
+                          </button>
+                        )}
+                        {hasUrl && (
+                          <a href={(job as any).job_apply_link} target="_blank" rel="noopener noreferrer"
+                            style={{ fontSize: 10, color: 'rgba(255,255,255,0.35)', textDecoration: 'none', whiteSpace: 'nowrap' }}
+                            title="Open job posting">
+                            ↗ Posting
+                          </a>
+                        )}
+                      </div>
                     </div>
                   )
                 })()}
+                {jdFetchError && (
+                  <div style={{ fontSize: 11, color: '#fca5a5', background: 'rgba(248,113,113,0.08)', border: '1px solid rgba(248,113,113,0.18)', borderRadius: 8, padding: '8px 10px', marginBottom: 6, lineHeight: 1.5 }}>
+                    {jdFetchError}{' '}
+                    {(job as any)?.job_apply_link && (
+                      <a href={(job as any).job_apply_link} target="_blank" rel="noopener noreferrer"
+                        style={{ color: accent, fontWeight: 700, textDecoration: 'underline' }}>
+                        Open job posting →
+                      </a>
+                    )}
+                  </div>
+                )}
                 <button onClick={() => setJobDescOpen(o => !o)}
                   style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'none', border: 'none', cursor: 'pointer', padding: '4px 2px', color: 'rgba(255,255,255,0.6)', fontSize: 11, fontWeight: 600 }}>
                   <span>Full job description</span>

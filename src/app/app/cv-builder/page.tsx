@@ -741,6 +741,7 @@ export default function CVBuilderPage() {
   const [jobDesc, setJobDesc] = useState('')        // editable full job description
   const [jobDescOpen, setJobDescOpen] = useState(false)
   const [fetchingJd, setFetchingJd] = useState(false)
+  const [jdFetchError, setJdFetchError] = useState<string | null>(null)
   const [template, setTemplate] = useState<Template>('executive')
   const [tone, setTone] = useState<Tone>('professional')
   const [lang, setLang] = useState<Lang>('EN')
@@ -879,17 +880,18 @@ export default function CVBuilderPage() {
       if (data.text) {
         setJobDesc(data.text)
         setJobDescOpen(true)
+        setJdFetchError(null)
       } else {
-        setJobDescOpen(true) // open the field so user can paste manually
-        alert(lang === 'DE'
-          ? 'Stellenanzeige konnte nicht geladen werden — bitte manuell einfügen.'
-          : 'Could not fetch the job posting (site blocked it). Please paste the full JD manually below.')
+        setJobDescOpen(true)
+        setJdFetchError(lang === 'DE'
+          ? 'Seite blockiert automatisches Laden. Öffne die Stellenanzeige, kopiere den Text und füge ihn unten ein:'
+          : 'Site blocked the fetch. Open the job posting, copy the full description and paste it below:')
       }
     } catch {
       setJobDescOpen(true)
-      alert(lang === 'DE'
-        ? 'Verbindungsfehler — bitte manuell einfügen.'
-        : 'Connection error — please paste the full JD manually below.')
+      setJdFetchError(lang === 'DE'
+        ? 'Verbindungsfehler. Öffne die Stellenanzeige und füge den Text manuell ein:'
+        : 'Connection error. Open the job posting and paste the description manually below:')
     }
     setFetchingJd(false)
   }
@@ -1439,15 +1441,35 @@ export default function CVBuilderPage() {
                         <span style={{ width: 6, height: 6, borderRadius: '50%', background: dot, flexShrink: 0, display: 'inline-block' }}/>
                         {label}
                       </div>
-                      {quality !== 'full' && hasUrl && (
-                        <button onClick={fetchFullJd} disabled={fetchingJd}
-                          style={{ fontSize: 10, fontWeight: 700, color: currentAccent, background: 'none', border: 'none', cursor: fetchingJd ? 'wait' : 'pointer', padding: 0, opacity: fetchingJd ? .6 : 1, whiteSpace: 'nowrap', flexShrink: 0 }}>
-                          {fetchingJd ? (lang === 'DE' ? 'Lädt…' : 'Fetching…') : (lang === 'DE' ? '↓ Volltext laden' : '↓ Fetch full JD')}
-                        </button>
-                      )}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
+                        {quality !== 'full' && hasUrl && (
+                          <button onClick={fetchFullJd} disabled={fetchingJd}
+                            style={{ fontSize: 10, fontWeight: 700, color: currentAccent, background: 'none', border: 'none', cursor: fetchingJd ? 'wait' : 'pointer', padding: 0, opacity: fetchingJd ? .6 : 1, whiteSpace: 'nowrap' }}>
+                            {fetchingJd ? (lang === 'DE' ? 'Lädt…' : 'Fetching…') : (lang === 'DE' ? '↓ Volltext laden' : '↓ Fetch full JD')}
+                          </button>
+                        )}
+                        {hasUrl && (
+                          <a href={(job as any).job_apply_link} target="_blank" rel="noopener noreferrer"
+                            style={{ fontSize: 10, color: 'rgba(255,255,255,0.35)', textDecoration: 'none', whiteSpace: 'nowrap' }}
+                            title={lang === 'DE' ? 'Stellenanzeige öffnen' : 'Open job posting'}>
+                            ↗ {lang === 'DE' ? 'Anzeige' : 'Posting'}
+                          </a>
+                        )}
+                      </div>
                     </div>
                   )
                 })()}
+                {jdFetchError && (
+                  <div style={{ fontSize: 11, color: '#fca5a5', background: 'rgba(248,113,113,0.08)', border: '1px solid rgba(248,113,113,0.18)', borderRadius: 8, padding: '8px 10px', marginBottom: 6, lineHeight: 1.5 }}>
+                    {jdFetchError}{' '}
+                    {(job as any)?.job_apply_link && (
+                      <a href={(job as any).job_apply_link} target="_blank" rel="noopener noreferrer"
+                        style={{ color: currentAccent, fontWeight: 700, textDecoration: 'underline' }}>
+                        {lang === 'DE' ? 'Stellenanzeige öffnen →' : 'Open job posting →'}
+                      </a>
+                    )}
+                  </div>
+                )}
                 <button
                   onClick={() => setJobDescOpen(o => !o)}
                   style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'none', border: 'none', cursor: 'pointer', padding: '4px 2px', color: 'rgba(255,255,255,0.6)', fontSize: 11, fontWeight: 600 }}>

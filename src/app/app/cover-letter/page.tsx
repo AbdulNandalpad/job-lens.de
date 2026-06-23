@@ -383,6 +383,12 @@ export default function CoverLetterPage() {
               <div style={{ marginTop: 12, padding: '8px 10px', background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 8 }}>
                 <div style={{ fontSize: 9, color: accentColor, fontWeight: 700, letterSpacing: 0.8, textTransform: 'uppercase', marginBottom: 3 }}>{t.coverLetter.sidebar.tailoringFor}</div>
                 <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.8)', lineHeight: 1.4 }}>{jobLabel}</div>
+                {(job as any)?.job_apply_link && (
+                  <a href={(job as any).job_apply_link} target="_blank" rel="noopener noreferrer"
+                    style={{ display: 'inline-flex', alignItems: 'center', gap: 3, marginTop: 6, fontSize: 10, color: accentColor, textDecoration: 'none', opacity: 0.85 }}>
+                    ↗ {letterLang === 'DE' ? 'Vollständige Stellenanzeige öffnen' : 'Open full job posting'}
+                  </a>
+                )}
               </div>
             )}
             <input ref={fileInputRef} type="file" accept=".pdf,.doc,.docx,.txt" style={{ display: 'none' }}
