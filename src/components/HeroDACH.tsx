@@ -114,14 +114,14 @@ export default function HeroDACH({ lang, user }: Props) {
         .hero-panel:hover { transform: skewX(-6deg) translateY(-14px) !important; z-index: 10 !important; }
         .hero-panel:hover .panel-bar { opacity: 1 !important; }
         @media(max-width:960px){
-          .hero-dach-layout{ grid-template-columns:1fr!important; padding:48px 24px 0!important; min-height:auto!important; }
-          .hero-dach-panels{ justify-content:flex-start!important; margin-top:36px; padding:0 24px 48px; overflow-x:auto!important; -webkit-overflow-scrolling:touch; scrollbar-width:none; }
-          .hero-dach-panels::-webkit-scrollbar{ display:none; }
-          .hero-panel{ width:90px!important; }
+          .hero-dach-layout{ grid-template-columns:1fr!important; padding:32px 24px 48px!important; min-height:auto!important; gap:32px!important; }
+          .hero-dach-panels{ order:-1; justify-content:center!important; overflow:visible!important; padding:0!important; margin:0!important; }
+          .hero-panels-inner{ height:180px!important; }
+          .hero-panel{ width:76px!important; }
         }
         @media(max-width:520px){
-          .hero-dach-panels{ height:200px!important; padding:0 16px 40px; }
-          .hero-panel{ width:80px!important; }
+          .hero-panels-inner{ height:160px!important; }
+          .hero-panel{ width:68px!important; }
         }
       `}</style>
 
@@ -206,7 +206,7 @@ export default function HeroDACH({ lang, user }: Props) {
 
           {/* ── Right: slanted vertical panels ── */}
           <div className="hero-dach-panels" style={{ display:'flex', justifyContent:'flex-end' }}>
-            <div style={{ display:'flex', height:460, alignItems:'stretch' }}>
+            <div className="hero-panels-inner" style={{ display:'flex', height:460, alignItems:'stretch' }}>
               {features.map((feat, i) => (
                 <Link
                   key={i}

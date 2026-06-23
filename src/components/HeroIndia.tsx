@@ -106,14 +106,14 @@ export default function HeroIndia({ user }: Props) {
         .hero-in-panel:hover { transform: skewX(-6deg) translateY(-14px) !important; z-index: 10 !important; }
         .hero-in-panel:hover .in-panel-bar { opacity: 1 !important; }
         @media(max-width:960px){
-          .hero-in-layout{ grid-template-columns:1fr!important; padding:48px 24px 0!important; min-height:auto!important; }
-          .hero-in-panels{ justify-content:flex-start!important; margin-top:36px; padding:0 24px 48px; overflow-x:auto!important; -webkit-overflow-scrolling:touch; scrollbar-width:none; }
-          .hero-in-panels::-webkit-scrollbar{ display:none; }
-          .hero-in-panel{ width:90px!important; }
+          .hero-in-layout{ grid-template-columns:1fr!important; padding:32px 24px 48px!important; min-height:auto!important; gap:32px!important; }
+          .hero-in-panels{ order:-1; justify-content:center!important; overflow:visible!important; padding:0!important; margin:0!important; }
+          .hero-in-panels-inner{ height:180px!important; }
+          .hero-in-panel{ width:76px!important; }
         }
         @media(max-width:520px){
-          .hero-in-panels{ height:200px!important; padding:0 16px 40px; }
-          .hero-in-panel{ width:80px!important; }
+          .hero-in-panels-inner{ height:160px!important; }
+          .hero-in-panel{ width:68px!important; }
         }
       `}</style>
 
@@ -194,7 +194,7 @@ export default function HeroIndia({ user }: Props) {
 
           {/* ── Right: slanted vertical panels ── */}
           <div className="hero-in-panels" style={{ display:'flex', justifyContent:'flex-end' }}>
-            <div style={{ display:'flex', height:460, alignItems:'stretch' }}>
+            <div className="hero-in-panels-inner" style={{ display:'flex', height:460, alignItems:'stretch' }}>
               {features.map((feat, i) => (
                 <Link
                   key={i}
