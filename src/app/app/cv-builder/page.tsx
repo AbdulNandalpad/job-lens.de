@@ -876,8 +876,21 @@ export default function CVBuilderPage() {
     try {
       const res = await fetch('/api/fetch-jd', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ url }) })
       const data = await res.json()
-      if (data.text) { setJobDesc(data.text); setJobDescOpen(true) }
-    } catch { /* ignore */ }
+      if (data.text) {
+        setJobDesc(data.text)
+        setJobDescOpen(true)
+      } else {
+        setJobDescOpen(true) // open the field so user can paste manually
+        alert(lang === 'DE'
+          ? 'Stellenanzeige konnte nicht geladen werden — bitte manuell einfügen.'
+          : 'Could not fetch the job posting (site blocked it). Please paste the full JD manually below.')
+      }
+    } catch {
+      setJobDescOpen(true)
+      alert(lang === 'DE'
+        ? 'Verbindungsfehler — bitte manuell einfügen.'
+        : 'Connection error — please paste the full JD manually below.')
+    }
     setFetchingJd(false)
   }
 
