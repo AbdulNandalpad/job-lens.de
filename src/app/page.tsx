@@ -8,8 +8,7 @@ import { useLanguage, DEFlag, GBFlag } from '@/lib/i18n'
 import KiraDemoWidget from '@/components/KiraDemoWidget'
 import AutoApplyDemoWidget from '@/components/AutoApplyDemoWidget'
 import SvgIcon, { type IconName } from '@/components/SvgIcon'
-import HeroSlider from '@/components/HeroSlider'
-import HeroEU from '@/components/HeroEU'
+import HeroDACH from '@/components/HeroDACH'
 
 const { colors: c, gradients: g, fonts: f, shadow: sh } = theme
 
@@ -304,40 +303,7 @@ export default function HomePage() {
 
   const go = (path: string) => user ? path : `/login?next=${encodeURIComponent(path)}`
 
-  // Trust bar count-up animation
   const trustRef = useRef<HTMLDivElement>(null)
-  const [trustSeen, setTrustSeen] = useState(false)
-  const [count1, setCount1] = useState(7140)   // CVs scanned (start near target)
-  const [count2, setCount2] = useState(158000) // DACH jobs live
-  const [count3, setCount3] = useState(78)     // ATS score lift %
-
-  useEffect(() => {
-    const el = trustRef.current
-    if (!el) return
-    const obs = new IntersectionObserver(([entry]) => {
-      if (entry.isIntersecting) { setTrustSeen(true); obs.disconnect() }
-    }, { threshold: 0.2 })
-    obs.observe(el)
-    return () => obs.disconnect()
-  }, [])
-
-  useEffect(() => {
-    if (!trustSeen) return
-    const run = (from: number, to: number, set: (v: number) => void) => {
-      const dur = 1800
-      const t0 = Date.now()
-      const tick = () => {
-        const p = Math.min((Date.now() - t0) / dur, 1)
-        const e = 1 - Math.pow(1 - p, 3)
-        set(Math.round(from + (to - from) * e))
-        if (p < 1) requestAnimationFrame(tick)
-      }
-      requestAnimationFrame(tick)
-    }
-    run(7140, 8400, setCount1)
-    run(158000, 186000, setCount2)
-    run(78, 92, setCount3)
-  }, [trustSeen])
 
   // Order: Career Scan, Job Search, CV+CL, Interview, Salary Sim, Career Card, Tracker, Auto Apply
   const featureBgs    = [c.primaryLight, c.successLight,  c.warningLight, c.primaryLight, c.successLight, c.aiLight, c.warningLight, c.aiLight]
@@ -594,20 +560,21 @@ export default function HomePage() {
       </div>
 
       {/* ── Hero ── */}
-      <HeroEU lang={lang} user={user} />
+      <HeroDACH lang={lang} user={user} />
 
-      {/* ── Trust Bar ── */}
+      {/* ── Market Facts Bar ── */}
       <div ref={trustRef} style={{ background: 'linear-gradient(90deg,#07111f 0%,#0d1e30 50%,#07111f 100%)', borderBottom: '1px solid rgba(55,138,221,0.10)' }}>
-        <div style={{ maxWidth: 1100, margin: '0 auto', padding: '0 24px', display: 'grid', gridTemplateColumns: 'repeat(4,1fr)' }}>
+        <div className="jl-trust-grid" style={{ maxWidth: 1100, margin: '0 auto', padding: '0 24px', display: 'grid', gridTemplateColumns: 'repeat(4,1fr)' }}>
           {([
-            { val: count1.toLocaleString('de-DE') + '+', label: lang === 'DE' ? 'analysierte Lebensläufe' : 'CVs improved', color: c.accent },
-            { val: (count2 / 1000).toFixed(0) + 'k+', label: lang === 'DE' ? 'offene DACH-Stellen jetzt' : 'open DACH jobs right now', color: '#10b981' },
-            { val: count3 + '%', label: lang === 'DE' ? 'ø ATS-Score-Verbesserung' : 'avg ATS score improvement', color: '#a855f7' },
-            { val: '4.8★', label: lang === 'DE' ? 'Nutzerbewertung' : 'user rating', color: '#f59e0b' },
+            { val: '75%', label: lang === 'DE' ? 'der Lebensläufe scheitern am ATS-Filter' : 'of CVs fail the ATS filter', color: '#E24B4A', src: 'Jobscan 2024' },
+            { val: '6 Sek', label: lang === 'DE' ? 'Recruiter-Zeit pro Lebenslauf' : 'recruiter time per CV', color: '#f59e0b', src: 'TheLadders' },
+            { val: '186k+', label: lang === 'DE' ? 'offene Stellen in DACH' : 'open positions in DACH', color: '#10b981', src: 'Adzuna' },
+            { val: '3 Mon.', label: lang === 'DE' ? 'ø Jobsuche in Deutschland' : 'avg job search in Germany', color: '#a855f7', src: 'Statista 2024' },
           ] as const).map((s, i) => (
-            <div key={i} style={{ textAlign: 'center', padding: '24px 12px', borderRight: i < 3 ? '1px solid rgba(255,255,255,0.05)' : 'none' }}>
-              <div style={{ fontFamily: f.heading, fontSize: 'clamp(20px,2.8vw,30px)', fontWeight: 800, color: s.color, lineHeight: 1, letterSpacing: -0.5, fontVariantNumeric: 'tabular-nums', transition: 'color 0.3s' }}>{s.val}</div>
-              <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.32)', marginTop: 6, lineHeight: 1.45 }}>{s.label}</div>
+            <div key={i} style={{ textAlign: 'center', padding: '22px 12px', borderRight: i < 3 ? '1px solid rgba(255,255,255,0.05)' : 'none' }}>
+              <div style={{ fontFamily: f.heading, fontSize: 'clamp(20px,2.8vw,30px)', fontWeight: 800, color: s.color, lineHeight: 1, letterSpacing: -0.5 }}>{s.val}</div>
+              <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.38)', marginTop: 6, lineHeight: 1.45 }}>{s.label}</div>
+              <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.18)', marginTop: 4 }}>{s.src}</div>
             </div>
           ))}
         </div>
