@@ -589,7 +589,6 @@ export default function DACHDashboard() {
               { label: t('Gehalt Sim.', 'Salary Sim.'),  icon: 'coin'     as IconName, href: '/app/salary-sim'   },
               { label: t('Tracker',     'Tracker'),      icon: 'clipboard'as IconName, href: '/app/tracker'      },
               { label: t('Zeugnis',     'Zeugnis'),      icon: 'flag-de'  as IconName, href: '/app/zeugnis'      },
-              { label: 'Kira AI',                        icon: 'bot'      as IconName, href: '/app/ai'           },
             ] as { label: string; icon: IconName; href: string }[]).map(a => (
               <button key={a.href} onClick={() => router.push(a.href)}
                 style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 12px', borderRadius: 10, border: `1px solid ${border}`, background: 'rgba(255,255,255,.04)', color: txt2, fontSize: 12, fontWeight: 500, cursor: 'pointer', fontFamily: "'DM Sans',sans-serif", transition: 'all .15s', textAlign: 'left' as const }}
