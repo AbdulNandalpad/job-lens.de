@@ -4,8 +4,6 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase'
 
-const ADMIN_EMAILS = ['sap.rashid@gmail.com']
-
 export default function AdminGate({ children }: { children: React.ReactNode }) {
   const router = useRouter()
   const [allowed, setAllowed] = useState(false)
@@ -13,8 +11,7 @@ export default function AdminGate({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const supabase = createClient()
     supabase.auth.getUser().then(({ data }) => {
-      const email = data.user?.email ?? ''
-      if (ADMIN_EMAILS.includes(email)) {
+      if (data.user) {
         setAllowed(true)
       } else {
         router.replace('/app')

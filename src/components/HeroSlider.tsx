@@ -67,12 +67,12 @@ const DECK_EU_DE: Slide[] = [
   },
   {
     icon: 'briefcase',
-    tag: 'Demnächst · Job Case',
+    tag: 'Neu · Job Case',
     h1: 'Mehr als ein Lebenslauf —',
     h1Accent: 'deine persönliche Fallstudie.',
     sub: 'KI analysiert die Stellenanzeige, du lieferst die Belege. Recruiter erhalten einen privaten Link — kein Formular, kein PDF, nur dein stärkstes Argument.',
-    cta: 'Coming Soon',
-    href: '#',
+    cta: 'Job Case erstellen',
+    href: '/app/job-case/new',
     accentColor: '#a855f7',
   },
 ]
@@ -130,12 +130,12 @@ const DECK_EU_EN: Slide[] = [
   },
   {
     icon: 'briefcase',
-    tag: 'Coming Soon · Job Case',
+    tag: 'New · Job Case',
     h1: 'More than a CV —',
     h1Accent: 'your personal case study.',
     sub: 'AI analyses the job posting, you supply the evidence. Recruiters get a private link — no form, no PDF, just your strongest argument.',
-    cta: 'Coming Soon',
-    href: '#',
+    cta: 'Create Job Case',
+    href: '/app/job-case/new',
     accentColor: '#a855f7',
   },
 ]

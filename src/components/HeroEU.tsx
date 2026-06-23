@@ -47,13 +47,12 @@ const SLIDES: Slide[] = [
   },
   {
     color: '#F59E0B', bg: 'rgba(245,158,11,0.07)',
-    tag:      { de: 'Demnächst · Job Case', en: 'Coming Soon · Job Case' },
+    tag:      { de: 'Neu · Job Case', en: 'New · Job Case' },
     h1:       { de: 'Der klassische Lebenslauf —', en: 'The way traditional CVs work' },
     h1Accent: { de: 'wird sich verändern.', en: 'is about to change.' },
     sub:      { de: 'Stell dir vor: ein erstes Vorstellungsgespräch, ausgelöst durch eine Stellenanzeige. Kein Lebenslauf. Kein Anschreiben. Lern Job Case kennen — eine neue Art, sich zu bewerben.', en: 'Ever heard of doing a first-level interview just from a job posting? Meet Job Case — a new way of presenting yourself for a role. Not a CV. Not a cover letter. Something better.' },
-    cta:      { de: 'Coming Soon', en: 'Coming Soon' },
-    href: '#',
-    comingSoon: true,
+    cta:      { de: 'Job Case erstellen', en: 'Create Job Case' },
+    href: '/app/job-case/new',
   },
 ]
 

@@ -56,13 +56,12 @@ const SLIDES: Slide[] = [
   },
   {
     color: '#F59E0B', bg: 'rgba(245,158,11,0.07)',
-    tag:      'Coming Soon · Job Case',
+    tag:      'New · Job Case',
     h1:       'The way traditional CVs work',
     h1Accent: 'is about to change.',
     sub:      'Ever heard of doing a first-level interview just from a job posting? Meet Job Case — a new way of presenting yourself for a role. Not a CV. Not a cover letter. Something better.',
-    cta:      'Coming Soon',
-    href:     '#',
-    comingSoon: true,
+    cta:      'Create Job Case',
+    href:     '/in/job-case/new',
   },
 ]
 
