@@ -305,22 +305,26 @@ function SidebarContent({ step, credits, cvFound, cvSource, questions }: {
 
   if (step === 'video') return (
     <div>
-      <SBLabel>Recording tips</SBLabel>
-      <SBHeading>One take · 2 minutes max</SBHeading>
+      <SBLabel>5-minute interview</SBLabel>
+      <SBHeading>Three segments · one take</SBHeading>
       <SBBody>
-        This is the part that replaces the cover letter. Recruiters watch 30–60 seconds on average — make the first 20 seconds count.
+        Each segment&apos;s prompt is shown at the bottom of your camera view so you can glance naturally. No memorising required.
       </SBBody>
       <SBDivider />
-      <SBLabel>What to say</SBLabel>
-      <SBTip icon="🎯">Start with: "I'm [name], applying for [role] at [company]."</SBTip>
-      <SBTip icon="💪">Name your strongest requirement match from the table.</SBTip>
-      <SBTip icon="🔍">Mention one specific thing about the company that excited you.</SBTip>
-      <SBTip icon="✅">Close with why you'd be ready to start.</SBTip>
+      <SBLabel>Segment breakdown</SBLabel>
+      <SBTip icon="🟢">0:00 – 2:00 · About Me — introduce yourself, prove your top 3 skills</SBTip>
+      <SBTip icon="🟡">2:00 – 3:30 · Scenario 1 — a real challenge from this role</SBTip>
+      <SBTip icon="🟣">3:30 – 5:00 · Scenario 2 — a different skill, different situation</SBTip>
       <SBDivider />
-      <SBLabel>Technical</SBLabel>
+      <SBLabel>Tips</SBLabel>
       <SBTip icon="💡">Look at the camera lens, not your face on screen.</SBTip>
-      <SBTip icon="🎙">Use headphones to avoid echo.</SBTip>
-      <SBTip icon="🌅">Natural side light beats a ring light.</SBTip>
+      <SBTip icon="🎙">Use headphones — mic echo is the most common issue.</SBTip>
+      <SBTip icon="⏱">You can stop early if you finish before 5:00.</SBTip>
+      <SBTip icon="🌅">Natural side light beats overhead lighting.</SBTip>
+      <SBDivider />
+      <SBBody>
+        If the mic goes silent for more than 8 seconds, a warning overlay will appear — recording stays running while you fix it.
+      </SBBody>
     </div>
   )
 
@@ -445,9 +449,9 @@ function QualityBadge({ q }: { q: JobQuality }) {
 }
 
 function StepProgress({ step }: { step: Step }) {
-  const ordered: Step[] = ['paste', 'review', 'consent', 'evidence', 'questions', 'video', 'test', 'done']
-  const labels = ['Job', 'Review', 'Consent', 'Evidence', 'Questions', 'Video', 'Test', 'Done']
-  const current = step === 'analysing' ? 0 : step === 'generating' ? 7 : ordered.indexOf(step)
+  const ordered: Step[] = ['paste', 'review', 'consent', 'evidence', 'questions', 'video', 'done']
+  const labels = ['Job', 'Review', 'Consent', 'Evidence', 'Questions', 'Video', 'Done']
+  const current = step === 'analysing' ? 0 : step === 'generating' ? 6 : step === 'test' ? 5 : ordered.indexOf(step)
   return (
     <div style={{ marginBottom: 24 }}>
       <div className="jc-step-active-label" style={{ display: 'none', fontSize: 12, fontWeight: 700, color: c.accent, marginBottom: 8 }}>
@@ -533,6 +537,14 @@ export default function JobCaseNewPage() {
   const chunksRef  = useRef<Blob[]>([])
   const streamRef  = useRef<MediaStream | null>(null)
   const timerRef   = useRef<ReturnType<typeof setInterval> | null>(null)
+
+  // Video interview structure: prep briefing → recording with timed on-screen prompts
+  const [videoPhase, setVideoPhase]         = useState<'prep' | 'recording'>('prep')
+  const [top3Skills, setTop3Skills]         = useState<string[]>([])
+  const [scenarios, setScenarios]           = useState<{ title: string; prompt: string }[]>([])
+  const [silenceWarning, setSilenceWarning] = useState(false)
+  const audioCtxRef     = useRef<AudioContext | null>(null)
+  const silenceCheckRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
   const [testStarted, setTestStarted] = useState(false)
   const [timeLeft, setTimeLeft]       = useState(JOB_CASE.testMinutes * 60)
@@ -647,17 +659,28 @@ export default function JobCaseNewPage() {
     setStep('questions')
     try {
       const cvText = sessionStorage.getItem(SS.cvText) || sessionStorage.getItem(SS.cvbTailored) || sessionStorage.getItem(SS.atsSuggestions) || ''
-      const res = await fetch(API.jobCaseGenerateTest, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ requirements: reqs, evidence, cvText }),
-      })
-      const data = await res.json()
-      if (res.ok && data.questions?.length) {
-        setQuestions(data.questions)
+      // Fetch test questions + interview prep (top 3 skills + scenarios) in parallel
+      const [testRes, prepRes] = await Promise.all([
+        fetch(API.jobCaseGenerateTest, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ requirements: reqs, evidence, cvText }),
+        }),
+        fetch(API.jobCaseInterviewPrep, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ requirements: reqs, jobText }),
+        }),
+      ])
+      const testData = await testRes.json()
+      if (testRes.ok && testData.questions?.length) setQuestions(testData.questions)
+      const prepData = await prepRes.json()
+      if (prepRes.ok) {
+        setTop3Skills(prepData.top3Skills ?? [])
+        setScenarios(prepData.scenarios ?? [])
       }
     } catch {
-      // Keep questions empty — user can still proceed, test will use generic questions
+      // Keep empty — video step shows generic prompts if AI prep fails
     }
   }
 
@@ -714,6 +737,25 @@ export default function JobCaseNewPage() {
     const stream = await navigator.mediaDevices.getUserMedia({ video: { width: 1280, height: 720, facingMode: 'user' }, audio: { echoCancellation: true, noiseSuppression: true } })
     streamRef.current = stream
     if (liveRef.current) { liveRef.current.srcObject = stream; liveRef.current.muted = true; liveRef.current.play() }
+
+    // Silence detection: if mic RMS stays near-zero for >8s, warn the user
+    try {
+      const audioCtx = new AudioContext()
+      audioCtxRef.current = audioCtx
+      const source = audioCtx.createMediaStreamSource(stream)
+      const analyser = audioCtx.createAnalyser()
+      analyser.fftSize = 256
+      source.connect(analyser)
+      const dataArr = new Uint8Array(analyser.frequencyBinCount)
+      let silentTicks = 0
+      silenceCheckRef.current = setInterval(() => {
+        analyser.getByteFrequencyData(dataArr)
+        const rms = Math.sqrt(dataArr.reduce((s, v) => s + v * v, 0) / dataArr.length)
+        if (rms < 4) { silentTicks++; if (silentTicks >= 16) setSilenceWarning(true) }
+        else { silentTicks = 0; setSilenceWarning(false) }
+      }, 500)
+    } catch { /* AudioContext unavailable — skip silence detection */ }
+
     setCountdown(3)
     let n = 3
     const iv = setInterval(() => { n--; setCountdown(n); if (n === 0) { clearInterval(iv); beginRecording(stream) } }, 1000)
@@ -725,6 +767,10 @@ export default function JobCaseNewPage() {
     const mr = new MediaRecorder(stream, { mimeType })
     mr.ondataavailable = e => { if (e.data.size > 0) chunksRef.current.push(e.data) }
     mr.onstop = async () => {
+      // Stop silence detection
+      if (silenceCheckRef.current) { clearInterval(silenceCheckRef.current); silenceCheckRef.current = null }
+      if (audioCtxRef.current) { audioCtxRef.current.close(); audioCtxRef.current = null }
+      setSilenceWarning(false)
       const blob = new Blob(chunksRef.current, { type: mimeType })
       setVideoBlob(blob)
       setVideoUrl(URL.createObjectURL(blob))
@@ -969,7 +1015,7 @@ export default function JobCaseNewPage() {
               {/* ── QUESTIONS ──────────────────────────────────────────── */}
               {step === 'questions' && (
                 <div className="jc-fade">
-                  <SectionLabel>Step 5 of 7</SectionLabel>
+                  <SectionLabel>Step 5 of 7 — preview only, no timer yet</SectionLabel>
                   <StepHeading title="Your 3 skill test questions" sub="Read these before the timer starts. Abort here for a full credit refund." />
                   <Card style={{ marginBottom: 12 }}>
                     <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '5px 12px', background: c.primaryLight, border: `1px solid rgba(55,138,221,0.2)`, borderRadius: 20, fontSize: 12, color: c.accent, fontWeight: 600, marginBottom: 18 }}>
@@ -987,7 +1033,7 @@ export default function JobCaseNewPage() {
                   </Card>
                   <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
                     <button className="jc-btn-ghost" onClick={() => setStep('evidence')}>← Abort (keep credits)</button>
-                    <button className="jc-btn" onClick={() => setStep('video')}>Record video →</button>
+                    <button className="jc-btn" onClick={() => { setVideoPhase('prep'); setStep('video') }}>Record interview →</button>
                   </div>
                 </div>
               )}
@@ -995,55 +1041,144 @@ export default function JobCaseNewPage() {
               {/* ── VIDEO ──────────────────────────────────────────────── */}
               {step === 'video' && (
                 <div className="jc-fade">
-                  <SectionLabel>Step 6 of 8</SectionLabel>
-                  <StepHeading title="Record your 2-minute pitch" sub="One take only. Talk directly about why you fit this specific role." />
-                  <Card>
-                    <div style={{ position: 'relative', width: '100%', aspectRatio: '16/9', background: '#000', borderRadius: 10, overflow: 'hidden', marginBottom: 18, border: `1px solid ${c.border}` }}>
-                      {!videoBlob
-                        ? <video ref={liveRef} style={{ width: '100%', height: '100%', objectFit: 'cover', transform: 'scaleX(-1)' }} muted playsInline />
-                        : <video ref={previewRef} src={videoUrl} controls style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                      }
-                      {countdown > 0 && (
-                        <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.55)' }}>
-                          <div style={{ fontFamily: f.heading, fontSize: 88, fontWeight: 700, color: '#fff', animation: 'jcPulse 1s ease' }}>{countdown}</div>
+                  <SectionLabel>Step 6 of 7</SectionLabel>
+
+                  {/* Prep briefing: top 3 skills to address + scenario previews */}
+                  {videoPhase === 'prep' && !videoBlob && (
+                    <>
+                      <StepHeading title="Your 5-minute interview" sub="Three timed segments play on screen while you record — glance at the prompt, then speak naturally." />
+                      <Card>
+                        {top3Skills.length > 0 && (
+                          <>
+                            <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: 0.8, textTransform: 'uppercase' as const, color: c.textMuted, marginBottom: 10 }}>
+                              Address these 3 skills in your About Me (0:00 – 2:00)
+                            </div>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: 7, marginBottom: 20 }}>
+                              {top3Skills.map((skill, i) => (
+                                <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '9px 12px', background: c.primaryLight, border: `1px solid rgba(55,138,221,0.18)`, borderRadius: 8 }}>
+                                  <span style={{ width: 20, height: 20, borderRadius: '50%', background: c.accent, color: '#fff', fontSize: 11, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>{i + 1}</span>
+                                  <span style={{ fontSize: 13, fontWeight: 600, color: c.text }}>{skill}</span>
+                                </div>
+                              ))}
+                            </div>
+                          </>
+                        )}
+                        <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: 0.8, textTransform: 'uppercase' as const, color: c.textMuted, marginBottom: 10 }}>
+                          Scenario segments (shown on screen while you record)
+                        </div>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 20 }}>
+                          {[
+                            { time: '2:00 – 3:30', label: `Scenario 1${scenarios[0] ? ` — ${scenarios[0].title}` : ''}`, text: scenarios[0]?.prompt ?? 'Walk through a real challenge you solved that is relevant to this role.', color: c.warning },
+                            { time: '3:30 – 5:00', label: `Scenario 2${scenarios[1] ? ` — ${scenarios[1].title}` : ''}`, text: scenarios[1]?.prompt ?? 'Describe a situation where you demonstrated a key skill required by this job.', color: '#8b5cf6' },
+                          ].map((seg, i) => (
+                            <div key={i} style={{ padding: '11px 14px', background: c.bg, border: `1px solid ${c.border}`, borderRadius: 8 }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 5 }}>
+                                <span style={{ fontSize: 10, fontWeight: 700, color: seg.color, letterSpacing: 0.5 }}>{seg.time}</span>
+                                <span style={{ fontSize: 12, fontWeight: 600, color: c.text }}>{seg.label}</span>
+                              </div>
+                              <div style={{ fontSize: 12, color: c.textMuted, lineHeight: 1.55 }}>{seg.text}</div>
+                            </div>
+                          ))}
+                        </div>
+                        <div style={{ padding: '11px 14px', background: 'rgba(55,138,221,0.04)', border: `1px solid rgba(55,138,221,0.15)`, borderRadius: 8, fontSize: 12, color: c.textMuted, lineHeight: 1.6, marginBottom: 20 }}>
+                          <strong style={{ color: c.text }}>One take.</strong> Each prompt is shown at the bottom of your camera view so you can glance naturally. Recording auto-stops at 5:00.
+                        </div>
+                        <div style={{ textAlign: 'center' }}>
+                          <button className="jc-btn" onClick={() => { setVideoPhase('recording'); startCountdown() }} style={{ fontSize: 14, padding: '12px 32px' }}>
+                            Start recording →
+                          </button>
+                          <p style={{ fontSize: 12, color: c.textFaint, margin: '10px 0 0' }}>Camera + microphone required</p>
+                        </div>
+                      </Card>
+                    </>
+                  )}
+
+                  {/*
+                    Camera view — always mounted in the DOM when step==='video' even during prep
+                    (display:none rather than unmounted) so that liveRef is available the moment
+                    startCountdown() runs after setVideoPhase('recording').
+                  */}
+                  <div style={{ display: videoPhase === 'prep' && !videoBlob ? 'none' : 'block' }}>
+                    <StepHeading
+                      title={videoBlob ? 'Review your recording' : 'Recording in progress'}
+                      sub={videoBlob ? 'Watch it back. This is your only take.' : 'Stay on screen — prompts change automatically at each segment.'}
+                    />
+                    <Card>
+                      <div style={{ position: 'relative', width: '100%', aspectRatio: '16/9', background: '#000', borderRadius: 10, overflow: 'hidden', marginBottom: 18, border: `1px solid ${c.border}` }}>
+                        {!videoBlob
+                          ? <video ref={liveRef} style={{ width: '100%', height: '100%', objectFit: 'cover', transform: 'scaleX(-1)' }} muted playsInline />
+                          : <video ref={previewRef} src={videoUrl} controls style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                        }
+                        {countdown > 0 && (
+                          <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.55)' }}>
+                            <div style={{ fontFamily: f.heading, fontSize: 88, fontWeight: 700, color: '#fff', animation: 'jcPulse 1s ease' }}>{countdown}</div>
+                          </div>
+                        )}
+                        {recording && (() => {
+                          const cp = elapsed < 120
+                            ? { phase: 'About Me', timeLeft: 120 - elapsed, text: 'Introduce yourself and explain why you are the right fit for this specific role.', color: c.accent }
+                            : elapsed < 210
+                            ? { phase: 'Scenario 1', timeLeft: 210 - elapsed, text: scenarios[0]?.prompt ?? 'Walk through a real challenge you solved that is relevant to this role.', color: c.warning }
+                            : { phase: 'Scenario 2', timeLeft: 300 - elapsed, text: scenarios[1]?.prompt ?? 'Describe a situation where you demonstrated a key skill for this job.', color: '#8b5cf6' }
+                          return (
+                            <>
+                              <div style={{ position: 'absolute', top: 12, left: 12, display: 'flex', alignItems: 'center', gap: 6, background: 'rgba(0,0,0,0.65)', padding: '5px 10px', borderRadius: 20 }}>
+                                <div style={{ width: 7, height: 7, borderRadius: '50%', background: '#e53e3e', animation: 'jcPulse 1s ease infinite' }} />
+                                <span style={{ fontSize: 12, color: '#fff', fontWeight: 700 }}>REC {fmt(elapsed)} / {fmt(JOB_CASE.videoMaxSeconds)}</span>
+                              </div>
+                              {/* Segment prompt overlay — bottom gradient bar */}
+                              <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, background: 'linear-gradient(0deg,rgba(0,0,0,0.88) 0%,rgba(0,0,0,0.4) 75%,transparent 100%)', padding: '28px 16px 14px' }}>
+                                <div style={{ fontSize: 10, fontWeight: 700, color: cp.color, textTransform: 'uppercase' as const, letterSpacing: 1, marginBottom: 5 }}>
+                                  {cp.phase} · {fmt(cp.timeLeft)} left
+                                </div>
+                                <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.92)', lineHeight: 1.5 }}>{cp.text}</div>
+                              </div>
+                            </>
+                          )
+                        })()}
+                        {/* Silence warning — mic quiet for >8s */}
+                        {silenceWarning && recording && (
+                          <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.72)', flexDirection: 'column', gap: 12 }}>
+                            <div style={{ fontSize: 34 }}>🎙</div>
+                            <div style={{ fontFamily: f.heading, fontSize: 16, fontWeight: 700, color: '#fff' }}>We can&apos;t hear you</div>
+                            <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.65)', textAlign: 'center' as const }}>Check your microphone — recording is still running</div>
+                            <button onClick={() => setSilenceWarning(false)} style={{ marginTop: 8, background: c.accent, color: '#fff', border: 'none', borderRadius: 8, padding: '8px 20px', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: f.body }}>Dismiss</button>
+                          </div>
+                        )}
+                      </div>
+                      {!videoBlob ? (
+                        <div style={{ textAlign: 'center' }}>
+                          {recording && (
+                            <button onClick={() => mrRef.current?.stop()} style={{ background: '#e53e3e', color: '#fff', border: 'none', borderRadius: 8, padding: '11px 28px', fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: f.body }}>
+                              Stop early
+                            </button>
+                          )}
+                          {!recording && countdown === 0 && <p style={{ fontSize: 12, color: c.textFaint }}>Starting camera…</p>}
+                          <p style={{ fontSize: 12, color: c.textFaint, margin: '8px 0 0' }}>Auto-stops at 5:00</p>
+                        </div>
+                      ) : (
+                        <div style={{ textAlign: 'center' }}>
+                          {uploading && <p style={{ fontSize: 12, color: c.textMuted, marginBottom: 10 }}>Uploading video…</p>}
+                          <p style={{ fontSize: 13, color: c.textMuted, marginBottom: 14 }}>Watch your recording above. This is your only take.</p>
+                          <div style={{ display: 'flex', gap: 8, justifyContent: 'center' }}>
+                            <button className="jc-btn-ghost" onClick={() => { setVideoBlob(null); setVideoUrl(''); setElapsed(0); setVideoStorageKey(null); setVideoPhase('prep') }}>Discard & start over</button>
+                            <button className="jc-btn" disabled={uploading} onClick={createCase}>
+                              {uploading ? 'Uploading…' : 'Confirm & build Job Case →'}
+                            </button>
+                          </div>
                         </div>
                       )}
-                      {recording && (
-                        <div style={{ position: 'absolute', top: 12, left: 12, display: 'flex', alignItems: 'center', gap: 6, background: 'rgba(0,0,0,0.65)', padding: '5px 10px', borderRadius: 20 }}>
-                          <div style={{ width: 7, height: 7, borderRadius: '50%', background: '#e53e3e', animation: 'jcPulse 1s ease infinite' }} />
-                          <span style={{ fontSize: 12, color: '#fff', fontWeight: 700 }}>REC {fmt(elapsed)} / {fmt(JOB_CASE.videoMaxSeconds)}</span>
-                        </div>
-                      )}
-                    </div>
-                    {!videoBlob ? (
-                      <div style={{ textAlign: 'center' }}>
-                        {!recording && countdown === 0 && (
-                          <button className="jc-btn" onClick={startCountdown} style={{ fontSize: 14, padding: '12px 32px' }}>Start recording</button>
-                        )}
-                        {recording && (
-                          <button onClick={() => mrRef.current?.stop()} style={{ background: '#e53e3e', color: '#fff', border: 'none', borderRadius: 8, padding: '11px 28px', fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: f.body }}>
-                            Stop recording
-                          </button>
-                        )}
-                        <p style={{ fontSize: 12, color: c.textFaint, margin: '10px 0 0' }}>Camera + microphone required · max 2 minutes</p>
-                      </div>
-                    ) : (
-                      <div style={{ textAlign: 'center' }}>
-                        {uploading && <p style={{ fontSize: 12, color: c.textMuted, marginBottom: 10 }}>Uploading video…</p>}
-                        <p style={{ fontSize: 13, color: c.textMuted, marginBottom: 14 }}>Watch your recording above. This is your only take.</p>
-                        <div style={{ display: 'flex', gap: 8, justifyContent: 'center' }}>
-                          <button className="jc-btn-ghost" onClick={() => { setVideoBlob(null); setVideoUrl(''); setElapsed(0); setVideoStorageKey(null) }}>Discard & re-record</button>
-                          <button className="jc-btn" disabled={uploading} onClick={() => setStep('test')}>
-                            {uploading ? 'Uploading…' : 'Confirm & take test →'}
-                          </button>
-                        </div>
-                      </div>
-                    )}
-                  </Card>
+                    </Card>
+                  </div>
                 </div>
               )}
 
-              {/* ── TEST ───────────────────────────────────────────────── */}
+              {/* ── TEST (written answers) ─────────────────────────────
+                  Replaced by the structured 5-minute video interview above.
+                  The on-screen prompts during recording (About Me + 2 scenarios)
+                  serve the same purpose as the typed skill test.
+                  Keeping this block in case we want to restore a typed-answer
+                  format as an alternative or accessibility option in future.
               {step === 'test' && (
                 <div className="jc-fade">
                   <SectionLabel>Step 7 of 8</SectionLabel>
@@ -1097,6 +1232,7 @@ export default function JobCaseNewPage() {
                   </Card>
                 </div>
               )}
+              ── END of commented-out written test step ── */}
 
               {/* ── GENERATING ─────────────────────────────────────────── */}
               {step === 'generating' && (

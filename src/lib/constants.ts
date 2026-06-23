@@ -129,6 +129,7 @@ export const API = {
   jobCaseGenerateTest:  '/api/job-case/generate-test',
   jobCaseUploadVideo:   '/api/job-case/upload-video',
   jobCaseScoreSample:   '/api/job-case/score-sample',
+  jobCaseInterviewPrep: '/api/job-case/interview-prep',
   jobCaseList:          '/api/job-case/list',
   jobCaseRequestAccess:    '/api/job-case/request-access',
   jobCaseRecruiterInterest: '/api/job-case/recruiter-interest',
@@ -153,7 +154,7 @@ export const RAZORPAY_PACKS: Record<string, number> = {
 // ── Job Case ─────────────────────────────────────────────────────────────────
 export const JOB_CASE = {
   creditCost:       6,
-  videoMaxSeconds:  120,
+  videoMaxSeconds:  300,
   testMinutes:      8,
   expiryDays:       30,
   refundCheckDays:  14,
