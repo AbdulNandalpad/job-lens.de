@@ -79,8 +79,8 @@ const features = [
     accent: '#22c55e',
     href: '/app/job-case',
     hover: {
-      DE: { tag: 'Job Case', h1: 'Ersetze das Anschreiben durch einen 5-Minuten-Beweis', sub: 'Nimm dich auf, beantworte rollenbezogene Szenarien und verlinke Recruiter auf deine persönliche Bewerbungsseite — kein Account nötig.', cta: 'Job Case erstellen →' },
-      EN: { tag: 'Job Case', h1: 'Replace the cover letter with a 5-minute proof', sub: 'Record yourself, answer role-specific scenarios and send recruiters a personal application page — no account needed on their side.', cta: 'Create Job Case →' },
+      DE: { tag: 'Job Case', h1: 'Ein lebendes Karriereprofil — kein statisches Dokument.', sub: 'Skills, Erfahrungstiefe und ein kurzes Pitch-Video — auf einen Blick, auf jedem Gerät. Recruiter verbringen 6 Sekunden mit einem Lebenslauf. Job Case macht diese 6 Sekunden bedeutsam.', cta: 'Job Case erstellen →' },
+      EN: { tag: 'Job Case', h1: 'A living career profile — not a static document.', sub: 'Skills, impact and a short pitch video visible at a glance on any device. Recruiters spend 6 seconds on a CV. Job Case makes those 6 seconds count.', cta: 'Create Job Case →' },
     },
   },
   {

@@ -84,8 +84,8 @@ const features = [
     grad: 'linear-gradient(175deg, #0f2318 0%, #081410 100%)',
     accent: '#22c55e',
     href: '/in/job-case',
-    h1: 'Replace the cover letter with a 5-minute proof',
-    sub: 'Record yourself, answer two role-specific scenarios on video and send recruiters a personal link — no account needed on their side.',
+    h1: 'A living career profile — not a static document.',
+    sub: 'Skills, impact and a short pitch video visible at a glance on any device. Recruiters spend 6 seconds on a CV. Job Case makes those 6 seconds count.',
     cta: 'Create Job Case →',
   },
 ]
