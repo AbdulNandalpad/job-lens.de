@@ -25,14 +25,14 @@ const emerald = '#10b981'
 const red     = '#ef4444'
 const orange  = '#f59e0b'
 
-const bg      = '#f8fafc'
-const card    = '#ffffff'
-const cardHov = '#f1f5f9'
-const border  = '#e2e8f0'
-const borderH = '#cbd5e1'
-const txt1    = '#0f172a'
-const txt2    = '#475569'
-const txt3    = '#64748b'
+const bg      = '#07111f'
+const card    = 'rgba(255,255,255,0.07)'
+const cardHov = 'rgba(255,255,255,0.11)'
+const border  = 'rgba(255,255,255,0.10)'
+const borderH = 'rgba(255,255,255,0.20)'
+const txt1    = '#f1f5f9'
+const txt2    = '#94a3b8'
+const txt3    = '#7a8fa8'
 
 type NewsTab = 'all' | 'ai' | 'hiring' | 'market'
 
@@ -270,11 +270,11 @@ export default function IndiaDashboard() {
 
         .dash-page {
           background-color:${bg};
-          background-image:linear-gradient(rgba(0,0,0,.04) 1px,transparent 1px),linear-gradient(90deg,rgba(0,0,0,.04) 1px,transparent 1px);
+          background-image:linear-gradient(rgba(255,255,255,.025) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.025) 1px,transparent 1px);
           background-size:48px 48px;
         }
         .dash-hero {
-          background:linear-gradient(135deg,#fff8f0 0%,#fef3e8 60%,#f8fafc 100%);
+          background:linear-gradient(135deg,#0a1628 0%,#0d1f14 60%,#0a0d1a 100%);
           padding:32px 28px 36px;
           position:relative;overflow:hidden;
           border-bottom:1px solid ${border};
