@@ -12,6 +12,10 @@ function sha256(v: string) {
   return createHash('sha256').update(v).digest('hex')
 }
 
+function escHtml(s: string) {
+  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;')
+}
+
 export async function POST(req: NextRequest) {
   try {
     const { name, email, subject, message, market } = await req.json()
@@ -42,16 +46,18 @@ export async function POST(req: NextRequest) {
     await admin.from('ip_rate_limits').insert({ ip_hash: ipHash, endpoint: 'contact' })
 
     const adminEmails = (process.env.ADMIN_EMAILS ?? '').split(',').map(e => e.trim()).filter(Boolean)
-    const safeSubject = (subject ?? '(no subject)').slice(0, 200)
-    const safeMessage = message.trim().slice(0, 2000)
+    const safeSubject = escHtml((subject ?? '(no subject)').slice(0, 200))
+    const safeMessage = escHtml(message.trim().slice(0, 2000))
+    const safeName    = escHtml(name.trim().slice(0, 100))
+    const safeEmail   = escHtml(email.trim().slice(0, 200))
     const safeMarket  = market === 'in' ? 'India' : 'DACH'
 
     const html = `
 <div style="font-family:system-ui,sans-serif;max-width:560px;margin:0 auto;padding:28px 24px;color:#1a2332">
-  <h2 style="font-size:18px;font-weight:700;margin:0 0 16px">📬 Contact form submission</h2>
+  <h2 style="font-size:18px;font-weight:700;margin:0 0 16px">Contact form submission</h2>
   <table style="width:100%;border-collapse:collapse;font-size:13px;margin-bottom:20px">
-    <tr><td style="padding:6px 0;color:#6b7c93;width:100px">Name</td><td style="padding:6px 0;font-weight:600">${name}</td></tr>
-    <tr><td style="padding:6px 0;color:#6b7c93">Email</td><td style="padding:6px 0"><a href="mailto:${email}">${email}</a></td></tr>
+    <tr><td style="padding:6px 0;color:#6b7c93;width:100px">Name</td><td style="padding:6px 0;font-weight:600">${safeName}</td></tr>
+    <tr><td style="padding:6px 0;color:#6b7c93">Email</td><td style="padding:6px 0"><a href="mailto:${safeEmail}">${safeEmail}</a></td></tr>
     <tr><td style="padding:6px 0;color:#6b7c93">Subject</td><td style="padding:6px 0">${safeSubject}</td></tr>
     <tr><td style="padding:6px 0;color:#6b7c93">Market</td><td style="padding:6px 0">${safeMarket}</td></tr>
   </table>
@@ -68,7 +74,7 @@ ${safeMessage}
             from: FROM,
             to,
             replyTo: email,
-            subject: `[Job-Lens Contact] ${safeSubject}`,
+            subject: `[Job-Lens Contact] ${(subject ?? '(no subject)').slice(0, 200)}`,
             html,
           })
         )
@@ -89,7 +95,7 @@ ${safeMessage}
         subject: 'We received your message — Job-Lens',
         html: `
 <div style="font-family:system-ui,sans-serif;max-width:520px;margin:0 auto;padding:28px 24px;color:#1a2332">
-  <h2 style="font-size:18px;font-weight:700;margin:0 0 10px">Thanks, ${name}!</h2>
+  <h2 style="font-size:18px;font-weight:700;margin:0 0 10px">Thanks, ${safeName}!</h2>
   <p style="color:#6b7c93;font-size:14px;line-height:1.7;margin:0 0 16px">
     We've received your message and will get back to you within 1–2 business days.
   </p>

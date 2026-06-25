@@ -22,7 +22,7 @@ export async function POST(req: NextRequest) {
     const txnId         = params.get('txn_id') ?? ''
     const payerEmail    = params.get('payer_email') ?? ''
 
-    console.log('[paypal] IPN received — status:', paymentStatus, 'amount:', grossAmount, 'currency:', currency, 'txn:', txnId, 'userId:', userId, 'bodyLen:', rawBody.length)
+    console.log('[paypal] IPN received — status:', paymentStatus, 'amount:', grossAmount, 'currency:', currency, 'txn:', txnId, 'bodyLen:', rawBody.length)
 
     // Verify IPN with PayPal — send rawBody (untrimmed) exactly as received
     const verifyUrl = process.env.PAYPAL_SANDBOX === 'true'
@@ -43,7 +43,7 @@ export async function POST(req: NextRequest) {
       console.error('[paypal] verify fetch failed:', fetchErr)
     }
 
-    console.log('[paypal] verify result:', verifyText.trim(), '| httpStatus:', verifyStatus, '| url:', verifyUrl, '| first300:', body.substring(0, 300))
+    console.log('[paypal] verify result:', verifyText.trim(), '| httpStatus:', verifyStatus, '| url:', verifyUrl)
 
     if (verifyText.trim() !== 'VERIFIED') {
       console.error('[paypal] IPN not verified — body dump:', body)

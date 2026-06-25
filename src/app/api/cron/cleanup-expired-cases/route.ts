@@ -23,7 +23,7 @@ const BUCKET = 'job-case-videos'
 
 export async function GET(req: NextRequest) {
   // Verify cron secret
-  const secret = req.headers.get('x-cron-secret') ?? req.nextUrl.searchParams.get('secret')
+  const secret = req.headers.get('x-cron-secret')
   if (secret !== process.env.CRON_SECRET) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }

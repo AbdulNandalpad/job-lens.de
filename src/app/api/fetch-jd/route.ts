@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerSupabase } from '@/lib/supabase-server'
 
+const SSRF_RE = /^(localhost|127\.|10\.|192\.168\.|172\.(1[6-9]|2[0-9]|3[01])\.|169\.254\.|::1$|fc[0-9a-f]{2}:|fd)/i
+
 function stripHtml(html: string): string {
   return html
     .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, ' ')
@@ -46,6 +48,13 @@ export async function POST(req: NextRequest) {
 
   const { url } = await req.json()
   if (!url?.trim()) return NextResponse.json({ error: 'URL required' }, { status: 400 })
+  if (!url.startsWith('https://')) return NextResponse.json({ error: 'URL must use HTTPS' }, { status: 400 })
+  try {
+    const h = new URL(url).hostname
+    if (SSRF_RE.test(h)) return NextResponse.json({ error: 'Invalid URL' }, { status: 400 })
+  } catch {
+    return NextResponse.json({ error: 'Invalid URL' }, { status: 400 })
+  }
 
   const text = await fetchJobText(url.trim())
   if (!text) return NextResponse.json({ blocked: true }, { status: 200 })
