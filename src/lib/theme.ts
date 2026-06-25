@@ -32,13 +32,13 @@ export const theme = {
   },
   gradients: {
     hero: `
-      radial-gradient(ellipse at 20% 55%, rgba(55,138,221,0.15) 0%, transparent 55%),
-      radial-gradient(ellipse at 75% 20%, rgba(29,158,117,0.08) 0%, transparent 50%),
-      linear-gradient(160deg, #0a1520 0%, #0f2035 60%, #0a1c2e 100%)
+      radial-gradient(ellipse at 20% 55%, rgba(55,138,221,0.18) 0%, transparent 55%),
+      radial-gradient(ellipse at 75% 20%, rgba(29,158,117,0.1) 0%, transparent 50%),
+      linear-gradient(160deg, #0d1e30 0%, #142a45 60%, #0f2038 100%)
     `,
     ctaBlock: `
-      radial-gradient(ellipse at 15% 50%, rgba(55,138,221,0.12) 0%, transparent 55%),
-      linear-gradient(155deg, #0a1520 0%, #0f2035 100%)
+      radial-gradient(ellipse at 15% 50%, rgba(55,138,221,0.15) 0%, transparent 55%),
+      linear-gradient(155deg, #0d1e30 0%, #142a45 100%)
     `,
     button: 'linear-gradient(135deg, #378ADD 0%, #185FA5 100%)',
     buttonHover: 'linear-gradient(135deg, #4a9de0 0%, #1d6fc0 100%)',
