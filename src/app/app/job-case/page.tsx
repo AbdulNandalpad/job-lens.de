@@ -7,6 +7,7 @@ import { c, f, sh, g } from '@/lib/theme'
 import { JOB_CASE, API } from '@/lib/constants'
 import { useCredits } from '@/lib/useCredits'
 import AdminGate from '@/components/AdminGate'
+import { useLanguage } from '@/lib/i18n'
 
 type CaseStatus = 'active' | 'viewed' | 'interested' | 'expired'
 
@@ -24,32 +25,32 @@ type JobCase = {
   daysLeft: number
 }
 
-function StatusPill({ status, viewCount }: { status: CaseStatus; viewCount: number }) {
+function StatusPill({ status, viewCount, lang }: { status: CaseStatus; viewCount: number; lang: string }) {
   if (status === 'interested') return (
     <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '3px 10px', borderRadius: 20, background: 'rgba(186,117,23,0.1)', color: '#b47500', fontSize: 11, fontWeight: 600, border: '1px solid rgba(186,117,23,0.25)' }}>
-      ★ Recruiter interested
+      ★ {lang === 'DE' ? 'Recruiter interessiert' : 'Recruiter interested'}
     </span>
   )
   if (status === 'viewed') return (
     <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '3px 10px', borderRadius: 20, background: c.successLight, color: c.success, fontSize: 11, fontWeight: 600 }}>
       <span style={{ width: 5, height: 5, borderRadius: '50%', background: c.success }} />
-      {viewCount} recruiter view{viewCount !== 1 ? 's' : ''}
+      {viewCount} {lang === 'DE' ? `Recruiter-Aufruf${viewCount !== 1 ? 'e' : ''}` : `recruiter view${viewCount !== 1 ? 's' : ''}`}
     </span>
   )
   if (status === 'expired') return (
     <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '3px 10px', borderRadius: 20, background: c.bg, color: c.textFaint, fontSize: 11, fontWeight: 600 }}>
-      Expired
+      {lang === 'DE' ? 'Abgelaufen' : 'Expired'}
     </span>
   )
   return (
     <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '3px 10px', borderRadius: 20, background: c.primaryLight, color: c.accent, fontSize: 11, fontWeight: 600 }}>
       <span style={{ width: 5, height: 5, borderRadius: '50%', background: c.accent, animation: 'jcPulse 2s ease infinite' }} />
-      Live · awaiting views
+      {lang === 'DE' ? 'Live · wartet auf Aufrufe' : 'Live · awaiting views'}
     </span>
   )
 }
 
-function ExpiryBar({ daysLeft }: { daysLeft: number }) {
+function ExpiryBar({ daysLeft, lang }: { daysLeft: number; lang: string }) {
   const pct = Math.max(0, Math.min(100, (daysLeft / JOB_CASE.expiryDays) * 100))
   const color = daysLeft <= 7 ? c.danger : daysLeft <= 14 ? c.warning : c.success
   return (
@@ -58,13 +59,14 @@ function ExpiryBar({ daysLeft }: { daysLeft: number }) {
         <div style={{ height: '100%', width: `${pct}%`, background: color, borderRadius: 2, transition: 'width 0.5s' }} />
       </div>
       <span style={{ fontSize: 11, color: daysLeft <= 14 ? color : c.textFaint, fontWeight: 600, flexShrink: 0 }}>
-        {daysLeft} days left
+        {daysLeft} {lang === 'DE' ? 'Tage verbleibend' : 'days left'}
       </span>
     </div>
   )
 }
 
 export default function MyJobCasesPage() {
+  const { lang } = useLanguage()
   const [cases, setCases]     = useState<JobCase[]>([])
   const [loading, setLoading] = useState(true)
   const [copied, setCopied]   = useState<string | null>(null)
@@ -86,7 +88,7 @@ export default function MyJobCasesPage() {
   }
 
   async function deleteCase(id: string) {
-    if (!confirm('Delete this Job Case? All data is permanently removed.')) return
+    if (!confirm(lang === 'DE' ? 'Diesen Job Case löschen? Alle Daten werden dauerhaft entfernt.' : 'Delete this Job Case? All data is permanently removed.')) return
     setDeleting(id)
     try {
       const res = await fetch(`/api/job-case/${id}`, { method: 'DELETE' })
@@ -160,21 +162,21 @@ export default function MyJobCasesPage() {
                   Job Case
                 </h1>
                 <p style={{ fontSize: 13, color: c.textMuted, margin: '4px 0 0' }}>
-                  Verified, job-specific proof packages — not a CV.
+                  {lang === 'DE' ? 'Verifizierte, stellenspezifische Nachweispakete — kein Lebenslauf.' : 'Verified, job-specific proof packages — not a CV.'}
                 </p>
               </div>
               <Link href="/app/job-case/new" className="jc-btn">
-                + New Job Case
+                {lang === 'DE' ? '+ Neuer Job Case' : '+ New Job Case'}
               </Link>
             </div>
 
             {/* Stats strip */}
             <div className="jc-stats">
               {[
-                { value: loading ? '…' : String(activeCases),  label: 'Active cases' },
-                { value: loading ? '…' : String(totalViews),   label: 'Recruiter views' },
-                { value: credits === null ? '…' : String(credits), label: 'Credits remaining' },
-                { value: `${JOB_CASE.expiryDays}d`,            label: 'Auto-delete' },
+                { value: loading ? '…' : String(activeCases),  label: lang === 'DE' ? 'Aktive Fälle' : 'Active cases' },
+                { value: loading ? '…' : String(totalViews),   label: lang === 'DE' ? 'Recruiter-Aufrufe' : 'Recruiter views' },
+                { value: credits === null ? '…' : String(credits), label: lang === 'DE' ? 'Verbleibende Credits' : 'Credits remaining' },
+                { value: `${JOB_CASE.expiryDays}d`,            label: lang === 'DE' ? 'Automatisch gelöscht' : 'Auto-delete' },
               ].map(stat => (
                 <div key={stat.label} style={{ background: c.bgCard, border: `1px solid ${c.border}`, borderRadius: 10, padding: '14px 16px', boxShadow: sh.card }}>
                   <div style={{ fontFamily: f.heading, fontSize: 22, fontWeight: 700, color: c.primary }}>{stat.value}</div>
@@ -186,15 +188,15 @@ export default function MyJobCasesPage() {
             {/* Loading */}
             {loading && (
               <div style={{ textAlign: 'center', padding: '48px 20px', color: c.textMuted, fontSize: 13 }}>
-                Loading your cases…
+                {lang === 'DE' ? 'Deine Fälle werden geladen…' : 'Loading your cases…'}
               </div>
             )}
 
             {/* Empty state */}
             {!loading && cases.length === 0 && (
               <div style={{ textAlign: 'center', padding: '64px 20px', background: c.bgCard, borderRadius: 12, border: `1px solid ${c.border}` }}>
-                <div style={{ fontSize: 13, color: c.textMuted, marginBottom: 20 }}>No Job Cases yet</div>
-                <Link href="/app/job-case/new" className="jc-btn">Build your first Job Case</Link>
+                <div style={{ fontSize: 13, color: c.textMuted, marginBottom: 20 }}>{lang === 'DE' ? 'Noch keine Job Cases' : 'No Job Cases yet'}</div>
+                <Link href="/app/job-case/new" className="jc-btn">{lang === 'DE' ? 'Ersten Job Case erstellen' : 'Build your first Job Case'}</Link>
               </div>
             )}
 
@@ -210,21 +212,21 @@ export default function MyJobCasesPage() {
                           {jc.jobTitle}
                         </div>
                         <div style={{ fontSize: 13, color: c.textMuted, marginBottom: 10 }}>
-                          {jc.company} · Created {jc.createdAt}
+                          {jc.company} · {lang === 'DE' ? 'Erstellt' : 'Created'} {jc.createdAt}
                         </div>
-                        <StatusPill status={jc.status} viewCount={jc.viewerDomains.length} />
+                        <StatusPill status={jc.status} viewCount={jc.viewerDomains.length} lang={lang} />
                       </div>
                       <div style={{ textAlign: 'right', flexShrink: 0 }}>
                         <div style={{ fontFamily: f.heading, fontSize: 28, fontWeight: 700, color: jc.matchScore >= 80 ? c.success : c.accent, lineHeight: 1 }}>
                           {jc.matchScore}%
                         </div>
-                        <div style={{ fontSize: 10, color: c.textFaint, marginTop: 2, letterSpacing: 0.5, textTransform: 'uppercase' }}>Match</div>
+                        <div style={{ fontSize: 10, color: c.textFaint, marginTop: 2, letterSpacing: 0.5, textTransform: 'uppercase' }}>{lang === 'DE' ? 'Übereinstimmung' : 'Match'}</div>
                       </div>
                     </div>
 
                     {jc.interestedRecruiter && (
                       <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 12, flexWrap: 'wrap' }}>
-                        <span style={{ fontSize: 11, color: '#b47500', fontWeight: 600 }}>★ Interested:</span>
+                        <span style={{ fontSize: 11, color: '#b47500', fontWeight: 600 }}>★ {lang === 'DE' ? 'Interessiert:' : 'Interested:'}</span>
                         <a href={`mailto:${jc.interestedRecruiter.email}`} style={{ padding: '2px 9px', background: 'rgba(186,117,23,0.08)', color: '#b47500', borderRadius: 20, fontSize: 11, fontWeight: 600, border: '1px solid rgba(186,117,23,0.2)', textDecoration: 'none' }}>
                           {jc.interestedRecruiter.email}
                         </a>
@@ -232,7 +234,7 @@ export default function MyJobCasesPage() {
                     )}
                     {!jc.interestedRecruiter && jc.viewerDomains.length > 0 && (
                       <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 12, flexWrap: 'wrap' }}>
-                        <span style={{ fontSize: 11, color: c.textMuted }}>Viewed by</span>
+                        <span style={{ fontSize: 11, color: c.textMuted }}>{lang === 'DE' ? 'Aufgerufen von' : 'Viewed by'}</span>
                         {jc.viewerDomains.map(d => (
                           <span key={d} style={{ padding: '2px 9px', background: c.successLight, color: c.success, borderRadius: 20, fontSize: 11, fontWeight: 600, border: `1px solid ${c.successBorder}` }}>
                             @{d}
@@ -241,16 +243,16 @@ export default function MyJobCasesPage() {
                       </div>
                     )}
 
-                    <ExpiryBar daysLeft={jc.daysLeft} />
+                    <ExpiryBar daysLeft={jc.daysLeft} lang={lang} />
 
                     <div style={{ display: 'flex', gap: 8, marginTop: 16, paddingTop: 14, borderTop: `1px solid ${c.border}`, flexWrap: 'wrap' }}>
-                      <Link href={`/case/${jc.slug}`} className="jc-btn-ghost" target="_blank">Preview as recruiter →</Link>
+                      <Link href={`/case/${jc.slug}`} className="jc-btn-ghost" target="_blank">{lang === 'DE' ? 'Als Recruiter ansehen →' : 'Preview as recruiter →'}</Link>
                       <button
                         onClick={() => copyLink(jc.slug)}
                         className="jc-btn-ghost"
                         style={copied === jc.slug ? { borderColor: c.success, color: c.success, background: c.successLight } : undefined}
                       >
-                        {copied === jc.slug ? '✓ Copied!' : '⎘ Copy link'}
+                        {copied === jc.slug ? (lang === 'DE' ? '✓ Kopiert!' : '✓ Copied!') : (lang === 'DE' ? '⎘ Link kopieren' : '⎘ Copy link')}
                       </button>
                       <button
                         onClick={() => deleteCase(jc.id)}
@@ -258,7 +260,7 @@ export default function MyJobCasesPage() {
                         className="jc-btn-danger"
                         style={{ marginLeft: 'auto', opacity: deleting === jc.id ? 0.5 : 1 }}
                       >
-                        {deleting === jc.id ? 'Deleting…' : 'Delete'}
+                        {deleting === jc.id ? (lang === 'DE' ? 'Wird gelöscht…' : 'Deleting…') : (lang === 'DE' ? 'Löschen' : 'Delete')}
                       </button>
                     </div>
 
