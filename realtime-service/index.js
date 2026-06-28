@@ -68,17 +68,43 @@ const TOOLS = [
 // Default country per market
 const MARKET_COUNTRY = { eu: 'de', in: 'in' }
 
-// Call Adzuna, return { summary, jobs, total } so Railway can both speak and show cards
-async function searchJobs(args, market) {
-  if (!ADZUNA_ID || !ADZUNA_KEY) return { summary: 'Job search is not configured on this server.', jobs: [], total: 0 }
-  const role     = String(args.role || '').slice(0, 100)
-  const location = String(args.location || '').slice(0, 100)
-  const country  = String(args.country || MARKET_COUNTRY[market] || 'de').toLowerCase().slice(0, 2)
+// Bundesagentur für Arbeit — primary source for German market (no API key registration needed)
+async function searchJobsBA(role, location) {
+  const params = new URLSearchParams({
+    was:  role,
+    size: '10',
+    page: '1',
+  })
+  if (location) params.set('wo', location.split(',')[0].trim())
 
-  const allowed = new Set(['de','at','ch','gb','in','us','au','ca','fr','nl','pl','sg','nz','za','br','ru'])
-  const safeCountry = allowed.has(country) ? country : 'de'
-  const currency = safeCountry === 'ch' ? 'CHF' : safeCountry === 'gb' ? 'GBP' : safeCountry === 'in' ? 'INR' : 'EUR'
+  try {
+    const res  = await fetch(`https://rest.arbeitsagentur.de/jobboerse/jobsuche-service/pc/v6/jobs?${params}`, {
+      headers: { 'X-API-Key': 'jobboerse-jobsuche' },
+    })
+    if (!res.ok) { console.error('[realtime] BA API error:', res.status); return { jobs: [], total: 0 } }
+    const data = await res.json()
+    const raw  = (data.stellenangebote || []).slice(0, 5)
+    const jobs = raw.map(j => ({
+      title:       String(j.titel || ''),
+      company:     String(j.arbeitgeber || ''),
+      location:    String(j.arbeitsort?.ort || location || ''),
+      salary_min:  null,
+      salary_max:  null,
+      apply_url:   j.externeUrl || `https://www.arbeitsagentur.de/jobsuche/jobdetail/${j.refnr}`,
+      posted:      String(j.aktuelleVeroeffentlichungsdatum || ''),
+      description: String(j.kurzbeschreibung || ''),
+      source:      'BA',
+    }))
+    return { jobs, total: data.maxErgebnisse || jobs.length }
+  } catch (err) {
+    console.error('[realtime] BA API error:', err.message)
+    return { jobs: [], total: 0 }
+  }
+}
 
+// Adzuna — covers AT, CH, IN, GB and all non-DE markets
+async function searchJobsAdzuna(role, location, safeCountry) {
+  if (!ADZUNA_ID || !ADZUNA_KEY) return { jobs: [], total: 0 }
   const params = new URLSearchParams({
     app_id:           ADZUNA_ID,
     app_key:          ADZUNA_KEY,
@@ -90,13 +116,8 @@ async function searchJobs(args, market) {
   try {
     const res  = await fetch(`https://api.adzuna.com/v1/api/jobs/${safeCountry}/search/1?${params}`)
     const data = await res.json()
-    if (!res.ok) return { summary: `Could not fetch jobs right now (${res.status}).`, jobs: [], total: 0 }
-
-    const raw     = (data.results || []).slice(0, 5)
-    const total   = data.count || raw.length
-    if (!raw.length) return { summary: `No listings found for "${role}"${location ? ` in ${location}` : ''} right now.`, jobs: [], total: 0 }
-
-    // Shape jobs into the format AIWidget job cards expect
+    if (!res.ok) { console.error('[realtime] Adzuna error:', res.status); return { jobs: [], total: 0 } }
+    const raw = (data.results || []).slice(0, 5)
     const jobs = raw.map(j => ({
       title:       String(j.title || ''),
       company:     String(j.company?.display_name || ''),
@@ -106,25 +127,68 @@ async function searchJobs(args, market) {
       apply_url:   String(j.redirect_url || ''),
       posted:      String(j.created || ''),
       description: String(j.description || ''),
+      source:      'Adzuna',
     }))
-
-    const salaries = jobs.filter(j => j.salary_min || j.salary_max)
-    let salaryNote = ''
-    if (salaries.length) {
-      const mins = salaries.map(j => j.salary_min).filter(Boolean)
-      const maxs = salaries.map(j => j.salary_max).filter(Boolean)
-      const lo = Math.round(Math.min(...mins) / 1000) * 1000
-      const hi = Math.round(Math.max(...maxs) / 1000) * 1000
-      salaryNote = ` Salaries range from ${currency} ${lo.toLocaleString()} to ${hi.toLocaleString()}.`
-    }
-    const employers = [...new Set(jobs.map(j => j.company).filter(Boolean))].slice(0, 3).join(', ')
-    const summary = `Found ${total} "${role}" jobs${location ? ` in ${location}` : ''}.${salaryNote}${employers ? ` Top employers: ${employers}.` : ''} The listings are now showing in the chat.`
-
-    return { summary, jobs, total, role, location }
+    return { jobs, total: data.count || jobs.length }
   } catch (err) {
     console.error('[realtime] Adzuna error:', err.message)
-    return { summary: 'Job search failed — please try again in a moment.', jobs: [], total: 0 }
+    return { jobs: [], total: 0 }
   }
+}
+
+// Merge BA + Adzuna results, deduplicate by normalised title+company
+function mergeJobs(baJobs, adzunaJobs, limit = 5) {
+  const seen = new Set()
+  const merged = []
+  for (const job of [...baJobs, ...adzunaJobs]) {
+    const key = `${job.title.toLowerCase().slice(0, 30)}|${job.company.toLowerCase().slice(0, 20)}`
+    if (!seen.has(key)) { seen.add(key); merged.push(job) }
+    if (merged.length >= limit) break
+  }
+  return merged
+}
+
+// Main search — BA primary for DE, Adzuna for everything else; merged for DE
+async function searchJobs(args, market) {
+  const role     = String(args.role || '').slice(0, 100)
+  const location = String(args.location || '').slice(0, 100)
+  const country  = String(args.country || MARKET_COUNTRY[market] || 'de').toLowerCase().slice(0, 2)
+  const allowed  = new Set(['de','at','ch','gb','in','us','au','ca','fr','nl','pl','sg','nz','za','br','ru'])
+  const safeCountry = allowed.has(country) ? country : 'de'
+  const currency = safeCountry === 'ch' ? 'CHF' : safeCountry === 'gb' ? 'GBP' : safeCountry === 'in' ? 'INR' : 'EUR'
+
+  let jobs = [], total = 0
+
+  if (safeCountry === 'de') {
+    // Germany: merge BA (authoritative) + Adzuna (salary data)
+    const [ba, az] = await Promise.all([
+      searchJobsBA(role, location),
+      searchJobsAdzuna(role, location, 'de'),
+    ])
+    jobs  = mergeJobs(ba.jobs, az.jobs)
+    total = Math.max(ba.total, az.total)
+    console.log(`[realtime] DE search: BA=${ba.jobs.length} Adzuna=${az.jobs.length} merged=${jobs.length}`)
+  } else {
+    const az = await searchJobsAdzuna(role, location, safeCountry)
+    jobs  = az.jobs
+    total = az.total
+  }
+
+  if (!jobs.length) return { summary: `No listings found for "${role}"${location ? ` in ${location}` : ''} right now.`, jobs: [], total: 0, role, location }
+
+  const salaries = jobs.filter(j => j.salary_min || j.salary_max)
+  let salaryNote = ''
+  if (salaries.length) {
+    const mins = salaries.map(j => j.salary_min).filter(Boolean)
+    const maxs = salaries.map(j => j.salary_max).filter(Boolean)
+    const lo = Math.round(Math.min(...mins) / 1000) * 1000
+    const hi = Math.round(Math.max(...maxs) / 1000) * 1000
+    salaryNote = ` Salaries range from ${currency} ${lo.toLocaleString()} to ${hi.toLocaleString()}.`
+  }
+  const employers = [...new Set(jobs.map(j => j.company).filter(Boolean))].slice(0, 3).join(', ')
+  const summary = `Found ${total} "${role}" jobs${location ? ` in ${location}` : ''}.${salaryNote}${employers ? ` Top employers: ${employers}.` : ''} The listings are now showing in the chat.`
+
+  return { summary, jobs, total, role, location }
 }
 
 // ── Session setup helper — called on open and again after kira.context ────────
