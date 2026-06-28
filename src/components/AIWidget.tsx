@@ -610,6 +610,15 @@ export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
       return
     }
 
+    // Fetch user memory + first name while credits are confirmed, before WS opens
+    let kiраContext: { name: string | null; memoryBlock: string } = { name: null, memoryBlock: '' }
+    try {
+      const ctxRes = await fetch('/api/user/kira-context')
+      if (ctxRes.ok) kiраContext = await ctxRes.json()
+    } catch { /* non-fatal — proceed without context */ }
+
+    const cvText = typeof window !== 'undefined' ? (sessionStorage.getItem('jl_cv_text') ?? '') : ''
+
     realtimeModeRef.current = true
     setRealtimeMode(true)
     setRealtimeState('connecting')
@@ -620,6 +629,15 @@ export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
     realtimeWsRef.current = ws
 
     ws.onopen = async () => {
+      // Send user context so Railway can enrich the OpenAI session instructions
+      if (kiраContext.memoryBlock || kiраContext.name || cvText) {
+        ws.send(JSON.stringify({
+          type:        'kira.context',
+          name:        kiраContext.name,
+          memoryBlock: kiраContext.memoryBlock,
+          cvText:      cvText.slice(0, 6000),
+        }))
+      }
       try {
         const stream = await navigator.mediaDevices.getUserMedia({
           audio: { channelCount: 1, echoCancellation: true, noiseSuppression: true },

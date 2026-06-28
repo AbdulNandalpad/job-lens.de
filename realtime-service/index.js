@@ -133,11 +133,61 @@ wss.on('connection', (clientWs, req) => {
     }
   })
 
+  // Base instructions for this session — may be enriched by kira.context message
+  let baseInstructions = KIRA_SYSTEM + marketCtx + modeCtx
+
   // Forward messages: client → OpenAI (always text frames)
+  // Intercept kira.context — enrich session instructions, don't forward to OpenAI
   clientWs.on('message', (data, isBinary) => {
-    if (openaiWs.readyState === WebSocket.OPEN) {
-      openaiWs.send(isBinary ? data : data.toString(), { binary: isBinary })
+    if (isBinary) {
+      if (openaiWs.readyState === WebSocket.OPEN) openaiWs.send(data, { binary: true })
+      return
     }
+    const text = data.toString()
+    let parsed
+    try { parsed = JSON.parse(text) } catch { /* not JSON */ }
+
+    if (parsed?.type === 'kira.context') {
+      const { name, memoryBlock, cvText } = parsed
+      let extra = ''
+      if (name)        extra += `\n\nThe user's name is ${name}. Address them by name naturally once early in the conversation.`
+      if (memoryBlock) extra += `\n${memoryBlock}`
+      if (cvText)      extra += `\n\nThe user's current CV (use this for personalised advice — do not read it out loud):\n${cvText}`
+      baseInstructions = KIRA_SYSTEM + marketCtx + modeCtx + extra
+
+      if (openaiWs.readyState === WebSocket.OPEN) {
+        openaiWs.send(JSON.stringify({
+          type: 'session.update',
+          session: {
+            type:              'realtime',
+            instructions:      baseInstructions,
+            output_modalities: ['audio'],
+            audio: {
+              input: {
+                format: { type: 'audio/pcm', rate: 24000 },
+                turn_detection: {
+                  type:                'server_vad',
+                  threshold:           0.7,
+                  prefix_padding_ms:   300,
+                  silence_duration_ms: 900,
+                  interrupt_response:  true,
+                  create_response:     true,
+                },
+              },
+              output: {
+                format: { type: 'audio/pcm', rate: 24000 },
+                voice:  'marin',
+                speed:  1.1,
+              },
+            },
+          },
+        }))
+        console.log('[realtime] session enriched with user context — name:', !!name, 'memory:', !!memoryBlock, 'cv:', !!cvText)
+      }
+      return
+    }
+
+    if (openaiWs.readyState === WebSocket.OPEN) openaiWs.send(text)
   })
 
   clientWs.on('close', () => {
