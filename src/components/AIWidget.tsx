@@ -413,16 +413,7 @@ export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
       .catch(() => {})
   }, [])
 
-  // ── Greeting on first open (text only — TTS is triggered by the FAB click) ─
-  useEffect(() => {
-    if (!open || greetedRef.current) return
-    greetedRef.current = true
-    const name = userName ? `, ${userName}` : ''
-    const text = key === 'eu_DE'
-      ? `Hallo${name}! Ich bin Kira, deine KI-Karriereassistentin. Wie kann ich dir heute helfen?`
-      : `Hi${name}! I'm Kira, your AI career assistant. How can I help you today?`
-    setMsgs([{ role: 'assistant', content: text }])
-  }, [open, userName, key])
+  // Greeting is deferred — shown only when the user first clicks the mic button
 
   useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: 'smooth' }) }, [msgs])
 
@@ -954,6 +945,25 @@ export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
     if (!wsBase) { alert('Realtime service URL not configured'); return }
     if (voiceMode) exitVoiceMode()
 
+    // Must be synchronous in the user-gesture handler so iOS/Safari allows AudioContext
+    unlockAudio()
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const ACtx = window.AudioContext || (window as any).webkitAudioContext
+    const rtCtx = new ACtx({ sampleRate: 24000 }) as AudioContext
+    realtimeCtxRef.current = rtCtx
+    realtimeNextTimeRef.current = 0
+    if (rtCtx.state === 'suspended') await rtCtx.resume()
+
+    // Show greeting on first voice session
+    if (!greetedRef.current) {
+      greetedRef.current = true
+      const name = userName ? `, ${userName}` : ''
+      const text = key === 'eu_DE'
+        ? `Hallo${name}! Ich bin Kira, deine KI-Karriereassistentin. Wie kann ich dir heute helfen?`
+        : `Hi${name}! I'm Kira, your AI career assistant. How can I help you today?`
+      setMsgs(prev => prev.length === 0 ? [{ role: 'assistant', content: text }] : prev)
+    }
+
     // Deduct credits up-front for the session
     setRealtimeConnecting(true)
     try {
@@ -994,10 +1004,9 @@ export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
         })
         realtimeStreamRef.current = stream
 
-        const ctx = new AudioContext({ sampleRate: 24000 })
+        // AudioContext was pre-created synchronously in the user gesture — reuse it
+        const ctx = realtimeCtxRef.current!
         if (ctx.state === 'suspended') await ctx.resume()
-        realtimeCtxRef.current    = ctx
-        realtimeNextTimeRef.current = 0
 
         const source    = ctx.createMediaStreamSource(stream)
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -1616,14 +1625,9 @@ export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
       {!maximized && <button className="kira-fab" onClick={() => {
         const nowOpening = !open
         setOpen(o => !o)
-        if (nowOpening && !greetedRef.current) {
+        if (nowOpening) {
           unlockAudio()
-          const name = userName ? `, ${userName}` : ''
-          const text = key === 'eu_DE'
-            ? `Hallo${name}! Ich bin Kira, deine KI-Karriereassistentin. Wie kann ich dir heute helfen?`
-            : `Hi${name}! I'm Kira, your AI career assistant. How can I help you today?`
-          void playTts(text)
-        } else if (!nowOpening) {
+        } else {
           stopAudio()
           if (voiceModeRef.current) exitVoiceMode()
         }
