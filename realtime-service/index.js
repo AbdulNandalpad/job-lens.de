@@ -70,30 +70,21 @@ wss.on('connection', (clientWs, req) => {
   openaiWs.on('open', () => {
     console.log('[realtime] OpenAI connected')
 
-    // Configure the session
+    // Configure the session — fields must match the OpenAI Realtime API spec exactly
     openaiWs.send(JSON.stringify({
       type: 'session.update',
       session: {
-        type:              'realtime',
-        instructions:      KIRA_SYSTEM + marketCtx + modeCtx,
-        output_modalities: ['audio'],
-        audio: {
-          input: {
-            format: { type: 'audio/pcm', rate: 24000 },
-            turn_detection: {
-              type:                'server_vad',
-              threshold:           0.7,   // less sensitive — ignore small background noise
-              prefix_padding_ms:   300,
-              silence_duration_ms: 900,   // wait longer before ending a turn
-              interrupt_response:  true,  // a real new turn cancels the current reply
-              create_response:     true,
-            },
-          },
-          output: {
-            format: { type: 'audio/pcm', rate: 24000 },
-            voice:  'marin',
-            speed:  1.1,
-          },
+        modalities:                ['audio', 'text'],
+        instructions:              KIRA_SYSTEM + marketCtx + modeCtx,
+        voice:                     'shimmer',
+        input_audio_format:        'pcm16',
+        output_audio_format:       'pcm16',
+        input_audio_transcription: { model: 'whisper-1' },
+        turn_detection: {
+          type:                'server_vad',
+          threshold:           0.6,
+          prefix_padding_ms:   300,
+          silence_duration_ms: 800,
         },
       },
     }))
