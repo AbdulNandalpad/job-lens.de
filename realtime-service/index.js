@@ -110,7 +110,12 @@ wss.on('connection', (clientWs, req) => {
       if (evt.error) {
         console.error('[realtime] OpenAI error:', JSON.stringify(evt.error))
       }
-    } catch { /* non-JSON */ }
+      // Log every event type so we can see exactly what OpenAI sends
+      const t = evt.type || '(no type)'
+      if (t.includes('audio') || t.includes('response') || t.includes('speech')) {
+        console.log('[realtime] OpenAI event:', t, evt.delta ? `delta[${evt.delta.length}]` : '')
+      }
+    } catch { /* non-JSON / binary frame */ }
     if (clientWs.readyState === WebSocket.OPEN) {
       clientWs.send(isBinary ? data : data.toString(), { binary: isBinary })
     }
