@@ -97,12 +97,14 @@ export async function GET(
       // Set a short-lived httpOnly cookie so the recruiter-interest route can
       // identify this view without re-collecting personal data.
       const res = NextResponse.redirect(new URL(`/case/${jobCase.slug}?access=granted`, req.url))
+      // Path '/' so the cookie is sent to /api/job-case/public/[slug] for server-side gating.
+      // The httpOnly flag prevents client JS from reading the view ID.
       res.cookies.set('jl_cv', view.id, {
         httpOnly: true,
         secure:   process.env.NODE_ENV === 'production',
         sameSite: 'lax',
         maxAge:   86400, // 24 h — same as token expiry
-        path:     `/case/${jobCase.slug}`,
+        path:     '/',
       })
       return res
     }

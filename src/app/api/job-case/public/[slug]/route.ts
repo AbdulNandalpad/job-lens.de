@@ -1,9 +1,9 @@
 /**
  * GET /api/job-case/public/[slug]
  * Fetches the public case data for the recruiter view page.
- * No auth required — access is gated by the magic link flow instead.
- * Only called after the recruiter has a valid ?access=granted query param
- * set by /api/job-case/access/[token].
+ * Access is gated server-side: the recruiter must have a valid jl_cv cookie
+ * (set by /api/job-case/access/[token] after clicking the magic link) that
+ * maps to a case_views row for this exact job case.
  *
  * GDPR: returns no personal data beyond what the candidate explicitly shared.
  */
@@ -18,6 +18,25 @@ export async function GET(
     const { slug } = await params
     const admin = createAdminSupabase()
 
+    // Server-side access gate: require a valid jl_cv cookie that proves the
+    // recruiter clicked the magic link for this specific job case.
+    const viewId = req.cookies.get('jl_cv')?.value
+    if (!viewId) {
+      return NextResponse.json({ error: 'Access denied' }, { status: 403 })
+    }
+
+    // Verify the view record exists, token was actually used, and belongs to this slug.
+    const { data: view } = await admin
+      .from('case_views')
+      .select('id, job_case_id, token_used_at')
+      .eq('id', viewId)
+      .not('token_used_at', 'is', null)
+      .maybeSingle()
+
+    if (!view) {
+      return NextResponse.json({ error: 'Access denied' }, { status: 403 })
+    }
+
     const { data: jobCase } = await admin
       .from('job_cases')
       .select(`
@@ -30,6 +49,7 @@ export async function GET(
       `)
       .eq('slug', slug)
       .eq('status', 'active')
+      .eq('id', view.job_case_id)
       .maybeSingle()
 
     if (!jobCase) return NextResponse.json({ error: 'Not found' }, { status: 404 })
