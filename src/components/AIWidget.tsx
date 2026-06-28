@@ -338,8 +338,10 @@ export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
   const realtimeProcessorRef = useRef<any>(null)
   const [realtimeSecsLeft, setRealtimeSecsLeft] = useState(LIVE_VOICE_MAX_SECONDS)
   const realtimeTimerRef  = useRef<ReturnType<typeof setInterval> | null>(null)
-  const realtimeRetryRef  = useRef(0)   // reconnect attempt counter (reset on clean exit)
-  const realtimeRetryTRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const realtimeRetryRef    = useRef(0)   // reconnect attempt counter (reset on clean exit)
+  const realtimeRetryTRef   = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const realtimeStartRef    = useRef<number>(0)    // session start timestamp (ms)
+  const realtimeJobsRef     = useRef<number>(0)    // number of job searches in this session
   const [realtimeConnecting, setRealtimeConnecting] = useState(false)
 
   // ── Refresh interview coaching state from sessionStorage ────────────────
@@ -566,9 +568,10 @@ export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
         break
       }
       case 'kira.jobs': {
-        // Railway sends this after a search_jobs tool call with the raw Adzuna results
+        // Railway sends this after a search_jobs tool call with the raw Adzuna/BA results
         const jobs = (evt.jobs || []) as Job[]
         if (jobs.length) {
+          realtimeJobsRef.current += 1
           setMsgs(prev => [...prev, {
             role: 'assistant',
             content: '',
@@ -583,7 +586,7 @@ export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
         const msg = evt.error?.message || evt.message || 'Unknown error'
         console.error('[realtime]', msg)
         setMsgs(prev => [...prev, { role: 'assistant', content: `Voice connection error: ${msg}` }])
-        exitRealtimeMode()
+        exitRealtimeMode('error')
         break
       }
     }
@@ -647,7 +650,7 @@ export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
               setMsgs(m => [...m, { role: 'assistant', content: lang === 'DE'
                 ? 'Live-Voice-Sitzung beendet (5-Minuten-Limit).'
                 : 'Live voice session ended (5-minute limit).' }])
-              exitRealtimeMode()
+              exitRealtimeMode('timer')
               return 0
             }
             return prev - 1
@@ -656,7 +659,7 @@ export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
       } catch (micErr) {
         console.error('[realtime] mic/audio setup error:', micErr)
         setMsgs(prev => [...prev, { role: 'assistant', content: `Mic error: ${(micErr as Error)?.message || micErr}` }])
-        exitRealtimeMode()
+        exitRealtimeMode('mic_error')
       }
     }
 
@@ -690,7 +693,7 @@ export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
         if (!cleanClose) {
           setMsgs(prev => [...prev, { role: 'assistant', content: `Could not reconnect (${reason}). Please try again.` }])
         }
-        exitRealtimeMode()
+        exitRealtimeMode(cleanClose ? 'clean' : 'disconnect')
       }
     }
 
@@ -746,8 +749,10 @@ export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
 
     const cvText = typeof window !== 'undefined' ? (sessionStorage.getItem('jl_cv_text') ?? '') : ''
 
-    realtimeRetryRef.current = 0
-    realtimeModeRef.current  = true
+    realtimeRetryRef.current  = 0
+    realtimeJobsRef.current   = 0
+    realtimeStartRef.current  = Date.now()
+    realtimeModeRef.current   = true
     setRealtimeMode(true)
     setRealtimeState('connecting')
     setRealtimeSecsLeft(LIVE_VOICE_MAX_SECONDS)
@@ -755,9 +760,15 @@ export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
     connectRealtimeWs(wsBase, kiraCtx, cvText)
   }
 
-  function exitRealtimeMode() {
+  function exitRealtimeMode(exitReason = 'user') {
+    const duration_s    = realtimeStartRef.current ? Math.round((Date.now() - realtimeStartRef.current) / 1000) : 0
+    const retries       = realtimeRetryRef.current
+    const jobs_searched = realtimeJobsRef.current
+
     realtimeModeRef.current = false
     realtimeRetryRef.current = 0
+    realtimeJobsRef.current = 0
+    realtimeStartRef.current = 0
     if (realtimeRetryTRef.current) { clearTimeout(realtimeRetryTRef.current); realtimeRetryTRef.current = null }
     setRealtimeMode(false)
     setRealtimeConnecting(false)
@@ -772,6 +783,15 @@ export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
     realtimeStreamRef.current = null
     try { realtimeWsRef.current?.close() } catch { /* ignore */ }
     realtimeWsRef.current = null
+
+    // Fire-and-forget session log — don't await, don't block UI
+    if (duration_s > 0) {
+      fetch(API.aiVoiceSessionEnd, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ duration_s, mode: kiraMode, market, exit_reason: exitReason, retries, jobs_searched }),
+      }).catch(() => { /* non-fatal */ })
+    }
   }
 
   // ── Mode selection ───────────────────────────────────────────────────────
@@ -949,7 +969,7 @@ export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
               <button className="kira-mic-btn"
                 title={realtimeMode ? 'End live voice' : `Live voice · ${CREDIT_COST.liveVoice} credits / 5 min`}
                 disabled={realtimeConnecting}
-                onClick={realtimeMode ? exitRealtimeMode : enterRealtimeMode}
+                onClick={realtimeMode ? () => exitRealtimeMode('user') : enterRealtimeMode}
                 style={{
                   width: 28, height: 28, borderRadius: 7, border: 'none',
                   background: realtimeMode ? '#10b98133' : 'rgba(255,255,255,.08)',
@@ -1021,7 +1041,7 @@ export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
                   {msgs.filter(m => m.role === 'user').length} exchanges · end to see transcript
                 </div>
               )}
-              <button onClick={exitRealtimeMode}
+              <button onClick={() => exitRealtimeMode('user')}
                 style={{ padding: '8px 20px', borderRadius: 20, border: '1px solid rgba(255,255,255,.1)', background: 'rgba(255,255,255,.04)', color: 'rgba(255,255,255,.35)', fontSize: 12, cursor: 'pointer', fontFamily: f.body }}>
                 End live voice
               </button>
@@ -1204,7 +1224,7 @@ export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
         const nowOpening = !open
         setOpen(o => !o)
         if (!nowOpening) {
-          if (realtimeModeRef.current) exitRealtimeMode()
+          if (realtimeModeRef.current) exitRealtimeMode('widget_closed')
         }
       }}
         title="Chat with Kira"

@@ -60,6 +60,10 @@ export default function AdminPage() {
   const [missingTable, setMissingTable] = useState(false)
   const [loading, setLoading] = useState(true)
   const [purchasesLoading, setPurchasesLoading] = useState(false)
+  const [kiraStats, setKiraStats] = useState<{
+    sessions_today: number; sessions_week: number; avg_duration_s: number
+    top_mode: string; error_rate_pct: number; job_searches: number; retried_sessions: number
+  } | null>(null)
   const [error, setError] = useState('')
   const [search, setSearch] = useState('')
   const [updating, setUpdating] = useState<string | null>(null)
@@ -90,6 +94,8 @@ export default function AdminPage() {
     if (data.error) { setError(data.error); setLoading(false); return }
     setUsers(data.users || [])
     setLoading(false)
+    // Load Kira stats in background — non-blocking
+    fetch('/api/admin/kira-stats').then(r => r.ok ? r.json() : null).then(d => { if (d && !d.error) setKiraStats(d) }).catch(() => {})
   }
 
   async function loadPurchases() {
@@ -197,6 +203,29 @@ export default function AdminPage() {
                 </div>
               ))}
             </div>
+
+            {/* Kira voice observability */}
+            {kiraStats && (
+              <div style={{ marginBottom: 24 }}>
+                <div style={{ fontSize: 11, fontWeight: 700, color: c.textMuted, letterSpacing: 1, textTransform: 'uppercase', marginBottom: 10 }}>Kira Voice — last 7 days</div>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7,1fr)', gap: 10 }}>
+                  {[
+                    { label: 'Sessions today',   value: kiraStats.sessions_today,    color: c.accent },
+                    { label: 'Sessions (7d)',     value: kiraStats.sessions_week,     color: c.accent },
+                    { label: 'Avg duration',      value: `${Math.floor(kiraStats.avg_duration_s / 60)}m ${kiraStats.avg_duration_s % 60}s`, color: c.success },
+                    { label: 'Top mode',          value: kiraStats.top_mode,          color: c.warning },
+                    { label: 'Job searches',      value: kiraStats.job_searches,      color: '#10b981' },
+                    { label: 'Retried sessions',  value: kiraStats.retried_sessions,  color: c.warning },
+                    { label: 'Error rate',        value: `${kiraStats.error_rate_pct}%`, color: kiraStats.error_rate_pct > 10 ? c.danger : c.success },
+                  ].map(stat => (
+                    <div key={stat.label} style={{ background: c.bgCard, border: `1px solid ${c.border}`, borderRadius: 10, padding: '12px 14px' }}>
+                      <div style={{ fontSize: 10, color: c.textMuted, marginBottom: 3 }}>{stat.label}</div>
+                      <div style={{ fontFamily: f.heading, fontSize: 18, fontWeight: 700, color: stat.color }}>{stat.value}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
 
             {/* Tab nav */}
             <div style={{ display: 'flex', gap: 4, background: c.bgSubtle, borderRadius: 10, padding: 4, marginBottom: 20, width: 'fit-content', border: `1px solid ${c.border}` }}>

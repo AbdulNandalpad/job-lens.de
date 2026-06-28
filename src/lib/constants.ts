@@ -118,6 +118,7 @@ export const API = {
   aiTts:                '/api/ai/tts',
   aiStt:                '/api/ai/stt',
   aiVoiceSession:       '/api/ai/voice-session',
+  aiVoiceSessionEnd:    '/api/ai/voice-session-end',
   careerProfile:        '/api/profile/career',
   applications:         '/api/applications',
   interviewQuestions:   '/api/interview/questions',
