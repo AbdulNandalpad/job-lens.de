@@ -65,66 +65,61 @@ User speaks
 
 ---
 
-## OpenAI Realtime API — correct session.update format
+## OpenAI Realtime API — session.update format for `gpt-realtime-mini-2025-12-15`
 
-This is the exact format the service sends after `openaiWs.on('open')`. Getting any field wrong causes silent fallback to text-only output (no audio) or an explicit error.
+> **Important:** `gpt-realtime-mini-2025-12-15` uses a **different session schema** from
+> `gpt-4o-realtime-preview`. The two schemas are mutually incompatible. Do not apply
+> docs or examples written for `gpt-4o-realtime-preview` to this model.
 
-```json
-{
-  "type": "session.update",
-  "session": {
-    "type": "realtime",
-    "modalities": ["audio", "text"],
-    "instructions": "<system prompt>",
-    "voice": "shimmer",
-    "input_audio_format": "pcm16",
-    "output_audio_format": "pcm16",
-    "input_audio_transcription": { "model": "whisper-1" },
-    "turn_detection": {
-      "type": "server_vad",
-      "threshold": 0.6,
-      "prefix_padding_ms": 300,
-      "silence_duration_ms": 800
-    }
-  }
-}
+```js
+openaiWs.send(JSON.stringify({
+  type: 'session.update',
+  session: {
+    type:              'realtime',           // required; 'realtime' or 'transcription'
+    instructions:      '<system prompt>',
+    output_modalities: ['audio'],            // NOT 'modalities' — that field is rejected
+    audio: {
+      input: {
+        format: { type: 'audio/pcm', rate: 24000 },
+        turn_detection: {
+          type:                'server_vad',
+          threshold:           0.7,
+          prefix_padding_ms:   300,
+          silence_duration_ms: 900,
+          interrupt_response:  true,
+          create_response:     true,
+        },
+      },
+      output: {
+        format: { type: 'audio/pcm', rate: 24000 },
+        voice:  'marin',                     // model-specific voice; not in gpt-4o-realtime
+        speed:  1.1,
+      },
+    },
+  },
+}))
 ```
 
-### Field rules
+### What happens if you use the wrong schema
 
-| Field | Valid values | Notes |
-|---|---|---|
-| `session.type` | `"realtime"` or `"transcription"` | Required. `"realtime"` for voice chat. |
-| `modalities` | `["audio","text"]` | Both needed — text for transcripts, audio for playback. |
-| `voice` | `alloy` `ash` `ballad` `coral` `echo` `sage` `shimmer` `verse` | `nova` is TTS-only, not available here. `marin` does not exist. |
-| `input_audio_format` | `pcm16` `g711_ulaw` `g711_alaw` | Must be `pcm16` — client sends raw PCM16 at 24 kHz. |
-| `output_audio_format` | `pcm16` | Client decodes PCM16 chunks via `AudioContext`. |
-| `turn_detection.type` | `server_vad` | Client-side VAD is not used; server detects speech boundaries. |
+Using the `gpt-4o-realtime-preview` flat schema against this model produces:
+
+| Wrong field | Error returned |
+|---|---|
+| `modalities` instead of `output_modalities` | `Unknown parameter: 'session.modalities'` |
+| `type: 'session'` | `Invalid value: 'session'. Supported values are: 'realtime' and 'transcription'` |
+| omit `type` entirely | `Missing required parameter: 'session.type'` |
+| `input_audio_format: 'pcm16'` at top level | silently ignored or rejected |
 
 ### Common errors
 
-| Error message | Cause | Fix |
+| Error shown in Kira chat | Cause | Fix |
 |---|---|---|
-| `Missing required parameter: 'session.type'` | `session.type` field was omitted entirely | Add `"type": "realtime"` to the session object |
-| `Invalid value: 'session'. Supported values are: 'realtime' and 'transcription'` | `session.type` was set to `"session"` | Change to `"type": "realtime"` |
-| `Voice connection error: …` shown in chat | OpenAI rejected the WebSocket upgrade or `unexpected-response` fired | Check Railway logs; usually invalid model name or missing API key |
-| User hears nothing, state shows "Listening…" then nothing | `modalities` missing or wrong, or `output_audio_format` not set | OpenAI defaults to text-only — fix the session.update fields |
-
-### Previous broken format (do not use)
-
-```js
-// WRONG — this was the original code before fix
-session: {
-  type: 'realtime',            // only correct field
-  output_modalities: ['audio'], // wrong key (should be modalities)
-  audio: {                      // this nesting doesn't exist in the API
-    input: { format: { type: 'audio/pcm', rate: 24000 }, turn_detection: {...} },
-    output: { format: {...}, voice: 'marin', speed: 1.1 }
-  }
-}
-```
-
-OpenAI ignored the unknown fields entirely and produced text-only output. The user saw "Listening…" (VAD still works via the model's built-in defaults) but Kira never spoke.
+| `Voice connection error: Unknown parameter: 'session.modalities'` | Wrong schema applied (gpt-4o format used on this model) | Restore the nested `audio.input`/`audio.output` format above |
+| `Voice connection error: Invalid value: 'session'` | `session.type` was set to `'session'` | Must be `'realtime'` |
+| `Voice connection error: Missing required parameter: 'session.type'` | `session.type` omitted | Add `type: 'realtime'` inside `session` |
+| `Voice connection error: OpenAI rejected (401)` | `OPENAI_API_KEY` missing or wrong on Railway | Set the env var in Railway dashboard |
+| User sees "Listening…" but hears nothing, no error | Session config accepted but output is text-only | Ensure `output_modalities: ['audio']` is present |
 
 ---
 

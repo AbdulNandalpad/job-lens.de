@@ -70,22 +70,34 @@ wss.on('connection', (clientWs, req) => {
   openaiWs.on('open', () => {
     console.log('[realtime] OpenAI connected')
 
-    // Configure the session — fields must match the OpenAI Realtime API spec exactly
+    // session.update format is specific to gpt-realtime-mini-2025-12-15.
+    // This model uses a nested audio.input/audio.output schema and output_modalities,
+    // NOT the flat modalities/input_audio_format/output_audio_format schema used by
+    // gpt-4o-realtime-preview. Do not change this format without testing against
+    // the actual model — these two schemas are incompatible.
     openaiWs.send(JSON.stringify({
       type: 'session.update',
       session: {
-        type:                      'realtime',
-        modalities:                ['audio', 'text'],
-        instructions:              KIRA_SYSTEM + marketCtx + modeCtx,
-        voice:                     'shimmer',
-        input_audio_format:        'pcm16',
-        output_audio_format:       'pcm16',
-        input_audio_transcription: { model: 'whisper-1' },
-        turn_detection: {
-          type:                'server_vad',
-          threshold:           0.6,
-          prefix_padding_ms:   300,
-          silence_duration_ms: 800,
+        type:              'realtime',
+        instructions:      KIRA_SYSTEM + marketCtx + modeCtx,
+        output_modalities: ['audio'],
+        audio: {
+          input: {
+            format: { type: 'audio/pcm', rate: 24000 },
+            turn_detection: {
+              type:                'server_vad',
+              threshold:           0.7,
+              prefix_padding_ms:   300,
+              silence_duration_ms: 900,
+              interrupt_response:  true,
+              create_response:     true,
+            },
+          },
+          output: {
+            format: { type: 'audio/pcm', rate: 24000 },
+            voice:  'marin',
+            speed:  1.1,
+          },
         },
       },
     }))
