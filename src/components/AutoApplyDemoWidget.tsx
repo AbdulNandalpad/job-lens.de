@@ -41,11 +41,18 @@ const IN_DEMO: DemoData = {
   ],
 }
 
-const GUIDE_STEPS = [
+const GUIDE_STEPS_EN = [
   { icon: '🔗', title: 'Paste any job URL',       desc: 'Drop in the direct application form link — Workday, Greenhouse, Lever, or any direct form.' },
   { icon: '🤖', title: 'Kira reads the form',     desc: 'A real browser opens the page, detects every field, and maps them to your CV automatically.' },
   { icon: '✏️', title: 'You review the values',   desc: 'See exactly what will be filled in. Edit anything before submitting.' },
   { icon: '🚀', title: 'Kira submits for you',    desc: 'One click — the browser fills every field and hits submit. You get a screenshot to confirm.' },
+]
+
+const GUIDE_STEPS_DE = [
+  { icon: '🔗', title: 'Bewerbungs-URL einfügen',   desc: 'Direkte URL des Bewerbungsformulars einfügen — Workday, Greenhouse, Lever oder jedes andere Formular.' },
+  { icon: '🤖', title: 'Kira liest das Formular',   desc: 'Ein echter Browser öffnet die Seite, erkennt alle Felder und ordnet sie deinem Lebenslauf zu.' },
+  { icon: '✏️', title: 'Werte prüfen',              desc: 'Sieh genau, was ausgefüllt wird. Bearbeite alles vor dem Absenden.' },
+  { icon: '🚀', title: 'Kira sendet für dich ab',   desc: 'Ein Klick — der Browser füllt jedes Feld aus und sendet ab. Du erhältst einen Screenshot zur Bestätigung.' },
 ]
 
 type Phase = 'url' | 'scanning' | 'fields' | 'mapping' | 'filling' | 'done'
@@ -64,14 +71,17 @@ function SpinnerIcon({ color, size = 18 }: { color: string; size?: number }) {
 
 export default function AutoApplyDemoWidget({
   market,
+  lang = 'EN',
   onTryItYourself,
   onTryWithSample,
 }: {
   market: 'eu' | 'in'
+  lang?: 'DE' | 'EN'
   onTryItYourself: () => void
   onTryWithSample: () => void
 }) {
   const data = market === 'in' ? IN_DEMO : EU_DEMO
+  const GUIDE_STEPS = lang === 'DE' ? GUIDE_STEPS_DE : GUIDE_STEPS_EN
   const accent = market === 'in' ? '#FF9933' : '#378ADD'
   const accentDim = market === 'in' ? '#FF993322' : '#378ADD22'
   const accentBorder = market === 'in' ? '#FF993344' : '#378ADD44'
@@ -219,13 +229,13 @@ export default function AutoApplyDemoWidget({
             color: widgetMode === 'guide' ? 'rgba(255,255,255,0.3)' : phase === 'done' ? '#22c55e' : accent,
             whiteSpace: 'nowrap',
           }}>
-            {widgetMode === 'guide' && '● How it works'}
-            {widgetMode === 'demo' && phase === 'url'     && '● Navigating'}
-            {widgetMode === 'demo' && phase === 'scanning'&& '● Scanning'}
-            {widgetMode === 'demo' && phase === 'fields'  && '● Detecting fields'}
-            {widgetMode === 'demo' && phase === 'mapping' && '● Mapping CV'}
-            {widgetMode === 'demo' && phase === 'filling' && '● Filling form'}
-            {widgetMode === 'demo' && phase === 'done'    && '✓ Submitted'}
+            {widgetMode === 'guide' && (lang === 'DE' ? '● So funktioniert es' : '● How it works')}
+            {widgetMode === 'demo' && phase === 'url'     && (lang === 'DE' ? '● Navigieren' : '● Navigating')}
+            {widgetMode === 'demo' && phase === 'scanning'&& (lang === 'DE' ? '● Scannen' : '● Scanning')}
+            {widgetMode === 'demo' && phase === 'fields'  && (lang === 'DE' ? '● Felder erkennen' : '● Detecting fields')}
+            {widgetMode === 'demo' && phase === 'mapping' && (lang === 'DE' ? '● CV zuordnen' : '● Mapping CV')}
+            {widgetMode === 'demo' && phase === 'filling' && (lang === 'DE' ? '● Formular ausfüllen' : '● Filling form')}
+            {widgetMode === 'demo' && phase === 'done'    && (lang === 'DE' ? '✓ Abgesendet' : '✓ Submitted')}
           </div>
         </div>
 
@@ -233,10 +243,10 @@ export default function AutoApplyDemoWidget({
         {widgetMode === 'guide' && (
           <div style={{ padding: '28px 24px 8px' }}>
             <div style={{ fontSize: 16, fontWeight: 700, color: '#fff', marginBottom: 4, fontFamily: "'Outfit', sans-serif" }}>
-              Auto Apply — how it works
+              {lang === 'DE' ? 'Auto-Bewerbung — so funktioniert es' : 'Auto Apply — how it works'}
             </div>
             <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)', marginBottom: 24 }}>
-              Kira uses a real browser to fill job applications using your CV — you review before it submits.
+              {lang === 'DE' ? 'Kira nutzt einen echten Browser, um Bewerbungen mit deinem Lebenslauf auszufüllen — du prüfst vor dem Absenden.' : 'Kira uses a real browser to fill job applications using your CV — you review before it submits.'}
             </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: 16, marginBottom: 8 }}>
@@ -279,15 +289,15 @@ export default function AutoApplyDemoWidget({
               <div style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '28px 0', justifyContent: 'center' }}>
                 <SpinnerIcon color={accent} size={22} />
                 <div>
-                  <div style={{ fontSize: 14, fontWeight: 600, color: '#fff' }}>{data.formType} form detected</div>
-                  <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.45)', marginTop: 2 }}>Reading application fields from {data.company}…</div>
+                  <div style={{ fontSize: 14, fontWeight: 600, color: '#fff' }}>{data.formType} {lang === 'DE' ? 'Formular erkannt' : 'form detected'}</div>
+                  <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.45)', marginTop: 2 }}>{lang === 'DE' ? `Bewerbungsfelder von ${data.company} werden gelesen…` : `Reading application fields from ${data.company}…`}</div>
                 </div>
               </div>
             )}
 
             {phase === 'url' && (
               <div style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '28px 0', justifyContent: 'center' }}>
-                <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.35)' }}>Navigating to {data.company} application…</div>
+                <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.35)' }}>{lang === 'DE' ? `Navigiere zur ${data.company} Bewerbung…` : `Navigating to ${data.company} application…`}</div>
               </div>
             )}
 
@@ -295,10 +305,10 @@ export default function AutoApplyDemoWidget({
               <div>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, padding: '0 4px 8px', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
                   <div style={{ fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: 0.7 }}>
-                    Field · {data.formType}
+                    {lang === 'DE' ? `Feld · ${data.formType}` : `Field · ${data.formType}`}
                   </div>
                   <div style={{ fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: 0.7 }}>
-                    From your CV
+                    {lang === 'DE' ? 'Aus deinem Lebenslauf' : 'From your CV'}
                   </div>
                 </div>
 
@@ -342,7 +352,7 @@ export default function AutoApplyDemoWidget({
             {phase === 'filling' && (
               <div style={{ padding: '16px 4px 4px' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
-                  <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.45)' }}>Filling form…</span>
+                  <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.45)' }}>{lang === 'DE' ? 'Formular wird ausgefüllt…' : 'Filling form…'}</span>
                   <span style={{ fontSize: 11, color: accent, fontWeight: 600 }}>{fillProgress}%</span>
                 </div>
                 <div style={{ height: 5, borderRadius: 5, background: 'rgba(255,255,255,0.08)' }}>
@@ -357,8 +367,8 @@ export default function AutoApplyDemoWidget({
                   ✓
                 </div>
                 <div>
-                  <div style={{ fontSize: 14, fontWeight: 700, color: '#22c55e' }}>Application submitted to {data.company}!</div>
-                  <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)', marginTop: 2 }}>7 fields filled · CV attached · Cover letter included</div>
+                  <div style={{ fontSize: 14, fontWeight: 700, color: '#22c55e' }}>{lang === 'DE' ? `Bewerbung bei ${data.company} eingereicht!` : `Application submitted to ${data.company}!`}</div>
+                  <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)', marginTop: 2 }}>{lang === 'DE' ? '7 Felder ausgefüllt · Lebenslauf angehängt · Anschreiben enthalten' : '7 fields filled · CV attached · Cover letter included'}</div>
                 </div>
               </div>
             )}
@@ -385,7 +395,7 @@ export default function AutoApplyDemoWidget({
                   transition: 'all 0.15s', fontFamily: 'inherit',
                 }}
               >
-                ▶ Watch demo
+                {lang === 'DE' ? '▶ Demo ansehen' : '▶ Watch demo'}
               </button>
               <button
                 className="aad-cta-outline"
@@ -398,7 +408,7 @@ export default function AutoApplyDemoWidget({
                   cursor: 'pointer', fontFamily: 'inherit', transition: 'all 0.15s',
                 }}
               >
-                Try with sample form →
+                {lang === 'DE' ? 'Mit Beispielformular testen →' : 'Try with sample form →'}
               </button>
               <button
                 className="aad-cta-outline"
@@ -412,7 +422,7 @@ export default function AutoApplyDemoWidget({
                   transition: 'all 0.15s',
                 }}
               >
-                Use my own URL
+                {lang === 'DE' ? 'Eigene URL verwenden' : 'Use my own URL'}
               </button>
             </>
           )}
@@ -445,7 +455,7 @@ export default function AutoApplyDemoWidget({
                   transition: 'all 0.15s', fontFamily: 'inherit',
                 }}
               >
-                Try with sample form →
+                {lang === 'DE' ? 'Mit Beispielformular testen →' : 'Try with sample form →'}
               </button>
               <button
                 className="aad-cta-outline"
@@ -456,7 +466,7 @@ export default function AutoApplyDemoWidget({
                   fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', transition: 'all 0.15s',
                 }}
               >
-                Use my own URL
+                {lang === 'DE' ? 'Eigene URL verwenden' : 'Use my own URL'}
               </button>
               <button
                 onClick={() => { setWidgetMode('guide') }}
@@ -466,7 +476,7 @@ export default function AutoApplyDemoWidget({
                   fontSize: 12, cursor: 'pointer', fontFamily: 'inherit',
                 }}
               >
-                ↻ Replay
+                {lang === 'DE' ? '↻ Wiederholen' : '↻ Replay'}
               </button>
             </>
           )}
@@ -475,7 +485,7 @@ export default function AutoApplyDemoWidget({
 
       {widgetMode === 'demo' && phase === 'done' && (
         <p style={{ textAlign: 'center', fontSize: 12, color: 'rgba(100,116,139,0.7)', marginTop: 14 }}>
-          Scripted demo — the real Auto Apply uses your actual CV data on live forms.
+          {lang === 'DE' ? 'Vorgeführte Demo — das echte Auto-Bewerbung nutzt deine echten Lebenslaufdaten auf Live-Formularen.' : 'Scripted demo — the real Auto Apply uses your actual CV data on live forms.'}
         </p>
       )}
     </div>

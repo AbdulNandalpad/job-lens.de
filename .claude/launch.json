@@ -14,6 +14,13 @@
       "runtimeExecutable": "npm",
       "runtimeArgs": ["run", "dev"],
       "port": 3000
+    },
+    {
+      "name": "veveycrm",
+      "runtimeExecutable": "powershell",
+      "runtimeArgs": ["-NoProfile", "-Command", "Set-Location 'C:/Users/Abdul Nandalpad/Documents/veveycrm'; npm run dev -- --port 3001"],
+      "port": 3001,
+      "autoPort": false
     }
   ]
 }

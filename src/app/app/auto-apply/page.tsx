@@ -367,6 +367,7 @@ export default function AutoApplyPage() {
           <div style={{ display: 'flex', justifyContent: 'center', padding: '20px 0 40px' }}>
             <AutoApplyDemoWidget
               market="eu"
+              lang={lang}
               onTryItYourself={() => setMode('active')}
               onTryWithSample={() => {
                 setJobUrl(`${window.location.origin}/app/auto-apply/demo-form`)
