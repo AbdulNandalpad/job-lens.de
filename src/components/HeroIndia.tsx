@@ -116,7 +116,16 @@ export default function HeroIndia({ user }: Props) {
         }
         .hero-in-panel:hover { transform: skewX(-6deg) translateY(-14px) !important; z-index: 10 !important; }
         .hero-in-panel:hover .in-panel-bar { opacity: 1 !important; }
-        @media(max-width:960px){
+
+        .hero-in-mobile-ticker { display: none; }
+
+        @media(max-width:768px){
+          .hero-in-panels { display: none !important; }
+          .hero-in-mobile-ticker { display: block; }
+          .hero-in-layout { grid-template-columns: 1fr !important; padding: 44px 20px 0 !important; gap: 0 !important; }
+        }
+
+        @media(min-width:769px) and (max-width:960px){
           .hero-in-layout{ grid-template-columns:1fr!important; padding:32px 24px 48px!important; min-height:auto!important; gap:28px!important; }
           .hero-in-panels{ order:-1; justify-content:center!important; overflow:visible!important; padding:8px 0 0!important; margin:0!important; }
           .hero-in-panels-inner{ height:160px!important; }
@@ -129,9 +138,16 @@ export default function HeroIndia({ user }: Props) {
           .panel-icon svg{ width:18px!important; height:18px!important; }
           .panel-name{ font-size:9px!important; margin-bottom:0!important; letter-spacing:-0.2px!important; }
         }
+
+        @keyframes in-ticker-left  { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+        @keyframes in-ticker-right { from { transform: translateX(-50%); } to { transform: translateX(0); } }
+        .in-ticker-track-a { display: flex; width: max-content; animation: in-ticker-left 28s linear infinite; }
+        .in-ticker-track-b { display: flex; width: max-content; animation: in-ticker-right 22s linear infinite; }
+        .in-ticker-track-a:hover, .in-ticker-track-b:hover { animation-play-state: paused; }
       `}</style>
 
-      <div style={{ background:'linear-gradient(145deg,#0d0800 0%,#110c02 50%,#150e03 100%)', minHeight:'88vh', display:'flex', alignItems:'center', overflow:'hidden', position:'relative' }}>
+      <div style={{ background:'linear-gradient(145deg,#0d0800 0%,#110c02 50%,#150e03 100%)', minHeight:'88vh', display:'flex', flexDirection:'column', alignItems:'stretch', overflow:'hidden', position:'relative' }}>
+        <div style={{ flex:1, display:'flex', alignItems:'center' }}>
         {/* ambient glow */}
         <div style={{
           position:'absolute', inset:0, pointerEvents:'none',
@@ -230,6 +246,42 @@ export default function HeroIndia({ user }: Props) {
                     </div>
                   </div>
                 </Link>
+              ))}
+            </div>
+          </div>
+        </div>
+        </div>{/* end inner centering wrapper */}
+
+        {/* ── Mobile ticker — visible only on ≤768px ── */}
+        <div className="hero-in-mobile-ticker" style={{ overflow: 'hidden', position: 'relative' }}>
+          <div style={{ position:'absolute', inset:0, zIndex:2, pointerEvents:'none', backgroundImage:`repeating-linear-gradient(-55deg, transparent, transparent 18px, rgba(255,255,255,0.028) 18px, rgba(255,255,255,0.028) 20px)` }} />
+          <div style={{ position:'absolute', left:0, top:0, bottom:0, width:48, zIndex:3, background:'linear-gradient(90deg,#0d0800 0%,transparent 100%)', pointerEvents:'none' }} />
+          <div style={{ position:'absolute', right:0, top:0, bottom:0, width:48, zIndex:3, background:'linear-gradient(270deg,#0d0800 0%,transparent 100%)', pointerEvents:'none' }} />
+
+          <div style={{ overflow:'hidden', padding:'14px 0 8px' }}>
+            <div className="in-ticker-track-a">
+              {[...features, ...features].map((ft, i) => (
+                <div key={i} style={{ display:'inline-flex', alignItems:'center', gap:10, padding:'8px 18px', marginRight:10, borderRadius:10, background:`${ft.accent}12`, border:`1px solid ${ft.accent}28`, flexShrink:0 }}>
+                  <div style={{ color:ft.accent, display:'flex', alignItems:'center', flexShrink:0 }}>{ft.icon}</div>
+                  <div>
+                    <div style={{ fontFamily:f.heading, fontSize:12, fontWeight:700, color:'#fff', whiteSpace:'nowrap' as const }}>{ft.name}</div>
+                    <div style={{ fontSize:10, color:'rgba(255,255,255,0.38)', whiteSpace:'nowrap' as const }}>{ft.desc}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div style={{ overflow:'hidden', padding:'8px 0 20px' }}>
+            <div className="in-ticker-track-b">
+              {[...features, ...features].reverse().map((ft, i) => (
+                <div key={i} style={{ display:'inline-flex', alignItems:'center', gap:10, padding:'8px 18px', marginRight:10, borderRadius:10, background:`${ft.accent}0c`, border:`1px solid ${ft.accent}20`, flexShrink:0 }}>
+                  <div style={{ color:ft.accent, display:'flex', alignItems:'center', flexShrink:0 }}>{ft.icon}</div>
+                  <div>
+                    <div style={{ fontFamily:f.heading, fontSize:12, fontWeight:700, color:'rgba(255,255,255,0.75)', whiteSpace:'nowrap' as const }}>{ft.name}</div>
+                    <div style={{ fontSize:10, color:'rgba(255,255,255,0.3)', whiteSpace:'nowrap' as const }}>{ft.desc}</div>
+                  </div>
+                </div>
               ))}
             </div>
           </div>

@@ -163,7 +163,9 @@ export default function HeroDACH({ lang, user }: Props) {
         .ticker-track-a:hover, .ticker-track-b:hover { animation-play-state: paused; }
       `}</style>
 
-      <div style={{ background:'linear-gradient(145deg,#030f1c 0%,#04111f 50%,#071929 100%)', minHeight:'88vh', display:'flex', alignItems:'center', overflow:'hidden', position:'relative' }}>
+      <div style={{ background:'linear-gradient(145deg,#030f1c 0%,#04111f 50%,#071929 100%)', minHeight:'88vh', display:'flex', flexDirection:'column', alignItems:'stretch', overflow:'hidden', position:'relative' }}>
+        {/* inner wrapper provides vertical centering for the grid — ticker sits below */}
+        <div style={{ flex:1, display:'flex', alignItems:'center' }}>
         {/* ambient glow — shifts color when hovering */}
         <div style={{
           position:'absolute', inset:0, pointerEvents:'none',
@@ -270,6 +272,7 @@ export default function HeroDACH({ lang, user }: Props) {
             </div>
           </div>
         </div>
+        </div>{/* end inner centering wrapper */}
 
         {/* ── Mobile ticker — visible only on ≤768px ── */}
         <div className="hero-mobile-ticker" style={{ marginTop: 36, overflow: 'hidden', position: 'relative' }}>
