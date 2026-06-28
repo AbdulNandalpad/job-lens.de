@@ -5,6 +5,7 @@ import Navbar from '../components/Navbar'
 import { theme } from '@/lib/theme'
 import { useCredits } from '@/lib/useCredits'
 import { SS, LS, API, CREDIT_COST } from '@/lib/constants'
+import { useLanguage } from '@/lib/i18n'
 
 const { colors: c, gradients: g, fonts: f } = theme
 
@@ -14,16 +15,25 @@ interface Message {
   status?: string
 }
 
-const SUGGESTIONS = [
+const SUGGESTIONS_EN = [
   'Find me senior developer jobs in Stuttgart',
   'Search for marketing manager roles in Munich',
   'Show me remote React jobs in Germany',
   'What jobs match my CV best?',
 ]
 
-const STATUS_LABELS: Record<string, string> = {
-  search_jobs: 'Searching live jobs...',
-  score_jobs: 'Scoring your CV match...',
+const SUGGESTIONS_DE = [
+  'Finde mir Senior-Entwickler-Jobs in Stuttgart',
+  'Suche nach Marketing-Manager-Stellen in München',
+  'Zeige mir Remote React-Jobs in Deutschland',
+  'Welche Jobs passen am besten zu meinem Lebenslauf?',
+]
+
+function useStatusLabels(lang: string): Record<string, string> {
+  return {
+    search_jobs: lang === 'DE' ? 'Suche läuft...' : 'Searching live jobs...',
+    score_jobs: lang === 'DE' ? 'CV-Übereinstimmung wird bewertet...' : 'Scoring your CV match...',
+  }
 }
 
 function TypingDots() {
@@ -45,9 +55,10 @@ function TypingDots() {
   )
 }
 
-function MessageBubble({ msg, isLast }: { msg: Message; isLast: boolean }) {
+function MessageBubble({ msg, isLast, lang }: { msg: Message; isLast: boolean; lang: string }) {
   const isUser = msg.role === 'user'
   const isTyping = !isUser && isLast && msg.content === '' && !msg.status
+  const statusLabels = useStatusLabels(lang)
 
   return (
     <div style={{
@@ -82,7 +93,7 @@ function MessageBubble({ msg, isLast }: { msg: Message; isLast: boolean }) {
         {msg.status ? (
           <span style={{ color: 'rgba(255,255,255,0.6)', fontSize: 13, display: 'flex', alignItems: 'center', gap: 8 }}>
             <TypingDots />
-            {STATUS_LABELS[msg.status] || 'Thinking...'}
+            {statusLabels[msg.status] || (lang === 'DE' ? 'Wird verarbeitet...' : 'Thinking...')}
           </span>
         ) : isTyping ? (
           <TypingDots />
@@ -109,6 +120,7 @@ export default function AIPage() {
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
   const { credits } = useCredits()
+  const { lang } = useLanguage()
 
   useEffect(() => {
     const cv = sessionStorage.getItem(SS.cvText) || ''
@@ -155,7 +167,7 @@ export default function AIPage() {
           const copy = [...prev]
           copy[assistantIdx] = {
             role: 'assistant',
-            content: "You've run out of credits. Please top up your account to continue using the AI assistant.",
+            content: lang === 'DE' ? 'Deine Credits sind aufgebraucht. Bitte lade dein Konto auf, um den KI-Assistenten weiter zu nutzen.' : "You've run out of credits. Please top up your account to continue using the AI assistant.",
           }
           return copy
         })
@@ -214,7 +226,7 @@ export default function AIPage() {
     } catch {
       setMessages(prev => {
         const copy = [...prev]
-        copy[assistantIdx] = { role: 'assistant', content: 'Connection error. Please try again.' }
+        copy[assistantIdx] = { role: 'assistant', content: lang === 'DE' ? 'Verbindungsfehler. Bitte versuche es erneut.' : 'Connection error. Please try again.' }
         return copy
       })
     }
@@ -280,14 +292,14 @@ export default function AIPage() {
               }}>AI</div>
               <div>
                 <div style={{ color: '#fff', fontSize: 13, fontWeight: 600 }}>Job-Lens AI</div>
-                <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: 11 }}>Smart job search</div>
+                <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: 11 }}>{lang === 'DE' ? 'Intelligente Jobsuche' : 'Smart job search'}</div>
               </div>
             </div>
           </div>
 
           <div style={{ padding: '0 16px', marginBottom: 8 }}>
             <div style={{ color: 'rgba(255,255,255,0.4)', fontSize: 11, fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 8 }}>
-              Status
+              {lang === 'DE' ? 'Status' : 'Status'}
             </div>
             <div style={{
               padding: '8px 12px', borderRadius: 8,
@@ -297,7 +309,7 @@ export default function AIPage() {
               display: 'flex', alignItems: 'center', gap: 6,
             }}>
               <span>{hasCv ? '✓' : '○'}</span>
-              <span>{hasCv ? 'CV loaded' : 'No CV — upload on Career Scan'}</span>
+              <span>{hasCv ? (lang === 'DE' ? 'Lebenslauf geladen' : 'CV loaded') : (lang === 'DE' ? 'Kein Lebenslauf — auf Career Scan hochladen' : 'No CV — upload on Career Scan')}</span>
             </div>
           </div>
 
@@ -312,7 +324,7 @@ export default function AIPage() {
               fontSize: 12, color: 'rgba(255,255,255,0.7)',
             }}>
               <span style={{ color: '#fff', fontWeight: 600, fontSize: 16 }}>{credits}</span>
-              <span> available</span>
+              <span> {lang === 'DE' ? 'verfügbar' : 'available'}</span>
             </div>
           </div>
 
@@ -331,7 +343,7 @@ export default function AIPage() {
                   transition: 'color 0.2s',
                 }}
               >
-                Clear conversation
+                {lang === 'DE' ? 'Gespräch löschen' : 'Clear conversation'}
               </button>
             </div>
           )}
@@ -355,14 +367,16 @@ export default function AIPage() {
                   margin: '0 auto 16px',
                 }}>AI</div>
                 <h2 style={{ fontFamily: f.heading, fontSize: 22, fontWeight: 700, color: c.text, marginBottom: 8 }}>
-                  Job-Lens AI Assistant
+                  {lang === 'DE' ? 'Job-Lens KI-Assistent' : 'Job-Lens AI Assistant'}
                 </h2>
                 <p style={{ color: c.textMuted, fontSize: 14, marginBottom: 32, lineHeight: 1.6 }}>
-                  Ask me to find jobs, check how your CV matches a role, or help you understand the job market.
-                  {hasCv && ' Your CV is loaded — I\'ll use it to personalise results.'}
+                  {lang === 'DE'
+                    ? 'Bitte mich, Jobs zu finden, zu prüfen wie dein Lebenslauf zu einer Stelle passt, oder den Arbeitsmarkt zu analysieren.'
+                    : 'Ask me to find jobs, check how your CV matches a role, or help you understand the job market.'}
+                  {hasCv && (lang === 'DE' ? ' Dein Lebenslauf ist geladen — ich nutze ihn, um die Ergebnisse zu personalisieren.' : ' Your CV is loaded — I\'ll use it to personalise results.')}
                 </p>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, justifyContent: 'center' }}>
-                  {SUGGESTIONS.map(s => (
+                  {(lang === 'DE' ? SUGGESTIONS_DE : SUGGESTIONS_EN).map(s => (
                     <button
                       key={s}
                       className="jl-ai-suggest"
@@ -385,7 +399,7 @@ export default function AIPage() {
             ) : (
               <div style={{ maxWidth: 700, margin: '0 auto' }}>
                 {messages.map((msg, i) => (
-                  <MessageBubble key={i} msg={msg} isLast={i === messages.length - 1} />
+                  <MessageBubble key={i} msg={msg} isLast={i === messages.length - 1} lang={lang} />
                 ))}
                 <div ref={messagesEndRef} />
               </div>
@@ -412,7 +426,10 @@ export default function AIPage() {
                   value={input}
                   onChange={e => setInput(e.target.value)}
                   onKeyDown={handleKeyDown}
-                  placeholder={hasCv ? 'Ask me to find jobs, score matches, or search by location...' : 'Ask me to find jobs in Germany, Austria, or Switzerland...'}
+                  placeholder={hasCv
+                    ? (lang === 'DE' ? 'Bitte mich, Jobs zu finden, Übereinstimmungen zu bewerten oder nach Standort zu suchen...' : 'Ask me to find jobs, score matches, or search by location...')
+                    : (lang === 'DE' ? 'Bitte mich, Jobs in Deutschland, Österreich oder der Schweiz zu finden...' : 'Ask me to find jobs in Germany, Austria, or Switzerland...')
+                  }
                   disabled={loading}
                   rows={1}
                   style={{
@@ -440,7 +457,7 @@ export default function AIPage() {
                 </button>
               </div>
               <div style={{ marginTop: 8, textAlign: 'center', color: c.textFaint, fontSize: 11 }}>
-                Press Enter to send · Shift+Enter for new line
+                {lang === 'DE' ? 'Enter zum Senden · Shift+Enter für neue Zeile' : 'Press Enter to send · Shift+Enter for new line'}
               </div>
             </div>
           </div>
