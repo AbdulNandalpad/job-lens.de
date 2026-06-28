@@ -21,7 +21,7 @@ export async function POST(req: NextRequest) {
   // Only accept known audio MIME types that Whisper supports
   const ALLOWED_TYPES = ['audio/webm', 'audio/mp4', 'audio/mpeg', 'audio/ogg', 'audio/wav', 'audio/flac', 'audio/x-m4a']
   const mimeBase = (file.type || '').split(';')[0].trim().toLowerCase()
-  if (mimeBase && !ALLOWED_TYPES.some(t => mimeBase.startsWith(t.split('/')[0] + '/audio') || mimeBase === t)) {
+  if (mimeBase && !ALLOWED_TYPES.includes(mimeBase)) {
     return NextResponse.json({ error: 'Invalid audio format' }, { status: 415 })
   }
 

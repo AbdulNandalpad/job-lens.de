@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import Anthropic from '@anthropic-ai/sdk'
-import { createServerSupabase } from '@/lib/supabase-server'
+import { createServerSupabase, isUserRateLimited } from '@/lib/supabase-server'
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
 
@@ -9,8 +9,15 @@ export async function POST(req: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
+  if (await isUserRateLimited(user.id, 'score_sample', 20)) {
+    return NextResponse.json({ error: 'Too many requests. Please wait a minute.' }, { status: 429 })
+  }
+
   try {
-    const { question, answer, skill } = await req.json()
+    const body = await req.json()
+    const question = typeof body.question === 'string' ? body.question.slice(0, 500) : ''
+    const answer   = typeof body.answer   === 'string' ? body.answer.slice(0, 2000)  : ''
+    const skill    = typeof body.skill    === 'string' ? body.skill.slice(0, 100)    : ''
 
     if (!question || !answer || answer.trim().length < 20) {
       return NextResponse.json({ error: 'Answer too short' }, { status: 400 })

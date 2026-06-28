@@ -20,22 +20,44 @@ function stripHtml(html: string): string {
 
 async function fetchJobText(url: string): Promise<string | null> {
   try {
+    let currentUrl = url
+    const MAX_REDIRECTS = 5
     const controller = new AbortController()
     const timeout = setTimeout(() => controller.abort(), 8000)
-    const res = await fetch(url, {
-      signal: controller.signal,
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (compatible; JobLens/1.0; +https://job-lens.de)',
-        'Accept': 'text/html,application/xhtml+xml',
-      },
-      redirect: 'follow',
-    })
+
+    for (let hop = 0; hop <= MAX_REDIRECTS; hop++) {
+      const res = await fetch(currentUrl, {
+        signal: controller.signal,
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (compatible; JobLens/1.0; +https://job-lens.de)',
+          'Accept': 'text/html,application/xhtml+xml',
+        },
+        redirect: 'manual',
+      })
+
+      if (res.status >= 300 && res.status < 400) {
+        const location = res.headers.get('location')
+        if (!location) break
+        // Resolve relative redirect
+        const next = new URL(location, currentUrl).href
+        // Re-validate the redirect destination against SSRF blocklist
+        if (!next.startsWith('https://')) break
+        const hostname = new URL(next).hostname
+        if (SSRF_RE.test(hostname)) break
+        currentUrl = next
+        continue
+      }
+
+      clearTimeout(timeout)
+      const contentType = res.headers.get('content-type') ?? ''
+      if (!contentType.includes('text/html')) return null
+      const html = await res.text()
+      const text = stripHtml(html)
+      return text.length > 200 ? text.slice(0, 12000) : null
+    }
+
     clearTimeout(timeout)
-    const contentType = res.headers.get('content-type') ?? ''
-    if (!contentType.includes('text/html')) return null
-    const html = await res.text()
-    const text = stripHtml(html)
-    return text.length > 200 ? text.slice(0, 12000) : null
+    return null
   } catch {
     return null
   }

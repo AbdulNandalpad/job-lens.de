@@ -26,6 +26,18 @@ export async function POST(req: NextRequest) {
     const arrayBuffer = await file.arrayBuffer()
     const buffer = Buffer.from(arrayBuffer)
 
+    // Magic-byte validation — reject files whose content doesn't match the declared type
+    const isPdf  = buffer[0] === 0x25 && buffer[1] === 0x50 && buffer[2] === 0x44 && buffer[3] === 0x46 // %PDF
+    const isZip  = buffer[0] === 0x50 && buffer[1] === 0x4B && buffer[2] === 0x03 && buffer[3] === 0x04 // PK (DOCX/ZIP)
+    const isText = !isPdf && !isZip // plain text has no fixed magic bytes
+
+    if ((name.endsWith('.pdf')) && !isPdf) {
+      return NextResponse.json({ error: 'File does not appear to be a valid PDF.' }, { status: 422 })
+    }
+    if ((name.endsWith('.docx') || name.endsWith('.doc')) && !isZip) {
+      return NextResponse.json({ error: 'File does not appear to be a valid Word document.' }, { status: 422 })
+    }
+
     // --- Plain text ---
     if (name.endsWith('.txt') || file.type === 'text/plain') {
       const text = buffer.toString('utf-8').trim()

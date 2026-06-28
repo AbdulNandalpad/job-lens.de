@@ -101,24 +101,16 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: true, message: 'Access link already sent to your email.' })
     }
 
-    // Store view record — mark as viewed immediately (recruiter sees case on form submit)
-    // viewed_at here lets the candidate see the domain; magic link click is additional verification
-    const viewedAt = new Date().toISOString()
+    // Store view record. viewed_at and view_count are set only when the recruiter
+    // actually clicks the magic link in /api/job-case/access/[token], ensuring the
+    // auto-refund logic (triggered at view_count === 0) is not fooled by bot submissions.
     await admin.from('case_views').insert({
       job_case_id:          jobCase.id,
       recruiter_email_hash: emailHash,
       recruiter_domain:     domain,
       magic_token_hash:     tokenHash,
       token_expires_at:     tokenExpiresAt,
-      viewed_at:            viewedAt,
     })
-
-    // Increment view count — direct update avoids relying on a Supabase RPC that may not exist
-    const { data: current } = await admin
-      .from('job_cases').select('view_count').eq('id', jobCase.id).single()
-    await admin.from('job_cases')
-      .update({ view_count: (current?.view_count ?? 0) + 1 })
-      .eq('id', jobCase.id)
 
     // Fetch candidate name for the email (from profiles table)
     const { data: candidateProfile } = await admin
