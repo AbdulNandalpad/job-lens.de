@@ -5,6 +5,7 @@ export const dynamic = 'force-dynamic'
 import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import Navbar from '../components/Navbar'
+import { useLanguage } from '@/lib/i18n'
 import type { FieldMapping, AnalyzeResult, ExecuteEvent } from '@/lib/auto-apply-engine'
 import { theme } from '@/lib/theme'
 import SvgIcon from '@/components/SvgIcon'
@@ -63,6 +64,7 @@ function flattenCvJson(raw: string): string {
 
 export default function AutoApplyPage() {
   const router = useRouter()
+  const { lang } = useLanguage()
 
   const [mode, setMode] = useState<Mode>('demo')
 
@@ -82,10 +84,10 @@ export default function AutoApplyPage() {
       fd.append('file', file)
       const res = await fetch('/api/extract-pdf', { method: 'POST', body: fd })
       const data = await res.json()
-      if (!res.ok) throw new Error(data.error || 'Upload failed')
+      if (!res.ok) throw new Error(data.error || (lang === 'DE' ? 'Upload fehlgeschlagen' : 'Upload failed'))
       setCvText(data.text || '')
     } catch (err) {
-      setCvUploadError(err instanceof Error ? err.message : 'Upload failed')
+      setCvUploadError(err instanceof Error ? err.message : (lang === 'DE' ? 'Upload fehlgeschlagen' : 'Upload failed'))
     } finally {
       setCvUploading(false)
     }
@@ -129,8 +131,8 @@ export default function AutoApplyPage() {
   }, [log])
 
   async function handleAnalyse() {
-    if (!jobUrl.trim()) { setError('Please enter the application URL.'); return }
-    if (!cvText.trim()) { setError('No CV found. Please complete the CV Builder first.'); return }
+    if (!jobUrl.trim()) { setError(lang === 'DE' ? 'Bitte Bewerbungs-URL eingeben.' : 'Please enter the application URL.'); return }
+    if (!cvText.trim()) { setError(lang === 'DE' ? 'Kein Lebenslauf gefunden. Bitte zuerst den CV Builder abschließen.' : 'No CV found. Please complete the CV Builder first.'); return }
     setError('')
     setPhase('analyzing')
     setAnalyzeResult(null)
@@ -248,12 +250,12 @@ export default function AutoApplyPage() {
 
   async function handleConfirmSubmit() {
     if (!sessionId) {
-      setError('Session lost — please go back and re-fill the form.')
+      setError(lang === 'DE' ? 'Sitzung abgelaufen — bitte gehe zurück und fülle das Formular erneut aus.' : 'Session lost — please go back and re-fill the form.')
       setPhase('confirming')
       return
     }
     setPhase('submitting')
-    setLog(prev => [...prev, { id: ++logCounter.current, type: 'log', message: 'User confirmed — submitting application…' }])
+    setLog(prev => [...prev, { id: ++logCounter.current, type: 'log', message: lang === 'DE' ? 'Bestätigt — Bewerbung wird eingereicht…' : 'User confirmed — submitting application…' }])
     await streamEvents('/api/auto-apply/submit', { sessionId }, () => {})
   }
 
@@ -264,11 +266,11 @@ export default function AutoApplyPage() {
     const existing = JSON.parse(localStorage.getItem('jl_tracker') || '[]')
     const entry = {
       id: Date.now(),
-      role: job.job_title || 'Applied via Auto Apply',
+      role: job.job_title || (lang === 'DE' ? 'Beworben via Auto-Bewerbung' : 'Applied via Auto Apply'),
       company: job.employer_name || new URL(jobUrl).hostname.replace('www.', ''),
       date: new Date().toLocaleDateString('de-DE', { day: '2-digit', month: 'short', year: 'numeric' }),
-      notes: `Auto Apply — ${jobUrl.slice(0, 60)}`,
-      source: 'Auto Apply',
+      notes: `${lang === 'DE' ? 'Auto-Bewerbung' : 'Auto Apply'} — ${jobUrl.slice(0, 60)}`,
+      source: lang === 'DE' ? 'Auto-Bewerbung' : 'Auto Apply',
     }
     localStorage.setItem('jl_tracker', JSON.stringify([entry, ...existing]))
     router.push('/app/tracker')
@@ -342,12 +344,12 @@ export default function AutoApplyPage() {
         <div style={{ marginBottom: 24, paddingLeft: 14, borderLeft: `3px solid ${c.accent}`, display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
           <div>
             <div style={{ fontSize: 22, fontWeight: 700, color: c.primary, fontFamily: f.heading }}>
-              Auto Apply
+              {lang === 'DE' ? 'Auto-Bewerbung' : 'Auto Apply'}
             </div>
             <div style={{ fontSize: 13, color: c.textMuted, marginTop: 3 }}>
               {mode === 'demo'
-                ? 'See how Kira fills a real job application — then try it yourself'
-                : 'Paste a job application URL and let Kira fill the form for you'}
+                ? (lang === 'DE' ? 'Sieh, wie Kira eine echte Bewerbung ausfüllt — dann probiere es selbst' : 'See how Kira fills a real job application — then try it yourself')
+                : (lang === 'DE' ? 'Bewerbungs-URL einfügen und Kira das Formular ausfüllen lassen' : 'Paste a job application URL and let Kira fill the form for you')}
             </div>
           </div>
           {mode === 'active' && (
@@ -355,7 +357,7 @@ export default function AutoApplyPage() {
               onClick={() => { setMode('demo'); setPhase('idle'); setAnalyzeResult(null); setMapping([]); setError('') }}
               style={{ fontSize: 12, color: c.textMuted, background: 'transparent', border: `1px solid ${c.border}`, borderRadius: 8, padding: '6px 14px', cursor: 'pointer', fontFamily: f.body }}
             >
-              ← Watch demo
+              {lang === 'DE' ? '← Demo ansehen' : '← Watch demo'}
             </button>
           )}
         </div>
@@ -383,9 +385,9 @@ export default function AutoApplyPage() {
 
               {/* Job URL */}
               <div style={card}>
-                <div style={cardHead}>Job Application URL</div>
+                <div style={cardHead}>{lang === 'DE' ? 'Bewerbungs-URL eingeben' : 'Job Application URL'}</div>
                 <div style={{ padding: 16 }}>
-                  <label style={label12}>Paste the direct application form URL</label>
+                  <label style={label12}>{lang === 'DE' ? 'Direkte URL des Bewerbungsformulars einfügen' : 'Paste the direct application form URL'}</label>
                   <input
                     className="aa-input"
                     value={jobUrl}
@@ -394,25 +396,25 @@ export default function AutoApplyPage() {
                     disabled={phase === 'analyzing' || phase === 'executing'}
                   />
                   {jobUrl && !isUrlValid && (
-                    <div style={{ fontSize: 11, color: c.danger, marginTop: 4 }}>Must start with http</div>
+                    <div style={{ fontSize: 11, color: c.danger, marginTop: 4 }}>{lang === 'DE' ? 'Muss mit http beginnen' : 'Must start with http'}</div>
                   )}
                 </div>
               </div>
 
               {/* CV status */}
               <div style={card}>
-                <div style={cardHead}>Your Profile</div>
+                <div style={cardHead}>{lang === 'DE' ? 'Dein Profil' : 'Your Profile'}</div>
                 <div style={{ padding: 16 }}>
                   {hasCv ? (
                     <>
                       <div style={{ fontSize: 12, color: c.success, fontWeight: 600, marginBottom: 6 }}>
-                        ✓ CV loaded ({Math.round(cvText.length / 5)} words)
+                        ✓ {lang === 'DE' ? `Lebenslauf geladen (${Math.round(cvText.length / 5)} Wörter)` : `CV loaded (${Math.round(cvText.length / 5)} words)`}
                       </div>
                       <div style={{ fontSize: 11, color: c.textMuted, lineHeight: 1.5, background: c.bgSubtle, borderRadius: 6, padding: '8px 10px', maxHeight: 60, overflow: 'hidden' }}>
                         {cvText.slice(0, 180)}…
                       </div>
                       <label style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 10, cursor: 'pointer' }}>
-                        <span style={{ fontSize: 11, color: c.textFaint }}>Replace with a different CV →</span>
+                        <span style={{ fontSize: 11, color: c.textFaint }}>{lang === 'DE' ? 'Mit anderem Lebenslauf ersetzen →' : 'Replace with a different CV →'}</span>
                         <input type="file" accept=".pdf,.doc,.docx,.txt" style={{ display: 'none' }}
                           onChange={e => { const f = e.target.files?.[0]; if (f) handleCvUpload(f) }}
                         />
@@ -433,13 +435,13 @@ export default function AutoApplyPage() {
                             <svg className="spin" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={c.accent} strokeWidth="2.5">
                               <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/>
                             </svg>
-                            <span style={{ fontSize: 12, color: c.accent, fontWeight: 600 }}>Extracting text…</span>
+                            <span style={{ fontSize: 12, color: c.accent, fontWeight: 600 }}>{lang === 'DE' ? 'Text wird extrahiert…' : 'Extracting text…'}</span>
                           </>
                         ) : (
                           <>
                             <SvgIcon name="document" size={24} color={c.accent} />
-                            <span style={{ fontSize: 13, fontWeight: 600, color: c.primary }}>Upload your CV</span>
-                            <span style={{ fontSize: 11, color: c.textMuted }}>PDF, DOC, DOCX or TXT · max 10 MB</span>
+                            <span style={{ fontSize: 13, fontWeight: 600, color: c.primary }}>{lang === 'DE' ? 'Lebenslauf hochladen' : 'Upload your CV'}</span>
+                            <span style={{ fontSize: 11, color: c.textMuted }}>{lang === 'DE' ? 'PDF, DOC, DOCX oder TXT · max. 10 MB' : 'PDF, DOC, DOCX or TXT · max 10 MB'}</span>
                           </>
                         )}
                         <input type="file" accept=".pdf,.doc,.docx,.txt" style={{ display: 'none' }}
@@ -450,13 +452,13 @@ export default function AutoApplyPage() {
                         <div style={{ fontSize: 11, color: c.error, marginBottom: 8 }}>{cvUploadError}</div>
                       )}
                       <div style={{ fontSize: 11, color: c.textFaint }}>
-                        Or build one in{' '}
+                        {lang === 'DE' ? 'Oder erstelle einen im ' : 'Or build one in '}
                         <span onClick={() => router.push('/app/cv-builder')} style={{ textDecoration: 'underline', cursor: 'pointer', color: c.accent }}>CV Builder</span>
                       </div>
                     </>
                   )}
                   <div style={{ marginTop: 14, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                    <span style={{ fontSize: 12, color: c.textMuted }}>Include cover letter</span>
+                    <span style={{ fontSize: 12, color: c.textMuted }}>{lang === 'DE' ? 'Anschreiben beifügen' : 'Include cover letter'}</span>
                     <label className="aa-toggle">
                       <input
                         type="checkbox"
@@ -469,8 +471,8 @@ export default function AutoApplyPage() {
                   </div>
                   {!coverLetter && (
                     <div style={{ fontSize: 11, color: c.textFaint, marginTop: 4 }}>
-                      Generate one in{' '}
-                      <span onClick={() => router.push('/app/cover-letter')} style={{ textDecoration: 'underline', cursor: 'pointer', color: c.accent }}>Cover Letter</span>
+                      {lang === 'DE' ? 'Erstelle eines im ' : 'Generate one in '}
+                      <span onClick={() => router.push('/app/cover-letter')} style={{ textDecoration: 'underline', cursor: 'pointer', color: c.accent }}>{lang === 'DE' ? 'Anschreiben-Builder' : 'Cover Letter'}</span>
                     </div>
                   )}
                 </div>
@@ -494,9 +496,9 @@ export default function AutoApplyPage() {
                       <svg className="spin" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                         <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/>
                       </svg>
-                      Analysing form…
+                      {lang === 'DE' ? 'Analyse läuft…' : 'Analysing form…'}
                     </span>
-                  ) : 'Analyse Form'}
+                  ) : (lang === 'DE' ? 'Bewerbungsformular analysieren' : 'Analyse Form')}
                 </button>
 
                 {(phase === 'review' || phase === 'done') && (
@@ -505,22 +507,33 @@ export default function AutoApplyPage() {
                     style={{ width: '100%', marginTop: 10 }}
                     onClick={() => { setPhase('idle'); setAnalyzeResult(null); setMapping([]); setError('') }}
                   >
-                    &larr; Start over
+                    {lang === 'DE' ? '← Neu starten' : '← Start over'}
                   </button>
                 )}
               </div>
 
               {/* Info box */}
               <div style={{ background: c.primaryLight, border: `1px solid ${c.accentLight}`, borderRadius: 10, padding: '12px 14px' }}>
-                <div style={{ fontSize: 12, fontWeight: 700, color: c.primary, marginBottom: 4 }}>How it works</div>
+                <div style={{ fontSize: 12, fontWeight: 700, color: c.primary, marginBottom: 4 }}>{lang === 'DE' ? 'So funktioniert es' : 'How it works'}</div>
                 <ol style={{ margin: 0, paddingLeft: 16, fontSize: 11, color: c.navy, lineHeight: 1.8 }}>
-                  <li>Paste the direct application form URL</li>
-                  <li>Kira scans the form fields via browser automation</li>
-                  <li>Review &amp; edit the pre-filled values</li>
-                  <li>Click Launch &mdash; browser fills &amp; submits</li>
+                  {lang === 'DE' ? (
+                    <>
+                      <li>Direkte URL des Bewerbungsformulars einfügen</li>
+                      <li>Kira scannt die Felder per Browser-Automatisierung</li>
+                      <li>Vorausgefüllte Werte prüfen &amp; bearbeiten</li>
+                      <li>Starten klicken — Browser füllt &amp; sendet ab</li>
+                    </>
+                  ) : (
+                    <>
+                      <li>Paste the direct application form URL</li>
+                      <li>Kira scans the form fields via browser automation</li>
+                      <li>Review &amp; edit the pre-filled values</li>
+                      <li>Click Launch &mdash; browser fills &amp; submits</li>
+                    </>
+                  )}
                 </ol>
                 <div style={{ fontSize: 10, color: c.textMuted, marginTop: 8 }}>
-                  Costs 3 credits per form analysis. File upload fields need manual upload.
+                  {lang === 'DE' ? 'Kostet 3 Credits pro Formularanalyse. Datei-Upload-Felder müssen manuell befüllt werden.' : 'Costs 3 credits per form analysis. File upload fields need manual upload.'}
                 </div>
               </div>
             </div>
@@ -531,19 +544,19 @@ export default function AutoApplyPage() {
               {/* ── Phase step indicator ── */}
               {phase !== 'idle' && (() => {
                 const steps: { key: Phase; label: string }[] = [
-                  { key: 'analyzing',  label: 'Analyse' },
-                  { key: 'review',     label: 'Review' },
-                  { key: 'executing',  label: 'Fill' },
-                  { key: 'confirming', label: 'Confirm' },
-                  { key: 'submitting', label: 'Submit' },
-                  { key: 'done',       label: 'Done' },
+                  { key: 'analyzing',  label: lang === 'DE' ? 'Analyse' : 'Analyse' },
+                  { key: 'review',     label: lang === 'DE' ? 'Prüfen' : 'Review' },
+                  { key: 'executing',  label: lang === 'DE' ? 'Ausfüllen' : 'Fill' },
+                  { key: 'confirming', label: lang === 'DE' ? 'Bestätigen' : 'Confirm' },
+                  { key: 'submitting', label: lang === 'DE' ? 'Einreichen' : 'Submit' },
+                  { key: 'done',       label: lang === 'DE' ? 'Fertig' : 'Done' },
                 ]
                 const order = steps.map(s => s.key)
                 const currentIdx = order.indexOf(phase)
                 return (
                   <div className="aa-steps-wrap">
                     <div className="aa-step-active-label" style={{ display: 'none', fontSize: 12, fontWeight: 700, color: c.accent, padding: '0 4px' }}>
-                      Step {currentIdx + 1} of {steps.length} — {steps[currentIdx]?.label}
+                      {lang === 'DE' ? `Schritt ${currentIdx + 1} von ${steps.length} — ${steps[currentIdx]?.label}` : `Step ${currentIdx + 1} of ${steps.length} — ${steps[currentIdx]?.label}`}
                     </div>
                     {steps.map((s, i) => {
                       const done   = i < currentIdx
@@ -582,10 +595,10 @@ export default function AutoApplyPage() {
                     <circle cx="26" cy="26" r="10" stroke={c.primary} strokeWidth="1.5" fill="none" strokeDasharray="4 2"/>
                   </svg>
                   <div style={{ fontSize: 15, fontWeight: 600, color: c.primary, marginBottom: 6 }}>
-                    Enter a job application URL to begin
+                    {lang === 'DE' ? 'Bewerbungs-URL eingeben, um zu starten' : 'Enter a job application URL to begin'}
                   </div>
                   <div style={{ fontSize: 13, color: c.textMuted }}>
-                    Paste the URL of the actual application form (not the job listing)
+                    {lang === 'DE' ? 'URL des eigentlichen Bewerbungsformulars einfügen (nicht die Stellenanzeige)' : 'Paste the URL of the actual application form (not the job listing)'}
                   </div>
                 </div>
               )}
@@ -595,8 +608,8 @@ export default function AutoApplyPage() {
                   <svg className="spin" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke={c.accent} strokeWidth="2" style={{ margin: '0 auto 16px' }}>
                     <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/>
                   </svg>
-                  <div style={{ fontSize: 14, fontWeight: 600, color: c.primary }}>Opening page with browser automation…</div>
-                  <div style={{ fontSize: 12, color: c.textMuted, marginTop: 6 }}>Extracting form fields and mapping your CV</div>
+                  <div style={{ fontSize: 14, fontWeight: 600, color: c.primary }}>{lang === 'DE' ? 'Seite wird per Browser-Automatisierung geöffnet…' : 'Opening page with browser automation…'}</div>
+                  <div style={{ fontSize: 12, color: c.textMuted, marginTop: 6 }}>{lang === 'DE' ? 'Formularfelder werden extrahiert und mit deinem Lebenslauf abgeglichen' : 'Extracting form fields and mapping your CV'}</div>
                 </div>
               )}
 
@@ -604,10 +617,10 @@ export default function AutoApplyPage() {
                 <div style={{ ...card, overflow: 'hidden' }}>
                   <div style={{ padding: '12px 16px', borderBottom: `1px solid ${c.border}`, background: c.warningLight }}>
                     <div style={{ fontSize: 13, fontWeight: 700, color: c.primary, fontFamily: f.heading }}>
-                      Review filled form — confirm to submit
+                      {lang === 'DE' ? 'Ausgefülltes Formular prüfen — bestätigen zum Einreichen' : 'Review filled form — confirm to submit'}
                     </div>
                     <div style={{ fontSize: 11, color: c.textMuted, marginTop: 3 }}>
-                      Kira has filled all fields. Check the preview below before submitting.
+                      {lang === 'DE' ? 'Kira hat alle Felder ausgefüllt. Prüfe die Vorschau, bevor du einreichst.' : 'Kira has filled all fields. Check the preview below before submitting.'}
                     </div>
                   </div>
                   <div style={{ padding: '12px 16px' }}>
@@ -618,13 +631,13 @@ export default function AutoApplyPage() {
                     />
                     <div style={{ display: 'flex', gap: 10 }}>
                       <button className="aa-btn-primary" style={{ flex: 1 }} onClick={handleConfirmSubmit}>
-                        ✓ Looks good — Submit Application
+                        {lang === 'DE' ? '✓ Sieht gut aus — Bewerbung einreichen' : '✓ Looks good — Submit Application'}
                       </button>
                       <button
                         className="aa-btn-outline"
                         onClick={() => { setPhase('review'); setPreviewShot('') }}
                       >
-                        ← Edit fields
+                        {lang === 'DE' ? '← Felder bearbeiten' : '← Edit fields'}
                       </button>
                     </div>
                   </div>
@@ -646,7 +659,7 @@ export default function AutoApplyPage() {
                           {analyzeResult.formType}
                         </span>
                         <span style={{ fontSize: 11, padding: '3px 10px', borderRadius: 20, background: c.bg, color: c.textMuted, fontWeight: 600 }}>
-                          {analyzeResult.fields.length} fields
+                          {analyzeResult.fields.length} {lang === 'DE' ? 'Felder' : 'fields'}
                         </span>
                       </div>
                     </div>
@@ -663,14 +676,14 @@ export default function AutoApplyPage() {
 
                   <div style={card}>
                     <div style={{ ...cardHead, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <span>Field Mapping &mdash; review &amp; edit values</span>
+                      <span>{lang === 'DE' ? 'Feldzuordnung — Werte prüfen & bearbeiten' : 'Field Mapping — review & edit values'}</span>
                       <span style={{ fontSize: 11, fontWeight: 400, color: c.textMuted }}>
-                        {mapping.filter(m => m.value && m.value !== '__SKIP_FILE__').length} / {mapping.length} filled
+                        {mapping.filter(m => m.value && m.value !== '__SKIP_FILE__').length} / {mapping.length} {lang === 'DE' ? 'ausgefüllt' : 'filled'}
                       </span>
                     </div>
                     <div style={{ maxHeight: 420, overflowY: 'auto' }}>
                       <div className="aa-field-grid" style={{ padding: '8px 16px', background: c.bgSubtle, borderBottom: `1px solid ${c.border}` }}>
-                        {['Field', 'Value', 'Confidence'].map(h => (
+                        {(lang === 'DE' ? ['Feld', 'Wert', 'Konfidenz'] : ['Field', 'Value', 'Confidence']).map(h => (
                           <div key={h} style={{ fontSize: 10, fontWeight: 700, color: c.textFaint, textTransform: 'uppercase', letterSpacing: 0.5 }}>{h}</div>
                         ))}
                       </div>
@@ -685,11 +698,11 @@ export default function AutoApplyPage() {
                           </div>
                           <div style={{ paddingRight: 12 }}>
                             {m.value === '__CV_FILE__' ? (
-                              <span style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 11, color: c.success, fontWeight: 600 }}><SvgIcon name="clipboard" size={13} color={c.success} /> Will attach CV text file</span>
+                              <span style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 11, color: c.success, fontWeight: 600 }}><SvgIcon name="clipboard" size={13} color={c.success} /> {lang === 'DE' ? 'Lebenslauf-Datei wird angehängt' : 'Will attach CV text file'}</span>
                             ) : m.value === '__CL_FILE__' ? (
-                              <span style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 11, color: c.success, fontWeight: 600 }}><SvgIcon name="clipboard" size={13} color={c.success} /> Will attach cover letter file</span>
+                              <span style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 11, color: c.success, fontWeight: 600 }}><SvgIcon name="clipboard" size={13} color={c.success} /> {lang === 'DE' ? 'Anschreiben-Datei wird angehängt' : 'Will attach cover letter file'}</span>
                             ) : m.value === '__SKIP_FILE__' ? (
-                              <span style={{ fontSize: 11, color: c.textMuted, fontStyle: 'italic' }}>File upload — upload manually</span>
+                              <span style={{ fontSize: 11, color: c.textMuted, fontStyle: 'italic' }}>{lang === 'DE' ? 'Datei-Upload — manuell hochladen' : 'File upload — upload manually'}</span>
                             ) : m.field.type === 'select' && m.field.options ? (
                               <select
                                 className="aa-input"
@@ -698,7 +711,7 @@ export default function AutoApplyPage() {
                                 onChange={e => updateValue(idx, e.target.value)}
                                 disabled={phase === 'executing'}
                               >
-                                <option value="">-- select --</option>
+                                <option value="">{lang === 'DE' ? '-- auswählen --' : '-- select --'}</option>
                                 {m.field.options.map((o, oi) => <option key={`${oi}-${o}`} value={o}>{o}</option>)}
                               </select>
                             ) : m.field.type === 'textarea' ? (
@@ -730,13 +743,13 @@ export default function AutoApplyPage() {
                   {phase === 'review' && (
                     <div style={{ display: 'flex', gap: 12 }}>
                       <button className="aa-btn-primary" style={{ flex: 1 }} onClick={handleExecute}>
-                        Fill Form (Preview First) &rarr;
+                        {lang === 'DE' ? 'Formular ausfüllen (zuerst Vorschau) →' : 'Fill Form (Preview First) →'}
                       </button>
                       <a
                         href={jobUrl} target="_blank" rel="noopener noreferrer"
                         style={{ flex: '0 0 auto', padding: '11px 20px', borderRadius: 9, background: c.bgCard, color: c.primary, border: `1.5px solid ${c.primary}`, textDecoration: 'none', fontFamily: f.heading, fontSize: 13, fontWeight: 700 }}
                       >
-                        Open manually
+                        {lang === 'DE' ? 'Manuell öffnen' : 'Open manually'}
                       </a>
                     </div>
                   )}
@@ -744,13 +757,13 @@ export default function AutoApplyPage() {
                   {phase === 'done' && (
                     <div style={{ display: 'flex', gap: 12 }}>
                       <button className="aa-btn-success" style={{ flex: 1 }} onClick={logToTracker}>
-                        ✓ Log to Tracker &rarr;
+                        {lang === 'DE' ? '✓ Im Tracker speichern →' : '✓ Log to Tracker →'}
                       </button>
                       <button
                         className="aa-btn-outline"
                         onClick={() => { setPhase('idle'); setAnalyzeResult(null); setMapping([]); setLog([]); setLiveShot(''); setConfirmShot('') }}
                       >
-                        Apply another
+                        {lang === 'DE' ? 'Weitere Bewerbung' : 'Apply another'}
                       </button>
                     </div>
                   )}
@@ -760,7 +773,7 @@ export default function AutoApplyPage() {
               {/* ── Live field fill status table (during execution) ── */}
               {(phase === 'executing' || phase === 'confirming') && Object.keys(fieldStatuses).length > 0 && (
                 <div style={card}>
-                  <div style={cardHead}>Field Fill Status</div>
+                  <div style={cardHead}>{lang === 'DE' ? 'Feld-Füllstatus' : 'Field Fill Status'}</div>
                   <div style={{ maxHeight: 240, overflowY: 'auto' }}>
                     {Object.entries(fieldStatuses).map(([label, success]) => (
                       <div key={label} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '7px 16px', borderBottom: `1px solid ${c.border}` }}>
@@ -769,7 +782,7 @@ export default function AutoApplyPage() {
                         </span>
                         <span style={{ fontSize: 12, color: success === null ? c.textMuted : success ? c.success : c.warning, flex: 1 }}>{label}</span>
                         <span style={{ fontSize: 10, color: c.textFaint }}>
-                          {success === null ? 'filling…' : success ? 'filled' : 'skipped'}
+                          {success === null ? (lang === 'DE' ? 'wird ausgefüllt…' : 'filling…') : success ? (lang === 'DE' ? 'ausgefüllt' : 'filled') : (lang === 'DE' ? 'übersprungen' : 'skipped')}
                         </span>
                       </div>
                     ))}
@@ -779,7 +792,9 @@ export default function AutoApplyPage() {
                     return failed.length > 0 ? (
                       <div style={{ padding: '10px 16px', background: c.warningLight, borderTop: `1px solid ${c.warningBorder ?? c.border}` }}>
                         <div style={{ fontSize: 11, fontWeight: 700, color: c.warning, marginBottom: 4 }}>
-                          {failed.length} field{failed.length > 1 ? 's' : ''} could not be auto-filled — check the preview and fill manually if required:
+                          {lang === 'DE'
+                            ? `${failed.length} Feld${failed.length > 1 ? 'er konnten' : ' konnte'} nicht automatisch ausgefüllt werden — prüfe die Vorschau und fülle sie manuell aus:`
+                            : `${failed.length} field${failed.length > 1 ? 's' : ''} could not be auto-filled — check the preview and fill manually if required:`}
                         </div>
                         <div style={{ fontSize: 11, color: c.warning }}>{failed.map(([l]) => l).join(' · ')}</div>
                       </div>
@@ -792,7 +807,7 @@ export default function AutoApplyPage() {
                 <div style={card}>
                   <div style={{ ...cardHead, display: 'flex', alignItems: 'center', gap: 8 }}>
                     {(phase === 'executing' || phase === 'submitting') && <svg className="spin" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={c.accent} strokeWidth="2.5"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>}
-                    {phase === 'done' ? '✓ Completed' : phase === 'submitting' ? 'Submitting…' : 'Live Log'}
+                    {phase === 'done' ? (lang === 'DE' ? '✓ Abgeschlossen' : '✓ Completed') : phase === 'submitting' ? (lang === 'DE' ? 'Wird eingereicht…' : 'Submitting…') : (lang === 'DE' ? 'Live-Protokoll' : 'Live Log')}
                   </div>
                   <div ref={logRef} style={{ maxHeight: 280, overflowY: 'auto', padding: '4px 16px' }}>
                     {log.map(entry => (
@@ -809,7 +824,7 @@ export default function AutoApplyPage() {
                   {liveShot && (
                     <div style={{ padding: '10px 16px', borderTop: `1px solid ${c.border}` }}>
                       <div style={{ fontSize: 11, color: c.textFaint, marginBottom: 6 }}>
-                        {phase === 'done' ? 'Confirmation screenshot' : 'Current state'}
+                        {phase === 'done' ? (lang === 'DE' ? 'Bestätigungs-Screenshot' : 'Confirmation screenshot') : (lang === 'DE' ? 'Aktueller Stand' : 'Current state')}
                       </div>
                       <img
                         src={`data:image/png;base64,${liveShot}`}

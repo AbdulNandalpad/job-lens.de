@@ -1,8 +1,10 @@
 'use client'
 
 import { useState } from 'react'
+import { useLanguage } from '@/lib/i18n'
 
 export default function AutoApplyDemoForm() {
+  const { lang } = useLanguage()
   const [submitted, setSubmitted] = useState(false)
   const [form, setForm] = useState({
     firstName: '', lastName: '', email: '', phone: '',
@@ -22,13 +24,17 @@ export default function AutoApplyDemoForm() {
             ✓
           </div>
           <div style={{ fontSize: 22, fontWeight: 700, color: '#0f172a', fontFamily: "'Outfit', sans-serif", marginBottom: 10 }}>
-            Application Submitted!
+            {lang === 'DE' ? 'Bewerbung eingereicht!' : 'Application Submitted!'}
           </div>
           <div style={{ fontSize: 14, color: '#64748b', lineHeight: 1.7, marginBottom: 24 }}>
-            This was a sandbox demo form. No data was stored. Auto Apply successfully navigated, read the fields, mapped your CV and submitted — exactly what it does on real job applications.
+            {lang === 'DE'
+              ? 'Dies war ein Sandbox-Demo-Formular. Es wurden keine Daten gespeichert. Auto-Bewerbung hat erfolgreich navigiert, die Felder gelesen, deinen Lebenslauf zugeordnet und abgesendet — genau wie bei echten Bewerbungen.'
+              : 'This was a sandbox demo form. No data was stored. Auto Apply successfully navigated, read the fields, mapped your CV and submitted — exactly what it does on real job applications.'}
           </div>
           <div style={{ fontSize: 13, padding: '12px 16px', background: '#f1f5f9', borderRadius: 10, color: '#475569', lineHeight: 1.6 }}>
-            🎉 Ready to use Auto Apply on a real job? Go back to Job-Lens and paste any live application URL.
+            {lang === 'DE'
+              ? '🎉 Bereit, Auto-Bewerbung für einen echten Job zu nutzen? Gehe zurück zu Job-Lens und füge eine echte Bewerbungs-URL ein.'
+              : '🎉 Ready to use Auto Apply on a real job? Go back to Job-Lens and paste any live application URL.'}
           </div>
         </div>
       </div>
@@ -55,7 +61,7 @@ export default function AutoApplyDemoForm() {
 
       {/* Demo banner */}
       <div style={{ background: '#1e3a5f', color: '#93c5fd', fontSize: 12, fontWeight: 600, textAlign: 'center', padding: '8px 16px', letterSpacing: 0.5 }}>
-        🧪 SANDBOX DEMO FORM — No data is stored. This form exists only for Auto Apply testing.
+        {lang === 'DE' ? '🧪 SANDBOX-DEMO-FORMULAR — Es werden keine Daten gespeichert. Dieses Formular dient nur zum Testen der Auto-Bewerbung.' : '🧪 SANDBOX DEMO FORM — No data is stored. This form exists only for Auto Apply testing.'}
       </div>
 
       {/* ATS-style header */}
@@ -71,7 +77,7 @@ export default function AutoApplyDemoForm() {
             <div style={{ fontSize: 13, color: '#64748b', marginTop: 2 }}>Siemens AG · Full-time · Berlin, Germany</div>
           </div>
           <div style={{ marginLeft: 'auto', fontSize: 11, padding: '4px 12px', borderRadius: 20, background: '#dcfce7', color: '#15803d', fontWeight: 600 }}>
-            Apply Now
+            {lang === 'DE' ? 'Jetzt bewerben' : 'Apply Now'}
           </div>
         </div>
       </div>
@@ -82,48 +88,48 @@ export default function AutoApplyDemoForm() {
 
           <div style={{ padding: '20px 28px', borderBottom: '1px solid #f1f5f9', background: '#fafafa' }}>
             <div style={{ fontSize: 15, fontWeight: 700, color: '#0f172a', fontFamily: "'Outfit', sans-serif" }}>
-              Personal Information
+              {lang === 'DE' ? 'Persönliche Angaben' : 'Personal Information'}
             </div>
-            <div style={{ fontSize: 12, color: '#94a3b8', marginTop: 3 }}>Fields marked * are required</div>
+            <div style={{ fontSize: 12, color: '#94a3b8', marginTop: 3 }}>{lang === 'DE' ? 'Pflichtfelder sind mit * markiert' : 'Fields marked * are required'}</div>
           </div>
 
           <form onSubmit={e => { e.preventDefault(); setSubmitted(true) }} style={{ padding: '28px' }}>
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20, marginBottom: 20 }}>
               <div>
-                <label htmlFor="firstName" style={label}>First Name *</label>
+                <label htmlFor="firstName" style={label}>{lang === 'DE' ? 'Vorname *' : 'First Name *'}</label>
                 <input id="firstName" className="df-input" style={field} placeholder="Thomas" value={form.firstName} onChange={handleChange} required />
               </div>
               <div>
-                <label htmlFor="lastName" style={label}>Last Name *</label>
+                <label htmlFor="lastName" style={label}>{lang === 'DE' ? 'Nachname *' : 'Last Name *'}</label>
                 <input id="lastName" className="df-input" style={field} placeholder="Müller" value={form.lastName} onChange={handleChange} required />
               </div>
             </div>
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20, marginBottom: 20 }}>
               <div>
-                <label htmlFor="email" style={label}>Email Address *</label>
+                <label htmlFor="email" style={label}>{lang === 'DE' ? 'E-Mail-Adresse *' : 'Email Address *'}</label>
                 <input id="email" type="email" className="df-input" style={field} placeholder="thomas@email.de" value={form.email} onChange={handleChange} required />
               </div>
               <div>
-                <label htmlFor="phone" style={label}>Phone Number</label>
+                <label htmlFor="phone" style={label}>{lang === 'DE' ? 'Telefonnummer' : 'Phone Number'}</label>
                 <input id="phone" type="tel" className="df-input" style={field} placeholder="+49 89 1234 5678" value={form.phone} onChange={handleChange} />
               </div>
             </div>
 
             <div style={{ marginBottom: 20 }}>
-              <label htmlFor="linkedin" style={label}>LinkedIn Profile URL</label>
+              <label htmlFor="linkedin" style={label}>{lang === 'DE' ? 'LinkedIn-Profil-URL' : 'LinkedIn Profile URL'}</label>
               <input id="linkedin" type="url" className="df-input" style={field} placeholder="https://linkedin.com/in/yourname" value={form.linkedin} onChange={handleChange} />
             </div>
 
             <div style={{ marginBottom: 20 }}>
-              <label htmlFor="resume" style={label}>Resume / CV *</label>
+              <label htmlFor="resume" style={label}>{lang === 'DE' ? 'Lebenslauf *' : 'Resume / CV *'}</label>
               <input id="resume" type="file" accept=".pdf,.doc,.docx,.txt" className="df-input" style={{ ...field, padding: '8px 14px', cursor: 'pointer' }} required />
-              <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 4 }}>PDF, DOC, DOCX or TXT · max 10 MB</div>
+              <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 4 }}>{lang === 'DE' ? 'PDF, DOC, DOCX oder TXT · max. 10 MB' : 'PDF, DOC, DOCX or TXT · max 10 MB'}</div>
             </div>
 
             <div style={{ marginBottom: 28 }}>
-              <label htmlFor="coverLetter" style={label}>Cover Letter</label>
+              <label htmlFor="coverLetter" style={label}>{lang === 'DE' ? 'Anschreiben' : 'Cover Letter'}</label>
               <textarea
                 id="coverLetter" className="df-input" rows={5}
                 style={{ ...field, resize: 'vertical', minHeight: 110 }}
@@ -138,10 +144,10 @@ export default function AutoApplyDemoForm() {
                 type="submit"
                 style={{ padding: '12px 32px', borderRadius: 10, background: 'linear-gradient(135deg, #378ADD, #185FA5)', color: '#fff', border: 'none', cursor: 'pointer', fontWeight: 700, fontSize: 14, fontFamily: "'Outfit', sans-serif" }}
               >
-                Submit Application →
+                {lang === 'DE' ? 'Bewerbung einreichen →' : 'Submit Application →'}
               </button>
               <span style={{ fontSize: 12, color: '#94a3b8' }}>
-                By applying you agree to our demo privacy policy.
+                {lang === 'DE' ? 'Mit der Bewerbung stimmst du unserer Demo-Datenschutzerklärung zu.' : 'By applying you agree to our demo privacy policy.'}
               </span>
             </div>
           </form>

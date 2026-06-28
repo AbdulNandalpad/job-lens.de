@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Navbar from '../components/Navbar'
 import { theme } from '@/lib/theme'
+import { useLanguage } from '@/lib/i18n'
 
 const { colors: c, gradients: g, fonts: f } = theme
 
@@ -22,6 +23,7 @@ interface Job {
 
 export default function ApplyNowPage() {
   const router = useRouter()
+  const { lang } = useLanguage()
   const [job, setJob] = useState<Job | null>(null)
   const [cvReady, setCvReady] = useState(false)
   const [clReady, setClReady] = useState(false)
@@ -46,7 +48,7 @@ export default function ApplyNowPage() {
       role: job?.job_title || 'Unknown Role',
       company: job?.employer_name || 'Unknown Company',
       date: new Date().toLocaleDateString('de-DE', { day: '2-digit', month: 'short', year: 'numeric' }),
-      notes: 'Via Job-Lens Apply Now',
+      notes: lang === 'DE' ? 'Via Job-Lens Jetzt bewerben' : 'Via Job-Lens Apply Now',
       source: 'Job-Lens',
     }, ...existing]))
     setLogged(true)
@@ -63,19 +65,23 @@ export default function ApplyNowPage() {
       id: 'cv',
       done: cvReady,
       toggle: () => setCvReady(p => !p),
-      label: 'CV downloaded',
-      desc: hasCv ? 'Tailored CV built in CV Builder' : 'Go to CV Builder to create your CV first',
+      label: lang === 'DE' ? 'Lebenslauf heruntergeladen' : 'CV downloaded',
+      desc: hasCv
+        ? (lang === 'DE' ? 'Angepasster Lebenslauf im CV Builder erstellt' : 'Tailored CV built in CV Builder')
+        : (lang === 'DE' ? 'Gehe zum CV Builder, um deinen Lebenslauf zu erstellen' : 'Go to CV Builder to create your CV first'),
       action: !hasCv ? () => router.push('/app/cv-builder') : null,
-      actionLabel: 'Go to CV Builder →',
+      actionLabel: lang === 'DE' ? 'Zum CV Builder →' : 'Go to CV Builder →',
     },
     {
       id: 'cl',
       done: clReady,
       toggle: () => setClReady(p => !p),
-      label: 'Cover letter downloaded',
-      desc: hasCl ? 'Cover letter written in Cover Letter' : 'Go to Cover Letter to write yours first',
+      label: lang === 'DE' ? 'Anschreiben heruntergeladen' : 'Cover letter downloaded',
+      desc: hasCl
+        ? (lang === 'DE' ? 'Anschreiben im Anschreiben-Builder verfasst' : 'Cover letter written in Cover Letter')
+        : (lang === 'DE' ? 'Gehe zum Anschreiben-Builder, um deines zu verfassen' : 'Go to Cover Letter to write yours first'),
       action: !hasCl ? () => router.push('/app/cover-letter') : null,
-      actionLabel: 'Go to Cover Letter →',
+      actionLabel: lang === 'DE' ? 'Zum Anschreiben-Builder →' : 'Go to Cover Letter →',
     },
   ]
 
@@ -88,8 +94,8 @@ export default function ApplyNowPage() {
 
         {/* Header */}
         <div style={{ marginBottom: 24, paddingLeft: 14, borderLeft: `3px solid ${c.accent}` }}>
-          <div style={{ fontSize: 22, fontWeight: 700, color: c.primary, fontFamily: f.heading }}>Ready to apply?</div>
-          <div style={{ fontSize: 13, color: c.textMuted, marginTop: 3 }}>Tick off your documents, then open the job listing.</div>
+          <div style={{ fontSize: 22, fontWeight: 700, color: c.primary, fontFamily: f.heading }}>{lang === 'DE' ? 'Bereit zur Bewerbung?' : 'Ready to apply?'}</div>
+          <div style={{ fontSize: 13, color: c.textMuted, marginTop: 3 }}>{lang === 'DE' ? 'Hake deine Unterlagen ab und öffne dann die Stellenanzeige.' : 'Tick off your documents, then open the job listing.'}</div>
         </div>
 
         {/* Job banner */}
@@ -108,20 +114,20 @@ export default function ApplyNowPage() {
         ) : (
           <div style={{ background: c.bgCard, border: `1px solid ${c.border}`, borderRadius: 14, padding: '16px 20px', marginBottom: 16 }}>
             <div style={{ fontSize: 13, color: c.textFaint }}>
-              No job selected. Go to{' '}
+              {lang === 'DE' ? 'Kein Job ausgewählt. Gehe zur ' : 'No job selected. Go to '}
               <strong style={{ color: c.primary, cursor: 'pointer' }} onClick={() => router.push('/app/smart-apply')}>
-                Smart Job Search
+                {lang === 'DE' ? 'Intelligenten Jobsuche' : 'Smart Job Search'}
               </strong>{' '}
-              to find a job first.
+              {lang === 'DE' ? 'um zuerst einen Job zu finden.' : 'to find a job first.'}
             </div>
           </div>
         )}
 
         {/* Checklist */}
         <div style={{ background: c.bgCard, border: `1px solid ${c.border}`, borderRadius: 14, padding: '20px', marginBottom: 16 }}>
-          <div style={{ fontSize: 14, fontWeight: 700, color: c.primary, fontFamily: f.heading, marginBottom: 4 }}>Before you apply</div>
+          <div style={{ fontSize: 14, fontWeight: 700, color: c.primary, fontFamily: f.heading, marginBottom: 4 }}>{lang === 'DE' ? 'Vor der Bewerbung' : 'Before you apply'}</div>
           <div style={{ fontSize: 13, color: c.textMuted, marginBottom: 16 }}>
-            Tick each item once you&apos;ve downloaded your documents from CV Builder and Cover Letter.
+            {lang === 'DE' ? 'Hake jeden Punkt ab, sobald du deine Unterlagen aus CV Builder und Anschreiben-Builder heruntergeladen hast.' : 'Tick each item once you\'ve downloaded your documents from CV Builder and Cover Letter.'}
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
             {checklist.map(item => (
@@ -152,9 +158,9 @@ export default function ApplyNowPage() {
 
         {/* Apply card */}
         <div style={{ background: c.bgCard, border: `1px solid ${applied ? c.accent : c.border}`, borderRadius: 14, padding: '20px', transition: 'border-color 0.3s' }}>
-          <div style={{ fontSize: 14, fontWeight: 700, color: c.primary, fontFamily: f.heading, marginBottom: 4 }}>Now go apply</div>
+          <div style={{ fontSize: 14, fontWeight: 700, color: c.primary, fontFamily: f.heading, marginBottom: 4 }}>{lang === 'DE' ? 'Jetzt bewerben' : 'Now go apply'}</div>
           <div style={{ fontSize: 13, color: c.textMuted, marginBottom: 18 }}>
-            Open the job listing, upload your documents, and hit submit. Come back to save your application once you&apos;re done.
+            {lang === 'DE' ? 'Öffne die Stellenanzeige, lade deine Unterlagen hoch und klicke auf Einreichen. Komm danach zurück, um deine Bewerbung zu speichern.' : 'Open the job listing, upload your documents, and hit submit. Come back to save your application once you\'re done.'}
           </div>
           <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'center' }}>
             {job?.job_apply_link ? (
@@ -165,22 +171,22 @@ export default function ApplyNowPage() {
                 onClick={() => setApplied(true)}
                 style={{ padding: '11px 24px', borderRadius: 8, background: g.primaryBtn, color: '#fff', textDecoration: 'none', fontFamily: f.heading, fontSize: 13, fontWeight: 700 }}
               >
-                Open job listing &rarr;
+                {lang === 'DE' ? 'Stellenanzeige öffnen →' : 'Open job listing →'}
               </a>
             ) : (
-              <div style={{ fontSize: 13, color: c.textFaint }}>No link saved for this job.</div>
+              <div style={{ fontSize: 13, color: c.textFaint }}>{lang === 'DE' ? 'Kein Link für diesen Job gespeichert.' : 'No link saved for this job.'}</div>
             )}
             <button
               onClick={saveToTracker}
               disabled={!applied || logged}
               style={{ padding: '11px 24px', borderRadius: 8, border: 'none', fontFamily: f.heading, fontSize: 13, fontWeight: 700, transition: 'all 0.2s', cursor: (applied && !logged) ? 'pointer' : 'not-allowed', background: logged ? c.success : applied ? g.successBtn : c.border, color: (applied || logged) ? '#fff' : c.textFaint }}
             >
-              {logged ? '✓ Saved to my applications' : 'Save to my applications →'}
+              {logged ? (lang === 'DE' ? '✓ In meinen Bewerbungen gespeichert' : '✓ Saved to my applications') : (lang === 'DE' ? 'In meinen Bewerbungen speichern →' : 'Save to my applications →')}
             </button>
           </div>
           {!applied && (
             <div style={{ fontSize: 12, color: c.textFaint, marginTop: 10 }}>
-              Open the listing first, then save your application.
+              {lang === 'DE' ? 'Öffne zuerst die Stellenanzeige, dann speichere deine Bewerbung.' : 'Open the listing first, then save your application.'}
             </div>
           )}
         </div>
