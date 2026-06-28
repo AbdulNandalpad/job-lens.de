@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import Anthropic from '@anthropic-ai/sdk'
-import { createServerSupabase, checkAndDeductCredits, refundCredits } from '@/lib/supabase-server'
+import { createServerSupabase, checkAndDeductCredits, refundCredits, isUserRateLimited } from '@/lib/supabase-server'
 import { CREDIT_COST, MARKET } from '@/lib/constants'
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
@@ -80,6 +80,10 @@ export async function POST(req: NextRequest) {
   const supabase = await createServerSupabase()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
+  if (await isUserRateLimited(user.id, 'india_career_scan', 5)) {
+    return NextResponse.json({ error: 'Too many requests. Please wait a minute.' }, { status: 429 })
+  }
 
   const credits = await checkAndDeductCredits(user.id, COST, 'india_ats_scan', user.email ?? '', MARKET.in)
   if (!credits.ok) {

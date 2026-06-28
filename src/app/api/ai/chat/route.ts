@@ -463,6 +463,19 @@ export async function POST(req: NextRequest) {
       }, 45_000)
 
       try {
+        // Increment message count before streaming so client disconnects cannot
+        // skip the charge. Credit deduction still happens after (needs the count).
+        const adminEmails = (process.env.ADMIN_EMAILS || '').split(',').map(e => e.trim().toLowerCase())
+        let newMsgCount = 0
+        if (!adminEmails.includes((user.email ?? '').toLowerCase())) {
+          const adminPre = createAdminSupabase()
+          const { data: count } = await adminPre.rpc('increment_ai_message_count', { p_user_id: user.id })
+          newMsgCount = count ?? 0
+          if (newMsgCount > AI_CHAT_FREE_MESSAGES && (newMsgCount - 1) % AI_CHAT_FREE_MESSAGES === 0) {
+            await checkAndDeductCredits(user.id, CREDIT_COST.aiChat, 'ai_chat', user.email ?? '', market)
+          }
+        }
+
         let currentMsgs: Anthropic.Messages.MessageParam[] = messages.map(m => ({
           role: m.role, content: m.content,
         }))
@@ -556,25 +569,6 @@ export async function POST(req: NextRequest) {
         }
 
         safeSend({ done: true })
-
-        // Track message count — atomic increment, charge 1 credit per AI_CHAT_FREE_MESSAGES block
-        const adminEmails = (process.env.ADMIN_EMAILS || '').split(',').map(e => e.trim().toLowerCase())
-        if (!adminEmails.includes((user.email ?? '').toLowerCase())) {
-          try {
-            const admin = createAdminSupabase()
-            const { data: newCount, error: rpcErr } = await admin
-              .rpc('increment_ai_message_count', { p_user_id: user.id })
-
-            if (rpcErr) throw rpcErr
-
-            // Charge at message 21, 41, 61 … (first of each paid block)
-            if (newCount > AI_CHAT_FREE_MESSAGES && (newCount - 1) % AI_CHAT_FREE_MESSAGES === 0) {
-              await checkAndDeductCredits(user.id, CREDIT_COST.aiChat, 'ai_chat', user.email ?? '', market)
-            }
-          } catch (err) {
-            console.error('[Kira credits]', err)
-          }
-        }
 
       } catch (err) {
         console.error('[Kira]', err)

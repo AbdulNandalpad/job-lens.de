@@ -55,6 +55,34 @@ export function createAdminSupabase() {
   )
 }
 
+/**
+ * Per-user rate limiter for credit-consuming AI endpoints.
+ * Reuses ip_rate_limits table — stores hashed userId as the key.
+ * Returns true when the limit is exceeded (caller should return 429).
+ */
+export async function isUserRateLimited(
+  userId: string,
+  endpoint: string,
+  maxPerMinute = 10,
+): Promise<boolean> {
+  const { createHash } = await import('crypto')
+  const userHash  = createHash('sha256').update(userId).digest('hex')
+  const admin     = createAdminSupabase()
+  const oneMinAgo = new Date(Date.now() - 60_000).toISOString()
+
+  const { count } = await admin
+    .from('ip_rate_limits')
+    .select('*', { count: 'exact', head: true })
+    .eq('ip_hash', userHash)
+    .eq('endpoint', endpoint)
+    .gte('created_at', oneMinAgo)
+
+  if ((count ?? 0) >= maxPerMinute) return true
+
+  await admin.from('ip_rate_limits').insert({ ip_hash: userHash, endpoint })
+  return false
+}
+
 export async function refundCredits(
   userId: string,
   amount: number,

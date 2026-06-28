@@ -22,7 +22,8 @@ export async function POST(req: NextRequest) {
   const body = await req.json() as { sessionId?: string }
   const { sessionId } = body
 
-  if (!sessionId || typeof sessionId !== 'string' || sessionId.length < 10) {
+  const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+  if (!sessionId || typeof sessionId !== 'string' || !UUID_RE.test(sessionId)) {
     return sseError('Invalid session. Please go back and re-fill the form.')
   }
 

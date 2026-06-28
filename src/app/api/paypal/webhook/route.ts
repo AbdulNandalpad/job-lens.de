@@ -61,9 +61,10 @@ export async function POST(req: NextRequest) {
       console.warn('[paypal] receiver_email invalid format:', receiverEmail)
       return NextResponse.json({ ok: false }, { status: 400 })
     }
-    const expectedEmail = (process.env.NEXT_PUBLIC_PAYPAL_EMAIL ?? '').toLowerCase()
+    // Prefer server-only PAYPAL_MERCHANT_EMAIL; fall back to NEXT_PUBLIC_PAYPAL_EMAIL
+    const expectedEmail = (process.env.PAYPAL_MERCHANT_EMAIL ?? process.env.NEXT_PUBLIC_PAYPAL_EMAIL ?? '').toLowerCase()
     if (!expectedEmail) {
-      console.error('[paypal] NEXT_PUBLIC_PAYPAL_EMAIL env var not set — all IPN rejected')
+      console.error('[paypal] PAYPAL_MERCHANT_EMAIL env var not set — all IPN rejected')
       return NextResponse.json({ ok: false }, { status: 400 })
     }
     if (receiverEmail.toLowerCase() !== expectedEmail) {

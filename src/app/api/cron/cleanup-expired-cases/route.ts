@@ -15,6 +15,7 @@
  * - Credit transaction IDs retained for 7yr financial records (HGB §257)
  */
 import { NextRequest, NextResponse } from 'next/server'
+import { timingSafeEqual } from 'crypto'
 import { createAdminSupabase, refundCredits } from '@/lib/supabase-server'
 import { sendCreditRefundNotification } from '@/lib/job-case-email'
 import { JOB_CASE } from '@/lib/constants'
@@ -22,9 +23,19 @@ import { JOB_CASE } from '@/lib/constants'
 const BUCKET = 'job-case-videos'
 
 export async function GET(req: NextRequest) {
-  // Verify cron secret
-  const secret = req.headers.get('x-cron-secret')
-  if (secret !== process.env.CRON_SECRET) {
+  // Verify cron secret with timing-safe comparison to prevent timing attacks
+  const cronSecret = process.env.CRON_SECRET
+  const incoming   = req.headers.get('x-cron-secret')
+  if (!cronSecret || !incoming) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  }
+  try {
+    const a = Buffer.from(cronSecret, 'utf8')
+    const b = Buffer.from(incoming, 'utf8')
+    if (a.length !== b.length || !timingSafeEqual(a, b)) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+    }
+  } catch {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
 

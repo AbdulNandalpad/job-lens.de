@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createServerSupabase, checkAndDeductCredits } from '@/lib/supabase-server'
+import { createServerSupabase, checkAndDeductCredits, isUserRateLimited } from '@/lib/supabase-server'
 import { CREDIT_COST } from '@/lib/constants'
 
 const COST = CREDIT_COST.autoApply
@@ -9,6 +9,10 @@ export async function POST(req: NextRequest) {
   const supabase = await createServerSupabase()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
+  if (await isUserRateLimited(user.id, 'auto_apply_analyze', 5)) {
+    return NextResponse.json({ error: 'Too many requests. Please wait a minute.' }, { status: 429 })
+  }
 
   const body = await req.json()
   const jobUrl      = typeof body.jobUrl      === 'string' ? body.jobUrl.trim()   : ''

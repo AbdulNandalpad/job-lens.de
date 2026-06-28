@@ -40,14 +40,29 @@ export async function POST(req: NextRequest) {
 
     const admin = createAdminSupabase()
 
-    // Fetch the view record
+    // Fetch the view record and verify it belongs to the job case for this slug.
+    // This prevents a recruiter with cookies from multiple cases submitting
+    // interest on a case they didn't actually view via magic link.
     const { data: view } = await admin
       .from('case_views')
-      .select('id, job_case_id, recruiter_domain, interest_expressed_at')
+      .select('id, job_case_id, recruiter_domain, interest_expressed_at, token_used_at')
       .eq('id', viewId)
+      .not('token_used_at', 'is', null)
       .maybeSingle()
 
     if (!view) {
+      return NextResponse.json({ error: 'Invalid session' }, { status: 401 })
+    }
+
+    // Verify the view's job case matches the slug in the request body
+    const { data: slugCheck } = await admin
+      .from('job_cases')
+      .select('id')
+      .eq('id', view.job_case_id)
+      .eq('slug', slug)
+      .maybeSingle()
+
+    if (!slugCheck) {
       return NextResponse.json({ error: 'Invalid session' }, { status: 401 })
     }
 
