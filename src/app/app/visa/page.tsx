@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import Navbar from '../components/Navbar'
 import { SS } from '@/lib/constants'
 import SvgIcon from '@/components/SvgIcon'
+import { useLanguage } from '@/lib/i18n'
 
 const blue   = '#378ADD'
 const navy   = '#042C53'
@@ -91,10 +92,16 @@ const GERMAN_LEVELS = [
   { value: 'C2',   label: 'C2 — Proficient' },
 ]
 
-const ELIGIBILITY_CONFIG = {
-  eligible:     { color: green,  bg: '#1D9E7512', label: 'Eligible',         icon: '✓' },
+// ELIGIBILITY_CONFIG labels are set dynamically inside the component using lang
+const ELIGIBILITY_CONFIG_EN = {
+  eligible:     { color: green,  bg: '#1D9E7512', label: 'Eligible',           icon: '✓' },
   partial:      { color: orange, bg: '#f59e0b12', label: 'Partially Eligible', icon: '◑' },
-  not_eligible: { color: red,    bg: '#E24B4A12', label: 'Not Eligible',     icon: '✗' },
+  not_eligible: { color: red,    bg: '#E24B4A12', label: 'Not Eligible',       icon: '✗' },
+}
+const ELIGIBILITY_CONFIG_DE = {
+  eligible:     { color: green,  bg: '#1D9E7512', label: 'Berechtigt',              icon: '✓' },
+  partial:      { color: orange, bg: '#f59e0b12', label: 'Teilweise berechtigt',    icon: '◑' },
+  not_eligible: { color: red,    bg: '#E24B4A12', label: 'Nicht berechtigt',        icon: '✗' },
 }
 
 const EMPTY_FORM: FormData = {
@@ -196,6 +203,8 @@ ${result.documents?.length ? `<h2>📁 Document Checklist</h2>${result.documents
 
 // ── Main ─────────────────────────────────────────────────────────────────────
 export default function VisaPage() {
+  const { lang } = useLanguage()
+  const ELIGIBILITY_CONFIG = lang === 'DE' ? ELIGIBILITY_CONFIG_DE : ELIGIBILITY_CONFIG_EN
   const router = useRouter()
   const [step,   setStep]   = useState<1 | 2 | 3>(1)
   const [form,   setForm]   = useState<FormData>(EMPTY_FORM)
@@ -274,16 +283,16 @@ export default function VisaPage() {
           {/* Header */}
           <div style={{ marginBottom: 24, paddingLeft: 14, borderLeft: `3px solid ${blue}` }}>
             <h1 style={{ fontFamily: "'Outfit',sans-serif", fontSize: 22, fontWeight: 700, color: navy, margin: 0 }}>
-              Work Visa Guide — Germany <SvgIcon name="flag-de" size={22} style={{ verticalAlign: 'middle', marginLeft: 6 }} />
+              {lang === 'DE' ? 'Arbeitsvisa-Ratgeber — Deutschland' : 'Work Visa Guide — Germany'} <SvgIcon name="flag-de" size={22} style={{ verticalAlign: 'middle', marginLeft: 6 }} />
             </h1>
             <p style={{ fontSize: 13, color: '#6b7c93', margin: '4px 0 0' }}>
-              Fachkräfteeinwanderungsgesetz 2023 · Find your fastest path to working in Germany
+              {lang === 'DE' ? 'Fachkräfteeinwanderungsgesetz 2023 · Finde deinen schnellsten Weg zur Arbeit in Deutschland' : 'Fachkräfteeinwanderungsgesetz 2023 · Find your fastest path to working in Germany'}
             </p>
           </div>
 
           {/* Step indicator */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 0, marginBottom: 28 }}>
-            {(['Your Profile', 'Review', 'Results'] as const).map((label, i) => (
+            {(lang === 'DE' ? ['Dein Profil', 'Überprüfen', 'Ergebnisse'] : ['Your Profile', 'Review', 'Results']).map((label, i) => (
               <div key={label} style={{ display: 'flex', alignItems: 'center', flex: i < 2 ? 1 : 'none' }}>
                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
                   <StepDot n={i + 1} active={step === i + 1} done={step > i + 1} />
@@ -298,99 +307,99 @@ export default function VisaPage() {
           {step === 1 && (
             <>
               <div style={cardStyle}>
-                <span style={{ ...secLabel, display: 'inline-flex', alignItems: 'center', gap: 6 }}><SvgIcon name="globe" size={14} color="currentColor" /> Citizenship &amp; Background</span>
+                <span style={{ ...secLabel, display: 'inline-flex', alignItems: 'center', gap: 6 }}><SvgIcon name="globe" size={14} color="currentColor" /> {lang === 'DE' ? 'Staatsangehörigkeit & Hintergrund' : 'Citizenship & Background'}</span>
                 <div className="v-grid2" style={{ marginBottom: 14 }}>
                   <div>
-                    <label style={labelStyle}>Country of citizenship *</label>
-                    <input list="countries-list" style={inputStyle} value={form.citizenship} onChange={set('citizenship')} placeholder="e.g. India, Nigeria, USA..." />
+                    <label style={labelStyle}>{lang === 'DE' ? 'Staatsangehörigkeit *' : 'Country of citizenship *'}</label>
+                    <input list="countries-list" style={inputStyle} value={form.citizenship} onChange={set('citizenship')} placeholder={lang === 'DE' ? 'z. B. Indien, Nigeria, USA...' : 'e.g. India, Nigeria, USA...'} />
                     <datalist id="countries-list">
                       {['India','Nigeria','USA','Brazil','Turkey','China','Pakistan','Philippines','Vietnam','Morocco','Egypt','Bangladesh','Ukraine','Mexico','Kenya','Indonesia','Ghana','South Africa','Serbia','Bosnia'].map(c => <option key={c} value={c} />)}
                     </datalist>
                   </div>
                   <div>
-                    <label style={labelStyle}>Age *</label>
-                    <input type="number" style={inputStyle} value={form.age} onChange={set('age')} placeholder="e.g. 28" min="18" max="65" />
+                    <label style={labelStyle}>{lang === 'DE' ? 'Alter *' : 'Age *'}</label>
+                    <input type="number" style={inputStyle} value={form.age} onChange={set('age')} placeholder={lang === 'DE' ? 'z. B. 28' : 'e.g. 28'} min="18" max="65" />
                   </div>
                 </div>
                 {form.isEU && (
                   <div style={{ padding: '10px 14px', borderRadius: 8, background: '#f0fdf4', border: '1px solid #bbf7d0', fontSize: 13, color: '#166534' }}>
-                    ✓ As an EU/EEA/Swiss citizen you have free movement rights — no work visa needed for Germany. See Step 3 for practical next steps.
+                    {lang === 'DE' ? '✓ Als EU/EWR/Schweizer Bürger hast du das Recht auf Freizügigkeit — kein Arbeitsvisum für Deutschland erforderlich. Siehe Schritt 3 für praktische nächste Schritte.' : '✓ As an EU/EEA/Swiss citizen you have free movement rights — no work visa needed for Germany. See Step 3 for practical next steps.'}
                   </div>
                 )}
               </div>
 
               <div style={cardStyle}>
-                <span style={{ ...secLabel, display: 'inline-flex', alignItems: 'center', gap: 6 }}><SvgIcon name="graduate" size={14} color="currentColor" /> Qualifications</span>
+                <span style={{ ...secLabel, display: 'inline-flex', alignItems: 'center', gap: 6 }}><SvgIcon name="graduate" size={14} color="currentColor" /> {lang === 'DE' ? 'Qualifikationen' : 'Qualifications'}</span>
                 <div className="v-grid2" style={{ marginBottom: 14 }}>
                   <div>
-                    <label style={labelStyle}>Highest qualification *</label>
+                    <label style={labelStyle}>{lang === 'DE' ? 'Höchster Abschluss *' : 'Highest qualification *'}</label>
                     <select style={inputStyle} value={form.qualification} onChange={set('qualification')}>
-                      <option value="">Select...</option>
+                      <option value="">{lang === 'DE' ? 'Auswählen...' : 'Select...'}</option>
                       {QUALIFICATIONS.map(q => <option key={q.value} value={q.value}>{q.label}</option>)}
                     </select>
                   </div>
                   <div>
-                    <label style={labelStyle}>Field of study / training *</label>
+                    <label style={labelStyle}>{lang === 'DE' ? 'Studien- / Ausbildungsfeld *' : 'Field of study / training *'}</label>
                     <select style={inputStyle} value={form.qualificationField} onChange={set('qualificationField')}>
-                      <option value="">Select field...</option>
+                      <option value="">{lang === 'DE' ? 'Fachrichtung wählen...' : 'Select field...'}</option>
                       {FIELDS.map(f => <option key={f} value={f}>{f}</option>)}
                     </select>
                   </div>
                   <div>
-                    <label style={labelStyle}>Country where you got your qualification *</label>
-                    <input style={inputStyle} value={form.qualificationCountry} onChange={set('qualificationCountry')} placeholder="e.g. India, USA, Nigeria..." />
+                    <label style={labelStyle}>{lang === 'DE' ? 'Land, in dem du deinen Abschluss erworben hast *' : 'Country where you got your qualification *'}</label>
+                    <input style={inputStyle} value={form.qualificationCountry} onChange={set('qualificationCountry')} placeholder={lang === 'DE' ? 'z. B. Indien, USA, Nigeria...' : 'e.g. India, USA, Nigeria...'} />
                   </div>
                   <div>
-                    <label style={labelStyle}>Years of relevant work experience *</label>
+                    <label style={labelStyle}>{lang === 'DE' ? 'Jahre relevanter Berufserfahrung *' : 'Years of relevant work experience *'}</label>
                     <select style={inputStyle} value={form.experience} onChange={set('experience')}>
-                      <option value="">Select...</option>
-                      <option value="0">Less than 1 year</option>
-                      <option value="1">1–2 years</option>
-                      <option value="3">3–4 years</option>
-                      <option value="5">5+ years</option>
+                      <option value="">{lang === 'DE' ? 'Auswählen...' : 'Select...'}</option>
+                      <option value="0">{lang === 'DE' ? 'Weniger als 1 Jahr' : 'Less than 1 year'}</option>
+                      <option value="1">{lang === 'DE' ? '1–2 Jahre' : '1–2 years'}</option>
+                      <option value="3">{lang === 'DE' ? '3–4 Jahre' : '3–4 years'}</option>
+                      <option value="5">{lang === 'DE' ? '5+ Jahre' : '5+ years'}</option>
                     </select>
                   </div>
                 </div>
               </div>
 
               <div style={cardStyle}>
-                <span style={{ ...secLabel, display: 'inline-flex', alignItems: 'center', gap: 6 }}><SvgIcon name="flag-de" size={14} color="currentColor" /> Germany Specifics</span>
+                <span style={{ ...secLabel, display: 'inline-flex', alignItems: 'center', gap: 6 }}><SvgIcon name="flag-de" size={14} color="currentColor" /> {lang === 'DE' ? 'Deutschland-spezifische Angaben' : 'Germany Specifics'}</span>
                 <div className="v-grid2" style={{ marginBottom: 14 }}>
                   <div>
-                    <label style={labelStyle}>German language level</label>
+                    <label style={labelStyle}>{lang === 'DE' ? 'Deutschkenntnisse' : 'German language level'}</label>
                     <select style={inputStyle} value={form.germanLevel} onChange={set('germanLevel')}>
                       {GERMAN_LEVELS.map(l => <option key={l.value} value={l.value}>{l.label}</option>)}
                     </select>
                   </div>
                   <div>
-                    <label style={labelStyle}>Target field in Germany *</label>
+                    <label style={labelStyle}>{lang === 'DE' ? 'Zielfachrichtung in Deutschland *' : 'Target field in Germany *'}</label>
                     <select style={inputStyle} value={form.targetField} onChange={set('targetField')}>
-                      <option value="">Select field...</option>
+                      <option value="">{lang === 'DE' ? 'Fachrichtung wählen...' : 'Select field...'}</option>
                       {FIELDS.map(f => <option key={f} value={f}>{f}</option>)}
                     </select>
                   </div>
                   <div>
-                    <label style={labelStyle}>Job offer in Germany?</label>
+                    <label style={labelStyle}>{lang === 'DE' ? 'Jobangebot in Deutschland?' : 'Job offer in Germany?'}</label>
                     <select style={inputStyle} value={form.hasJobOffer} onChange={set('hasJobOffer')}>
-                      <option value="no">No — still searching</option>
-                      <option value="yes">Yes — I have an offer</option>
-                      <option value="process">In process / interviews</option>
+                      <option value="no">{lang === 'DE' ? 'Nein — noch auf der Suche' : 'No — still searching'}</option>
+                      <option value="yes">{lang === 'DE' ? 'Ja — ich habe ein Angebot' : 'Yes — I have an offer'}</option>
+                      <option value="process">{lang === 'DE' ? 'In Bearbeitung / Interviews' : 'In process / interviews'}</option>
                     </select>
                   </div>
                   {form.hasJobOffer === 'yes' && (
                     <div>
-                      <label style={labelStyle}>Offered gross salary (€/year)</label>
-                      <input type="number" style={inputStyle} value={form.offeredSalary} onChange={set('offeredSalary')} placeholder="e.g. 55000" />
+                      <label style={labelStyle}>{lang === 'DE' ? 'Angebotenes Bruttogehalt (€/Jahr)' : 'Offered gross salary (€/year)'}</label>
+                      <input type="number" style={inputStyle} value={form.offeredSalary} onChange={set('offeredSalary')} placeholder={lang === 'DE' ? 'z. B. 55000' : 'e.g. 55000'} />
                     </div>
                   )}
                   <div>
-                    <label style={labelStyle}>Previous connection to Germany</label>
+                    <label style={labelStyle}>{lang === 'DE' ? 'Frühere Verbindung zu Deutschland' : 'Previous connection to Germany'}</label>
                     <select style={inputStyle} value={form.germanyConnection} onChange={set('germanyConnection')}>
-                      <option value="none">None</option>
-                      <option value="studied">Studied in Germany</option>
-                      <option value="worked">Worked in Germany before</option>
-                      <option value="family">Have family in Germany</option>
-                      <option value="lived">Lived in Germany before</option>
+                      <option value="none">{lang === 'DE' ? 'Keine' : 'None'}</option>
+                      <option value="studied">{lang === 'DE' ? 'In Deutschland studiert' : 'Studied in Germany'}</option>
+                      <option value="worked">{lang === 'DE' ? 'Zuvor in Deutschland gearbeitet' : 'Worked in Germany before'}</option>
+                      <option value="family">{lang === 'DE' ? 'Familie in Deutschland' : 'Have family in Germany'}</option>
+                      <option value="lived">{lang === 'DE' ? 'Zuvor in Deutschland gelebt' : 'Lived in Germany before'}</option>
                     </select>
                   </div>
                 </div>
@@ -399,7 +408,7 @@ export default function VisaPage() {
               <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
                 <button onClick={() => canSubmit && setStep(2)} disabled={!canSubmit}
                   style={{ padding: '12px 32px', borderRadius: 10, background: !canSubmit ? '#ccc' : `linear-gradient(135deg,${blue},#2563eb)`, color: '#fff', fontWeight: 700, fontSize: 14, border: 'none', cursor: !canSubmit ? 'not-allowed' : 'pointer', fontFamily: "'Outfit',sans-serif" }}>
-                  Review answers →
+                  {lang === 'DE' ? 'Angaben überprüfen →' : 'Review answers →'}
                 </button>
               </div>
             </>
@@ -409,19 +418,19 @@ export default function VisaPage() {
           {step === 2 && (
             <>
               <div style={cardStyle}>
-                <div style={{ fontSize: 14, fontWeight: 700, color: navy, marginBottom: 16, fontFamily: "'Outfit',sans-serif" }}>Review your profile before analysis</div>
+                <div style={{ fontSize: 14, fontWeight: 700, color: navy, marginBottom: 16, fontFamily: "'Outfit',sans-serif" }}>{lang === 'DE' ? 'Dein Profil vor der Analyse überprüfen' : 'Review your profile before analysis'}</div>
                 <div className="v-grid2" style={{ gap: 10 }}>
                   {[
-                    ['Citizenship', form.citizenship + (form.isEU ? ' (EU)' : '')],
-                    ['Age', form.age],
-                    ['Qualification', QUALIFICATIONS.find(q => q.value === form.qualification)?.label || ''],
-                    ['Field of Study', form.qualificationField],
-                    ['Qualified In', form.qualificationCountry],
-                    ['Experience', form.experience === '5' ? '5+ years' : `${form.experience} year(s)`],
-                    ['German Level', form.germanLevel === 'none' ? 'None' : form.germanLevel],
-                    ['Target Field', form.targetField],
-                    ['Job Offer', form.hasJobOffer === 'yes' ? `Yes — €${form.offeredSalary || '?'}/yr` : form.hasJobOffer === 'process' ? 'In progress' : 'No'],
-                    ['Germany Link', form.germanyConnection === 'none' ? 'None' : form.germanyConnection],
+                    [lang === 'DE' ? 'Staatsangehörigkeit' : 'Citizenship', form.citizenship + (form.isEU ? ' (EU)' : '')],
+                    [lang === 'DE' ? 'Alter' : 'Age', form.age],
+                    [lang === 'DE' ? 'Abschluss' : 'Qualification', QUALIFICATIONS.find(q => q.value === form.qualification)?.label || ''],
+                    [lang === 'DE' ? 'Studienfeld' : 'Field of Study', form.qualificationField],
+                    [lang === 'DE' ? 'Abschluss erworben in' : 'Qualified In', form.qualificationCountry],
+                    [lang === 'DE' ? 'Erfahrung' : 'Experience', form.experience === '5' ? (lang === 'DE' ? '5+ Jahre' : '5+ years') : `${form.experience} ${lang === 'DE' ? 'Jahr(e)' : 'year(s)'}`],
+                    [lang === 'DE' ? 'Deutschkenntnisse' : 'German Level', form.germanLevel === 'none' ? (lang === 'DE' ? 'Keine' : 'None') : form.germanLevel],
+                    [lang === 'DE' ? 'Zielfachrichtung' : 'Target Field', form.targetField],
+                    [lang === 'DE' ? 'Jobangebot' : 'Job Offer', form.hasJobOffer === 'yes' ? `${lang === 'DE' ? 'Ja — €' : 'Yes — €'}${form.offeredSalary || '?'}/yr` : form.hasJobOffer === 'process' ? (lang === 'DE' ? 'In Bearbeitung' : 'In progress') : (lang === 'DE' ? 'Nein' : 'No')],
+                    [lang === 'DE' ? 'Deutschland-Verbindung' : 'Germany Link', form.germanyConnection === 'none' ? (lang === 'DE' ? 'Keine' : 'None') : form.germanyConnection],
                   ].map(([k, v]) => (
                     <div key={k} style={{ padding: '10px 12px', borderRadius: 8, background: '#f8fafc', border: '1px solid #edf1f6' }}>
                       <div style={{ fontSize: 10, fontWeight: 700, color: '#9aafbc', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 3 }}>{k}</div>
@@ -434,11 +443,11 @@ export default function VisaPage() {
               <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12 }}>
                 <button onClick={() => setStep(1)}
                   style={{ padding: '11px 24px', borderRadius: 10, border: '1px solid #dce4ef', background: '#fff', color: '#6b7c93', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>
-                  ← Edit
+                  {lang === 'DE' ? '← Bearbeiten' : '← Edit'}
                 </button>
                 <button onClick={analyse} disabled={loading}
                   style={{ padding: '11px 32px', borderRadius: 10, background: loading ? '#ccc' : `linear-gradient(135deg,${blue},#2563eb)`, color: '#fff', fontWeight: 700, fontSize: 14, border: 'none', cursor: loading ? 'not-allowed' : 'pointer', fontFamily: "'Outfit',sans-serif" }}>
-                  {loading ? 'Analysing...' : 'Check Eligibility (1 credit) →'}
+                  {loading ? (lang === 'DE' ? 'Wird analysiert...' : 'Analysing...') : (lang === 'DE' ? 'Berechtigung prüfen (1 Kredit) →' : 'Check Eligibility (1 credit) →')}
                 </button>
               </div>
             </>
@@ -449,30 +458,30 @@ export default function VisaPage() {
             <>
               {/* Session banner + download */}
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 16px', borderRadius: 10, background: '#eff6ff', border: '1px solid #bfdbfe', marginBottom: 16, gap: 12, flexWrap: 'wrap' }}>
-                <span style={{ fontSize: 12, color: '#1d4ed8', fontWeight: 500 }}>Results saved for this session — they&apos;ll be here if you navigate away and come back.</span>
+                <span style={{ fontSize: 12, color: '#1d4ed8', fontWeight: 500 }}>{lang === 'DE' ? 'Ergebnisse für diese Sitzung gespeichert — sie sind noch da, wenn du wegnavigierst und zurückkommst.' : 'Results saved for this session — they\'ll be here if you navigate away and come back.'}</span>
                 <button onClick={() => downloadVisaReport(result, form)}
                   style={{ padding: '7px 16px', borderRadius: 8, background: `linear-gradient(135deg,${blue},#2563eb)`, color: '#fff', fontWeight: 700, fontSize: 12, border: 'none', cursor: 'pointer', whiteSpace: 'nowrap', fontFamily: "'Outfit',sans-serif" }}>
-                  ↓ Download PDF Report
+                  {lang === 'DE' ? '↓ PDF-Bericht herunterladen' : '↓ Download PDF Report'}
                 </button>
               </div>
 
               {/* EU fast-track */}
               {result.isEU && (
                 <div style={{ ...cardStyle, borderLeft: `4px solid ${green}`, background: '#f0fdf4' }}>
-                  <div style={{ fontSize: 15, fontWeight: 700, color: green, marginBottom: 6, fontFamily: "'Outfit',sans-serif" }}>Free Movement — No Visa Required</div>
+                  <div style={{ fontSize: 15, fontWeight: 700, color: green, marginBottom: 6, fontFamily: "'Outfit',sans-serif" }}>{lang === 'DE' ? 'Freizügigkeit — Kein Visum erforderlich' : 'Free Movement — No Visa Required'}</div>
                   <p style={{ fontSize: 13, color: '#374151', margin: 0, lineHeight: 1.65 }}>{result.euNote}</p>
                 </div>
               )}
 
               {/* Summary */}
               <div style={{ ...cardStyle, borderLeft: `4px solid ${blue}` }}>
-                <div style={{ fontSize: 14, fontWeight: 700, color: navy, marginBottom: 8, fontFamily: "'Outfit',sans-serif", display: 'flex', alignItems: 'center', gap: 7 }}><SvgIcon name="clipboard" size={14} color={navy} /> Your situation — plain English</div>
+                <div style={{ fontSize: 14, fontWeight: 700, color: navy, marginBottom: 8, fontFamily: "'Outfit',sans-serif", display: 'flex', alignItems: 'center', gap: 7 }}><SvgIcon name="clipboard" size={14} color={navy} /> {lang === 'DE' ? 'Deine Situation — auf einen Blick' : 'Your situation — plain English'}</div>
                 <p style={{ fontSize: 13, color: '#374151', lineHeight: 1.7, margin: 0 }}>{result.summary}</p>
                 {result.chancenkartePoints !== null && (
                   <div style={{ marginTop: 12, display: 'inline-flex', alignItems: 'center', gap: 8, padding: '8px 14px', borderRadius: 10, background: result.chancenkartePoints >= 6 ? '#f0fdf4' : '#fef9ec', border: `1px solid ${result.chancenkartePoints >= 6 ? '#bbf7d0' : '#fde68a'}` }}>
                     <SvgIcon name="star" size={18} color={result.chancenkartePoints >= 6 ? green : orange} />
                     <span style={{ fontSize: 13, fontWeight: 700, color: result.chancenkartePoints >= 6 ? green : orange }}>
-                      Chancenkarte: {result.chancenkartePoints} / 6+ points {result.chancenkartePoints >= 6 ? '✓ Eligible' : '— need more points'}
+                      Chancenkarte: {result.chancenkartePoints} / 6+ {lang === 'DE' ? 'Punkte' : 'points'} {result.chancenkartePoints >= 6 ? (lang === 'DE' ? '✓ Berechtigt' : '✓ Eligible') : (lang === 'DE' ? '— mehr Punkte erforderlich' : '— need more points')}
                     </span>
                   </div>
                 )}
@@ -481,7 +490,7 @@ export default function VisaPage() {
               {/* Urgent warnings */}
               {result.urgentWarnings?.length > 0 && (
                 <div style={{ ...cardStyle, borderLeft: `4px solid ${red}`, background: '#fff8f8' }}>
-                  <div style={{ fontSize: 13, fontWeight: 700, color: red, marginBottom: 8, fontFamily: "'Outfit',sans-serif" }}>Important — read before proceeding</div>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: red, marginBottom: 8, fontFamily: "'Outfit',sans-serif" }}>{lang === 'DE' ? 'Wichtig — bitte vor dem Fortfahren lesen' : 'Important — read before proceeding'}</div>
                   {result.urgentWarnings.map((w, i) => (
                     <div key={i} style={{ display: 'flex', gap: 8, padding: '5px 0', fontSize: 13, color: '#374151' }}>
                       <span style={{ flexShrink: 0, color: red }}>!</span>{w}
@@ -491,7 +500,7 @@ export default function VisaPage() {
               )}
 
               {/* Visa options */}
-              <div style={{ fontSize: 14, fontWeight: 700, color: navy, fontFamily: "'Outfit',sans-serif", marginBottom: 12 }}>Visa paths — ranked by match</div>
+              <div style={{ fontSize: 14, fontWeight: 700, color: navy, fontFamily: "'Outfit',sans-serif", marginBottom: 12 }}>{lang === 'DE' ? 'Visumswege — nach Übereinstimmung geordnet' : 'Visa paths — ranked by match'}</div>
               {[...result.visaOptions].sort((a, b) => b.matchScore - a.matchScore).map(opt => {
                 const cfg = ELIGIBILITY_CONFIG[opt.eligibility]
                 const isRec = opt.id === result.recommendedPath
@@ -499,7 +508,7 @@ export default function VisaPage() {
                   <div key={opt.id} className="v-visa-card" style={{ ...cardStyle, borderLeft: `4px solid ${cfg.color}`, position: 'relative', ...(isRec ? { border: `2px solid ${blue}`, boxShadow: `0 4px 20px rgba(55,138,221,0.12)` } : {}) }}>
                     {isRec && (
                       <div style={{ position: 'absolute', top: 14, right: 16, fontSize: 10, fontWeight: 700, color: blue, background: blue + '15', padding: '3px 10px', borderRadius: 20, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-                        <SvgIcon name="star" size={10} color={blue} /> Recommended path
+                        <SvgIcon name="star" size={10} color={blue} /> {lang === 'DE' ? 'Empfohlener Weg' : 'Recommended path'}
                       </div>
                     )}
                     <div style={{ display: 'flex', alignItems: 'flex-start', gap: 14, flexWrap: 'wrap' }}>
@@ -517,7 +526,7 @@ export default function VisaPage() {
                         {/* Score bar */}
                         <div style={{ marginBottom: 12 }}>
                           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
-                            <span style={{ fontSize: 11, color: '#9aafbc' }}>Match score</span>
+                            <span style={{ fontSize: 11, color: '#9aafbc' }}>{lang === 'DE' ? 'Übereinstimmung' : 'Match score'}</span>
                             <span style={{ fontSize: 11, fontWeight: 700, color: cfg.color }}>{opt.matchScore}%</span>
                           </div>
                           <div style={{ height: 6, background: '#f0f4f8', borderRadius: 3 }}>
@@ -528,13 +537,13 @@ export default function VisaPage() {
                         <div className="v-grid2" style={{ gap: 10, marginBottom: 10 }}>
                           {opt.metRequirements.length > 0 && (
                             <div>
-                              <div style={{ fontSize: 11, fontWeight: 700, color: green, marginBottom: 5 }}>✓ Requirements met</div>
+                              <div style={{ fontSize: 11, fontWeight: 700, color: green, marginBottom: 5 }}>{lang === 'DE' ? '✓ Voraussetzungen erfüllt' : '✓ Requirements met'}</div>
                               {opt.metRequirements.map((r, i) => <div key={i} style={{ fontSize: 12, color: '#374151', padding: '2px 0' }}>• {r}</div>)}
                             </div>
                           )}
                           {opt.missingRequirements.length > 0 && (
                             <div>
-                              <div style={{ fontSize: 11, fontWeight: 700, color: orange, marginBottom: 5 }}>○ Still needed</div>
+                              <div style={{ fontSize: 11, fontWeight: 700, color: orange, marginBottom: 5 }}>{lang === 'DE' ? '○ Noch erforderlich' : '○ Still needed'}</div>
                               {opt.missingRequirements.map((r, i) => <div key={i} style={{ fontSize: 12, color: '#374151', padding: '2px 0' }}>• {r}</div>)}
                             </div>
                           )}
@@ -542,7 +551,7 @@ export default function VisaPage() {
 
                         <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', fontSize: 12 }}>
                           <div style={{ padding: '6px 12px', borderRadius: 8, background: purple + '10', color: purple, fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: 5 }}><SvgIcon name="bulb" size={12} color={purple} /> {opt.keyAdvantage}</div>
-                          <div style={{ padding: '6px 12px', borderRadius: 8, background: blue + '10', color: blue, fontWeight: 600 }}>→ Next: {opt.nextStep}</div>
+                          <div style={{ padding: '6px 12px', borderRadius: 8, background: blue + '10', color: blue, fontWeight: 600 }}>→ {lang === 'DE' ? 'Nächster Schritt:' : 'Next:'} {opt.nextStep}</div>
                         </div>
                       </div>
                     </div>
@@ -553,17 +562,17 @@ export default function VisaPage() {
               {/* Qualification recognition */}
               {result.qualificationRecognitionNeeded && (
                 <div style={{ ...cardStyle, borderLeft: `4px solid ${orange}` }}>
-                  <div style={{ fontSize: 13, fontWeight: 700, color: orange, marginBottom: 6, fontFamily: "'Outfit',sans-serif", display: 'flex', alignItems: 'center', gap: 6 }}><SvgIcon name="graduate" size={13} color={orange} /> Qualification Recognition (Anerkennung) Required</div>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: orange, marginBottom: 6, fontFamily: "'Outfit',sans-serif", display: 'flex', alignItems: 'center', gap: 6 }}><SvgIcon name="graduate" size={13} color={orange} /> {lang === 'DE' ? 'Anerkennung der Qualifikation erforderlich' : 'Qualification Recognition (Anerkennung) Required'}</div>
                   <p style={{ fontSize: 13, color: '#374151', margin: '0 0 8px', lineHeight: 1.6 }}>
-                    Your qualification needs to be officially recognised in Germany before most visa types can be granted. This is a key first step and can run in parallel with your job search.
+                    {lang === 'DE' ? 'Deine Qualifikation muss in Deutschland offiziell anerkannt werden, bevor die meisten Visumarten beantragt werden können. Dies ist ein wichtiger erster Schritt und kann parallel zur Jobsuche erfolgen.' : 'Your qualification needs to be officially recognised in Germany before most visa types can be granted. This is a key first step and can run in parallel with your job search.'}
                   </p>
                   {result.recognitionBody && (
                     <div style={{ fontSize: 13, color: '#374151' }}>
-                      Relevant authority: <strong>{result.recognitionBody}</strong>
+                      {lang === 'DE' ? 'Zuständige Stelle:' : 'Relevant authority:'} <strong>{result.recognitionBody}</strong>
                     </div>
                   )}
                   <a href="https://www.anerkennung-in-deutschland.de/html/en/index.php" target="_blank" rel="noopener noreferrer" className="v-link" style={{ display: 'inline-block', marginTop: 8, fontSize: 12 }}>
-                    → Check recognition on anerkennung-in-deutschland.de ↗
+                    {lang === 'DE' ? '→ Anerkennung prüfen auf anerkennung-in-deutschland.de ↗' : '→ Check recognition on anerkennung-in-deutschland.de ↗'}
                   </a>
                 </div>
               )}
@@ -571,13 +580,13 @@ export default function VisaPage() {
               {/* Document checklist */}
               {result.documents?.length > 0 && (
                 <div style={cardStyle}>
-                  <div style={{ fontSize: 14, fontWeight: 700, color: navy, marginBottom: 14, fontFamily: "'Outfit',sans-serif", display: 'flex', alignItems: 'center', gap: 7 }}><SvgIcon name="clipboard" size={14} color={navy} /> Your personalised document checklist</div>
+                  <div style={{ fontSize: 14, fontWeight: 700, color: navy, marginBottom: 14, fontFamily: "'Outfit',sans-serif", display: 'flex', alignItems: 'center', gap: 7 }}><SvgIcon name="clipboard" size={14} color={navy} /> {lang === 'DE' ? 'Deine persönliche Dokumentencheckliste' : 'Your personalised document checklist'}</div>
                   {result.documents.map(doc => (
                     <div key={doc.category} style={{ marginBottom: 8, border: '1px solid #edf1f6', borderRadius: 10, overflow: 'hidden' }}>
                       <button onClick={() => setOpenDoc(openDoc === doc.category ? null : doc.category)}
                         style={{ width: '100%', display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 16px', background: openDoc === doc.category ? blue + '08' : '#f8fafc', border: 'none', cursor: 'pointer', fontFamily: 'inherit' }}>
                         <span style={{ fontSize: 13, fontWeight: 600, color: navy }}>{doc.category}</span>
-                        <span style={{ fontSize: 12, color: '#9aafbc' }}>{openDoc === doc.category ? '▲' : `${doc.items.length} items ▼`}</span>
+                        <span style={{ fontSize: 12, color: '#9aafbc' }}>{openDoc === doc.category ? '▲' : `${doc.items.length} ${lang === 'DE' ? 'Punkte' : 'items'} ▼`}</span>
                       </button>
                       {openDoc === doc.category && (
                         <div style={{ padding: '10px 16px 14px' }}>
@@ -597,12 +606,12 @@ export default function VisaPage() {
               <div style={{ ...cardStyle, background: `linear-gradient(135deg, ${blue}0f, #e8f3ff)`, border: `1px solid ${blue}30` }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
                   <div>
-                    <div style={{ fontSize: 14, fontWeight: 700, color: navy, fontFamily: "'Outfit',sans-serif", marginBottom: 4, display: 'flex', alignItems: 'center', gap: 7 }}><SvgIcon name="search" size={14} color={navy} /> Ready to find a job in Germany?</div>
-                    <div style={{ fontSize: 12, color: '#6b7c93' }}>Search live DACH job listings directly on Job-Lens — no third-party portals needed.</div>
+                    <div style={{ fontSize: 14, fontWeight: 700, color: navy, fontFamily: "'Outfit',sans-serif", marginBottom: 4, display: 'flex', alignItems: 'center', gap: 7 }}><SvgIcon name="search" size={14} color={navy} /> {lang === 'DE' ? 'Bereit, einen Job in Deutschland zu finden?' : 'Ready to find a job in Germany?'}</div>
+                    <div style={{ fontSize: 12, color: '#6b7c93' }}>{lang === 'DE' ? 'Durchsuche aktuelle DACH-Stellenangebote direkt auf Job-Lens — ohne externe Portale.' : 'Search live DACH job listings directly on Job-Lens — no third-party portals needed.'}</div>
                   </div>
                   <button onClick={() => router.push('/app/jobs')}
                     style={{ padding: '10px 22px', borderRadius: 9, border: 'none', background: blue, color: '#fff', fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: "'Outfit',sans-serif", whiteSpace: 'nowrap' as const, flexShrink: 0 }}>
-                    Search DACH Jobs →
+                    {lang === 'DE' ? 'DACH-Jobs suchen →' : 'Search DACH Jobs →'}
                   </button>
                 </div>
               </div>
@@ -610,7 +619,7 @@ export default function VisaPage() {
               {/* Useful links */}
               {result.usefulLinks?.length > 0 && (
                 <div style={cardStyle}>
-                  <div style={{ fontSize: 14, fontWeight: 700, color: navy, marginBottom: 12, fontFamily: "'Outfit',sans-serif" }}>Official German immigration resources</div>
+                  <div style={{ fontSize: 14, fontWeight: 700, color: navy, marginBottom: 12, fontFamily: "'Outfit',sans-serif" }}>{lang === 'DE' ? 'Offizielle deutsche Einwanderungsressourcen' : 'Official German immigration resources'}</div>
                   <div className="v-grid2" style={{ gap: 8 }}>
                     {result.usefulLinks.map(link => (
                       <a key={link.url} href={link.url} target="_blank" rel="noopener noreferrer"
@@ -626,7 +635,7 @@ export default function VisaPage() {
               <div style={{ textAlign: 'center', marginTop: 8 }}>
                 <button onClick={() => { try { sessionStorage.removeItem(SS.visaResult) } catch {} setStep(1); setForm(EMPTY_FORM); setResult(null) }}
                   style={{ fontSize: 12, color: '#9aafbc', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline' }}>
-                  Start a new check
+                  {lang === 'DE' ? 'Neue Prüfung starten' : 'Start a new check'}
                 </button>
               </div>
             </>

@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import Navbar from '../components/Navbar'
 import { SS, CREDIT_COST } from '@/lib/constants'
 import SvgIcon from '@/components/SvgIcon'
+import { useLanguage } from '@/lib/i18n'
 
 const blue   = '#378ADD'
 const navy   = '#042C53'
@@ -191,6 +192,7 @@ ${result.correctionGrounds ? `<div class="legal">⚖️ <strong>Grundlage für B
 
 // ── Main page ───────────────────────────────────────────────────────────────
 export default function ZeugnisPage() {
+  const { lang } = useLanguage()
   const [tab, setTab] = useState<'decode' | 'request'>('decode')
   const [reqTab, setReqTab] = useState<'initial' | 'correction'>('initial')
 
@@ -306,16 +308,16 @@ export default function ZeugnisPage() {
               Arbeitszeugnis
             </h1>
             <p style={{ fontSize: 13, color: '#6b7c93', margin: '4px 0 0' }}>
-              Decode the hidden language in your German work reference — then request or correct it
+              {lang === 'DE' ? 'Versteckte Formulierungen in deinem Arbeitszeugnis entschlüsseln — dann anfordern oder korrigieren lassen' : 'Decode the hidden language in your German work reference — then request or correct it'}
               <span style={{ marginLeft: 10, fontSize: 11, fontWeight: 700, color: blue, background: 'rgba(55,138,221,0.12)', padding: '2px 8px', borderRadius: 20 }}>
-                {CREDIT_COST.zeugnisDecoder} credit
+                {CREDIT_COST.zeugnisDecoder} {lang === 'DE' ? 'Kredit' : 'credit'}
               </span>
             </p>
           </div>
 
           {/* Main tabs */}
           <div style={{ display: 'flex', gap: 8, marginBottom: 20 }}>
-            {([['decode', 'Decode Zeugnis'], ['request', 'Request / Correct']] as const).map(([key, label]) => (
+            {([['decode', lang === 'DE' ? 'Zeugnis entschlüsseln' : 'Decode Zeugnis'], ['request', lang === 'DE' ? 'Anfordern / Korrigieren' : 'Request / Correct']] as const).map(([key, label]) => (
               <button key={key} className="zt-tab" onClick={() => setTab(key)}
                 style={{ padding: '9px 20px', borderRadius: 10, border: `1.5px solid ${tab === key ? blue : '#dce4ef'}`, background: tab === key ? blue + '12' : '#fff', color: tab === key ? blue : '#6b7c93', fontSize: 13, fontWeight: tab === key ? 700 : 400, cursor: 'pointer', fontFamily: 'inherit' }}>
                 {label}
@@ -327,8 +329,8 @@ export default function ZeugnisPage() {
           {tab === 'decode' && (
             <>
               <div style={cardStyle}>
-                <div style={{ fontSize: 14, fontWeight: 700, color: navy, marginBottom: 4, fontFamily: "'Outfit',sans-serif" }}>Paste your Arbeitszeugnis</div>
-                <div style={{ fontSize: 12, color: '#9aafbc', marginBottom: 12 }}>Copy the full text of your Zeugnis and paste it below. AI will decode every phrase.</div>
+                <div style={{ fontSize: 14, fontWeight: 700, color: navy, marginBottom: 4, fontFamily: "'Outfit',sans-serif" }}>{lang === 'DE' ? 'Dein Arbeitszeugnis einfügen' : 'Paste your Arbeitszeugnis'}</div>
+                <div style={{ fontSize: 12, color: '#9aafbc', marginBottom: 12 }}>{lang === 'DE' ? 'Kopiere den vollständigen Text deines Zeugnisses und füge ihn unten ein. Die KI entschlüsselt jede Formulierung.' : 'Copy the full text of your Zeugnis and paste it below. AI will decode every phrase.'}</div>
                 <textarea
                   value={zeugnisText}
                   onChange={e => setZeugnisText(e.target.value)}
@@ -336,13 +338,13 @@ export default function ZeugnisPage() {
                   style={{ ...inputStyle, height: 200, resize: 'vertical', lineHeight: 1.7 }}
                 />
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 12, flexWrap: 'wrap', gap: 10 }}>
-                  <span style={{ fontSize: 12, color: '#9aafbc' }}>1 credit · Decoded by Claude AI · German only</span>
+                  <span style={{ fontSize: 12, color: '#9aafbc' }}>{lang === 'DE' ? '1 Kredit · Entschlüsselt von Claude AI · Nur auf Deutsch' : '1 credit · Decoded by Claude AI · German only'}</span>
                   <button onClick={decode} disabled={loading || !zeugnisText.trim()}
                     style={{ padding: '10px 28px', borderRadius: 9, background: loading || !zeugnisText.trim() ? '#ccc' : `linear-gradient(135deg,${blue},#2563eb)`, color: '#fff', fontWeight: 700, fontSize: 13, border: 'none', cursor: loading || !zeugnisText.trim() ? 'not-allowed' : 'pointer', fontFamily: "'Outfit',sans-serif" }}>
-                    {loading ? 'Decoding...' : 'Decode Zeugnis →'}
+                    {loading ? (lang === 'DE' ? 'Wird entschlüsselt...' : 'Decoding...') : (lang === 'DE' ? 'Zeugnis entschlüsseln →' : 'Decode Zeugnis →')}
                   </button>
                 </div>
-                {error && <div style={{ marginTop: 12, padding: '10px 14px', borderRadius: 8, background: '#fff0f0', border: '1px solid #fca5a5', color: red, fontSize: 13 }}>{error}</div>}
+                {error && <div style={{ marginTop: 12, padding: '10px 14px', borderRadius: 8, background: '#fff0f0', border: '1px solid #fca5a5', color: red, fontSize: 13 }}>{error === 'Network error. Please try again.' ? (lang === 'DE' ? 'Netzwerkfehler. Bitte erneut versuchen.' : error) : error}</div>}
               </div>
 
               {/* Results */}
@@ -350,10 +352,10 @@ export default function ZeugnisPage() {
                 <>
                   {/* Session banner + download */}
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 14px', borderRadius: 9, background: '#f0f9ff', border: '1px solid #bae6fd', marginBottom: 12, flexWrap: 'wrap', gap: 8 }}>
-                    <span style={{ fontSize: 12, color: '#0369a1' }}>Results saved for this session</span>
+                    <span style={{ fontSize: 12, color: '#0369a1' }}>{lang === 'DE' ? 'Ergebnisse für diese Sitzung gespeichert' : 'Results saved for this session'}</span>
                     <button onClick={() => downloadZeugnisReport(result)}
                       style={{ padding: '6px 14px', borderRadius: 7, border: `1px solid ${blue}40`, background: blue + '10', color: blue, fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>
-                      ↓ Download PDF Report
+                      {lang === 'DE' ? '↓ PDF-Bericht herunterladen' : '↓ Download PDF Report'}
                     </button>
                   </div>
 
@@ -370,7 +372,7 @@ export default function ZeugnisPage() {
                       </div>
                       <button onClick={() => { setTab('request'); setReqTab(result.overallGrade >= 3 ? 'correction' : 'initial') }}
                         style={{ padding: '10px 18px', borderRadius: 9, background: result.overallGrade >= 3 ? `linear-gradient(135deg,${red},#c0392b)` : `linear-gradient(135deg,${green},#16a085)`, color: '#fff', fontWeight: 700, fontSize: 12, border: 'none', cursor: 'pointer', fontFamily: "'Outfit',sans-serif", flexShrink: 0 }}>
-                        {result.overallGrade >= 3 ? 'Request correction' : 'Request Zeugnis'}
+                        {result.overallGrade >= 3 ? (lang === 'DE' ? 'Berichtigung beantragen' : 'Request correction') : (lang === 'DE' ? 'Zeugnis anfordern' : 'Request Zeugnis')}
                       </button>
                     </div>
                   </div>
@@ -378,7 +380,7 @@ export default function ZeugnisPage() {
                   {/* Red flags */}
                   {result.redFlags.length > 0 && (
                     <div style={{ ...cardStyle, borderLeft: `4px solid ${red}` }}>
-                      <div style={{ fontSize: 13, fontWeight: 700, color: red, marginBottom: 10, fontFamily: "'Outfit',sans-serif", display: 'flex', alignItems: 'center', gap: 6 }}><SvgIcon name="flag" size={13} color={red} /> Red Flags — phrases that actively hurt you</div>
+                      <div style={{ fontSize: 13, fontWeight: 700, color: red, marginBottom: 10, fontFamily: "'Outfit',sans-serif", display: 'flex', alignItems: 'center', gap: 6 }}><SvgIcon name="flag" size={13} color={red} /> {lang === 'DE' ? 'Rote Flags — Formulierungen, die dir aktiv schaden' : 'Red Flags — phrases that actively hurt you'}</div>
                       {result.redFlags.map((flag, i) => (
                         <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 8, padding: '8px 0', borderBottom: i < result.redFlags.length - 1 ? '1px solid #fef2f2' : 'none' }}>
                           <span style={{ flexShrink: 0, marginTop: 1 }}><SvgIcon name="warning" size={16} color="#f59e0b" /></span>
@@ -390,7 +392,7 @@ export default function ZeugnisPage() {
 
                   {/* Phrase breakdown */}
                   <div style={cardStyle}>
-                    <div style={{ fontSize: 13, fontWeight: 700, color: navy, marginBottom: 14, fontFamily: "'Outfit',sans-serif", display: 'flex', alignItems: 'center', gap: 6 }}><SvgIcon name="clipboard" size={13} color={navy} /> Phrase-by-phrase breakdown</div>
+                    <div style={{ fontSize: 13, fontWeight: 700, color: navy, marginBottom: 14, fontFamily: "'Outfit',sans-serif", display: 'flex', alignItems: 'center', gap: 6 }}><SvgIcon name="clipboard" size={13} color={navy} /> {lang === 'DE' ? 'Formulierungen im Detail' : 'Phrase-by-phrase breakdown'}</div>
                     {result.phrases.map((p, i) => {
                       const cfg = RATING_CONFIG[p.rating]
                       return (
@@ -413,8 +415,8 @@ export default function ZeugnisPage() {
                   {/* Missing phrases */}
                   {result.missingPhrases.length > 0 && (
                     <div style={{ ...cardStyle, borderLeft: `4px solid ${orange}` }}>
-                      <div style={{ fontSize: 13, fontWeight: 700, color: orange, marginBottom: 10, fontFamily: "'Outfit',sans-serif" }}>Missing phrases — absent from your Zeugnis</div>
-                      <p style={{ fontSize: 12, color: '#9aafbc', margin: '0 0 10px' }}>A Grade 1–2 Zeugnis would typically include these. Their absence signals a weaker reference.</p>
+                      <div style={{ fontSize: 13, fontWeight: 700, color: orange, marginBottom: 10, fontFamily: "'Outfit',sans-serif" }}>{lang === 'DE' ? 'Fehlende Formulierungen — in deinem Zeugnis nicht vorhanden' : 'Missing phrases — absent from your Zeugnis'}</div>
+                      <p style={{ fontSize: 12, color: '#9aafbc', margin: '0 0 10px' }}>{lang === 'DE' ? 'Ein Zeugnis der Note 1–2 würde diese üblicherweise enthalten. Ihr Fehlen signalisiert eine schwächere Bewertung.' : 'A Grade 1–2 Zeugnis would typically include these. Their absence signals a weaker reference.'}</p>
                       {result.missingPhrases.map((m, i) => (
                         <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 0', borderBottom: i < result.missingPhrases.length - 1 ? '1px solid #fef9ec' : 'none' }}>
                           <span style={{ color: orange }}>○</span>
@@ -427,7 +429,7 @@ export default function ZeugnisPage() {
                   {/* Legal grounds for correction */}
                   {result.correctionGrounds && (
                     <div style={{ ...cardStyle, background: '#f0f9ff', border: '1px solid #bae6fd' }}>
-                      <div style={{ fontSize: 12, fontWeight: 700, color: blue, marginBottom: 6 }}>Legal basis for requesting a correction</div>
+                      <div style={{ fontSize: 12, fontWeight: 700, color: blue, marginBottom: 6 }}>{lang === 'DE' ? 'Rechtliche Grundlage für einen Berichtigungsanspruch' : 'Legal basis for requesting a correction'}</div>
                       <p style={{ fontSize: 13, color: '#374151', margin: 0, lineHeight: 1.6 }}>{result.correctionGrounds}</p>
                     </div>
                   )}
@@ -441,7 +443,7 @@ export default function ZeugnisPage() {
             <>
               {/* Sub-tabs */}
               <div style={{ display: 'flex', gap: 8, marginBottom: 20 }}>
-                {([['initial', 'Request Zeugnis'], ['correction', 'Request Correction']] as const).map(([key, label]) => (
+                {([['initial', lang === 'DE' ? 'Zeugnis anfordern' : 'Request Zeugnis'], ['correction', lang === 'DE' ? 'Berichtigung beantragen' : 'Request Correction']] as const).map(([key, label]) => (
                   <button key={key} className="zt-tab" onClick={() => { setReqTab(key); setLetter('') }}
                     style={{ padding: '8px 18px', borderRadius: 10, border: `1.5px solid ${reqTab === key ? blue : '#dce4ef'}`, background: reqTab === key ? blue + '12' : '#fff', color: reqTab === key ? blue : '#6b7c93', fontSize: 12, fontWeight: reqTab === key ? 700 : 400, cursor: 'pointer', fontFamily: 'inherit' }}>
                     {label}
@@ -452,31 +454,31 @@ export default function ZeugnisPage() {
               {/* Context banner */}
               <div style={{ padding: '12px 16px', borderRadius: 10, background: reqTab === 'correction' ? '#fff0f0' : '#f0f9ff', border: `1px solid ${reqTab === 'correction' ? '#fca5a5' : '#bae6fd'}`, marginBottom: 16, fontSize: 13, color: '#374151', lineHeight: 1.6 }}>
                 {reqTab === 'initial'
-                  ? 'Use this to request your Zeugnis after leaving a job. Under § 109 GewO, your employer must provide it within a reasonable time.'
-                  : `Use this if your Zeugnis contains coded negative language. ${result ? `We've pre-loaded the red flags from your decoded Zeugnis.` : 'Run the Decoder first to automatically load your flagged phrases.'}`}
+                  ? (lang === 'DE' ? 'Verwende dies, um dein Zeugnis nach dem Ausscheiden aus einem Job anzufordern. Gemäß § 109 GewO muss dein Arbeitgeber es innerhalb angemessener Zeit ausstellen.' : 'Use this to request your Zeugnis after leaving a job. Under § 109 GewO, your employer must provide it within a reasonable time.')
+                  : (lang === 'DE' ? `Verwende dies, wenn dein Zeugnis kodierte negative Formulierungen enthält. ${result ? 'Wir haben die roten Flags aus deinem entschlüsselten Zeugnis bereits vorausgefüllt.' : 'Führe zuerst den Decoder aus, um deine markierten Formulierungen automatisch zu laden.'}` : `Use this if your Zeugnis contains coded negative language. ${result ? `We've pre-loaded the red flags from your decoded Zeugnis.` : 'Run the Decoder first to automatically load your flagged phrases.'}`)}
               </div>
 
               {/* Form */}
               <div style={cardStyle}>
-                <div style={{ fontSize: 14, fontWeight: 700, color: navy, marginBottom: 16, fontFamily: "'Outfit',sans-serif" }}>Your details</div>
+                <div style={{ fontSize: 14, fontWeight: 700, color: navy, marginBottom: 16, fontFamily: "'Outfit',sans-serif" }}>{lang === 'DE' ? 'Deine Angaben' : 'Your details'}</div>
                 <div className="zt-input-grid" style={{ marginBottom: 16 }}>
-                  <div><label style={labelStyle}>Your full name *</label><input style={inputStyle} value={form.yourName} onChange={f('yourName')} placeholder="Max Mustermann" /></div>
-                  <div><label style={labelStyle}>Your address</label><input style={inputStyle} value={form.yourAddress} onChange={f('yourAddress')} placeholder="Musterstraße 1, 10115 Berlin" /></div>
-                  <div><label style={labelStyle}>Your job title *</label><input style={inputStyle} value={form.jobTitle} onChange={f('jobTitle')} placeholder="Senior Software Engineer" /></div>
-                  <div><label style={labelStyle}>Last working day *</label><input style={inputStyle} value={form.lastDay} onChange={f('lastDay')} placeholder="31.12.2024" /></div>
+                  <div><label style={labelStyle}>{lang === 'DE' ? 'Dein vollständiger Name *' : 'Your full name *'}</label><input style={inputStyle} value={form.yourName} onChange={f('yourName')} placeholder="Max Mustermann" /></div>
+                  <div><label style={labelStyle}>{lang === 'DE' ? 'Deine Adresse' : 'Your address'}</label><input style={inputStyle} value={form.yourAddress} onChange={f('yourAddress')} placeholder="Musterstraße 1, 10115 Berlin" /></div>
+                  <div><label style={labelStyle}>{lang === 'DE' ? 'Deine Berufsbezeichnung *' : 'Your job title *'}</label><input style={inputStyle} value={form.jobTitle} onChange={f('jobTitle')} placeholder="Senior Software Engineer" /></div>
+                  <div><label style={labelStyle}>{lang === 'DE' ? 'Letzter Arbeitstag *' : 'Last working day *'}</label><input style={inputStyle} value={form.lastDay} onChange={f('lastDay')} placeholder="31.12.2024" /></div>
                 </div>
 
-                <div style={{ fontSize: 14, fontWeight: 700, color: navy, marginBottom: 12, fontFamily: "'Outfit',sans-serif" }}>Employer details</div>
+                <div style={{ fontSize: 14, fontWeight: 700, color: navy, marginBottom: 12, fontFamily: "'Outfit',sans-serif" }}>{lang === 'DE' ? 'Angaben zum Arbeitgeber' : 'Employer details'}</div>
                 <div className="zt-input-grid" style={{ marginBottom: 16 }}>
-                  <div><label style={labelStyle}>Company name *</label><input style={inputStyle} value={form.companyName} onChange={f('companyName')} placeholder="Muster GmbH" /></div>
-                  <div><label style={labelStyle}>Company address</label><input style={inputStyle} value={form.companyAddress} onChange={f('companyAddress')} placeholder="Firmenstraße 10, 80333 München" /></div>
-                  <div><label style={labelStyle}>HR contact name</label><input style={inputStyle} value={form.hrName} onChange={f('hrName')} placeholder="Frau Schmidt" /></div>
-                  <div><label style={labelStyle}>HR email (for direct send)</label><input style={inputStyle} value={form.hrEmail} onChange={f('hrEmail')} placeholder="hr@muster-gmbh.de" type="email" /></div>
+                  <div><label style={labelStyle}>{lang === 'DE' ? 'Unternehmensname *' : 'Company name *'}</label><input style={inputStyle} value={form.companyName} onChange={f('companyName')} placeholder="Muster GmbH" /></div>
+                  <div><label style={labelStyle}>{lang === 'DE' ? 'Unternehmensadresse' : 'Company address'}</label><input style={inputStyle} value={form.companyAddress} onChange={f('companyAddress')} placeholder="Firmenstraße 10, 80333 München" /></div>
+                  <div><label style={labelStyle}>{lang === 'DE' ? 'Ansprechpartner HR' : 'HR contact name'}</label><input style={inputStyle} value={form.hrName} onChange={f('hrName')} placeholder="Frau Schmidt" /></div>
+                  <div><label style={labelStyle}>{lang === 'DE' ? 'HR-E-Mail (zum direkten Versenden)' : 'HR email (for direct send)'}</label><input style={inputStyle} value={form.hrEmail} onChange={f('hrEmail')} placeholder="hr@muster-gmbh.de" type="email" /></div>
                 </div>
 
                 <button onClick={generateLetter} disabled={!form.yourName || !form.companyName}
                   style={{ padding: '10px 28px', borderRadius: 9, background: !form.yourName || !form.companyName ? '#ccc' : `linear-gradient(135deg,${blue},#2563eb)`, color: '#fff', fontWeight: 700, fontSize: 13, border: 'none', cursor: !form.yourName || !form.companyName ? 'not-allowed' : 'pointer', fontFamily: "'Outfit',sans-serif" }}>
-                  Generate Letter — Free ✓
+                  {lang === 'DE' ? 'Anschreiben erstellen — Kostenlos ✓' : 'Generate Letter — Free ✓'}
                 </button>
               </div>
 
@@ -485,17 +487,17 @@ export default function ZeugnisPage() {
                 <div style={cardStyle}>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14, flexWrap: 'wrap', gap: 10 }}>
                     <div style={{ fontSize: 14, fontWeight: 700, color: navy, fontFamily: "'Outfit',sans-serif" }}>
-                      {reqTab === 'initial' ? 'Request Letter' : 'Correction Request Letter'}
+                      {reqTab === 'initial' ? (lang === 'DE' ? 'Anforderungsschreiben' : 'Request Letter') : (lang === 'DE' ? 'Berichtigungsschreiben' : 'Correction Request Letter')}
                     </div>
                     <div style={{ display: 'flex', gap: 8 }}>
                       <button onClick={copyLetter}
                         style={{ padding: '8px 16px', borderRadius: 8, border: `1px solid ${blue}40`, background: blue + '10', color: blue, fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>
-                        {copied ? '✓ Copied!' : 'Copy text'}
+                        {copied ? (lang === 'DE' ? '✓ Kopiert!' : '✓ Copied!') : (lang === 'DE' ? 'Text kopieren' : 'Copy text')}
                       </button>
                       {form.hrEmail && (
                         <a href={mailtoLink()}
                           style={{ padding: '8px 16px', borderRadius: 8, border: 'none', background: `linear-gradient(135deg,${blue},#2563eb)`, color: '#fff', fontSize: 12, fontWeight: 700, textDecoration: 'none', cursor: 'pointer', fontFamily: 'inherit' }}>
-                          Send via Email
+                          {lang === 'DE' ? 'Per E-Mail versenden' : 'Send via Email'}
                         </a>
                       )}
                     </div>
@@ -505,7 +507,7 @@ export default function ZeugnisPage() {
                   </pre>
                   {!form.hrEmail && (
                     <p style={{ fontSize: 12, color: '#9aafbc', marginTop: 10 }}>
-                      Add an HR email above to get a direct "Send via Email" button.
+                      {lang === 'DE' ? 'Füge oben eine HR-E-Mail-Adresse ein, um einen direkten „Per E-Mail versenden"-Button zu erhalten.' : 'Add an HR email above to get a direct "Send via Email" button.'}
                     </p>
                   )}
                 </div>
