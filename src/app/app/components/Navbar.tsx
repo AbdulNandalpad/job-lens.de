@@ -107,7 +107,7 @@ export default function Navbar() {
         .jl-clear-btn { display: flex; }
         .jl-lang-toggle { display: flex; }
         .jl-user-name { display: inline; }
-        @media (max-width: 768px) {
+        @media (max-width: 1024px) {
           .jl-desktop-nav { display: none !important; }
           .jl-hamburger { display: flex !important; }
           .jl-mobile-menu { display: block !important; }

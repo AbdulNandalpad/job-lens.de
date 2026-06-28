@@ -108,7 +108,7 @@ export default function NavbarIndia() {
         .jl-logo-text { display: flex; }
         .jl-clear-btn { display: flex; }
         .jl-user-name { display: inline; }
-        @media (max-width: 768px) {
+        @media (max-width: 1024px) {
           .jl-desktop-nav { display: none !important; }
           .jl-hamburger { display: flex !important; }
           .jl-mobile-menu { display: block !important; }
