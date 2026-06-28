@@ -602,6 +602,38 @@ export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
     setTimeout(() => startListening(), 200)
   }
 
+  // Standard voice: SpeechRecognition → AI chat → TTS. No Railway required.
+  function enterStandardVoice() {
+    if (loading) return
+    if (voiceMode) { exitVoiceMode(); return }
+    if (realtimeMode) { exitRealtimeMode(); return }
+    unlockAudio()
+
+    const name = userName ? `, ${userName}` : ''
+    const greetingText = key === 'eu_DE'
+      ? `Hallo${name}! Ich bin Kira, deine KI-Karriereassistentin. Wie kann ich dir heute helfen?`
+      : `Hi${name}! I'm Kira, your AI career assistant. How can I help you today?`
+
+    // Enter voice overlay immediately so the user sees the transition
+    voiceModeRef.current = true
+    setVoiceMode(true)
+    setVoiceState('speaking')
+    ttsCancelledRef.current = false
+
+    if (!greetedRef.current) {
+      greetedRef.current = true
+      setMsgs(prev => prev.length === 0 ? [{ role: 'assistant', content: greetingText }] : prev)
+    }
+
+    // Play greeting, then start listening after it finishes
+    void playTts(greetingText).then(() => {
+      if (voiceModeRef.current && !ttsCancelledRef.current) {
+        setVoiceState('idle')
+        setTimeout(() => startListening(), 200)
+      }
+    })
+  }
+
   function exitVoiceMode() {
     voiceModeRef.current     = false
     cvDiscussModeRef.current = false
@@ -1321,37 +1353,44 @@ export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
               }
             </button>
 
-            {/* Mic toggle — desktop only */}
-            {isMobile ? (
-              <button
-                onClick={() => setMsgs(prev => [...prev, { role: 'assistant', content: lang === 'DE'
-                  ? 'Sprache ist nur am PC verfügbar. Bitte öffne die App auf einem Computer.'
-                  : 'Voice mode is only available on desktop — please use a PC to access this feature.' }])}
-                style={{ width: 28, height: 28, borderRadius: 7, border: 'none', background: 'rgba(255,255,255,.08)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, opacity: .5 }}>
-                <MicIcon size={13} color="rgba(255,255,255,.55)"/>
+            {/* Mic toggle — standard voice (SpeechRecognition + TTS), works everywhere */}
+            {!realtimeMode && (
+              <button className="kira-mic-btn"
+                title={voiceMode ? 'End voice' : lang === 'DE' ? 'Sprachmodus' : 'Voice mode'}
+                disabled={loading}
+                onClick={enterStandardVoice}
+                style={{
+                  width: 28, height: 28, borderRadius: 7, border: 'none',
+                  background: voiceMode ? `${accent}33` : 'rgba(255,255,255,.08)',
+                  cursor: loading ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  flexShrink: 0, transition: 'all .15s', opacity: loading ? .5 : 1,
+                  boxShadow: voiceMode ? `0 0 10px ${accent}55` : 'none',
+                }}>
+                {voiceMode
+                  ? <svg width="12" height="12" viewBox="0 0 20 20" fill="none"><path d="M5 5l10 10M15 5L5 15" stroke={accent} strokeWidth="2.2" strokeLinecap="round"/></svg>
+                  : <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,.55)" strokeWidth="2" strokeLinecap="round"><path d="M12 2a3 3 0 0 1 3 3v7a3 3 0 0 1-6 0V5a3 3 0 0 1 3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="22"/></svg>
+                }
               </button>
-            ) : (
-              <>
-                {/* Live voice (Realtime API) — only after a mode is chosen */}
-                {process.env.NEXT_PUBLIC_REALTIME_WS_URL && (
-                  <button className="kira-mic-btn"
-                    title={realtimeMode ? 'End live voice' : `Live voice · ${CREDIT_COST.liveVoice} credits / 5 min`}
-                    disabled={realtimeConnecting}
-                    onClick={realtimeMode ? exitRealtimeMode : enterRealtimeMode}
-                    style={{
-                      width: 28, height: 28, borderRadius: 7, border: 'none',
-                      background: realtimeMode ? '#10b98133' : 'rgba(255,255,255,.08)',
-                      cursor: realtimeConnecting ? 'wait' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      flexShrink: 0, transition: 'all .15s', opacity: realtimeConnecting ? .5 : 1,
-                      boxShadow: realtimeMode ? '0 0 10px #10b98155' : 'none',
-                    }}>
-                    {realtimeMode
-                      ? <svg width="12" height="12" viewBox="0 0 20 20" fill="none"><path d="M5 5l10 10M15 5L5 15" stroke="#10b981" strokeWidth="2.2" strokeLinecap="round"/></svg>
-                      : <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,.55)" strokeWidth="2" strokeLinecap="round"><path d="M12 2a3 3 0 0 1 3 3v7a3 3 0 0 1-6 0V5a3 3 0 0 1 3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="22"/><circle cx="12" cy="12" r="1" fill="rgba(16,185,129,.9)" stroke="none"/></svg>
-                    }
-                  </button>
-                )}
-              </>
+            )}
+
+            {/* Live voice (Railway realtime) — optional, only if configured */}
+            {!voiceMode && process.env.NEXT_PUBLIC_REALTIME_WS_URL && (
+              <button className="kira-mic-btn"
+                title={realtimeMode ? 'End live voice' : `Live voice · ${CREDIT_COST.liveVoice} credits / 5 min`}
+                disabled={realtimeConnecting}
+                onClick={realtimeMode ? exitRealtimeMode : enterRealtimeMode}
+                style={{
+                  width: 28, height: 28, borderRadius: 7, border: 'none',
+                  background: realtimeMode ? '#10b98133' : 'rgba(255,255,255,.08)',
+                  cursor: realtimeConnecting ? 'wait' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  flexShrink: 0, transition: 'all .15s', opacity: realtimeConnecting ? .5 : 1,
+                  boxShadow: realtimeMode ? '0 0 10px #10b98155' : 'none',
+                }}>
+                {realtimeMode
+                  ? <svg width="12" height="12" viewBox="0 0 20 20" fill="none"><path d="M5 5l10 10M15 5L5 15" stroke="#10b981" strokeWidth="2.2" strokeLinecap="round"/></svg>
+                  : <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#10b981" strokeWidth="2" strokeLinecap="round"><path d="M12 2a3 3 0 0 1 3 3v7a3 3 0 0 1-6 0V5a3 3 0 0 1 3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="22"/><circle cx="12" cy="12" r="1" fill="#10b981" stroke="none"/></svg>
+                }
+              </button>
             )}
 
             {msgs.length > 0 && !voiceMode && (
@@ -1615,9 +1654,7 @@ export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
                 </button>
               </div>
               <div style={{ textAlign: 'center', marginTop: 5, color: 'rgba(255,255,255,.18)', fontSize: 10 }}>
-                {isMobile
-                  ? (lang === 'DE' ? 'Enter zum Senden · Sprache nur am PC' : 'Enter to send · Voice on desktop only')
-                  : (lang === 'DE' ? <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>Enter zum Senden · <SvgIcon name="mic" size={10} color="rgba(255,255,255,.4)" /> für Sprache</span> : <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>Enter to send · <SvgIcon name="mic" size={10} color="rgba(255,255,255,.4)" /> for voice</span>)}
+                {lang === 'DE' ? 'Enter zum Senden · Mikrofon für Sprache' : 'Enter to send · mic button for voice'}
               </div>
             </div>
           )}
