@@ -188,6 +188,10 @@ export default function NavbarIndia() {
                       style={{ display: 'block', padding: '9px 14px 9px 22px', fontSize: 12, color: 'rgba(255,255,255,0.5)', textDecoration: 'none', borderBottom: '1px solid rgba(255,255,255,0.08)', background: isActive('/in/interview') ? 'rgba(255,153,51,0.1)' : 'transparent' }}>
                       Interview Prep
                     </Link>
+                    <Link href="/contact" onClick={() => setUserMenuOpen(false)}
+                      style={{ display: 'block', padding: '10px 14px', fontSize: 13, color: 'rgba(255,255,255,0.6)', textDecoration: 'none', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
+                      Contact / Help
+                    </Link>
                     <button onClick={signOut}
                       style={{ display: 'block', width: '100%', padding: '10px 14px', fontSize: 13, color: '#FF9933', background: 'transparent', border: 'none', cursor: 'pointer', textAlign: 'left', fontFamily: 'inherit', fontWeight: 600 }}>
                       Sign out
@@ -251,6 +255,10 @@ export default function NavbarIndia() {
                   style={{ flex: 1, padding: '10px 0', borderRadius: 8, background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', color: 'rgba(255,255,255,0.5)', fontSize: 13, cursor: 'pointer', fontFamily: 'inherit' }}>
                   + New session
                 </button>
+                <Link href="/contact" onClick={() => setMenuOpen(false)}
+                  style={{ flex: 1, padding: '10px 0', borderRadius: 8, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.5)', fontSize: 13, cursor: 'pointer', fontFamily: 'inherit', textDecoration: 'none', textAlign: 'center' }}>
+                  Help
+                </Link>
                 <button onClick={signOut}
                   style={{ flex: 1, padding: '10px 0', borderRadius: 8, background: 'rgba(255,153,51,0.12)', border: '1px solid rgba(255,153,51,0.3)', color: '#FF9933', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>
                   Sign out

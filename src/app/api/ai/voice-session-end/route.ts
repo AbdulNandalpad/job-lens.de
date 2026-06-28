@@ -16,7 +16,7 @@ export async function POST(req: NextRequest) {
     const jobs_searched = Number(body.jobs_searched) || 0
 
     const admin = createAdminSupabase()
-    await admin.from('kira_sessions').insert({
+    const { data } = await admin.from('kira_sessions').insert({
       user_id: user.id,
       market,
       mode,
@@ -24,9 +24,9 @@ export async function POST(req: NextRequest) {
       exit_reason,
       retries,
       jobs_searched,
-    })
+    }).select('id').single()
 
-    return NextResponse.json({ ok: true })
+    return NextResponse.json({ ok: true, session_id: data?.id ?? null })
   } catch (err) {
     console.error('[voice-session-end]', err)
     return NextResponse.json({ error: 'Internal error' }, { status: 500 })

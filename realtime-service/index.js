@@ -1,13 +1,15 @@
 const http  = require('http')
 const { WebSocketServer, WebSocket } = require('ws')
 
-const PORT        = process.env.PORT || 3002
-const SECRET      = process.env.RAILWAY_SECRET
-const OPENAI_KEY  = process.env.OPENAI_API_KEY
-const ADZUNA_ID   = process.env.ADZUNA_APP_ID
-const ADZUNA_KEY  = process.env.ADZUNA_APP_KEY
+const PORT           = process.env.PORT || 3002
+const SECRET         = process.env.RAILWAY_SECRET
+const OPENAI_KEY     = process.env.OPENAI_API_KEY
+const ADZUNA_ID      = process.env.ADZUNA_APP_ID
+const ADZUNA_KEY     = process.env.ADZUNA_APP_KEY
+const ANTHROPIC_KEY  = process.env.ANTHROPIC_API_KEY
 
-if (!OPENAI_KEY) { console.error('OPENAI_API_KEY missing'); process.exit(1) }
+if (!OPENAI_KEY)    { console.error('OPENAI_API_KEY missing'); process.exit(1) }
+if (!ANTHROPIC_KEY) { console.error('ANTHROPIC_API_KEY missing'); process.exit(1) }
 
 const KIRA_SYSTEM = `You are Kira, an AI career assistant built into Job-Lens. Warm, direct, genuinely helpful — like a smart friend who knows the job market inside out.
 
@@ -17,6 +19,8 @@ WHAT YOU DO:
 - Career advice, salary guidance, job search help, CV feedback, interview prep
 - Know Job-Lens features: Career Scan (2cr), CV Builder (1cr), Cover Letter (1cr), Auto Apply (3cr), Job Case (6cr)
 - When asked about salaries or job availability, use the search_jobs tool to get live data. Never invent figures or listings.
+- When the user asks to see, list, or show the jobs you already found this session, use show_jobs — do NOT call search_jobs again.
+- When asked about a specific company (culture, reviews, what they do, recent news, layoffs, reputation), use the research_company tool to look it up. Never guess about a company.
 
 GUARDRAILS — follow these absolutely, no exceptions:
 
@@ -31,6 +35,8 @@ CV EDITING: You can suggest CV improvements verbally — specific changes, rewor
 ETHICS: Never help a user deceive an employer. If asked how to lie on a CV, fabricate references, hide employment gaps dishonestly, or misrepresent qualifications, say "I can't help with that — but I can help you present your real experience in the strongest possible way." Then offer to do exactly that.
 
 PII SAFETY: If a user mentions passwords, bank details, ID/passport numbers, or other sensitive personal data, do not repeat it back. Say "I don't need that kind of detail — let's keep it to your career stuff." Then redirect.
+
+SILENCE: If you receive "[system: user has been quiet for 30 seconds]", gently check in — say something like "Still there? Happy to keep going whenever you're ready." Keep it short and warm, not pushy.
 
 VOICE RULES:
 - 1-2 sentences only. Never longer.
@@ -61,6 +67,25 @@ const TOOLS = [
         country:  { type: 'string', description: 'Two-letter ISO country code: de, at, ch, in, gb, us, fr, nl. Default to the user\'s market if not stated.' },
       },
       required: ['role'],
+    },
+  },
+  {
+    type: 'function',
+    name: 'show_jobs',
+    description: 'Re-display the job listings already found in this session to the user. Call this when the user asks to see, list, or show the jobs that were already found — do NOT call search_jobs again.',
+    parameters: { type: 'object', properties: {}, required: [] },
+  },
+  {
+    type: 'function',
+    name: 'research_company',
+    description: 'Research a company using live web search. Call this when the user asks what a company does, its culture, employee reviews, recent news, layoffs, salary levels, or reputation as an employer.',
+    parameters: {
+      type: 'object',
+      properties: {
+        company_name: { type: 'string', description: 'The name of the company to research, e.g. "SAP", "Infosys", "Bosch"' },
+        aspect:       { type: 'string', description: 'What to focus on: "overview", "culture", "salaries", "reviews", "news", "layoffs". Defaults to "overview" if not specified.' },
+      },
+      required: ['company_name'],
     },
   },
 ]
@@ -191,6 +216,55 @@ async function searchJobs(args, market) {
   return { summary, jobs, total, role, location }
 }
 
+// Company research via Claude claude-haiku-4-5-20251001 + built-in web_search
+async function researchCompany(companyName, aspect) {
+  const focus = aspect || 'overview'
+  const prompts = {
+    overview:  `Give a brief overview of ${companyName}: what they do, their size, key markets, and reputation as an employer.`,
+    culture:   `What is the work culture like at ${companyName}? Include employee sentiment, work-life balance, and management style.`,
+    salaries:  `What are typical salary ranges at ${companyName}? Cover junior, mid, and senior levels where possible.`,
+    reviews:   `Summarise employee reviews of ${companyName} from sites like Glassdoor or Kununu. What do people praise and criticise?`,
+    news:      `What is the latest news about ${companyName}? Focus on business developments, strategy, or major announcements from the past year.`,
+    layoffs:   `Have there been any recent layoffs or restructuring at ${companyName}? What is their current hiring status?`,
+  }
+  const userPrompt = prompts[focus] || prompts.overview
+
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'x-api-key':         ANTHROPIC_KEY,
+        'anthropic-version': '2023-06-01',
+        'content-type':      'application/json',
+      },
+      body: JSON.stringify({
+        model:      'claude-haiku-4-5-20251001',
+        max_tokens: 300,
+        tools: [{ type: 'web_search_20250305', name: 'web_search', max_uses: 2 }],
+        messages: [{ role: 'user', content: userPrompt }],
+        system: 'You are a concise research assistant. Answer in 2-3 plain spoken sentences suitable for being read aloud. No bullet points, no markdown, no URLs. Focus on what a job seeker would find most useful.',
+      }),
+    })
+
+    if (!res.ok) {
+      const err = await res.text()
+      console.error('[realtime] Claude research error:', res.status, err.slice(0, 200))
+      return `I couldn't pull up information on ${companyName} right now — try asking me again in a moment.`
+    }
+
+    const data = await res.json()
+    // Extract the final text block (after any tool use)
+    const textBlock = (data.content || []).filter(b => b.type === 'text').pop()
+    const answer = textBlock?.text?.trim()
+    if (!answer) return `I found some information on ${companyName} but couldn't summarise it cleanly — you might want to check Glassdoor or LinkedIn for the latest.`
+
+    return answer
+  } catch (err) {
+    console.error('[realtime] researchCompany error:', err.message)
+    return `I had trouble looking up ${companyName} — please try again.`
+  }
+}
+
 // ── Session setup helper — called on open and again after kira.context ────────
 function buildSessionUpdate(instructions) {
   return JSON.stringify({
@@ -252,6 +326,33 @@ wss.on('connection', (clientWs, req) => {
   // Tracks pending function calls by call_id
   const pendingCalls = new Map()
 
+  // Cache the last job search result so show_jobs can re-emit without an API call
+  let lastJobResult = null
+
+  // Silence timeout — nudge Kira if no audio from client for 30s
+  let silenceTimer = null
+  let silenceNudged = false
+
+  function resetSilenceTimer() {
+    if (silenceTimer) clearTimeout(silenceTimer)
+    silenceTimer = setTimeout(() => {
+      if (silenceNudged) return
+      silenceNudged = true
+      if (openaiWs.readyState === WebSocket.OPEN) {
+        openaiWs.send(JSON.stringify({
+          type: 'conversation.item.create',
+          item: {
+            type: 'message',
+            role: 'user',
+            content: [{ type: 'input_text', text: '[system: user has been quiet for 30 seconds]' }],
+          },
+        }))
+        openaiWs.send(JSON.stringify({ type: 'response.create' }))
+        console.log('[realtime] silence nudge sent')
+      }
+    }, 30_000)
+  }
+
   const openaiWs = new WebSocket(
     'wss://api.openai.com/v1/realtime?model=gpt-realtime-mini-2025-12-15',
     { headers: { 'Authorization': `Bearer ${OPENAI_KEY}` } }
@@ -297,18 +398,37 @@ wss.on('connection', (clientWs, req) => {
 
         let spokenSummary = 'Tool not available.'
         if (call.name === 'search_jobs') {
-          const { summary, jobs, total, role, location } = await searchJobs(args, market)
-          spokenSummary = summary
-          // Push job cards to the client so they appear in chat
-          if (jobs.length && clientWs.readyState === WebSocket.OPEN) {
-            clientWs.send(JSON.stringify({
-              type:     'kira.jobs',
-              jobs,
-              total,
-              query:    role    || '',
-              location: location || '',
-            }))
+          const result = await searchJobs(args, market)
+          spokenSummary = result.summary
+          if (result.jobs.length) {
+            lastJobResult = result
+            if (clientWs.readyState === WebSocket.OPEN) {
+              clientWs.send(JSON.stringify({
+                type:     'kira.jobs',
+                jobs:     result.jobs,
+                total:    result.total,
+                query:    result.role     || '',
+                location: result.location || '',
+              }))
+            }
           }
+        } else if (call.name === 'show_jobs') {
+          if (lastJobResult && lastJobResult.jobs.length) {
+            if (clientWs.readyState === WebSocket.OPEN) {
+              clientWs.send(JSON.stringify({
+                type:     'kira.jobs',
+                jobs:     lastJobResult.jobs,
+                total:    lastJobResult.total,
+                query:    lastJobResult.role     || '',
+                location: lastJobResult.location || '',
+              }))
+            }
+            spokenSummary = `Here are the ${lastJobResult.jobs.length} listings I found for "${lastJobResult.role}"${lastJobResult.location ? ` in ${lastJobResult.location}` : ''} — they're showing in the chat now.`
+          } else {
+            spokenSummary = "I don't have any job listings cached from this session yet — let me know what role and location you're looking for and I'll search now."
+          }
+        } else if (call.name === 'research_company') {
+          spokenSummary = await researchCompany(args.company_name, args.aspect)
         }
 
         console.log('[realtime] function result:', spokenSummary)
@@ -322,7 +442,12 @@ wss.on('connection', (clientWs, req) => {
               output:  spokenSummary,
             },
           }))
-          openaiWs.send(JSON.stringify({ type: 'response.create' }))
+          // Explicit modalities required for gpt-realtime-mini-2025-12-15 — bare
+          // response.create without this can silently skip audio output generation.
+          openaiWs.send(JSON.stringify({
+            type:     'response.create',
+            response: { modalities: ['audio'] },
+          }))
         }
         // Don't forward function call events to client — they're internal
         return
@@ -337,6 +462,9 @@ wss.on('connection', (clientWs, req) => {
   // client → OpenAI: intercept kira.context, forward everything else
   clientWs.on('message', (data, isBinary) => {
     if (isBinary) {
+      // Audio chunk received — reset silence timer and clear nudge flag
+      silenceNudged = false
+      resetSilenceTimer()
       if (openaiWs.readyState === WebSocket.OPEN) openaiWs.send(data, { binary: true })
       return
     }
@@ -364,6 +492,7 @@ wss.on('connection', (clientWs, req) => {
 
   clientWs.on('close', () => {
     console.log('[realtime] client disconnected')
+    if (silenceTimer) clearTimeout(silenceTimer)
     if (openaiWs.readyState === WebSocket.OPEN) openaiWs.close()
   })
 

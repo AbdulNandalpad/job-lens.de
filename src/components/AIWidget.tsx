@@ -342,6 +342,8 @@ export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
   const realtimeRetryTRef   = useRef<ReturnType<typeof setTimeout> | null>(null)
   const realtimeStartRef    = useRef<number>(0)    // session start timestamp (ms)
   const realtimeJobsRef     = useRef<number>(0)    // number of job searches in this session
+  const [pendingRating, setPendingRating] = useState<{ sessionId: string; duration: number } | null>(null)
+  const [ratingDone, setRatingDone] = useState(false)
   const [realtimeConnecting, setRealtimeConnecting] = useState(false)
 
   // ── Refresh interview coaching state from sessionStorage ────────────────
@@ -784,14 +786,31 @@ export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
     try { realtimeWsRef.current?.close() } catch { /* ignore */ }
     realtimeWsRef.current = null
 
-    // Fire-and-forget session log — don't await, don't block UI
+    // Log session — capture session_id to show rating card for sessions > 30s
     if (duration_s > 0) {
+      setPendingRating(null)
+      setRatingDone(false)
       fetch(API.aiVoiceSessionEnd, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ duration_s, mode: kiraMode, market, exit_reason: exitReason, retries, jobs_searched }),
+      }).then(r => r.json()).then(data => {
+        if (duration_s >= 30 && data?.session_id) {
+          setPendingRating({ sessionId: data.session_id, duration: duration_s })
+        }
       }).catch(() => { /* non-fatal */ })
     }
+  }
+
+  async function submitRating(rating: 1 | -1) {
+    if (!pendingRating) return
+    setRatingDone(true)
+    fetch(API.kiraRating, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ session_id: pendingRating.sessionId, rating }),
+    }).catch(() => { /* non-fatal */ })
+    setTimeout(() => setPendingRating(null), 2000)
   }
 
   // ── Mode selection ───────────────────────────────────────────────────────
@@ -1050,6 +1069,28 @@ export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
           ) : (
             /* ── Messages ── */
             <div style={{ flex: 1, overflowY: 'auto', padding: '12px 14px' }}>
+
+            {/* Post-session rating card */}
+            {pendingRating && (
+              <div style={{ margin: '0 0 12px', padding: '12px 14px', borderRadius: 12, background: 'rgba(255,255,255,.05)', border: '1px solid rgba(255,255,255,.08)', textAlign: 'center' }}>
+                {ratingDone ? (
+                  <div style={{ fontSize: 13, color: 'rgba(255,255,255,.5)', fontFamily: f.body }}>Thanks for the feedback!</div>
+                ) : (
+                  <>
+                    <div style={{ fontSize: 12, color: 'rgba(255,255,255,.4)', fontFamily: f.body, marginBottom: 10 }}>How was your Kira session?</div>
+                    <div style={{ display: 'flex', gap: 10, justifyContent: 'center' }}>
+                      <button onClick={() => submitRating(1)} style={{ fontSize: 22, background: 'none', border: '1px solid rgba(255,255,255,.1)', borderRadius: 10, padding: '6px 16px', cursor: 'pointer', transition: 'background .15s' }}
+                        onMouseEnter={e => (e.currentTarget.style.background = 'rgba(16,185,129,.15)')}
+                        onMouseLeave={e => (e.currentTarget.style.background = 'none')}>👍</button>
+                      <button onClick={() => submitRating(-1)} style={{ fontSize: 22, background: 'none', border: '1px solid rgba(255,255,255,.1)', borderRadius: 10, padding: '6px 16px', cursor: 'pointer', transition: 'background .15s' }}
+                        onMouseEnter={e => (e.currentTarget.style.background = 'rgba(239,68,68,.15)')}
+                        onMouseLeave={e => (e.currentTarget.style.background = 'none')}>👎</button>
+                      <button onClick={() => setPendingRating(null)} style={{ fontSize: 11, background: 'none', border: 'none', color: 'rgba(255,255,255,.2)', cursor: 'pointer', fontFamily: f.body, padding: '0 4px' }}>skip</button>
+                    </div>
+                  </>
+                )}
+              </div>
+            )}
               {msgs.map((m, i) => (
                 <div key={i} style={{ marginBottom: 8 }}>
                   <div style={{ display: 'flex', justifyContent: m.role === 'user' ? 'flex-end' : 'flex-start', gap: 6, alignItems: 'flex-end' }}>

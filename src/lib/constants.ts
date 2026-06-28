@@ -140,6 +140,7 @@ export const API = {
   razorpayVerify:       '/api/razorpay/verify',
   memory:               '/api/memory',
   feedback:             '/api/feedback',
+  kiraRating:           '/api/ai/kira-rating',
   accountDelete:        '/api/account/delete',
 } as const
 

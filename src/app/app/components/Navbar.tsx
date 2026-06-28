@@ -206,6 +206,10 @@ export default function Navbar() {
                   style={{ display: 'block', padding: '9px 14px 9px 22px', fontSize: 12, color: 'rgba(255,255,255,0.5)', textDecoration: 'none', borderBottom: '1px solid rgba(255,255,255,0.08)', background: isActive('/app/interview') ? 'rgba(55,138,221,0.1)' : 'transparent' }}>
                   {t.navbar.interview}
                 </Link>
+                <Link href="/contact" onClick={() => setUserMenuOpen(false)}
+                  style={{ display: 'block', padding: '10px 14px', fontSize: 13, color: 'rgba(255,255,255,0.6)', textDecoration: 'none', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
+                  Contact / Help
+                </Link>
                 <button onClick={signOut}
                   style={{ display: 'block', width: '100%', padding: '10px 14px', fontSize: 13, color: '#e53e3e', background: 'transparent', border: 'none', cursor: 'pointer', textAlign: 'left', fontFamily: 'inherit', fontWeight: 600 }}>
                   Sign out
@@ -268,6 +272,10 @@ export default function Navbar() {
               style={{ flex: 1, padding: '10px 0', borderRadius: 8, background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', color: 'rgba(255,255,255,0.5)', fontSize: 13, cursor: 'pointer', fontFamily: 'inherit' }}>
               {t.navbar.clearAll}
             </button>
+            <Link href="/contact" onClick={() => setMenuOpen(false)}
+              style={{ flex: 1, padding: '10px 0', borderRadius: 8, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.5)', fontSize: 13, cursor: 'pointer', fontFamily: 'inherit', textDecoration: 'none', textAlign: 'center' }}>
+              Help
+            </Link>
             <button onClick={signOut}
               style={{ flex: 1, padding: '10px 0', borderRadius: 8, background: 'rgba(229,62,62,0.12)', border: '1px solid rgba(229,62,62,0.3)', color: '#e53e3e', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>
               Sign out

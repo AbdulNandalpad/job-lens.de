@@ -4,6 +4,8 @@ import Link from 'next/link'
 import { theme } from '@/lib/theme'
 
 const { colors: c, fonts: f } = theme
+// alias for use inside JSX where `f` is shadowed by the `feat` variable
+const fonts = f
 
 interface Props {
   lang: 'DE' | 'EN'
@@ -125,7 +127,20 @@ export default function HeroDACH({ lang, user }: Props) {
         }
         .hero-panel:hover { transform: skewX(-6deg) translateY(-14px) !important; z-index: 10 !important; }
         .hero-panel:hover .panel-bar { opacity: 1 !important; }
-        @media(max-width:960px){
+
+        /* Desktop: show panels, hide ticker */
+        .hero-mobile-ticker { display: none; }
+
+        @media(max-width:768px){
+          /* Hide panels entirely on mobile */
+          .hero-dach-panels { display: none !important; }
+          /* Show ticker */
+          .hero-mobile-ticker { display: block; }
+          /* Single-column layout */
+          .hero-dach-layout { grid-template-columns: 1fr !important; padding: 44px 20px 0 !important; gap: 0 !important; }
+        }
+
+        @media(min-width:769px) and (max-width:960px){
           .hero-dach-layout{ grid-template-columns:1fr!important; padding:32px 24px 48px!important; min-height:auto!important; gap:28px!important; }
           .hero-dach-panels{ order:-1; justify-content:center!important; overflow:visible!important; padding:8px 0 0!important; margin:0!important; }
           .hero-panels-inner{ height:160px!important; }
@@ -138,6 +153,14 @@ export default function HeroDACH({ lang, user }: Props) {
           .panel-icon svg{ width:18px!important; height:18px!important; }
           .panel-name{ font-size:9px!important; margin-bottom:0!important; letter-spacing:-0.2px!important; }
         }
+
+        /* Auto-scroll ticker animations */
+        @keyframes ticker-left  { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+        @keyframes ticker-right { from { transform: translateX(-50%); } to { transform: translateX(0); } }
+
+        .ticker-track-a { display: flex; width: max-content; animation: ticker-left 28s linear infinite; }
+        .ticker-track-b { display: flex; width: max-content; animation: ticker-right 22s linear infinite; }
+        .ticker-track-a:hover, .ticker-track-b:hover { animation-play-state: paused; }
       `}</style>
 
       <div style={{ background:'linear-gradient(145deg,#030f1c 0%,#04111f 50%,#071929 100%)', minHeight:'88vh', display:'flex', alignItems:'center', overflow:'hidden', position:'relative' }}>
@@ -219,7 +242,7 @@ export default function HeroDACH({ lang, user }: Props) {
             )}
           </div>
 
-          {/* ── Right: slanted vertical panels ── */}
+          {/* ── Right: slanted vertical panels (desktop only) ── */}
           <div className="hero-dach-panels" style={{ display:'flex', justifyContent:'flex-end' }}>
             <div className="hero-panels-inner" style={{ display:'flex', height:460, alignItems:'stretch' }}>
               {features.map((feat, i) => (
@@ -243,6 +266,54 @@ export default function HeroDACH({ lang, user }: Props) {
                     </div>
                   </div>
                 </Link>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* ── Mobile ticker — visible only on ≤768px ── */}
+        <div className="hero-mobile-ticker" style={{ marginTop: 36, overflow: 'hidden', position: 'relative' }}>
+          {/* Diagonal stripe overlay — same aesthetic as the desktop panels */}
+          <div style={{
+            position: 'absolute', inset: 0, zIndex: 2, pointerEvents: 'none',
+            backgroundImage: `repeating-linear-gradient(
+              -55deg,
+              transparent,
+              transparent 18px,
+              rgba(255,255,255,0.028) 18px,
+              rgba(255,255,255,0.028) 20px
+            )`,
+          }} />
+          {/* Left/right fade masks */}
+          <div style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: 48, zIndex: 3, background: 'linear-gradient(90deg, #030f1c 0%, transparent 100%)', pointerEvents: 'none' }} />
+          <div style={{ position: 'absolute', right: 0, top: 0, bottom: 0, width: 48, zIndex: 3, background: 'linear-gradient(270deg, #030f1c 0%, transparent 100%)', pointerEvents: 'none' }} />
+
+          {/* Row A — scrolls left */}
+          <div style={{ overflow: 'hidden', padding: '14px 0 8px' }}>
+            <div className="ticker-track-a">
+              {[...features, ...features].map((f, i) => (
+                <div key={i} style={{ display: 'inline-flex', alignItems: 'center', gap: 10, padding: '8px 18px', marginRight: 10, borderRadius: 10, background: `${f.accent}12`, border: `1px solid ${f.accent}28`, flexShrink: 0 }}>
+                  <div style={{ color: f.accent, display: 'flex', alignItems: 'center', flexShrink: 0 }}>{f.icon}</div>
+                  <div>
+                    <div style={{ fontFamily: fonts.heading, fontSize: 12, fontWeight: 700, color: '#fff', whiteSpace: 'nowrap' as const }}>{f.name[lang]}</div>
+                    <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.38)', whiteSpace: 'nowrap' as const }}>{f.desc[lang]}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Row B — scrolls right (reverse) */}
+          <div style={{ overflow: 'hidden', padding: '8px 0 20px' }}>
+            <div className="ticker-track-b">
+              {[...features, ...features].reverse().map((f, i) => (
+                <div key={i} style={{ display: 'inline-flex', alignItems: 'center', gap: 10, padding: '8px 18px', marginRight: 10, borderRadius: 10, background: `${f.accent}0c`, border: `1px solid ${f.accent}20`, flexShrink: 0 }}>
+                  <div style={{ color: f.accent, display: 'flex', alignItems: 'center', flexShrink: 0 }}>{f.icon}</div>
+                  <div>
+                    <div style={{ fontFamily: fonts.heading, fontSize: 12, fontWeight: 700, color: 'rgba(255,255,255,0.75)', whiteSpace: 'nowrap' as const }}>{f.name[lang]}</div>
+                    <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)', whiteSpace: 'nowrap' as const }}>{f.desc[lang]}</div>
+                  </div>
+                </div>
               ))}
             </div>
           </div>
