@@ -337,7 +337,9 @@ export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const realtimeProcessorRef = useRef<any>(null)
   const [realtimeSecsLeft, setRealtimeSecsLeft] = useState(LIVE_VOICE_MAX_SECONDS)
-  const realtimeTimerRef = useRef<ReturnType<typeof setInterval> | null>(null)
+  const realtimeTimerRef  = useRef<ReturnType<typeof setInterval> | null>(null)
+  const realtimeRetryRef  = useRef(0)   // reconnect attempt counter (reset on clean exit)
+  const realtimeRetryTRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const [realtimeConnecting, setRealtimeConnecting] = useState(false)
 
   // ── Refresh interview coaching state from sessionStorage ────────────────
@@ -587,68 +589,25 @@ export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
     }
   }
 
-  async function enterRealtimeMode() {
-    if (realtimeConnecting || realtimeMode) return
-    const wsBase = process.env.NEXT_PUBLIC_REALTIME_WS_URL
-    if (!wsBase) { alert('Realtime service URL not configured'); return }
-
-    // Must be synchronous in the user-gesture handler so iOS/Safari allows AudioContext
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const ACtx = window.AudioContext || (window as any).webkitAudioContext
-    const rtCtx = new ACtx({ sampleRate: 24000 }) as AudioContext
-    realtimeCtxRef.current = rtCtx
-    realtimeNextTimeRef.current = 0
-    if (rtCtx.state === 'suspended') await rtCtx.resume()
-
-    // Deduct credits up-front for the session
-    setRealtimeConnecting(true)
-    try {
-      const res = await fetch(API.aiVoiceSession, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ market }),
-      })
-      if (res.status === 402) {
-        setRealtimeConnecting(false)
-        setMsgs(prev => [...prev, { role: 'assistant', content: lang === 'DE'
-          ? `Nicht genug Credits. Live-Voice kostet ${CREDIT_COST.liveVoice} Credits pro Sitzung.`
-          : `Not enough credits. Live voice costs ${CREDIT_COST.liveVoice} credits per session.` }])
-        return
-      }
-      if (!res.ok) throw new Error('voice-session failed')
-    } catch {
-      setRealtimeConnecting(false)
-      setMsgs(prev => [...prev, { role: 'assistant', content: lang === 'DE'
-        ? 'Live-Voice konnte nicht gestartet werden. Bitte versuche es erneut.'
-        : 'Could not start live voice. Please try again.' }])
-      return
-    }
-
-    // Fetch user memory + first name while credits are confirmed, before WS opens
-    let kiраContext: { name: string | null; memoryBlock: string } = { name: null, memoryBlock: '' }
-    try {
-      const ctxRes = await fetch('/api/user/kira-context')
-      if (ctxRes.ok) kiраContext = await ctxRes.json()
-    } catch { /* non-fatal — proceed without context */ }
-
-    const cvText = typeof window !== 'undefined' ? (sessionStorage.getItem('jl_cv_text') ?? '') : ''
-
-    realtimeModeRef.current = true
-    setRealtimeMode(true)
-    setRealtimeState('connecting')
-    setRealtimeSecsLeft(LIVE_VOICE_MAX_SECONDS)
-
+  // Connects (or reconnects) the WebSocket — called by enterRealtimeMode and the retry path.
+  // Credits are NOT deducted here; caller is responsible for that on first connect only.
+  function connectRealtimeWs(
+    wsBase: string,
+    kiraCtx: { name: string | null; memoryBlock: string },
+    cvText: string,
+  ) {
+    const MAX_RETRIES = 3
     const secret = process.env.NEXT_PUBLIC_RAILWAY_SECRET || ''
     const ws = new WebSocket(`${wsBase}?secret=${encodeURIComponent(secret)}&market=${market}&mode=${encodeURIComponent(kiraMode)}`)
     realtimeWsRef.current = ws
 
     ws.onopen = async () => {
-      // Send user context so Railway can enrich the OpenAI session instructions
-      if (kiраContext.memoryBlock || kiраContext.name || cvText) {
+      realtimeRetryRef.current = 0  // successful connect — reset retry counter
+      if (kiraCtx.memoryBlock || kiraCtx.name || cvText) {
         ws.send(JSON.stringify({
           type:        'kira.context',
-          name:        kiраContext.name,
-          memoryBlock: kiраContext.memoryBlock,
+          name:        kiraCtx.name,
+          memoryBlock: kiraCtx.memoryBlock,
           cvText:      cvText.slice(0, 6000),
         }))
       }
@@ -658,7 +617,6 @@ export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
         })
         realtimeStreamRef.current = stream
 
-        // AudioContext was pre-created synchronously in the user gesture — reuse it
         const ctx = realtimeCtxRef.current!
         if (ctx.state === 'suspended') await ctx.resume()
 
@@ -673,8 +631,7 @@ export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
         processor.onaudioprocess = (e: any) => {
           if (!realtimeModeRef.current || ws.readyState !== WebSocket.OPEN) return
           // Half-duplex: while Kira's audio is still scheduled/playing, don't feed
-          // mic audio back — stops her own voice (via speakers) re-triggering the
-          // VAD. Covers the playback tail after response.done, not just 'speaking'.
+          // mic audio back — stops her own voice (via speakers) re-triggering the VAD.
           if (ctx.currentTime < realtimeNextTimeRef.current - 0.05) return
           const f32 = e.inputBuffer.getChannelData(0) as Float32Array
           const i16 = float32ToInt16(f32)
@@ -683,7 +640,6 @@ export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
 
         setRealtimeConnecting(false)
 
-        // Start the 5-minute session countdown — auto-disconnect at 0
         if (realtimeTimerRef.current) clearInterval(realtimeTimerRef.current)
         realtimeTimerRef.current = setInterval(() => {
           setRealtimeSecsLeft(prev => {
@@ -707,23 +663,102 @@ export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
     ws.onmessage = (e) => {
       try { handleRealtimeEvent(JSON.parse(e.data as string)) } catch { /* ignore */ }
     }
-    ws.onclose  = (e) => {
-      if (realtimeModeRef.current) {
-        const reason = e.reason || `code ${e.code}`
-        setMsgs(prev => [...prev, { role: 'assistant', content: `Live voice disconnected: ${reason}` }])
+
+    ws.onclose = (e) => {
+      if (!realtimeModeRef.current) return
+      // 1000 = normal close, 1001 = going away (user navigated) — don't retry these
+      const cleanClose = e.code === 1000 || e.code === 1001
+      if (!cleanClose && realtimeRetryRef.current < MAX_RETRIES) {
+        realtimeRetryRef.current += 1
+        const attempt = realtimeRetryRef.current
+        const delay   = attempt * 1500  // 1.5s, 3s, 4.5s
+        setMsgs(prev => [...prev, { role: 'assistant', content:
+          `Connection dropped — reconnecting (${attempt}/${MAX_RETRIES})…` }])
+        // Tear down old audio resources before reconnecting
+        try { realtimeProcessorRef.current?.disconnect() } catch { /* ignore */ }
+        realtimeProcessorRef.current = null
+        realtimeStreamRef.current?.getTracks().forEach(t => t.stop())
+        realtimeStreamRef.current = null
+        stopRealtimePlayback()
+        realtimeNextTimeRef.current = 0
+        setRealtimeState('connecting')
+        realtimeRetryTRef.current = setTimeout(() => {
+          if (realtimeModeRef.current) connectRealtimeWs(wsBase, kiraCtx, cvText)
+        }, delay)
+      } else {
+        const reason = cleanClose ? 'session ended' : `after ${MAX_RETRIES} attempts`
+        if (!cleanClose) {
+          setMsgs(prev => [...prev, { role: 'assistant', content: `Could not reconnect (${reason}). Please try again.` }])
+        }
         exitRealtimeMode()
       }
     }
-    ws.onerror  = () => {
-      if (realtimeModeRef.current) {
-        setMsgs(prev => [...prev, { role: 'assistant', content: 'Could not connect to live voice service. Check Railway logs.' }])
-        exitRealtimeMode()
+
+    ws.onerror = () => {
+      // onclose fires after onerror — retry logic lives there
+      if (realtimeModeRef.current && realtimeRetryRef.current === 0) {
+        setMsgs(prev => [...prev, { role: 'assistant', content: 'Voice connection error — retrying…' }])
       }
     }
   }
 
+  async function enterRealtimeMode() {
+    if (realtimeConnecting || realtimeMode) return
+    const wsBase = process.env.NEXT_PUBLIC_REALTIME_WS_URL
+    if (!wsBase) { alert('Realtime service URL not configured'); return }
+
+    // Must be synchronous in the user-gesture handler so iOS/Safari allows AudioContext
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const ACtx = window.AudioContext || (window as any).webkitAudioContext
+    const rtCtx = new ACtx({ sampleRate: 24000 }) as AudioContext
+    realtimeCtxRef.current = rtCtx
+    realtimeNextTimeRef.current = 0
+    if (rtCtx.state === 'suspended') await rtCtx.resume()
+
+    setRealtimeConnecting(true)
+    try {
+      const res = await fetch(API.aiVoiceSession, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ market }),
+      })
+      if (res.status === 402) {
+        setRealtimeConnecting(false)
+        setMsgs(prev => [...prev, { role: 'assistant', content: lang === 'DE'
+          ? `Nicht genug Credits. Live-Voice kostet ${CREDIT_COST.liveVoice} Credits pro Sitzung.`
+          : `Not enough credits. Live voice costs ${CREDIT_COST.liveVoice} credits per session.` }])
+        return
+      }
+      if (!res.ok) throw new Error('voice-session failed')
+    } catch {
+      setRealtimeConnecting(false)
+      setMsgs(prev => [...prev, { role: 'assistant', content: lang === 'DE'
+        ? 'Live-Voice konnte nicht gestartet werden. Bitte versuche es erneut.'
+        : 'Could not start live voice. Please try again.' }])
+      return
+    }
+
+    let kiraCtx: { name: string | null; memoryBlock: string } = { name: null, memoryBlock: '' }
+    try {
+      const ctxRes = await fetch('/api/user/kira-context')
+      if (ctxRes.ok) kiraCtx = await ctxRes.json()
+    } catch { /* non-fatal */ }
+
+    const cvText = typeof window !== 'undefined' ? (sessionStorage.getItem('jl_cv_text') ?? '') : ''
+
+    realtimeRetryRef.current = 0
+    realtimeModeRef.current  = true
+    setRealtimeMode(true)
+    setRealtimeState('connecting')
+    setRealtimeSecsLeft(LIVE_VOICE_MAX_SECONDS)
+
+    connectRealtimeWs(wsBase, kiraCtx, cvText)
+  }
+
   function exitRealtimeMode() {
     realtimeModeRef.current = false
+    realtimeRetryRef.current = 0
+    if (realtimeRetryTRef.current) { clearTimeout(realtimeRetryTRef.current); realtimeRetryTRef.current = null }
     setRealtimeMode(false)
     setRealtimeConnecting(false)
     setRealtimeState('connecting')
