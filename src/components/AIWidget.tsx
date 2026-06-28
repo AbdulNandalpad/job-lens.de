@@ -563,6 +563,20 @@ export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
         }
         break
       }
+      case 'kira.jobs': {
+        // Railway sends this after a search_jobs tool call with the raw Adzuna results
+        const jobs = (evt.jobs || []) as Job[]
+        if (jobs.length) {
+          setMsgs(prev => [...prev, {
+            role: 'assistant',
+            content: '',
+            jobs,
+            jobsTotal:  evt.total as number | undefined,
+            jobsSearch: { q: String(evt.query || ''), location: String(evt.location || '') },
+          }])
+        }
+        break
+      }
       case 'error': {
         const msg = evt.error?.message || evt.message || 'Unknown error'
         console.error('[realtime]', msg)
