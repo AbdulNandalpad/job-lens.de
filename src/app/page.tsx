@@ -424,7 +424,10 @@ export default function HomePage() {
 
         .jl-feature-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
         @media (max-width: 1000px) { .jl-feature-grid { grid-template-columns: repeat(2, 1fr); } }
-        @media (max-width: 560px) { .jl-feature-grid { grid-template-columns: 1fr; } }
+        @media (max-width: 560px) { .jl-feature-grid { grid-template-columns: 1fr 1fr; gap: 10px; } }
+        @media (max-width: 560px) { .jl-feat-desc { display: none !important; } .jl-feat-card { padding: 16px !important; } }
+        @media (max-width: 768px) { .jl-pill-desc { display: none !important; } }
+        @media (max-width: 680px) { .jl-step-desc { display: none !important; } }
         .jl-pricing-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; max-width: 1040px; margin: 0 auto; align-items: start; }
         @media (max-width: 900px)  { .jl-pricing-grid { grid-template-columns: repeat(2, 1fr); } }
         @media (max-width: 560px)  { .jl-pricing-grid { grid-template-columns: 1fr; } }
@@ -676,7 +679,7 @@ export default function HomePage() {
                 )}
               </div>
               <div style={{ fontFamily: f.heading, fontSize: 15, fontWeight: 700, color: c.primary }}>{feat.title}</div>
-              <div style={{ fontSize: 13, color: c.textMuted, lineHeight: 1.6 }}>{feat.desc}</div>
+              <div className="jl-feat-desc" style={{ fontSize: 13, color: c.textMuted, lineHeight: 1.6 }}>{feat.desc}</div>
             </Link>
           ))}
         </div>
@@ -914,7 +917,7 @@ export default function HomePage() {
                     </div>
                   </div>
                   <div style={{ fontFamily: f.heading, fontSize: 15, fontWeight: 700, color: c.primary, marginBottom: 8, lineHeight: 1.3 }}>{t.steps[idx].title}</div>
-                  <div style={{ fontSize: 13, color: c.textMuted, lineHeight: 1.65, maxWidth: 200 }}>{t.steps[idx].desc}</div>
+                  <div className="jl-step-desc" style={{ fontSize: 13, color: c.textMuted, lineHeight: 1.65, maxWidth: 200 }}>{t.steps[idx].desc}</div>
                 </div>
               ))}
             </div>
@@ -962,7 +965,7 @@ export default function HomePage() {
                     <SvgIcon name={feat.icon as IconName} size={20} color="rgba(255,255,255,0.8)" />
                     <div style={{ textAlign: 'left' }}>
                       <div style={{ fontSize: 12, fontWeight: 700, color: '#fff', fontFamily: f.heading }}>{feat.label}</div>
-                      <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.65)', marginTop: 1 }}>{feat.desc}</div>
+                      <div className="jl-pill-desc" style={{ fontSize: 11, color: 'rgba(255,255,255,0.65)', marginTop: 1 }}>{feat.desc}</div>
                     </div>
                   </div>
                 ))}
