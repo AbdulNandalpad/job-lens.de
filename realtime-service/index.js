@@ -74,6 +74,7 @@ wss.on('connection', (clientWs, req) => {
     openaiWs.send(JSON.stringify({
       type: 'session.update',
       session: {
+        type:                      'session',
         modalities:                ['audio', 'text'],
         instructions:              KIRA_SYSTEM + marketCtx + modeCtx,
         voice:                     'shimmer',
