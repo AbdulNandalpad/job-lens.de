@@ -201,7 +201,7 @@ export default function HeroDACH({ lang, user }: Props) {
                   {hc.h1.split(' ').slice(0, Math.ceil(hc.h1.split(' ').length / 2)).join(' ')}<br />
                   <span style={{ color:feat!.accent }}>{hc.h1.split(' ').slice(Math.ceil(hc.h1.split(' ').length / 2)).join(' ')}</span>
                 </h1>
-                <p style={{ fontSize:15, color:'rgba(255,255,255,0.5)', lineHeight:1.8, margin:'0 0 34px', maxWidth:400 }}>{hc.sub}</p>
+                <p style={{ fontSize:15, color:'rgba(255,255,255,0.75)', lineHeight:1.8, margin:'0 0 34px', maxWidth:400 }}>{hc.sub}</p>
                 <Link href={go(feat!.href)} style={{ display:'inline-block', background:feat!.accent, color:'#fff', padding:'14px 30px', borderRadius:10, fontFamily:f.heading, fontWeight:700, fontSize:15, textDecoration:'none', boxShadow:`0 4px 20px ${feat!.accent}40`, letterSpacing:-0.2 }}>
                   {hc.cta}
                 </Link>
@@ -224,7 +224,7 @@ export default function HeroDACH({ lang, user }: Props) {
                 <h1 style={{ fontFamily:f.heading, fontSize:'clamp(30px,4vw,54px)', fontWeight:800, color:'#fff', lineHeight:1.08, letterSpacing:-1.5, margin:'0 0 22px' }}>
                   {isDE ? <><span style={{ color:'rgba(255,255,255,0.92)' }}>Der klügste Weg</span><br /><span style={{ color:c.accent }}>zu deinem Job.</span></> : <><span style={{ color:'rgba(255,255,255,0.92)' }}>The smartest way</span><br /><span style={{ color:c.accent }}>to your next job.</span></>}
                 </h1>
-                <p style={{ fontSize:16, color:'rgba(255,255,255,0.45)', lineHeight:1.8, margin:'0 0 38px', maxWidth:390 }}>
+                <p style={{ fontSize:16, color:'rgba(255,255,255,0.72)', lineHeight:1.8, margin:'0 0 38px', maxWidth:390 }}>
                   {isDE
                     ? 'KI-Lebenslaufanalyse, DACH-Jobsuche, maßgeschneidertes Anschreiben und Auto-Bewerbung — alles in einer Plattform.'
                     : 'AI CV scan, DACH job search, tailored cover letter and Auto Apply — one platform, end to end.'}
@@ -237,7 +237,7 @@ export default function HeroDACH({ lang, user }: Props) {
                     {isDE ? 'So funktioniert es' : 'How it works'}
                   </Link>
                 </div>
-                <p style={{ fontSize:12, color:'rgba(255,255,255,0.20)', marginTop:24, lineHeight:1.8 }}>
+                <p style={{ fontSize:12, color:'rgba(255,255,255,0.55)', marginTop:24, lineHeight:1.8 }}>
                   {isDE ? '✓ 5 kostenlose Credits  ·  ✓ Keine Kreditkarte  ·  ✓ Start in 30 Sekunden' : '✓ 5 free credits  ·  ✓ No card needed  ·  ✓ Up in 30 seconds'}
                 </p>
               </>
@@ -264,7 +264,7 @@ export default function HeroDACH({ lang, user }: Props) {
                     </div>
                     <div>
                       <div className="panel-name" style={{ fontFamily:f.heading, fontSize:12, fontWeight:700, color:'#fff', marginBottom:6, lineHeight:1.3 }}>{feat.name[lang]}</div>
-                      <div className="panel-desc" style={{ fontSize:10, color:'rgba(255,255,255,0.35)', lineHeight:1.55, maxWidth:80 }}>{feat.desc[lang]}</div>
+                      <div className="panel-desc" style={{ fontSize:10, color:'rgba(255,255,255,0.62)', lineHeight:1.55, maxWidth:80 }}>{feat.desc[lang]}</div>
                     </div>
                   </div>
                 </Link>
@@ -299,7 +299,7 @@ export default function HeroDACH({ lang, user }: Props) {
                   <div style={{ color: f.accent, display: 'flex', alignItems: 'center', flexShrink: 0 }}>{f.icon}</div>
                   <div>
                     <div style={{ fontFamily: fonts.heading, fontSize: 12, fontWeight: 700, color: '#fff', whiteSpace: 'nowrap' as const }}>{f.name[lang]}</div>
-                    <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.38)', whiteSpace: 'nowrap' as const }}>{f.desc[lang]}</div>
+                    <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.62)', whiteSpace: 'nowrap' as const }}>{f.desc[lang]}</div>
                   </div>
                 </div>
               ))}

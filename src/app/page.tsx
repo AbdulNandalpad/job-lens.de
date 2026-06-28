@@ -638,8 +638,8 @@ export default function HomePage() {
           ] as const).map((s, i) => (
             <div key={i} style={{ textAlign: 'center', padding: '22px 12px', borderRight: i < 3 ? '1px solid rgba(255,255,255,0.05)' : 'none' }}>
               <div style={{ fontFamily: f.heading, fontSize: 'clamp(20px,2.8vw,30px)', fontWeight: 800, color: s.color, lineHeight: 1, letterSpacing: -0.5 }}>{s.val}</div>
-              <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.65)', marginTop: 6, lineHeight: 1.45 }}>{s.label}</div>
-              <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.42)', marginTop: 4 }}>{s.src}</div>
+              <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.78)', marginTop: 6, lineHeight: 1.45 }}>{s.label}</div>
+              <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.55)', marginTop: 4 }}>{s.src}</div>
             </div>
           ))}
         </div>
@@ -826,7 +826,7 @@ export default function HomePage() {
                     </svg>
                   </div>
                   <div style={{ fontFamily: f.heading, fontSize: 12, fontWeight: 700, color: '#fff' }}>{lang === 'DE' ? 'ATS-Bot scannt' : 'ATS Bot Reads'}</div>
-                  <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)', marginTop: 3, maxWidth: 110, margin: '3px auto 0' }}>{lang === 'DE' ? 'Sucht Keywords aus der Stelle' : 'Hunts for job keywords'}</div>
+                  <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.72)', marginTop: 3, maxWidth: 110, margin: '3px auto 0' }}>{lang === 'DE' ? 'Sucht Keywords aus der Stelle' : 'Hunts for job keywords'}</div>
                 </div>
                 <div style={{ fontSize: 22, color: '#c8d6e5', fontWeight: 300 }}>→</div>
                 {/* Decision split */}
@@ -855,13 +855,13 @@ export default function HomePage() {
           </div>
 
           <style>{`
-            @media(max-width:768px){ .jl-reality-grid{ grid-template-columns:1fr 1fr!important } }
+            @media(max-width:900px){ .jl-reality-grid{ grid-template-columns:1fr 1fr!important } }
             @media(max-width:480px){ .jl-reality-grid{ grid-template-columns:1fr!important } }
           `}</style>
         </div>
 
         {/* ── How it works ── */}
-        <div className="jl-subsection">
+        <div id="how-it-works" className="jl-subsection">
           <div style={{ textAlign: 'center', marginBottom: 52 }}>
             <div style={{ fontFamily: f.heading, fontSize: 26, fontWeight: 700, color: c.primary, marginBottom: 10 }}>{t.howTitle}</div>
             <div style={{ fontSize: 14, color: c.textMuted }}>{t.howSub}</div>
@@ -1166,7 +1166,7 @@ export default function HomePage() {
 
         {/* ── Bottom CTA ── */}
         <div className="jl-subsection jl-cta-block" style={{ background: g.ctaBlock, borderRadius: 20, padding: '56px 32px', textAlign: 'center' }}>
-          <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)', marginBottom: 16, letterSpacing: 0.5 }}>
+          <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.65)', marginBottom: 16, letterSpacing: 0.5 }}>
             {t.ctaTag}
           </div>
           <div style={{ fontFamily: f.heading, fontSize: 28, fontWeight: 700, color: '#fff', marginBottom: 10, letterSpacing: -0.3 }}>
