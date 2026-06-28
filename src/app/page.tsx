@@ -597,7 +597,8 @@ export default function HomePage() {
           </div>
 
           {/* Bottom: 4 differentiators */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 14 }}>
+          <style>{`@media(max-width:768px){.jc-diff-body{display:none!important}.jc-diff-grid{grid-template-columns:1fr 1fr!important;gap:10px!important}.jc-diff-tile{padding:14px 12px!important}}`}</style>
+          <div className="jc-diff-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 14 }}>
             {([
               {
                 icon: '📱',
@@ -620,10 +621,10 @@ export default function HomePage() {
                 body: lang === 'DE' ? 'Zeigt konkrete Belege und echte Erfahrungstiefe — was ein Lebenslauf selten schafft.' : 'Shows your experience depth and verified skills — what a CV rarely conveys.',
               },
             ] as { icon: string; title: string; body: string }[]).map((item, i) => (
-              <div key={i} style={{ display: 'flex', flexDirection: 'column' as const, gap: 10, padding: '20px 18px', background: 'rgba(34,197,94,0.05)', border: '1px solid rgba(34,197,94,0.12)', borderRadius: 16 }}>
+              <div key={i} className="jc-diff-tile" style={{ display: 'flex', flexDirection: 'column' as const, gap: 10, padding: '20px 18px', background: 'rgba(34,197,94,0.05)', border: '1px solid rgba(34,197,94,0.12)', borderRadius: 16 }}>
                 <span style={{ fontSize: 26 }}>{item.icon}</span>
                 <div style={{ fontFamily: f.heading, fontSize: 14, fontWeight: 700, color: '#fff' }}>{item.title}</div>
-                <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.7)', lineHeight: 1.65 }}>{item.body}</div>
+                <div className="jc-diff-body" style={{ fontSize: 12, color: 'rgba(255,255,255,0.7)', lineHeight: 1.65 }}>{item.body}</div>
               </div>
             ))}
           </div>
