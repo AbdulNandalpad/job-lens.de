@@ -86,12 +86,6 @@ const STATUS_LABELS: Record<string, Record<string, string>> = {
   in_EN: { search_jobs: 'Searching jobs...', score_jobs: 'Scoring match...' },
 }
 
-const VOICE_LABELS: Record<VoiceState, Record<string, string>> = {
-  idle:       { eu_DE: 'Tippe Sprechen',       eu_EN: 'Tap Speak',           in_EN: 'Tap Speak'           },
-  listening:  { eu_DE: 'Ich höre zu…',         eu_EN: 'Listening…',          in_EN: 'Listening…'          },
-  processing: { eu_DE: 'Kira denkt nach…',     eu_EN: 'Thinking…',           in_EN: 'Thinking…'           },
-  speaking:   { eu_DE: 'Kira spricht…',        eu_EN: 'Speaking…',           in_EN: 'Speaking…'           },
-}
 
 function fmtSalary(min: number | null, max: number | null, market: 'eu' | 'in'): string {
   if (!min && !max) return ''
@@ -315,10 +309,7 @@ export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
   const [userName,    setUserName]    = useState('')
   const [isAdmin,     setIsAdmin]     = useState(false)
 
-  // ── Voice state ──────────────────────────────────────────────────────────
-  const [voiceMode,     setVoiceMode]     = useState(false)
-  const [voiceState,    setVoiceState]    = useState<VoiceState>('idle')
-  const [cvDiscussMode, setCvDiscussMode] = useState(false)
+  // ── Mode state ───────────────────────────────────────────────────────────
   const [kiraMode,      setKiraMode]      = useState('')
   const [isMobile,      setIsMobile]      = useState(false)
   const [mounted,       setMounted]       = useState(false)
@@ -334,25 +325,6 @@ export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
   const inputRef         = useRef<HTMLTextAreaElement>(null)
   const cvRef            = useRef('')
   const fileInputRef     = useRef<HTMLInputElement>(null)
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const recognitionRef   = useRef<any>(null)
-  const mediaRecorderRef = useRef<MediaRecorder | null>(null)
-  const audioChunksRef   = useRef<Blob[]>([])
-  const audioRef         = useRef<HTMLAudioElement | null>(null)
-  const audioCtxRef      = useRef<AudioContext | null>(null)
-  const ttsResolveRef    = useRef<(() => void) | null>(null)
-  const voiceModeRef     = useRef(false)
-  const cvDiscussModeRef = useRef(false)
-  const transcriptRef    = useRef('')
-  const listenTimerRef   = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const stoppingRef      = useRef(false)   // true while we deliberately stop, blocks onend re-arm
-  const silenceCountRef  = useRef(0)       // consecutive silent rounds — limit to prevent stuck loop
-  const greetedRef       = useRef(false)
-  const ttsCancelledRef  = useRef(false)
-  const ttsChainRef      = useRef<Promise<void>>(Promise.resolve())
-  const interruptRecRef  = useRef<any>(null)  // eslint-disable-line @typescript-eslint/no-explicit-any
-  const interimRef       = useRef('')
-  const [interimText, setInterimText] = useState('')
 
   // ── Realtime voice refs ───────────────────────────────────────────────────
   const [realtimeMode,  setRealtimeMode]  = useState(false)
@@ -367,9 +339,6 @@ export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
   const [realtimeSecsLeft, setRealtimeSecsLeft] = useState(LIVE_VOICE_MAX_SECONDS)
   const realtimeTimerRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const [realtimeConnecting, setRealtimeConnecting] = useState(false)
-
-  useEffect(() => { voiceModeRef.current  = voiceMode     }, [voiceMode])
-  useEffect(() => { cvDiscussModeRef.current = cvDiscussMode }, [cvDiscussMode])
 
   // ── Refresh interview coaching state from sessionStorage ────────────────
   function refreshInterviewCtx() {
@@ -398,7 +367,6 @@ export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
         const parsed = JSON.parse(saved) as Msg[]
         if (parsed.length > 0) {
           setMsgs(parsed)
-          greetedRef.current = true   // existing history — skip greeting
         }
       }
     } catch { /* ignore */ }
@@ -422,8 +390,8 @@ export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
   }, [msgs])
 
   useEffect(() => {
-    if (open && !voiceMode) setTimeout(() => inputRef.current?.focus(), 50)
-  }, [open, voiceMode])
+    if (open) setTimeout(() => inputRef.current?.focus(), 50)
+  }, [open])
 
   // ── CV upload ────────────────────────────────────────────────────────────
   async function handleCvUpload(e: React.ChangeEvent<HTMLInputElement>) {
@@ -462,375 +430,6 @@ export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
     }
     setCvUploading(false)
     if (fileInputRef.current) fileInputRef.current.value = ''
-  }
-
-  // ── Audio helpers ─────────────────────────────────────────────────────────
-  function unlockAudio() {
-    // Must be called synchronously inside a user-gesture handler (iOS requirement)
-    try {
-      if (!audioCtxRef.current) {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const ACtx = window.AudioContext || (window as any).webkitAudioContext
-        if (ACtx) audioCtxRef.current = new ACtx()
-      }
-      audioCtxRef.current?.resume()
-    } catch { /* not supported */ }
-  }
-
-  function stopAudio() {
-    if (audioRef.current) { audioRef.current.pause(); audioRef.current = null }
-    // Resolve any pending TTS promise so the voice loop doesn't hang after exit
-    if (ttsResolveRef.current) { ttsResolveRef.current(); ttsResolveRef.current = null }
-  }
-
-  function stopInterruptListener() {
-    try { interruptRecRef.current?.stop() } catch { /* ignore */ }
-    interruptRecRef.current = null
-  }
-
-  function startInterruptListener() {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
-    if (!SR || !voiceModeRef.current) return
-    stopInterruptListener()
-    const rec = new SR()
-    rec.lang           = getSttLang()
-    rec.continuous     = false
-    rec.interimResults = false
-    interruptRecRef.current = rec
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    rec.onresult = (e: any) => {
-      const t = Array.from(e.results as unknown[]).map((r: any) => (r as any)[0].transcript).join('').trim()
-      if (t && voiceModeRef.current) {
-        stopInterruptListener()
-        ttsCancelledRef.current = true
-        stopAudio()
-        if (ttsResolveRef.current) { ttsResolveRef.current(); ttsResolveRef.current = null }
-        setVoiceState('processing')
-        void send(t)
-      }
-    }
-    rec.onerror = () => { interruptRecRef.current = null }
-    rec.onend   = () => { interruptRecRef.current = null }
-    try { rec.start() } catch { interruptRecRef.current = null }
-  }
-
-  function playTts(text: string): Promise<void> {
-    stopAudio()
-    if (!text.trim() || ttsCancelledRef.current) return Promise.resolve()
-    return new Promise<void>((resolve) => {
-      ttsResolveRef.current = resolve
-      const done = () => { ttsResolveRef.current = null; resolve() }
-
-      fetch(API.aiTts, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text: text.slice(0, 800), market }),
-      }).then(async res => {
-        if (!res.ok || !res.body) { done(); return }
-
-        // Streaming playback via MediaSource — audio starts before full download
-        if (
-          typeof MediaSource !== 'undefined' &&
-          MediaSource.isTypeSupported('audio/mpeg')
-        ) {
-          const ms  = new MediaSource()
-          const url = URL.createObjectURL(ms)
-          const audio = new Audio(url)
-          audioRef.current = audio
-          audio.onended = () => { URL.revokeObjectURL(url); audioRef.current = null; done() }
-          audio.onerror = () => { URL.revokeObjectURL(url); audioRef.current = null; done() }
-
-          ms.addEventListener('sourceopen', async () => {
-            let sb: SourceBuffer
-            try { sb = ms.addSourceBuffer('audio/mpeg') } catch { done(); return }
-
-            const appendChunk = (chunk: Uint8Array) =>
-              new Promise<void>(r => {
-                sb.addEventListener('updateend', () => r(), { once: true })
-                sb.appendBuffer(chunk.buffer.slice(chunk.byteOffset, chunk.byteOffset + chunk.byteLength) as ArrayBuffer)
-              })
-
-            const reader = res.body!.getReader()
-            let started = false
-            try {
-              while (true) {
-                const { done: doneReading, value } = await reader.read()
-                if (doneReading) { ms.endOfStream(); break }
-                if (value) {
-                  await appendChunk(value)
-                  if (!started) { started = true; audio.play().catch(done) }
-                }
-              }
-            } catch { ms.endOfStream() }
-          }, { once: true })
-        } else {
-          // Fallback for browsers without MediaSource MP3 support (some Safari versions)
-          const blob  = await res.blob()
-          const url   = URL.createObjectURL(blob)
-          const audio = new Audio(url)
-          audioRef.current = audio
-          audio.onended = () => { URL.revokeObjectURL(url); audioRef.current = null; done() }
-          audio.onerror = () => { URL.revokeObjectURL(url); audioRef.current = null; done() }
-          audio.play().catch(done)
-        }
-      }).catch(done)
-    })
-  }
-
-  // ── STT helpers ──────────────────────────────────────────────────────────
-  function getSttLang() {
-    if (market === 'in') return 'en-IN'
-    return lang === 'DE' ? 'de-DE' : 'en-GB'
-  }
-  function getWhisperLang() {
-    if (market === 'in') return 'en'
-    return lang === 'DE' ? 'de' : 'en'
-  }
-  function getSupportedMimeType() {
-    const types = ['audio/webm;codecs=opus', 'audio/webm', 'audio/mp4', 'audio/ogg;codecs=opus', 'audio/ogg']
-    return types.find(t => MediaRecorder.isTypeSupported(t)) || ''
-  }
-
-  // ── Voice mode control ───────────────────────────────────────────────────
-  function enterVoiceMode() {
-    if (loading) return
-    unlockAudio()   // synchronous — must stay before any await
-    voiceModeRef.current = true
-    setVoiceMode(true)
-    setVoiceState('idle')
-    setTimeout(() => startListening(), 200)
-  }
-
-  // Standard voice: SpeechRecognition → AI chat → TTS. No Railway required.
-  function enterStandardVoice() {
-    if (loading) return
-    if (voiceMode) { exitVoiceMode(); return }
-    if (realtimeMode) { exitRealtimeMode(); return }
-    unlockAudio()
-
-    const name = userName ? `, ${userName}` : ''
-    const greetingText = key === 'eu_DE'
-      ? `Hallo${name}! Ich bin Kira, deine KI-Karriereassistentin. Wie kann ich dir heute helfen?`
-      : `Hi${name}! I'm Kira, your AI career assistant. How can I help you today?`
-
-    // Enter voice overlay immediately so the user sees the transition
-    voiceModeRef.current = true
-    setVoiceMode(true)
-    setVoiceState('speaking')
-    ttsCancelledRef.current = false
-
-    if (!greetedRef.current) {
-      greetedRef.current = true
-      setMsgs(prev => prev.length === 0 ? [{ role: 'assistant', content: greetingText }] : prev)
-    }
-
-    // Play greeting, then start listening after it finishes
-    void playTts(greetingText).then(() => {
-      if (voiceModeRef.current && !ttsCancelledRef.current) {
-        setVoiceState('idle')
-        setTimeout(() => startListening(), 200)
-      }
-    })
-  }
-
-  function exitVoiceMode() {
-    voiceModeRef.current     = false
-    cvDiscussModeRef.current = false
-    silenceCountRef.current  = 0
-    ttsCancelledRef.current  = true
-    setVoiceMode(false)
-    setVoiceState('idle')
-    setInterimText('')
-    setCvDiscussMode(false)
-    stopListening()
-    stopInterruptListener()
-    stopAudio()
-  }
-
-  // ── Core listening ───────────────────────────────────────────────────────
-  function startListening() {
-    if (!voiceModeRef.current) return
-    stoppingRef.current = false
-    if (listenTimerRef.current) clearTimeout(listenTimerRef.current)
-    setVoiceState('listening')
-
-    // Hard 15s escape — fires if browser never delivers onend
-    listenTimerRef.current = setTimeout(() => {
-      stopListening()
-      if (voiceModeRef.current) setVoiceState('idle')
-    }, 15_000)
-
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
-    if (SR) {
-      const rec = new SR()
-      rec.lang           = getSttLang()
-      rec.continuous     = false
-      rec.interimResults = true
-      transcriptRef.current = ''
-
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      rec.onresult = (e: any) => {
-        if (listenTimerRef.current) clearTimeout(listenTimerRef.current)
-        silenceCountRef.current = 0
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const results = Array.from(e.results as unknown[]) as any[]
-        let interim = '', final = ''
-        for (const r of results) {
-          if (r.isFinal) final += r[0].transcript
-          else interim += r[0].transcript
-        }
-        if (final) transcriptRef.current = final
-        const display = (final || interim).trim()
-        interimRef.current = display
-        setInterimText(display)
-      }
-
-      rec.onend = () => {
-        if (listenTimerRef.current) clearTimeout(listenTimerRef.current)
-        recognitionRef.current = null
-        setInterimText('')
-        interimRef.current = ''
-        const t = transcriptRef.current.trim()
-        transcriptRef.current = ''
-        if (t && voiceModeRef.current) {
-          silenceCountRef.current = 0
-          setVoiceState('processing')
-          void send(t)
-        } else if (voiceModeRef.current && !stoppingRef.current) {
-          // Silence round — limit consecutive re-arms to avoid infinite loop
-          silenceCountRef.current++
-          if (silenceCountRef.current >= 4) {
-            silenceCountRef.current = 0
-            setVoiceState('idle')  // too many silent rounds — wait for user to press Speak
-          } else {
-            setTimeout(() => { if (voiceModeRef.current && !stoppingRef.current) startListening() }, 800)
-          }
-        }
-      }
-
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      rec.onerror = (e: any) => {
-        if (listenTimerRef.current) clearTimeout(listenTimerRef.current)
-        recognitionRef.current = null
-        if (e.error === 'no-speech' && voiceModeRef.current && !stoppingRef.current) {
-          silenceCountRef.current++
-          if (silenceCountRef.current >= 4) {
-            silenceCountRef.current = 0
-            setVoiceState('idle')
-          } else {
-            setTimeout(() => { if (voiceModeRef.current && !stoppingRef.current) startListening() }, 800)
-          }
-        } else if (!['not-allowed', 'service-not-allowed'].includes(e.error as string)) {
-          // non-fatal, non-silence — go idle cleanly
-          setVoiceState('idle')
-        } else {
-          setVoiceState('idle')
-        }
-      }
-
-      recognitionRef.current = rec
-      try { rec.start() } catch { setVoiceState('idle') }
-
-    } else {
-      if (listenTimerRef.current) clearTimeout(listenTimerRef.current)
-      void startWhisperRecording()
-    }
-  }
-
-  function stopListening() {
-    stoppingRef.current = true   // block onend from re-arming
-    if (listenTimerRef.current) clearTimeout(listenTimerRef.current)
-    try { recognitionRef.current?.stop() } catch { /* ignore */ }
-    recognitionRef.current = null
-    try { mediaRecorderRef.current?.stop() } catch { /* ignore */ }
-  }
-
-  // ── Whisper path (iOS / Firefox / Web Speech fallback) ───────────────────
-  async function startWhisperRecording() {
-    if (!voiceModeRef.current) return
-    setVoiceState('listening')
-    try {
-      const stream   = await navigator.mediaDevices.getUserMedia({ audio: true })
-      const mimeType = getSupportedMimeType()
-      const mr       = new MediaRecorder(stream, mimeType ? { mimeType } : undefined)
-      audioChunksRef.current = []
-
-      // Silence detection using the SHARED AudioContext (already unlocked via unlockAudio)
-      // Creating a new AudioContext here would be blocked on iOS — reuse the existing one.
-      let ctx = audioCtxRef.current
-      if (!ctx) {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const ACtx = window.AudioContext || (window as any).webkitAudioContext
-        ctx = new ACtx()
-        audioCtxRef.current = ctx
-      }
-      await ctx.resume()
-
-      const analyser = ctx.createAnalyser()
-      const source   = ctx.createMediaStreamSource(stream)
-      source.connect(analyser)
-      analyser.fftSize = 256
-      const data = new Uint8Array(analyser.frequencyBinCount)
-
-      let speechDetected = false
-      let silenceStart   = 0
-
-      const silenceCheck = setInterval(() => {
-        analyser.getByteFrequencyData(data)
-        const avg = data.reduce((a, b) => a + b, 0) / data.length
-        if (avg > 8) {
-          speechDetected = true
-          silenceStart   = 0
-        } else if (speechDetected) {
-          if (!silenceStart) silenceStart = Date.now()
-          if (Date.now() - silenceStart > 700) {
-            clearInterval(silenceCheck)
-            source.disconnect()
-            mr.stop()
-          }
-        }
-      }, 100)
-
-      // 30s hard cap
-      const maxTimer = setTimeout(() => {
-        clearInterval(silenceCheck)
-        source.disconnect()
-        mr.stop()
-      }, 30_000)
-
-      mr.ondataavailable = e => { if (e.data.size > 0) audioChunksRef.current.push(e.data) }
-      mr.onstop = async () => {
-        clearTimeout(maxTimer)
-        clearInterval(silenceCheck)
-        stream.getTracks().forEach(t => t.stop())
-        if (!voiceModeRef.current) return
-        setVoiceState('processing')
-        try {
-          const blob = new Blob(audioChunksRef.current, { type: mr.mimeType || 'audio/webm' })
-          const ext  = (mr.mimeType || '').includes('mp4') ? 'mp4' : (mr.mimeType || '').includes('ogg') ? 'ogg' : 'webm'
-          const form = new FormData()
-          form.append('file', blob, `audio.${ext}`)
-          form.append('language', getWhisperLang())
-          const res = await fetch(API.aiStt, { method: 'POST', body: form })
-          const d   = await res.json()
-          if (d.text?.trim() && voiceModeRef.current) {
-            void send(d.text.trim())
-          } else if (voiceModeRef.current) {
-            setTimeout(() => startListening(), 500)
-          }
-        } catch {
-          if (voiceModeRef.current) setTimeout(() => startListening(), 500)
-        }
-      }
-
-      mediaRecorderRef.current = mr
-      mr.start()
-    } catch {
-      // Mic permission denied or unavailable
-      setVoiceState('idle')
-    }
   }
 
   // ── Tailor CV ────────────────────────────────────────────────────────────
@@ -978,26 +577,14 @@ export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
     if (realtimeConnecting || realtimeMode) return
     const wsBase = process.env.NEXT_PUBLIC_REALTIME_WS_URL
     if (!wsBase) { alert('Realtime service URL not configured'); return }
-    if (voiceMode) exitVoiceMode()
 
     // Must be synchronous in the user-gesture handler so iOS/Safari allows AudioContext
-    unlockAudio()
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const ACtx = window.AudioContext || (window as any).webkitAudioContext
     const rtCtx = new ACtx({ sampleRate: 24000 }) as AudioContext
     realtimeCtxRef.current = rtCtx
     realtimeNextTimeRef.current = 0
     if (rtCtx.state === 'suspended') await rtCtx.resume()
-
-    // Show greeting on first voice session
-    if (!greetedRef.current) {
-      greetedRef.current = true
-      const name = userName ? `, ${userName}` : ''
-      const text = key === 'eu_DE'
-        ? `Hallo${name}! Ich bin Kira, deine KI-Karriereassistentin. Wie kann ich dir heute helfen?`
-        : `Hi${name}! I'm Kira, your AI career assistant. How can I help you today?`
-      setMsgs(prev => prev.length === 0 ? [{ role: 'assistant', content: text }] : prev)
-    }
 
     // Deduct credits up-front for the session
     setRealtimeConnecting(true)
@@ -1128,47 +715,20 @@ export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
     setMsgs([{ role: 'assistant', content: opening }])
   }
 
-  // ── CV Discussion ────────────────────────────────────────────────────────
-  function startCvDiscussion() {
-    if (!cvRef.current) {
-      setMsgs(prev => [...prev, { role: 'assistant', content: lang === 'DE'
-        ? 'Lade deinen Lebenslauf hoch (Büroklammer oben) — dann können wir ihn gemeinsam besprechen.'
-        : 'Upload your CV first (clip icon above), then we can talk through it together.' }])
-      return
-    }
-    setCvDiscussMode(true)
-    cvDiscussModeRef.current = true
-    enterVoiceMode()
-    const opening = key === 'eu_DE'
-      ? 'Lass uns deinen Lebenslauf besprechen! Für welche Art von Stelle bewirbst du dich gerade?'
-      : "Let's talk through your CV! What kind of role are you going for right now?"
-    setMsgs(prev => [...prev, { role: 'assistant', content: opening }])
-    void playTts(opening)
-  }
-
   // ── Send ─────────────────────────────────────────────────────────────────
   async function send(text: string) {
     if (!text.trim() || loading) return
-
-    const isVoice = voiceModeRef.current
 
     const userMsg: Msg = { role: 'user', content: text.trim() }
     const history = [...msgs, userMsg]
     setMsgs(history)
     setInput('')
     setLoading(true)
-    if (isVoice) setVoiceState('processing')
 
     const idx = history.length
     setMsgs(prev => [...prev, { role: 'assistant', content: '' }])
 
     let assembled = ''
-    // Sentence-streaming TTS: first sentence fires mid-stream, rest queued after
-    let pendingVoice   = ''
-    let firstTtsFired  = false
-    ttsCancelledRef.current = false
-    ttsChainRef.current = Promise.resolve()
-    let ttsChain = ttsChainRef.current
 
     try {
       const res = await fetch(API.aiChat, {
@@ -1178,8 +738,7 @@ export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
           messages: history.map(m => ({ role: m.role, content: m.content })),
           cvText: cvRef.current,
           market,
-          isVoice,
-          mode: cvDiscussModeRef.current ? 'cv_discuss' : kiraMode || undefined,
+          mode: kiraMode || undefined,
           interviewCtx: (() => {
             const r = sessionStorage.getItem(SS.interviewRole)
             const c = sessionStorage.getItem(SS.interviewCompany)
@@ -1210,24 +769,6 @@ export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
             if (evt.text) {
               assembled += evt.text
               setMsgs(prev => { const cp = [...prev]; cp[idx] = { role: 'assistant', content: assembled, jobs: cp[idx]?.jobs, action: cp[idx]?.action }; return cp })
-              // Fire TTS for first sentence or after 8 words — whichever comes first
-              if (isVoice && !firstTtsFired) {
-                pendingVoice += evt.text
-                const byPunct = pendingVoice.match(/^(.+?[.!?])(?:\s|$)/)
-                const wordCount = pendingVoice.trim().split(/\s+/).length
-                const byWords = wordCount >= 8 ? pendingVoice.trim() : null
-                const chunk = byPunct ? byPunct[1].trim() : byWords
-                if (chunk) {
-                  firstTtsFired = true
-                  pendingVoice  = byPunct ? pendingVoice.slice(byPunct[0].length).trimStart() : ''
-                  setVoiceState('speaking')
-                  startInterruptListener()
-                  ttsChain = ttsChain.then(() => voiceModeRef.current && !ttsCancelledRef.current ? playTts(chunk) : Promise.resolve())
-                  ttsChainRef.current = ttsChain
-                }
-              } else if (isVoice) {
-                pendingVoice += evt.text
-              }
             } else if (evt.jobs) {
               setMsgs(prev => { const cp = [...prev]; cp[idx] = { ...cp[idx], jobs: evt.jobs as Job[], jobsTotal: evt.total as number | undefined, jobsSearch: { q: String(evt.query || ''), location: String(evt.location || '') }, status: undefined }; return cp })
             } else if (evt.action) {
@@ -1246,28 +787,11 @@ export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
 
     setLoading(false)
     refreshInterviewCtx()
-
-    if (isVoice && voiceModeRef.current && !ttsCancelledRef.current) {
-      // Queue any remaining text after sentence boundary (or full response if no boundary found)
-      const remainder = firstTtsFired ? pendingVoice.trim() : assembled.trim()
-      if (remainder) {
-        ttsChain = ttsChain.then(() => voiceModeRef.current && !ttsCancelledRef.current ? playTts(remainder) : Promise.resolve())
-        ttsChainRef.current = ttsChain
-      }
-      if (!firstTtsFired) { setVoiceState('speaking'); startInterruptListener() }
-      await ttsChain
-      stopInterruptListener()
-      if (voiceModeRef.current && !ttsCancelledRef.current) {
-        setVoiceState('idle')
-        setTimeout(() => startListening(), 100)
-      }
-    }
-    if (!isVoice) inputRef.current?.focus()
+    inputRef.current?.focus()
   }
 
   const suggestions = SUGGESTIONS[key]   || SUGGESTIONS['eu_EN']
   const statusMap   = STATUS_LABELS[key] || STATUS_LABELS['eu_EN']
-  const voiceLabel  = (VOICE_LABELS[voiceState]?.[key] || VOICE_LABELS[voiceState]?.['eu_EN']) ?? ''
 
   // Show suggestion chips after the opening greeting, or when msgs is empty
   const showSuggestions = msgs.length <= 1 && !loading
@@ -1353,28 +877,8 @@ export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
               }
             </button>
 
-            {/* Mic toggle — standard voice (SpeechRecognition + TTS), works everywhere */}
-            {!realtimeMode && (
-              <button className="kira-mic-btn"
-                title={voiceMode ? 'End voice' : lang === 'DE' ? 'Sprachmodus' : 'Voice mode'}
-                disabled={loading}
-                onClick={enterStandardVoice}
-                style={{
-                  width: 28, height: 28, borderRadius: 7, border: 'none',
-                  background: voiceMode ? `${accent}33` : 'rgba(255,255,255,.08)',
-                  cursor: loading ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  flexShrink: 0, transition: 'all .15s', opacity: loading ? .5 : 1,
-                  boxShadow: voiceMode ? `0 0 10px ${accent}55` : 'none',
-                }}>
-                {voiceMode
-                  ? <svg width="12" height="12" viewBox="0 0 20 20" fill="none"><path d="M5 5l10 10M15 5L5 15" stroke={accent} strokeWidth="2.2" strokeLinecap="round"/></svg>
-                  : <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,.55)" strokeWidth="2" strokeLinecap="round"><path d="M12 2a3 3 0 0 1 3 3v7a3 3 0 0 1-6 0V5a3 3 0 0 1 3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="22"/></svg>
-                }
-              </button>
-            )}
-
             {/* Live voice (Railway realtime) — optional, only if configured */}
-            {!voiceMode && process.env.NEXT_PUBLIC_REALTIME_WS_URL && (
+            {process.env.NEXT_PUBLIC_REALTIME_WS_URL && (
               <button className="kira-mic-btn"
                 title={realtimeMode ? 'End live voice' : `Live voice · ${CREDIT_COST.liveVoice} credits / 5 min`}
                 disabled={realtimeConnecting}
@@ -1393,8 +897,8 @@ export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
               </button>
             )}
 
-            {msgs.length > 0 && !voiceMode && (
-              <button onClick={() => { setMsgs([]); setKiraMode(''); greetedRef.current = false; cvDiscussModeRef.current = false; setCvDiscussMode(false); localStorage.removeItem(LS.aiMessages) }}
+            {msgs.length > 0 && (
+              <button onClick={() => { setMsgs([]); setKiraMode(''); localStorage.removeItem(LS.aiMessages) }}
                 style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,.3)', fontSize: 10, cursor: 'pointer', padding: '2px 4px', fontFamily: f.body, flexShrink: 0 }}>
                 Clear
               </button>
@@ -1418,7 +922,7 @@ export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
               }
             </button>
 
-            <button className="kira-close" onClick={() => { setOpen(false); setMaximized(false); stopAudio(); if (voiceMode) exitVoiceMode() }}
+            <button className="kira-close" onClick={() => { setOpen(false); setMaximized(false) }}
               style={{ width: 24, height: 24, borderRadius: 6, border: 'none', background: 'rgba(255,255,255,.08)', cursor: 'pointer', color: 'rgba(255,255,255,.6)', fontSize: 14, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
               ✕
             </button>
@@ -1453,39 +957,6 @@ export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
               <button onClick={exitRealtimeMode}
                 style={{ padding: '8px 20px', borderRadius: 20, border: '1px solid rgba(255,255,255,.1)', background: 'rgba(255,255,255,.04)', color: 'rgba(255,255,255,.35)', fontSize: 12, cursor: 'pointer', fontFamily: f.body }}>
                 End live voice
-              </button>
-            </div>
-
-          ) : /* ── Standard voice overlay ── */
-          voiceMode ? (
-            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: maximized ? 24 : 16, padding: maximized ? '32px 40px' : '16px 20px', overflowY: 'auto' }}>
-              {cvDiscussMode && (
-                <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: 1, color: accent, textTransform: 'uppercase', opacity: .8 }}>
-                  {lang === 'DE' ? 'CV-Gespräch' : 'CV Discussion'}
-                </div>
-              )}
-              <VoiceOrb state={voiceState} large={maximized}/>
-
-              <div style={{ fontSize: 13, color: voiceState === 'idle' ? 'rgba(255,255,255,.35)' : 'rgba(255,255,255,.6)', fontFamily: f.body, textAlign: 'center', letterSpacing: .2 }}>
-                {voiceState === 'listening' && interimText ? interimText : voiceLabel}
-              </div>
-
-              {voiceState === 'idle' && (
-                <button onClick={() => startListening()}
-                  style={{ padding: '9px 26px', borderRadius: 20, border: `1.5px solid ${accent}55`, background: `${accent}15`, color: accent, fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: f.heading, transition: 'all .15s' }}>
-                  {lang === 'DE' ? 'Sprechen' : 'Speak'}
-                </button>
-              )}
-
-              {msgs.filter(m => m.role === 'user').length > 0 && (
-                <div style={{ fontSize: 11, color: 'rgba(255,255,255,.2)', fontFamily: f.body, textAlign: 'center' }}>
-                  {msgs.filter(m => m.role === 'user').length} {lang === 'DE' ? 'Nachrichten' : 'messages'} · {lang === 'DE' ? 'Beenden für Verlauf' : 'end to see transcript'}
-                </div>
-              )}
-
-              <button onClick={exitVoiceMode}
-                style={{ padding: '8px 20px', borderRadius: 20, border: '1px solid rgba(255,255,255,.1)', background: 'rgba(255,255,255,.04)', color: 'rgba(255,255,255,.35)', fontSize: 12, cursor: 'pointer', fontFamily: f.body }}>
-                {lang === 'DE' ? 'Beenden' : 'End voice'}
               </button>
             </div>
 
@@ -1636,8 +1107,8 @@ export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
             </div>
           )}
 
-          {/* ── Text input — hidden in voice or realtime mode ── */}
-          {!voiceMode && !realtimeMode && (
+          {/* ── Text input — hidden in realtime mode ── */}
+          {!realtimeMode && (
             <div style={{ padding: '10px 12px 12px', borderTop: '1px solid rgba(255,255,255,.07)', flexShrink: 0 }}>
               <div style={{ display: 'flex', alignItems: 'flex-end', gap: 6, background: 'rgba(255,255,255,.07)', border: '1px solid rgba(255,255,255,.12)', borderRadius: 12, padding: '7px 8px' }}>
                 <textarea ref={inputRef} className="kira-input"
@@ -1654,7 +1125,7 @@ export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
                 </button>
               </div>
               <div style={{ textAlign: 'center', marginTop: 5, color: 'rgba(255,255,255,.18)', fontSize: 10 }}>
-                {lang === 'DE' ? 'Enter zum Senden · Mikrofon für Sprache' : 'Enter to send · mic button for voice'}
+                {lang === 'DE' ? 'Enter zum Senden' : 'Enter to send'}
               </div>
             </div>
           )}
@@ -1665,11 +1136,8 @@ export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
       {!maximized && <button className="kira-fab" onClick={() => {
         const nowOpening = !open
         setOpen(o => !o)
-        if (nowOpening) {
-          unlockAudio()
-        } else {
-          stopAudio()
-          if (voiceModeRef.current) exitVoiceMode()
+        if (!nowOpening) {
+          if (realtimeModeRef.current) exitRealtimeMode()
         }
       }}
         title="Chat with Kira"

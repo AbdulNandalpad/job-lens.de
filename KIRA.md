@@ -6,24 +6,9 @@ Kira is Job-Lens's conversational AI, a floating widget rendered into `document.
 
 ## Voice architecture
 
-Kira has two independent voice modes. They share no code path.
+Kira has one voice mode: realtime voice-to-voice via the OpenAI Realtime API, proxied through a Railway WebSocket service.
 
-### Mode 1 — Standard voice (SpeechRecognition + AI chat + TTS)
-
-```
-User speaks
-  → browser SpeechRecognition (Chrome) or Whisper via /api/ai/stt (Firefox / iOS)
-  → transcript text sent to /api/ai/chat (Claude via Anthropic SDK)
-  → streamed text response
-  → /api/ai/tts (OpenAI TTS-1-HD, voice: nova, MP3 stream)
-  → played back via MediaSource + <audio> element
-```
-
-**Triggered by:** the mic button in the Kira header (always visible on desktop).  
-**No external service required.** Entirely self-contained within the Vercel app.  
-**TTS env var:** `OPENAI_API_KEY` (same key as the realtime service).
-
-### Mode 2 — Live voice / realtime (OpenAI Realtime API via Railway proxy)
+### Realtime voice (OpenAI Realtime API via Railway proxy)
 
 ```
 User speaks
@@ -35,7 +20,7 @@ User speaks
   → browser plays chunks via AudioContext.createBufferSource()
 ```
 
-**Triggered by:** the green mic button in the Kira header (only shown when `NEXT_PUBLIC_REALTIME_WS_URL` is set in Vercel).  
+**Triggered by:** the mic button in the Kira header (only shown when `NEXT_PUBLIC_REALTIME_WS_URL` is set in Vercel).  
 **Requires:** Railway `realtime-service` deployed and `NEXT_PUBLIC_REALTIME_WS_URL` + `NEXT_PUBLIC_RAILWAY_SECRET` set in Vercel at build time.
 
 ---
@@ -145,11 +130,8 @@ The `response.audio.delta` event carries the audio in `evt.delta` (base64 PCM16)
 
 The realtime `AudioContext` (24 kHz, for playback) is created **synchronously inside the mic button's click handler** before any `await`. This is required — browsers suspend AudioContexts created outside a user gesture. The context is stored in `realtimeCtxRef` and reused in `ws.onopen`.
 
-The general `AudioContext` (`audioCtxRef`) is created by `unlockAudio()` and used for standard-voice TTS silence detection. These are separate contexts.
-
 ---
 
 ## Voices available
 
-Standard voice TTS (`/api/ai/tts`): `nova` (OpenAI TTS-1-HD)  
-Live voice (Realtime API): `shimmer`
+Realtime API: `marin` (via `gpt-realtime-mini-2025-12-15`)
