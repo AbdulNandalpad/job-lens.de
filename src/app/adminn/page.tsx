@@ -63,6 +63,9 @@ export default function AdminPage() {
   const [kiraStats, setKiraStats] = useState<{
     sessions_today: number; sessions_week: number; avg_duration_s: number
     top_mode: string; error_rate_pct: number; job_searches: number; retried_sessions: number
+    unique_users: number
+    recent: { user_email: string; user_name: string; mode: string; market: string; duration_s: number; exit_reason: string; created_at: string; rating?: number }[]
+    top_users: { user_id: string; email: string; name: string; sessions: number; last_at: string }[]
   } | null>(null)
   const [error, setError] = useState('')
   const [search, setSearch] = useState('')
@@ -156,16 +159,31 @@ export default function AdminPage() {
         .adm-prow  { display:grid; grid-template-columns:2fr 1fr 80px 90px 120px; padding:12px 16px; border-bottom:1px solid ${c.border}; align-items:center; min-width:600px; }
         .adm-card  { display:none; }
 
+        /* Kira stats: 8 tiles (7 metrics + unique users) */
+        .kira-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:10px; }
+        /* Kira users table */
+        .kira-uhead { display:grid; grid-template-columns:2fr 80px 90px 100px 80px; padding:8px 14px; border-bottom:1px solid ${c.border}; background:${c.bgSubtle}; }
+        .kira-urow  { display:grid; grid-template-columns:2fr 80px 90px 100px 80px; padding:10px 14px; border-bottom:1px solid ${c.border}; align-items:center; }
+        .kira-ucard { display:none; }
+        /* Kira recent sessions table */
+        .kira-shead { display:grid; grid-template-columns:2fr 90px 70px 70px 80px 70px; padding:8px 14px; border-bottom:1px solid ${c.border}; background:${c.bgSubtle}; }
+        .kira-srow  { display:grid; grid-template-columns:2fr 90px 70px 70px 80px 70px; padding:9px 14px; border-bottom:1px solid ${c.border}; align-items:center; }
+
         @media(max-width:900px){
           .adm-thead, .adm-trow { display:none!important; }
           .adm-card  { display:flex!important; }
+          .kira-uhead,.kira-urow { display:none!important; }
+          .kira-ucard { display:flex!important; }
+          .kira-shead,.kira-srow { display:none!important; }
         }
         @media(max-width:768px){
           .adm-stats { grid-template-columns:repeat(2,1fr)!important; gap:8px!important; }
           .adm-phead, .adm-prow { display:none!important; }
+          .kira-grid { grid-template-columns:repeat(2,1fr)!important; gap:8px!important; }
         }
         @media(max-width:480px){
           .adm-stats { grid-template-columns:1fr 1fr!important; }
+          .kira-grid { grid-template-columns:1fr 1fr!important; }
         }
       `}</style>
 
@@ -208,10 +226,13 @@ export default function AdminPage() {
             {kiraStats && (
               <div style={{ marginBottom: 24 }}>
                 <div style={{ fontSize: 11, fontWeight: 700, color: c.textMuted, letterSpacing: 1, textTransform: 'uppercase', marginBottom: 10 }}>Kira Voice — last 7 days</div>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7,1fr)', gap: 10 }}>
+
+                {/* 8-tile responsive grid */}
+                <div className="kira-grid" style={{ marginBottom: 16 }}>
                   {[
                     { label: 'Sessions today',   value: kiraStats.sessions_today,    color: c.accent },
                     { label: 'Sessions (7d)',     value: kiraStats.sessions_week,     color: c.accent },
+                    { label: 'Unique users',      value: kiraStats.unique_users,      color: '#a855f7' },
                     { label: 'Avg duration',      value: `${Math.floor(kiraStats.avg_duration_s / 60)}m ${kiraStats.avg_duration_s % 60}s`, color: c.success },
                     { label: 'Top mode',          value: kiraStats.top_mode,          color: c.warning },
                     { label: 'Job searches',      value: kiraStats.job_searches,      color: '#10b981' },
@@ -224,6 +245,66 @@ export default function AdminPage() {
                     </div>
                   ))}
                 </div>
+
+                {/* Top users */}
+                {kiraStats.top_users.length > 0 && (
+                  <div style={{ background: c.bgCard, border: `1px solid ${c.border}`, borderRadius: 12, overflow: 'hidden', marginBottom: 16 }}>
+                    <div style={{ fontSize: 11, fontWeight: 700, color: c.textMuted, letterSpacing: 1, textTransform: 'uppercase', padding: '12px 14px 10px', borderBottom: `1px solid ${c.border}` }}>
+                      Who used Kira (7d)
+                    </div>
+                    <div className="kira-uhead" style={{ fontSize: 10, fontWeight: 700, color: c.textMuted, textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                      <span>User</span><span>Sessions</span><span></span><span>Last active</span><span></span>
+                    </div>
+                    {kiraStats.top_users.map((u, i) => (
+                      <div key={u.user_id} className="kira-urow" style={{ fontSize: 12, background: i % 2 === 0 ? 'transparent' : `${c.bgSubtle}50` }}>
+                        <div>
+                          <div style={{ fontWeight: 600, color: c.text }}>{u.name || '—'}</div>
+                          <div style={{ fontSize: 11, color: c.textMuted }}>{u.email || u.user_id.slice(0, 8) + '…'}</div>
+                        </div>
+                        <span style={{ fontWeight: 700, color: c.accent }}>{u.sessions}</span>
+                        <span></span>
+                        <span style={{ color: c.textMuted }}>{fmtShort(u.last_at)}</span>
+                        <span></span>
+                      </div>
+                    ))}
+                    {/* Mobile cards */}
+                    {kiraStats.top_users.map(u => (
+                      <div key={`mu-${u.user_id}`} className="kira-ucard" style={{ flexDirection: 'column', gap: 4, padding: '12px 14px', borderBottom: `1px solid ${c.border}` }}>
+                        <div style={{ fontWeight: 600, color: c.text, fontSize: 13 }}>{u.name || '—'}</div>
+                        <div style={{ fontSize: 11, color: c.textMuted }}>{u.email || u.user_id.slice(0, 12) + '…'}</div>
+                        <div style={{ display: 'flex', gap: 14, fontSize: 12, marginTop: 2 }}>
+                          <span><span style={{ color: c.textMuted }}>Sessions: </span><strong style={{ color: c.accent }}>{u.sessions}</strong></span>
+                          <span><span style={{ color: c.textMuted }}>Last: </span>{fmtShort(u.last_at)}</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* Recent sessions */}
+                {kiraStats.recent.length > 0 && (
+                  <div style={{ background: c.bgCard, border: `1px solid ${c.border}`, borderRadius: 12, overflow: 'hidden' }}>
+                    <div style={{ fontSize: 11, fontWeight: 700, color: c.textMuted, letterSpacing: 1, textTransform: 'uppercase', padding: '12px 14px 10px', borderBottom: `1px solid ${c.border}` }}>
+                      Recent sessions (last 50)
+                    </div>
+                    <div className="kira-shead" style={{ fontSize: 10, fontWeight: 700, color: c.textMuted, textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                      <span>User</span><span>Mode</span><span>Mkt</span><span>Dur</span><span>Exit</span><span>Date</span>
+                    </div>
+                    {kiraStats.recent.map((s, i) => (
+                      <div key={i} className="kira-srow" style={{ fontSize: 11, background: i % 2 === 0 ? 'transparent' : `${c.bgSubtle}50` }}>
+                        <div>
+                          <div style={{ color: c.text }}>{s.user_name || s.user_email || '—'}</div>
+                          {s.user_name && s.user_email && <div style={{ fontSize: 10, color: c.textMuted }}>{s.user_email}</div>}
+                        </div>
+                        <span style={{ color: c.warning }}>{s.mode || '—'}</span>
+                        <span style={{ color: c.textMuted }}>{s.market || '—'}</span>
+                        <span style={{ color: c.text }}>{Math.floor((s.duration_s || 0) / 60)}m{(s.duration_s || 0) % 60}s</span>
+                        <span style={{ color: s.exit_reason === 'error' ? c.danger : c.textMuted }}>{s.exit_reason || '—'}</span>
+                        <span style={{ color: c.textMuted }}>{fmtShort(s.created_at)}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             )}
 
