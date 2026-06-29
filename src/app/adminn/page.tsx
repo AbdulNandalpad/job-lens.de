@@ -247,7 +247,7 @@ export default function AdminPage() {
                 </div>
 
                 {/* Top users */}
-                {kiraStats.top_users.length > 0 && (
+                {(kiraStats.top_users?.length ?? 0) > 0 && (
                   <div style={{ background: c.bgCard, border: `1px solid ${c.border}`, borderRadius: 12, overflow: 'hidden', marginBottom: 16 }}>
                     <div style={{ fontSize: 11, fontWeight: 700, color: c.textMuted, letterSpacing: 1, textTransform: 'uppercase', padding: '12px 14px 10px', borderBottom: `1px solid ${c.border}` }}>
                       Who used Kira (7d)
@@ -255,7 +255,7 @@ export default function AdminPage() {
                     <div className="kira-uhead" style={{ fontSize: 10, fontWeight: 700, color: c.textMuted, textTransform: 'uppercase', letterSpacing: 0.5 }}>
                       <span>User</span><span>Sessions</span><span></span><span>Last active</span><span></span>
                     </div>
-                    {kiraStats.top_users.map((u, i) => (
+                    {(kiraStats.top_users ?? []).map((u, i) => (
                       <div key={u.user_id} className="kira-urow" style={{ fontSize: 12, background: i % 2 === 0 ? 'transparent' : `${c.bgSubtle}50` }}>
                         <div>
                           <div style={{ fontWeight: 600, color: c.text }}>{u.name || '—'}</div>
@@ -268,7 +268,7 @@ export default function AdminPage() {
                       </div>
                     ))}
                     {/* Mobile cards */}
-                    {kiraStats.top_users.map(u => (
+                    {(kiraStats.top_users ?? []).map(u => (
                       <div key={`mu-${u.user_id}`} className="kira-ucard" style={{ flexDirection: 'column', gap: 4, padding: '12px 14px', borderBottom: `1px solid ${c.border}` }}>
                         <div style={{ fontWeight: 600, color: c.text, fontSize: 13 }}>{u.name || '—'}</div>
                         <div style={{ fontSize: 11, color: c.textMuted }}>{u.email || u.user_id.slice(0, 12) + '…'}</div>
@@ -282,7 +282,7 @@ export default function AdminPage() {
                 )}
 
                 {/* Recent sessions */}
-                {kiraStats.recent.length > 0 && (
+                {(kiraStats.recent?.length ?? 0) > 0 && (
                   <div style={{ background: c.bgCard, border: `1px solid ${c.border}`, borderRadius: 12, overflow: 'hidden' }}>
                     <div style={{ fontSize: 11, fontWeight: 700, color: c.textMuted, letterSpacing: 1, textTransform: 'uppercase', padding: '12px 14px 10px', borderBottom: `1px solid ${c.border}` }}>
                       Recent sessions (last 50)
@@ -290,7 +290,7 @@ export default function AdminPage() {
                     <div className="kira-shead" style={{ fontSize: 10, fontWeight: 700, color: c.textMuted, textTransform: 'uppercase', letterSpacing: 0.5 }}>
                       <span>User</span><span>Mode</span><span>Mkt</span><span>Dur</span><span>Exit</span><span>Date</span>
                     </div>
-                    {kiraStats.recent.map((s, i) => (
+                    {(kiraStats.recent ?? []).map((s, i) => (
                       <div key={i} className="kira-srow" style={{ fontSize: 11, background: i % 2 === 0 ? 'transparent' : `${c.bgSubtle}50` }}>
                         <div>
                           <div style={{ color: c.text }}>{s.user_name || s.user_email || '—'}</div>
