@@ -78,7 +78,7 @@ function CardVisual({ data }: { data: CareerCardData }) {
 
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ display: 'inline-block', padding: '3px 12px', borderRadius: 20, marginBottom: 10, background: `${col}22`, border: `1px solid ${col}55`, color: col, fontSize: 11, fontWeight: 700, letterSpacing: 0.5 }}>{data.readiness}</div>
-          <div style={{ color: '#fff', fontSize: 19, fontWeight: 700, lineHeight: 1.3, marginBottom: 6, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{data.headline}</div>
+          <div style={{ color: '#fff', fontSize: 15, fontWeight: 700, lineHeight: 1.35, marginBottom: 6, overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>{data.headline}</div>
           {salaryStr && (
             <div style={{ color: '#378ADD', fontSize: 13, fontWeight: 700, marginBottom: 10 }}>
               {salaryStr} <span style={{ color: 'rgba(255,255,255,0.4)', fontWeight: 400 }}>est. salary</span>
@@ -262,6 +262,29 @@ async function generatePdf(data: CareerCardData) {
   doc.save(`career-analysis-${data.score}.pdf`)
 }
 
+// Scales the 600px card down to fit the available modal width on any screen size
+function MobileScaledCard({ data }: { data: CareerCardData }) {
+  const ref = useRef<HTMLDivElement>(null)
+  const [scale, setScale] = useState(1)
+  useEffect(() => {
+    function measure() {
+      if (!ref.current) return
+      const available = ref.current.parentElement?.clientWidth ?? 600
+      setScale(Math.min(1, available / 600))
+    }
+    measure()
+    window.addEventListener('resize', measure)
+    return () => window.removeEventListener('resize', measure)
+  }, [])
+  return (
+    <div ref={ref} style={{ borderRadius: 16, overflow: 'hidden', height: 320 * scale }}>
+      <div style={{ transform: `scale(${scale})`, transformOrigin: 'top left', width: 600, height: 320 }}>
+        <CardVisual data={data} />
+      </div>
+    </div>
+  )
+}
+
 export default function CareerCard({ data, accentColor }: { data: CareerCardData; accentColor?: string }) {
   const [show,       setShow]       = useState(false)
   const [pngLoading, setPngLoading] = useState(false)
@@ -306,25 +329,23 @@ export default function CareerCard({ data, accentColor }: { data: CareerCardData
   return (
     <>
       {/* Trigger buttons */}
-      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+      <div style={{ display: 'flex', gap: 6 }}>
         <button onClick={() => setShow(true)} style={{
-          display: 'inline-flex', alignItems: 'center', gap: 6,
-          padding: '9px 18px', borderRadius: 10,
+          padding: '7px 14px', borderRadius: 8,
           background: `${accent}18`, border: `1.5px solid ${accent}44`,
-          color: accent, fontSize: 13, fontWeight: 700,
-          cursor: 'pointer', fontFamily: 'inherit', transition: 'all .15s',
+          color: accent, fontSize: 12, fontWeight: 700,
+          cursor: 'pointer', fontFamily: 'inherit', whiteSpace: 'nowrap',
         }}>
           Share Card
         </button>
         <button onClick={handlePdf} disabled={pdfLoading} style={{
-          display: 'inline-flex', alignItems: 'center', gap: 6,
-          padding: '9px 18px', borderRadius: 10,
+          padding: '7px 14px', borderRadius: 8,
           background: pdfLoading ? 'rgba(0,0,0,0.04)' : `${accent}10`,
           border: `1.5px solid ${pdfLoading ? '#ccc' : accent + '30'}`,
-          color: pdfLoading ? '#aaa' : accent, fontSize: 13, fontWeight: 700,
-          cursor: pdfLoading ? 'not-allowed' : 'pointer', fontFamily: 'inherit',
+          color: pdfLoading ? '#aaa' : accent, fontSize: 12, fontWeight: 700,
+          cursor: pdfLoading ? 'not-allowed' : 'pointer', fontFamily: 'inherit', whiteSpace: 'nowrap',
         }}>
-          {pdfLoading ? 'Generating…' : '↓ Download PDF'}
+          {pdfLoading ? 'Generating…' : '↓ PDF'}
         </button>
       </div>
 
@@ -352,10 +373,8 @@ export default function CareerCard({ data, accentColor }: { data: CareerCardData
               <button onClick={() => setShow(false)} style={{ background: 'rgba(255,255,255,0.08)', border: 'none', borderRadius: 8, color: 'rgba(255,255,255,0.6)', cursor: 'pointer', width: 28, height: 28, fontSize: 14, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>✕</button>
             </div>
 
-            {/* Scrollable preview — visual only, PNG capture uses offscreen ref */}
-            <div style={{ overflowX: 'auto', borderRadius: 16 }}>
-              <CardVisual data={data} />
-            </div>
+            {/* Scaled preview — shrinks to fit on mobile without side-scroll */}
+            <MobileScaledCard data={data} />
 
             <div style={{ display: 'flex', gap: 10, marginTop: 18 }}>
               <button onClick={downloadPng} disabled={pngLoading} style={{
