@@ -228,7 +228,7 @@ export default function VisaPageIndia() {
     if (!canSubmit) return
     setLoading(true); setError('')
     try {
-      const res  = await fetch('/api/visa', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ...form, market: 'in' }) })
+      const res  = await fetch('/api/visa', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(form) })
       const data = await res.json()
       if (!res.ok) { setError(data.error || 'Something went wrong'); setLoading(false); return }
       setResult(data)
