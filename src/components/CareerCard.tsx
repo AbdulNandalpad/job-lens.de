@@ -33,7 +33,7 @@ function CardVisual({ data }: { data: CareerCardData }) {
   const col = scoreColor(data.score)
   const top3 = data.strengths.slice(0, 3)
   const salaryStr = data.salaryMin && data.salaryMax
-    ? `${fmtSalary(data.salaryMin, data.salaryCurrency, data.market)} – ${fmtSalary(data.salaryMax, data.salaryCurrency, data.market)}`
+    ? `${fmtSalary(data.salaryMin, data.salaryCurrency ?? '', data.market)} – ${fmtSalary(data.salaryMax, data.salaryCurrency ?? '', data.market)}`
     : null
   const flagLabel = data.market === 'in' ? 'India' : 'DACH'
   const circ = 2 * Math.PI * 38
@@ -146,7 +146,7 @@ async function generatePdf(data: CareerCardData) {
   y += 26
 
   const salaryStr = data.salaryMin && data.salaryMax
-    ? `Estimated salary: ${fmtSalary(data.salaryMin, data.salaryCurrency, data.market)} – ${fmtSalary(data.salaryMax, data.salaryCurrency, data.market)}`
+    ? `Estimated salary: ${fmtSalary(data.salaryMin, data.salaryCurrency ?? '', data.market)} – ${fmtSalary(data.salaryMax, data.salaryCurrency ?? '', data.market)}`
     : null
   if (salaryStr) {
     doc.setFontSize(10)
