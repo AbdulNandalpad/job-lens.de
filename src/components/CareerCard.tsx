@@ -128,8 +128,8 @@ async function generatePdf(data: CareerCardData) {
   y = 38
 
   // Score badge
-  const col = data.score >= 80 ? ([29, 158, 117] as const) : data.score >= 60 ? ([217, 119, 6] as const) : ([220, 38, 38] as const)
-  doc.setFillColor(...col)
+  const col: [number, number, number] = data.score >= 80 ? [29, 158, 117] : data.score >= 60 ? [217, 119, 6] : [220, 38, 38]
+  doc.setFillColor(col[0], col[1], col[2])
   doc.roundedRect(14, y, 36, 18, 3, 3, 'F')
   doc.setTextColor(255, 255, 255)
   doc.setFontSize(20)
