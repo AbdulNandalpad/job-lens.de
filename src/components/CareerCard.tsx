@@ -46,8 +46,9 @@ function CardVisual({ data }: { data: CareerCardData }) {
       borderRadius: 20, padding: '32px 36px',
       display: 'flex', flexDirection: 'column', justifyContent: 'space-between',
       position: 'relative', overflow: 'hidden',
-      fontFamily: 'system-ui, -apple-system, sans-serif', boxSizing: 'border-box',
+      fontFamily: "'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif", boxSizing: 'border-box',
     }}>
+      <style>{`.jl-cc-hl{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;word-break:break-word;}`}</style>
       <div style={{ position: 'absolute', top: -60, right: -60, width: 260, height: 260, borderRadius: '50%', background: `radial-gradient(ellipse, ${col}18 0%, transparent 70%)`, pointerEvents: 'none' }} />
 
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -78,7 +79,7 @@ function CardVisual({ data }: { data: CareerCardData }) {
 
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ display: 'inline-block', padding: '3px 12px', borderRadius: 20, marginBottom: 10, background: `${col}22`, border: `1px solid ${col}55`, color: col, fontSize: 11, fontWeight: 700, letterSpacing: 0.5 }}>{data.readiness}</div>
-          <div style={{ color: '#fff', fontSize: 15, fontWeight: 700, lineHeight: 1.35, marginBottom: 6, overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>{data.headline}</div>
+          <div className="jl-cc-hl" style={{ color: '#fff', fontSize: 14, fontWeight: 700, lineHeight: 1.35, marginBottom: 6 }}>{data.headline}</div>
           {salaryStr && (
             <div style={{ color: '#378ADD', fontSize: 13, fontWeight: 700, marginBottom: 10 }}>
               {salaryStr} <span style={{ color: 'rgba(255,255,255,0.4)', fontWeight: 400 }}>est. salary</span>
