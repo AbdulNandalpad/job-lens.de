@@ -32,6 +32,7 @@ function fmtSalary(n: number, currency: string, market: 'eu' | 'in') {
 function CardVisual({ data }: { data: CareerCardData }) {
   const col = scoreColor(data.score)
   const top3 = data.strengths.slice(0, 3)
+  const headline = data.headline.length > 60 ? data.headline.slice(0, 57) + '…' : data.headline
   const salaryStr = data.salaryMin && data.salaryMax
     ? `${fmtSalary(data.salaryMin, data.salaryCurrency ?? '', data.market)} – ${fmtSalary(data.salaryMax, data.salaryCurrency ?? '', data.market)}`
     : null
@@ -79,7 +80,7 @@ function CardVisual({ data }: { data: CareerCardData }) {
 
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ display: 'inline-block', padding: '3px 12px', borderRadius: 20, marginBottom: 10, background: `${col}22`, border: `1px solid ${col}55`, color: col, fontSize: 11, fontWeight: 700, letterSpacing: 0.5 }}>{data.readiness}</div>
-          <div className="jl-cc-hl" style={{ color: '#fff', fontSize: 14, fontWeight: 700, lineHeight: 1.35, marginBottom: 6 }}>{data.headline}</div>
+          <div className="jl-cc-hl" style={{ color: '#fff', fontSize: 14, fontWeight: 700, lineHeight: 1.35, marginBottom: 6 }}>{headline}</div>
           {salaryStr && (
             <div style={{ color: '#378ADD', fontSize: 13, fontWeight: 700, marginBottom: 10 }}>
               {salaryStr} <span style={{ color: 'rgba(255,255,255,0.4)', fontWeight: 400 }}>est. salary</span>
