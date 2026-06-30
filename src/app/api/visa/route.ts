@@ -12,6 +12,7 @@ export async function POST(req: NextRequest) {
 
   const raw = await req.json()
   // Sanitise every field — never inject unsanitised client input into an LLM prompt
+  const market = raw.market === MARKET.in ? MARKET.in : MARKET.eu
   const body = {
     citizenship:          typeof raw.citizenship          === 'string' ? raw.citizenship.slice(0, 100)          : '',
     isEU:                 Boolean(raw.isEU),
@@ -27,7 +28,7 @@ export async function POST(req: NextRequest) {
     age:                  typeof raw.age                  === 'string' ? raw.age.slice(0, 10)                   : '',
   }
   const credits = await checkAndDeductCredits(
-    user.id, CREDIT_COST.visaCheck, 'visa_check', user.email ?? '', MARKET.eu
+    user.id, CREDIT_COST.visaCheck, 'visa_check', user.email ?? '', market
   )
   if (!credits.ok) {
     return NextResponse.json({ error: 'Insufficient credits', credits: credits.remaining, required: CREDIT_COST.visaCheck }, { status: 402 })
