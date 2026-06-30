@@ -125,9 +125,9 @@ export async function checkAndDeductCredits(
 
   if (error) {
     console.error('check_and_deduct_credits RPC failed:', error.message)
-    return { ok: false, remaining: 0 }
+    return { ok: false, remaining: 0, dbError: error.message }
   }
 
   const result = data as { ok: boolean; remaining: number; usedCrossMarket?: boolean; reason?: string }
-  return { ok: result.ok, remaining: result.remaining, usedCrossMarket: result.usedCrossMarket }
+  return { ok: result.ok, remaining: result.remaining, usedCrossMarket: result.usedCrossMarket, reason: result.reason }
 }
