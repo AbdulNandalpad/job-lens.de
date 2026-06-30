@@ -108,6 +108,9 @@ export default function CareerScanPage() {
       sessionStorage.setItem(SS.scanResult, JSON.stringify(result))
       sessionStorage.setItem(SS.scanRole, role)
       sessionStorage.setItem(SS.scanPhase, 'results')
+      // Persist CV text and target role for downstream pages (cv-builder, jobs)
+      if (cvText) sessionStorage.setItem(SS.cvText, cvText)
+      if (role)   sessionStorage.setItem(SS.targetRole, role)
     }
   }, [phase, result])
 
@@ -194,7 +197,8 @@ export default function CareerScanPage() {
   }
 
   function goToJobSearch() {
-    router.push('/app/jobs')
+    const params = role.trim() ? `?q=${encodeURIComponent(role.trim())}` : ''
+    router.push(`/app/jobs${params}`)
   }
 
   function showToast(msg: string) { setToastMsg(msg); setTimeout(() => setToastMsg(''), 2500) }
