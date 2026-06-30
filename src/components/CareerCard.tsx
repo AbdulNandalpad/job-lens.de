@@ -7,9 +7,9 @@ export interface CareerCardData {
   readiness: string
   headline: string
   strengths: string[]
-  salaryMin: number
-  salaryMax: number
-  salaryCurrency: string
+  salaryMin?: number
+  salaryMax?: number
+  salaryCurrency?: string
   market: 'eu' | 'in'
   targetRole?: string
   // full analysis — optional, used for PDF download

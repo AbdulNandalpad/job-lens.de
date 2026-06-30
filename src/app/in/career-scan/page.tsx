@@ -6,6 +6,7 @@ import { useCredits } from '@/lib/useCredits'
 import CrossMarketModal from '@/components/CrossMarketModal'
 import { CREDIT_COST, MARKET, SS, API } from '@/lib/constants'
 import SvgIcon from '@/components/SvgIcon'
+import CareerCard from '@/components/CareerCard'
 
 const orange = '#ff9933'
 const navy = '#042C53'
@@ -417,6 +418,17 @@ export default function IndiaCareerScanPage() {
                       </button>
                     </div>
                   </div>
+
+                  {/* Career Card — share PNG + download PDF */}
+                  <CareerCard data={{
+                    score: result.ats_score,
+                    readiness: result.readiness,
+                    headline: result.headline,
+                    strengths: result.matched_keywords.slice(0, 3),
+                    market: 'in',
+                    gaps: result.section_gaps,
+                    quick_wins: result.quick_fixes,
+                  }} />
 
                   {/* Tabs */}
                   <div style={{ display: 'flex', gap: 8 }}>
