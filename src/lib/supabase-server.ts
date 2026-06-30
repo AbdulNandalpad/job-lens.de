@@ -105,7 +105,7 @@ export async function checkAndDeductCredits(
   action: string,
   userEmail?: string,
   market: 'eu' | 'in' = 'eu'
-): Promise<{ ok: boolean; remaining: number; usedCrossMarket?: boolean }> {
+): Promise<{ ok: boolean; remaining: number; usedCrossMarket?: boolean; dbError?: string; reason?: string }> {
   const adminEmails = (process.env.ADMIN_EMAILS || '').split(',').map(e => e.trim().toLowerCase())
   if (userEmail && adminEmails.includes(userEmail.toLowerCase())) {
     return { ok: true, remaining: 9999 }
