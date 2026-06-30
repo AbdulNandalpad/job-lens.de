@@ -14,6 +14,7 @@ export const CREDIT_COST = {
   interviewCoach:  1,  // /api/interview/coaching — unlock Kira full interview coaching
   salarySim:       1,  // /api/salary-sim — start a salary negotiation session
   liveVoice:       3,  // /api/ai/voice-session — deducted on connect, 5-min session
+  jobCase:         6,  // /api/job-case/create — mirrors JOB_CASE.creditCost
 } as const
 
 // ── Live voice (Realtime API) session limit, in seconds ──────────────────────

@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase'
-import { MARKET, API } from '@/lib/constants'
+import { MARKET, API, CREDIT_COST, AI_CHAT_FREE_MESSAGES } from '@/lib/constants'
 import SvgIcon, { getIcon } from '@/components/SvgIcon'
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -278,14 +278,26 @@ export default function IndiaAccountPage() {
                   <div style={{ fontSize: 12, fontWeight: 700, color: '#94a3b8', letterSpacing: .4, textTransform: 'uppercase', marginBottom: 10 }}>What Each Action Costs</div>
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 6 }}>
                     {[
-                      { label: 'ATS Scan', cost: 2 },
-                      { label: 'CV Tailoring', cost: 1 },
-                      { label: 'Cover Letter', cost: 1 },
-                      { label: 'Auto Apply', cost: 3 },
+                      { label: 'ATS Scan',          cost: CREDIT_COST.careerScan,    free: false },
+                      { label: 'CV Tailoring',       cost: CREDIT_COST.tailorCv,      free: false },
+                      { label: 'Cover Letter',       cost: CREDIT_COST.coverLetter,   free: false },
+                      { label: 'Auto Apply',         cost: CREDIT_COST.autoApply,     free: false },
+                      { label: 'Interview Prep',     cost: CREDIT_COST.interviewPrep, free: false },
+                      { label: 'Salary Simulator',   cost: CREDIT_COST.salarySim,     free: false },
+                      { label: 'Work Visa Check',    cost: CREDIT_COST.visaCheck,     free: false },
+                      { label: 'Job Case',           cost: CREDIT_COST.jobCase,       free: false },
+                      { label: `Kira Chat / ${AI_CHAT_FREE_MESSAGES} msgs`, cost: CREDIT_COST.aiChat, free: false },
+                      { label: 'Kira Live Voice',    cost: CREDIT_COST.liveVoice,     free: false },
+                      { label: 'Job Search',         cost: 0,                         free: true  },
+                      { label: 'PDF / CV Extract',   cost: 0,                         free: true  },
+                      { label: 'Skill Gap Analysis', cost: 0,                         free: true  },
                     ].map(item => (
                       <div key={item.label} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 12px', background: '#f8fafc', borderRadius: 8, border: '1px solid #edf1f6' }}>
                         <span style={{ fontSize: 12, color: '#374151' }}>{item.label}</span>
-                        <span style={{ fontSize: 13, fontWeight: 700, color: orange }}>{item.cost} cr</span>
+                        {item.free
+                          ? <span style={{ fontSize: 11, fontWeight: 700, color: green }}>Free</span>
+                          : <span style={{ fontSize: 13, fontWeight: 700, color: orange }}>{item.cost} cr</span>
+                        }
                       </div>
                     ))}
                   </div>

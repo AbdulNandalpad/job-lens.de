@@ -173,14 +173,22 @@ export default function AccountPage() {
               {/* Cost table */}
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 6, marginBottom: 20 }}>
                 {[
-                  { label: t.account.costTable.careerScan, cost: '2 credits' },
-                  { label: t.account.costTable.cvTailoring, cost: '1 credit' },
-                  { label: t.account.costTable.coverLetter, cost: '1 credit' },
-                  { label: t.account.costTable.autoApply, cost: '3 credits' },
+                  { label: t.account.costTable.careerScan, cost: `${CREDIT_COST.careerScan} cr` },
+                  { label: t.account.costTable.cvTailoring, cost: `${CREDIT_COST.tailorCv} cr` },
+                  { label: t.account.costTable.coverLetter, cost: `${CREDIT_COST.coverLetter} cr` },
+                  { label: t.account.costTable.autoApply, cost: `${CREDIT_COST.autoApply} cr` },
+                  { label: 'Interview Prep', cost: `${CREDIT_COST.interviewPrep} cr` },
+                  { label: 'Salary Simulator', cost: `${CREDIT_COST.salarySim} cr` },
+                  { label: 'Zeugnis Decoder', cost: `${CREDIT_COST.zeugnisDecoder} cr` },
+                  { label: 'Job Case', cost: `${CREDIT_COST.jobCase} cr` },
+                  { label: `Kira Chat / ${AI_CHAT_FREE_MESSAGES} msgs`, cost: `${CREDIT_COST.aiChat} cr` },
+                  { label: 'Kira Live Voice', cost: `${CREDIT_COST.liveVoice} cr / 5 min` },
+                  { label: 'Job Search', cost: 'Free' },
+                  { label: 'PDF / CV Extract', cost: 'Free' },
                 ].map(item => (
                   <div key={item.label} style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 10px', background: c.bgSubtle, borderRadius: 7, border: `1px solid ${c.border}` }}>
                     <span style={{ fontSize: 12, color: c.textMuted }}>{item.label}</span>
-                    <span style={{ fontSize: 12, fontWeight: 600, color: c.primary }}>{item.cost}</span>
+                    <span style={{ fontSize: 12, fontWeight: 600, color: item.cost === 'Free' ? c.success : c.primary }}>{item.cost}</span>
                   </div>
                 ))}
               </div>
@@ -226,15 +234,19 @@ export default function AccountPage() {
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: '10px 16px', alignItems: 'center' }}>
                 {[
-                  { name: 'Career Scan',             cost: 2,    note: 'Full AI analysis' },
-                  { name: 'CV Tailoring',            cost: 1,    note: 'Per job application' },
-                  { name: 'Cover Letter',            cost: 1,    note: 'Per job application' },
-                  { name: 'Interview Prep',          cost: 1,    note: '5 questions + feedback' },
-                  { name: 'Salary Simulator',        cost: 1,    note: 'Full session + debrief' },
-                  { name: 'Zeugnis Decoder',         cost: 1,    note: 'DACH only' },
-                  { name: 'Kira AI Chat',            cost: 1,    note: `Per ${AI_CHAT_FREE_MESSAGES} messages` },
-                  { name: 'Auto Apply',              cost: 5,    note: 'Coming soon · Premium' },
-                  { name: 'Job Search',              cost: 0,    note: 'Always free' },
+                  { name: 'Career Scan',        cost: CREDIT_COST.careerScan,    note: 'Full AI analysis' },
+                  { name: 'CV Tailoring',       cost: CREDIT_COST.tailorCv,      note: 'Per job application' },
+                  { name: 'Cover Letter',       cost: CREDIT_COST.coverLetter,   note: 'Per job application' },
+                  { name: 'Interview Prep',     cost: CREDIT_COST.interviewPrep, note: '5 questions + feedback' },
+                  { name: 'Salary Simulator',   cost: CREDIT_COST.salarySim,     note: 'Full session + debrief' },
+                  { name: 'Auto Apply',         cost: CREDIT_COST.autoApply,     note: 'Per job form analysis' },
+                  { name: 'Job Case',           cost: CREDIT_COST.jobCase,       note: 'Create verified application' },
+                  { name: 'Zeugnis Decoder',    cost: CREDIT_COST.zeugnisDecoder,note: 'DACH only' },
+                  { name: 'Kira AI Chat',       cost: CREDIT_COST.aiChat,        note: `Per ${AI_CHAT_FREE_MESSAGES} messages (first ${AI_CHAT_FREE_MESSAGES} free)` },
+                  { name: 'Kira Live Voice',    cost: CREDIT_COST.liveVoice,     note: '5-min voice session' },
+                  { name: 'Job Search',         cost: 0,                         note: 'Always free' },
+                  { name: 'PDF / CV Extract',   cost: 0,                         note: 'Always free' },
+                  { name: 'Skill Gap Analysis', cost: 0,                         note: 'Always free' },
                 ].map(feat => (
                   <React.Fragment key={feat.name}>
                     <div>
