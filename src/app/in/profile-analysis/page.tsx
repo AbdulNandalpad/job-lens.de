@@ -337,6 +337,11 @@ export default function ProfileAnalysisPage() {
                       salaryMax: result.salary_max,
                       salaryCurrency: result.salary_currency,
                       market: 'in',
+                      summary: result.summary,
+                      gaps: result.gaps,
+                      quick_wins: result.quick_wins,
+                      market_insight: result.market_insight,
+                      career_path_steps: result.career_path_steps,
                     }} />
                   </div>
 

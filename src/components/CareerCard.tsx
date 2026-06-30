@@ -25,8 +25,8 @@ function scoreColor(s: number) {
 }
 
 function fmtSalary(n: number, currency: string, market: 'eu' | 'in') {
-  if (market === 'in') return `${currency}${Math.round(n / 100000)}L`
-  return `${currency}${Math.round(n / 1000)}k`
+  if (market === 'in') return `${currency}${n}L`   // API returns value already in lakhs (e.g. 12 = ₹12L)
+  return `${currency}${Math.round(n / 1000)}k`      // DACH returns full EUR (e.g. 70000 = €70k)
 }
 
 function CardVisual({ data }: { data: CareerCardData }) {
