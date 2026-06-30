@@ -66,7 +66,7 @@ function CardVisual({ data }: { data: CareerCardData }) {
         <span style={{ fontSize: 11, fontWeight: 700, padding: '4px 12px', borderRadius: 20, background: 'rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.7)', letterSpacing: 0.5 }}>{flagLabel}</span>
       </div>
 
-      <div style={{ display: 'flex', alignItems: 'center', gap: 32 }}>
+      <div style={{ display: 'flex', alignItems: 'flex-start', gap: 32 }}>
         <div style={{ position: 'relative', flexShrink: 0 }}>
           <svg width="96" height="96" style={{ transform: 'rotate(-90deg)' }}>
             <circle cx="48" cy="48" r="38" fill="none" stroke="rgba(255,255,255,0.1)" strokeWidth="7"/>
