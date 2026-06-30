@@ -430,6 +430,11 @@ export default function CareerScanPage() {
             salaryMax: result.salary_max,
             salaryCurrency: result.salary_currency,
             market: 'eu',
+            summary: result.summary,
+            gaps: result.gaps,
+            quick_wins: result.quick_wins,
+            market_insight: result.market_insight,
+            career_path_steps: result.career_path_steps,
           }} />
         </div>
         <div style={{ display: 'flex', background: c.bg, borderRadius: 10, padding: 3, gap: 2 }}>
