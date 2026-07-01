@@ -598,9 +598,9 @@ export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
     wsBase: string,
     kiraCtx: { name: string | null; memoryBlock: string },
     cvText: string,
-    wsToken: string,
-    ts: number,
-    uid: string,
+    wsToken = '',
+    ts = 0,
+    uid = '',
   ) {
     const MAX_RETRIES = 3
     const ws = new WebSocket(
