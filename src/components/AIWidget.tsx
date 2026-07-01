@@ -690,7 +690,7 @@ export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
         realtimeNextTimeRef.current = 0
         setRealtimeState('connecting')
         realtimeRetryTRef.current = setTimeout(() => {
-          if (realtimeModeRef.current) connectRealtimeWs(wsBase, kiraCtx, cvText)
+          if (realtimeModeRef.current) connectRealtimeWs(wsBase, kiraCtx, cvText, wsToken, ts, uid)
         }, delay)
       } else {
         const reason = cleanClose ? 'session ended' : `after ${MAX_RETRIES} attempts`
