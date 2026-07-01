@@ -722,6 +722,7 @@ export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
     realtimeNextTimeRef.current = 0
     if (rtCtx.state === 'suspended') await rtCtx.resume()
 
+    let wsToken = '', ts = 0, uid = ''
     setRealtimeConnecting(true)
     try {
       const res = await fetch(API.aiVoiceSession, {
@@ -738,7 +739,9 @@ export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
       }
       if (!res.ok) throw new Error('voice-session failed')
       const sessionData = await res.json().catch(() => ({}))
-      const { wsToken = '', ts = 0, uid = '' } = sessionData
+      wsToken = sessionData.wsToken ?? ''
+      ts      = sessionData.ts      ?? 0
+      uid     = sessionData.uid     ?? ''
     } catch {
       setRealtimeConnecting(false)
       setMsgs(prev => [...prev, { role: 'assistant', content: lang === 'DE'
