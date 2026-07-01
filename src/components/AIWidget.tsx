@@ -311,7 +311,6 @@ export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
 
   // ── Mode state ───────────────────────────────────────────────────────────
   const [kiraMode,      setKiraMode]      = useState('')
-  const [isMobile,      setIsMobile]      = useState(false)
   const [mounted,       setMounted]       = useState(false)
 
   // ── Interview coaching state ─────────────────────────────────────────────
@@ -359,7 +358,6 @@ export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
 
   // ── Init: CV, saved messages, user name ─────────────────────────────────
   useEffect(() => {
-    setIsMobile(window.innerWidth <= 768 || /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent))
     setMounted(true)
     refreshInterviewCtx()
 
