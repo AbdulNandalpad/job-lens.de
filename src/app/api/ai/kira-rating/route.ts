@@ -34,6 +34,8 @@ export async function POST(req: NextRequest) {
     }
 
     // Email admins on thumbs down
+    const escHtml = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
+
     if (rating === -1 && resend && ADMIN_EMAILS.length) {
       const { data: session } = await admin
         .from('kira_sessions')
@@ -51,7 +53,7 @@ export async function POST(req: NextRequest) {
     <tr><td style="padding:5px 0;color:#6b7c93">Mode</td><td style="padding:5px 0">${session?.mode ?? '—'}</td></tr>
     <tr><td style="padding:5px 0;color:#6b7c93">Duration</td><td style="padding:5px 0">${session?.duration_s ?? 0}s</td></tr>
     <tr><td style="padding:5px 0;color:#6b7c93">Exit reason</td><td style="padding:5px 0">${session?.exit_reason ?? '—'}</td></tr>
-    ${comment ? `<tr><td style="padding:5px 0;color:#6b7c93">Comment</td><td style="padding:5px 0">${comment}</td></tr>` : ''}
+    ${comment ? `<tr><td style="padding:5px 0;color:#6b7c93">Comment</td><td style="padding:5px 0">${escHtml(comment)}</td></tr>` : ''}
   </table>
   <p style="font-size:11px;color:#94a3b8;margin:0">${new Date().toISOString()}</p>
 </div>`

@@ -598,10 +598,14 @@ export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
     wsBase: string,
     kiraCtx: { name: string | null; memoryBlock: string },
     cvText: string,
+    wsToken: string,
+    ts: number,
+    uid: string,
   ) {
     const MAX_RETRIES = 3
-    const secret = process.env.NEXT_PUBLIC_RAILWAY_SECRET || ''
-    const ws = new WebSocket(`${wsBase}?secret=${encodeURIComponent(secret)}&market=${market}&mode=${encodeURIComponent(kiraMode)}`)
+    const ws = new WebSocket(
+      `${wsBase}?token=${encodeURIComponent(wsToken)}&ts=${ts}&uid=${encodeURIComponent(uid)}&market=${market}&mode=${encodeURIComponent(kiraMode)}`
+    )
     realtimeWsRef.current = ws
 
     ws.onopen = async () => {
@@ -733,6 +737,8 @@ export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
         return
       }
       if (!res.ok) throw new Error('voice-session failed')
+      const sessionData = await res.json().catch(() => ({}))
+      const { wsToken = '', ts = 0, uid = '' } = sessionData
     } catch {
       setRealtimeConnecting(false)
       setMsgs(prev => [...prev, { role: 'assistant', content: lang === 'DE'
@@ -757,7 +763,7 @@ export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
     setRealtimeState('connecting')
     setRealtimeSecsLeft(LIVE_VOICE_MAX_SECONDS)
 
-    connectRealtimeWs(wsBase, kiraCtx, cvText)
+    connectRealtimeWs(wsBase, kiraCtx, cvText, wsToken, ts, uid)
   }
 
   function exitRealtimeMode(exitReason = 'user') {
