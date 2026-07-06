@@ -293,7 +293,6 @@ function buildSessionUpdate(instructions) {
     type: 'session.update',
     session: {
       type:         'realtime',
-      modalities:   ['audio'],
       instructions,
       audio: {
         input: {
