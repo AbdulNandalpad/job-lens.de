@@ -1,10 +1,12 @@
 /**
- * POC: Workday login → extract session cookies
+ * POC: Workday login -> extract session cookies
  *
- * Usage:
- *   WD_EMAIL=you@email.com WD_PASS='YourPass' WD_URL='https://...' node poc-workday-cookies.js
+ * Usage (cmd):
+ *   set WD_EMAIL=you@email.com
+ *   set WD_PASS=yourpassword
+ *   node poc-workday-cookies.js
  *
- * Output: workday-session.json  (cookies + localStorage — load with storageState)
+ * Output: workday-session.json
  */
 
 const { chromium } = require('playwright')
@@ -21,62 +23,133 @@ if (!EMAIL || !PASS) {
 }
 
 ;(async () => {
-  const browser = await chromium.launch({ headless: false, slowMo: 100 })
+  const browser = await chromium.launch({ headless: false, slowMo: 200 })
   const context = await browser.newContext()
   const page    = await context.newPage()
 
-  console.log('Opening job page…')
+  console.log('Opening job page...')
   await page.goto(JOB_URL, { waitUntil: 'domcontentloaded' })
+  await page.waitForTimeout(3000)
 
-  // Look for "Sign In" link — Workday shows this before the apply form
-  try {
-    const signIn = page.locator('text=Sign In').first()
-    if (await signIn.isVisible({ timeout: 5000 })) {
-      console.log('Clicking Sign In…')
-      await signIn.click()
-      await page.waitForLoadState('networkidle')
-    }
-  } catch { /* already on login page */ }
+  // Workday shows "Create Account" page with a "Sign In" link at the top
+  // We need to click "Sign In" to get to the login form
+  console.log('Looking for Sign In link...')
+  const signInSelectors = [
+    'a:has-text("Sign In")',
+    'button:has-text("Sign In")',
+    '[data-automation-id="signIn"]',
+    'a[href*="login"]',
+    'text=Already have an account',
+  ]
+
+  let clicked = false
+  for (const sel of signInSelectors) {
+    try {
+      const el = page.locator(sel).first()
+      if (await el.isVisible({ timeout: 2000 })) {
+        console.log(`Clicking: ${sel}`)
+        await el.click()
+        await page.waitForLoadState('networkidle')
+        await page.waitForTimeout(2000)
+        clicked = true
+        break
+      }
+    } catch {}
+  }
+
+  if (!clicked) {
+    console.log('No Sign In link found — may already be on login form')
+  }
 
   // Fill email
-  console.log('Filling credentials…')
-  await page.fill('input[type="email"], input[autocomplete="username"], input[name*="email" i]', EMAIL)
+  console.log('Filling email...')
+  const emailSelectors = [
+    '[data-automation-id="email"]',
+    'input[type="email"]',
+    'input[autocomplete="username"]',
+    'input[name*="email" i]',
+    'input[placeholder*="email" i]',
+  ]
 
-  // Some Workday instances have a "Next" step before password
+  for (const sel of emailSelectors) {
+    try {
+      const el = page.locator(sel).first()
+      if (await el.isVisible({ timeout: 2000 })) {
+        await el.fill(EMAIL)
+        console.log(`Email filled via: ${sel}`)
+        break
+      }
+    } catch {}
+  }
+
+  // Some Workday flows: email -> Next -> password
   try {
-    const next = page.locator('button:has-text("Next"), button:has-text("Continue")').first()
-    if (await next.isVisible({ timeout: 3000 })) {
+    const next = page.locator('[data-automation-id="continue"], button:has-text("Next"), button:has-text("Continue")').first()
+    if (await next.isVisible({ timeout: 2000 })) {
+      console.log('Clicking Next...')
       await next.click()
-      await page.waitForTimeout(1500)
+      await page.waitForTimeout(2000)
     }
-  } catch { /* single-page login */ }
+  } catch {}
 
   // Fill password
-  await page.fill('input[type="password"]', PASS)
+  console.log('Filling password...')
+  const passSelectors = [
+    '[data-automation-id="password"]',
+    'input[type="password"]',
+    'input[name*="password" i]',
+  ]
 
-  // Submit
-  const submit = page.locator('button[type="submit"], button:has-text("Sign In"), button:has-text("Log In")').first()
-  await submit.click()
+  for (const sel of passSelectors) {
+    try {
+      const el = page.locator(sel).first()
+      if (await el.isVisible({ timeout: 2000 })) {
+        await el.fill(PASS)
+        console.log(`Password filled via: ${sel}`)
+        break
+      }
+    } catch {}
+  }
 
-  console.log('Waiting for post-login state…')
+  // Submit login
+  console.log('Submitting...')
+  const submitSelectors = [
+    '[data-automation-id="click_filter"]',
+    '[data-automation-id="signIn"]',
+    'button[type="submit"]',
+    'button:has-text("Sign In")',
+    'button:has-text("Log In")',
+  ]
+
+  for (const sel of submitSelectors) {
+    try {
+      const el = page.locator(sel).first()
+      if (await el.isVisible({ timeout: 2000 })) {
+        console.log(`Submitting via: ${sel}`)
+        await el.click()
+        break
+      }
+    } catch {}
+  }
+
+  console.log('Waiting for post-login...')
   await page.waitForLoadState('networkidle', { timeout: 30000 })
-  await page.waitForTimeout(2000)
+  await page.waitForTimeout(3000)
 
-  // Dump cookies + storage state
+  console.log('Current URL:', page.url())
+
+  // Save session
   const storageState = await context.storageState()
   const outPath = path.join(__dirname, 'workday-session.json')
   fs.writeFileSync(outPath, JSON.stringify(storageState, null, 2))
   console.log(`\nSession saved to: ${outPath}`)
 
-  // Print cookies summary (no values in console — just names + domains)
   console.log('\nCookies captured:')
   storageState.cookies.forEach(c => {
-    console.log(`  ${c.name.padEnd(35)} domain=${c.domain}  httpOnly=${c.httpOnly}  secure=${c.secure}`)
+    console.log(`  ${c.name.padEnd(40)} domain=${c.domain}`)
   })
 
-  console.log('\nFull session (with values) is in workday-session.json — do not commit this file.')
-  console.log('\nBrowser stays open for 30s so you can inspect the page state…')
-  await page.waitForTimeout(30000)
-
+  console.log('\nBrowser stays open for 60s — inspect the page to confirm login worked.')
+  await page.waitForTimeout(60000)
   await browser.close()
 })()
