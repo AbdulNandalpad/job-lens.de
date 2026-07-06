@@ -293,7 +293,6 @@ function buildSessionUpdate(instructions) {
     type: 'session.update',
     session: {
       type:         'realtime',
-      modalities:   ['audio', 'text'],
       instructions,
       voice:        'alloy',
       input_audio_format:  'pcm16',
