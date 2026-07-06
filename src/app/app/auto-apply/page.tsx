@@ -802,17 +802,37 @@ export default function AutoApplyPage() {
                   </div>
 
                   {phase === 'review' && (
-                    <div style={{ display: 'flex', gap: 12 }}>
-                      <button className="aa-btn-primary" style={{ flex: 1 }} onClick={handleExecute}>
-                        {lang === 'DE' ? 'Formular ausfüllen (zuerst Vorschau) →' : 'Fill Form (Preview First) →'}
-                      </button>
-                      <a
-                        href={jobUrl} target="_blank" rel="noopener noreferrer"
-                        style={{ flex: '0 0 auto', padding: '11px 20px', borderRadius: 9, background: c.bgCard, color: c.primary, border: `1.5px solid ${c.primary}`, textDecoration: 'none', fontFamily: f.heading, fontSize: 13, fontWeight: 700 }}
-                      >
-                        {lang === 'DE' ? 'Manuell öffnen' : 'Open manually'}
-                      </a>
-                    </div>
+                    mapping.some(m => m.field.type === 'password') ? (
+                      <div style={{ background: '#fef2f2', border: '1px solid #fca5a5', borderRadius: 10, padding: '14px 16px' }}>
+                        <div style={{ fontSize: 13, fontWeight: 700, color: '#b91c1c', marginBottom: 6 }}>
+                          🚫 {lang === 'DE' ? 'Das ist kein Bewerbungsformular' : 'This is not a job application form'}
+                        </div>
+                        <div style={{ fontSize: 12, color: '#7f1d1d', lineHeight: 1.6, marginBottom: 10 }}>
+                          {lang === 'DE'
+                            ? 'Die Seite enthält Passwortfelder — es handelt sich um ein Login- oder Registrierungsformular. Logge dich auf der Unternehmenswebsite ein, navigiere zum eigentlichen Bewerbungsformular und kopiere diese URL.'
+                            : 'This page has password fields — it\'s a login or registration form, not a job application. Log into the company portal in your browser, find the actual application form, then paste that URL here.'}
+                        </div>
+                        <button
+                          className="aa-btn-outline"
+                          style={{ width: '100%' }}
+                          onClick={() => { setPhase('idle'); setAnalyzeResult(null); setMapping([]); setError('') }}
+                        >
+                          {lang === 'DE' ? '← Andere URL eingeben' : '← Enter a different URL'}
+                        </button>
+                      </div>
+                    ) : (
+                      <div style={{ display: 'flex', gap: 12 }}>
+                        <button className="aa-btn-primary" style={{ flex: 1 }} onClick={handleExecute}>
+                          {lang === 'DE' ? 'Formular ausfüllen (zuerst Vorschau) →' : 'Fill Form (Preview First) →'}
+                        </button>
+                        <a
+                          href={jobUrl} target="_blank" rel="noopener noreferrer"
+                          style={{ flex: '0 0 auto', padding: '11px 20px', borderRadius: 9, background: c.bgCard, color: c.primary, border: `1.5px solid ${c.primary}`, textDecoration: 'none', fontFamily: f.heading, fontSize: 13, fontWeight: 700 }}
+                        >
+                          {lang === 'DE' ? 'Manuell öffnen' : 'Open manually'}
+                        </a>
+                      </div>
+                    )
                   )}
 
                   {phase === 'done' && (
