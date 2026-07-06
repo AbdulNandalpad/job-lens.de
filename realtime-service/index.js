@@ -311,11 +311,10 @@ function buildSessionUpdate(instructions) {
           voice:  'alloy',
         },
       },
-      tools:              TOOLS,
-      tool_choice:        'auto',
-      temperature:        0.8,
-      max_output_tokens:  'inf',
-      truncation:         'auto',
+      tools:             TOOLS,
+      tool_choice:       'auto',
+      max_output_tokens: 'inf',
+      truncation:        'auto',
     },
   })
 }
