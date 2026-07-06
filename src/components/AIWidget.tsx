@@ -1053,7 +1053,7 @@ export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
                 <circle cx="12" cy="16" r=".5" fill="rgba(255,255,255,.25)" stroke="none"/>
               </svg>
               <div style={{ color: 'rgba(255,255,255,.85)', fontSize: 14, fontWeight: 700, fontFamily: f.heading, lineHeight: 1.4 }}>
-                Kira is temporarily offline
+                Kira is currently in maintenance mode
               </div>
               <div style={{ color: 'rgba(255,255,255,.4)', fontSize: 12, lineHeight: 1.7, maxWidth: 230 }}>
                 We&apos;re improving Kira&apos;s voice and chat experience. She&apos;ll be back soon — check back later.
