@@ -83,23 +83,27 @@ if (!EMAIL || !PASS) {
   const passField = page.locator('[data-automation-id="password"], input[type="password"]').first()
   await passField.waitFor({ timeout: 5000 })
   await passField.fill(PASS)
+  await page.waitForTimeout(500)
 
   // Take screenshot before submit
   await page.screenshot({ path: 'debug-before-submit.png' })
   console.log('Screenshot saved: debug-before-submit.png')
 
-  // Submit — aria-hidden blocks Playwright click, use JS directly
-  console.log('Submitting...')
-  await page.evaluate(() => {
-    const btn = document.querySelector('[data-automation-id="auth_signin_link"]')
-    if (btn) btn.click()
-    else throw new Error('Submit button not found in DOM')
-  })
+  // Submit by pressing Enter in password field — most reliable with React forms
+  console.log('Submitting via Enter key...')
+  await passField.press('Enter')
 
   console.log('Waiting for post-login...')
   await page.waitForLoadState('networkidle', { timeout: 30000 })
   await page.waitForTimeout(3000)
   console.log('Post-login URL:', page.url())
+
+  // Check for error messages on the page
+  const errorText = await page.evaluate(() => {
+    const els = Array.from(document.querySelectorAll('[class*="error" i], [class*="alert" i], [role="alert"]'))
+    return els.map(el => el.textContent.trim()).filter(Boolean).join(' | ')
+  })
+  if (errorText) console.log('*** PAGE ERROR MESSAGE:', errorText)
 
   // Screenshot after login
   await page.screenshot({ path: 'debug-post-login.png' })
