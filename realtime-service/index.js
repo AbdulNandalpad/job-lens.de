@@ -292,6 +292,7 @@ function buildSessionUpdate(instructions) {
   return JSON.stringify({
     type: 'session.update',
     session: {
+      type:         'realtime',
       modalities:   ['audio', 'text'],
       instructions,
       voice:        'alloy',
