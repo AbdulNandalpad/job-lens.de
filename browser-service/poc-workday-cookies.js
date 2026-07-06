@@ -78,11 +78,11 @@ if (!EMAIL || !PASS) {
   await page.screenshot({ path: 'debug-before-submit.png' })
   console.log('Screenshot saved: debug-before-submit.png')
 
-  // Submit
+  // Submit — use automation ID found in Workday DOM, force click past aria-hidden
   console.log('Submitting...')
-  const submit = page.locator('[data-automation-id="signIn"], button[type="submit"], button:has-text("Sign In")').first()
-  await submit.waitFor({ timeout: 5000 })
-  await submit.click()
+  const submit = page.locator('[data-automation-id="auth_signin_link"]').first()
+  await submit.waitFor({ state: 'attached', timeout: 5000 })
+  await submit.click({ force: true })
 
   console.log('Waiting for post-login...')
   await page.waitForLoadState('networkidle', { timeout: 30000 })
