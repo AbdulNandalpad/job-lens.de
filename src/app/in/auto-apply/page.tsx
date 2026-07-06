@@ -92,6 +92,8 @@ export default function InAutoApplyPage() {
   const logRef = useRef<HTMLDivElement>(null)
   const logCounter = useRef(0)
 
+  const [targetJob, setTargetJob] = useState<{ title: string; company: string } | null>(null)
+
   useEffect(() => {
     const raw =
       sessionStorage.getItem('jl_cvb_tailored') ||
@@ -101,6 +103,10 @@ export default function InAutoApplyPage() {
     const cl = sessionStorage.getItem('jl_cl_letter') || ''
     setCoverLetter(cl)
     if (cl) setUseCoverLetter(true)
+    try {
+      const job = JSON.parse(sessionStorage.getItem('jl_in_selected_job') || sessionStorage.getItem('jl_cvb_job') || '{}')
+      if (job?.job_title) setTargetJob({ title: job.job_title, company: job.employer_name || '' })
+    } catch { /* no job in session */ }
   }, [])
 
   useEffect(() => {
@@ -315,11 +321,18 @@ export default function InAutoApplyPage() {
             <div style={{ fontSize: 22, fontWeight: 700, color: c.primary, fontFamily: f.heading }}>
               Auto Apply
             </div>
-            <div style={{ fontSize: 13, color: c.textMuted, marginTop: 3 }}>
-              {mode === 'demo'
-                ? 'See how Kira fills a real job application — then try it yourself'
-                : 'Paste an application URL and let Kira fill the form for you'}
-            </div>
+            {targetJob ? (
+              <div style={{ fontSize: 13, color: c.textMuted, marginTop: 3 }}>
+                Applying for: <strong style={{ color: c.primary }}>{targetJob.title}</strong>
+                {targetJob.company && <> at <strong style={{ color: ACCENT }}>{targetJob.company}</strong></>}
+              </div>
+            ) : (
+              <div style={{ fontSize: 13, color: c.textMuted, marginTop: 3 }}>
+                {mode === 'demo'
+                  ? 'See how Kira fills a real job application — then try it yourself'
+                  : 'Paste an application URL and let Kira fill the form for you'}
+              </div>
+            )}
           </div>
           {mode === 'active' && (
             <button
@@ -615,9 +628,25 @@ export default function InAutoApplyPage() {
 
               {phase === 'confirming' && previewShot && (
                 <div style={{ ...card, overflow: 'hidden' }}>
+                  {mapping.some(m => m.field.type === 'password') && (
+                    <div style={{ padding: '12px 16px', background: '#fef2f2', borderBottom: '1px solid #fca5a5' }}>
+                      <div style={{ fontSize: 13, fontWeight: 700, color: '#b91c1c', marginBottom: 4 }}>
+                        🚫 This is not a job application form!
+                      </div>
+                      <div style={{ fontSize: 12, color: '#7f1d1d', lineHeight: 1.6 }}>
+                        This page contains password fields — it is a login or registration form, not a job application. Log into the company portal in your browser, navigate to the actual application form, then paste that URL here.
+                      </div>
+                      <button
+                        style={{ marginTop: 10, fontSize: 12, fontWeight: 700, padding: '7px 16px', background: '#b91c1c', color: '#fff', border: 'none', borderRadius: 8, cursor: 'pointer' }}
+                        onClick={() => { setPhase('idle'); setAnalyzeResult(null); setMapping([]); setPreviewShot('') }}
+                      >
+                        ← Back to URL input
+                      </button>
+                    </div>
+                  )}
                   <div style={{ padding: '12px 16px', borderBottom: `1px solid ${c.border}`, background: c.warningLight }}>
                     <div style={{ fontSize: 13, fontWeight: 700, color: c.primary }}>
-                      ⚠ Review filled form — you will click Submit
+                      ⚠ Review filled form — confirm to submit
                     </div>
                     <div style={{ fontSize: 11, color: c.textMuted, marginTop: 3 }}>
                       Kira has filled all reachable fields. Carefully review the preview. File upload fields (resume, cover letter) must be manually uploaded on the live page before you click Submit.

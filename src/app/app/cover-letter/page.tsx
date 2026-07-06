@@ -49,6 +49,8 @@ export default function CoverLetterPage() {
   const [applyingFeedback, setApplyingFeedback] = useState(false)
   const { credits, setCredits, needsCrossMarket, crossMarketAmount } = useCredits()
   const CL_COST = CREDIT_COST.coverLetter
+  const FREE_CHANGES = 3
+  const [freeChangesLeft, setFreeChangesLeft] = useState(FREE_CHANGES + 1) // +1 covers initial generate
   const [crossWarnPending, setCrossWarnPending] = useState<(() => void) | null>(null)
   const [openSections, setOpenSections] = useState<Record<string, boolean>>({ contact: false, style: false, format: false, summary: false })
   const [contactName,  setContactName]  = useState('')
@@ -119,7 +121,8 @@ export default function CoverLetterPage() {
 
   async function generate() {
     if (!cvText.trim()) return
-    if (credits !== null && credits < CL_COST) { alert(`You need ${CL_COST} credit to generate a cover letter. Please top up on the Account page.`); return }
+    const isFree = freeChangesLeft > 0
+    if (!isFree && credits !== null && credits < CL_COST) { alert(`You need ${CL_COST} credit to generate a cover letter. Please top up on the Account page.`); return }
     setLoading(true); setLetter('')
     try {
       const contactHeader = [
@@ -131,10 +134,11 @@ export default function CoverLetterPage() {
       const res = await fetch(API.coverLetter, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ cvText: cvWithContact, job, tone, length, lang: letterLang, market: MARKET.eu }),
+        body: JSON.stringify({ cvText: cvWithContact, job, tone, length, lang: letterLang, market: MARKET.eu, freeUsage: isFree }),
       })
       if (res.status === 402) { const d = await res.json(); if (typeof d.credits === 'number') setCredits(d.credits); setLoading(false); alert('Not enough credits. Please top up on the Account page.'); return }
       const data = await res.json()
+      if (isFree) setFreeChangesLeft(prev => Math.max(0, prev - 1))
       if (typeof data.creditsRemaining === 'number') setCredits(data.creditsRemaining)
       const cl = data.coverLetter || data.letter || data.result || ''
       setLetter(cl)
@@ -147,6 +151,7 @@ export default function CoverLetterPage() {
   }
 
   function handleGenerate() {
+    if (freeChangesLeft > 0) { generate(); return }
     if (needsCrossMarket(CL_COST, MARKET.eu)) {
       setCrossWarnPending(() => generate)
     } else {
@@ -156,15 +161,18 @@ export default function CoverLetterPage() {
 
   async function applyFeedback() {
     if (!feedback.trim() || !letter) return
+    const isFree = freeChangesLeft > 0
     setApplyingFeedback(true)
     try {
       const res = await fetch(API.coverLetter, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ cvText, job, tone, length, lang: letterLang, feedback, currentLetter: letter }),
+        body: JSON.stringify({ cvText, job, tone, length, lang: letterLang, feedback, currentLetter: letter, freeUsage: isFree }),
       })
       if (res.status === 402) { alert('Not enough credits to apply changes.'); setApplyingFeedback(false); return }
       const data = await res.json()
+      if (isFree) setFreeChangesLeft(prev => Math.max(0, prev - 1))
+      if (typeof data.creditsRemaining === 'number') setCredits(data.creditsRemaining)
       const cl = data.coverLetter || data.letter || ''
       setLetter(cl)
       sessionStorage.setItem(SS.clLetter, cl)
@@ -580,17 +588,26 @@ export default function CoverLetterPage() {
 
           {/* Generate button */}
           <div style={{ padding: '14px 16px', borderTop: '1px solid rgba(255,255,255,0.08)', flexShrink: 0 }}>
-            {credits !== null && credits <= LOW_CREDIT_WARN && (
+            {freeChangesLeft > 0 ? (
+              <div style={{ background: 'rgba(29,158,117,0.12)', border: '1px solid rgba(29,158,117,0.35)', borderRadius: 8, padding: '7px 10px', fontSize: 11, color: '#34d399', marginBottom: 8, lineHeight: 1.5 }}>
+                {letterLang === 'DE'
+                  ? `✓ ${freeChangesLeft} kostenlose ${freeChangesLeft === 1 ? 'Änderung' : 'Änderungen'} übrig`
+                  : `✓ ${freeChangesLeft} free ${freeChangesLeft === 1 ? 'use' : 'uses'} remaining`}
+              </div>
+            ) : credits !== null && credits <= LOW_CREDIT_WARN ? (
               <div style={{ background: 'rgba(245,158,11,0.15)', border: '1px solid rgba(245,158,11,0.4)', borderRadius: 8, padding: '7px 10px', fontSize: 11, color: '#fcd34d', marginBottom: 8, lineHeight: 1.5 }}>
                 {credits === 0 ? t.coverLetter.sidebar.noCredits : t.coverLetter.sidebar.lowCredits(credits!)}
               </div>
-            )}
-            <button className="cl-gen" onClick={handleGenerate} disabled={loading || !cvText.trim() || (credits !== null && credits < CL_COST)}
-              style={{ width: '100%', padding: '12px 0', borderRadius: 10, border: 'none', background: loading || !cvText.trim() || (credits !== null && credits < CL_COST) ? 'rgba(255,255,255,0.08)' : `linear-gradient(135deg, ${accentColor}, #1D9E75)`, color: loading || !cvText.trim() || (credits !== null && credits < CL_COST) ? 'rgba(255,255,255,0.25)' : '#fff', fontFamily: "'Outfit', sans-serif", fontSize: 13, fontWeight: 700, cursor: loading || !cvText.trim() || (credits !== null && credits < CL_COST) ? 'not-allowed' : 'pointer', transition: 'all 0.2s', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+            ) : null}
+            <button className="cl-gen" onClick={handleGenerate}
+              disabled={loading || !cvText.trim() || (freeChangesLeft === 0 && credits !== null && credits < CL_COST)}
+              style={{ width: '100%', padding: '12px 0', borderRadius: 10, border: 'none', background: loading || !cvText.trim() || (freeChangesLeft === 0 && credits !== null && credits < CL_COST) ? 'rgba(255,255,255,0.08)' : `linear-gradient(135deg, ${accentColor}, #1D9E75)`, color: loading || !cvText.trim() || (freeChangesLeft === 0 && credits !== null && credits < CL_COST) ? 'rgba(255,255,255,0.25)' : '#fff', fontFamily: "'Outfit', sans-serif", fontSize: 13, fontWeight: 700, cursor: loading || !cvText.trim() || (freeChangesLeft === 0 && credits !== null && credits < CL_COST) ? 'not-allowed' : 'pointer', transition: 'all 0.2s', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
               {loading
                 ? <><div style={{ width: 14, height: 14, borderRadius: '50%', border: '2px solid rgba(255,255,255,0.15)', borderTopColor: 'rgba(255,255,255,0.7)', animation: 'spin 0.7s linear infinite' }} /> {t.coverLetter.sidebar.writing}</>
-                : credits !== null && credits < CL_COST
+                : freeChangesLeft === 0 && credits !== null && credits < CL_COST
                 ? t.coverLetter.sidebar.needCredits(CL_COST, credits)
+                : freeChangesLeft > 0
+                ? (letter ? (letterLang === 'DE' ? '⟳ Neu generieren — Kostenlos' : '⟳ Regenerate — Free') : (letterLang === 'DE' ? '✦ Anschreiben generieren — Kostenlos' : '✦ Generate Cover Letter — Free'))
                 : letter ? t.coverLetter.sidebar.regenerateBtn(CL_COST) : t.coverLetter.sidebar.generateBtn(CL_COST)}
             </button>
           </div>
@@ -791,7 +808,11 @@ export default function CoverLetterPage() {
                     onClick={applyFeedback}
                     disabled={!feedback.trim() || applyingFeedback}
                     style={{ marginTop: 8, padding: '7px 18px', borderRadius: 7, border: 'none', background: feedback.trim() && !applyingFeedback ? accentColor : 'rgba(255,255,255,0.08)', color: feedback.trim() && !applyingFeedback ? '#042C53' : 'rgba(255,255,255,0.25)', fontSize: 12, fontWeight: 700, cursor: feedback.trim() && !applyingFeedback ? 'pointer' : 'not-allowed', fontFamily: "'Outfit', sans-serif" }}>
-                    {applyingFeedback ? t.coverLetter.preview.applying : t.coverLetter.preview.applyChanges}
+                    {applyingFeedback
+                      ? t.coverLetter.preview.applying
+                      : freeChangesLeft > 0
+                      ? (letterLang === 'DE' ? `Änderungen anwenden — Kostenlos (${freeChangesLeft} übrig)` : `Apply changes — Free (${freeChangesLeft} left)`)
+                      : t.coverLetter.preview.applyChanges}
                   </button>
                 </div>
 

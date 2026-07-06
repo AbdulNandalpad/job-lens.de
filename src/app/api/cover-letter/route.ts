@@ -23,10 +23,15 @@ export async function POST(req: NextRequest) {
   const currentLetter = typeof body.currentLetter === 'string' ? body.currentLetter.slice(0, 3000) : ''
   const { job, tone, length, lang, market } = body
   const resolvedMarket: 'eu' | 'in' = market === MARKET.in ? MARKET.in : MARKET.eu
+  const isFreeUsage = body.freeUsage === true
 
-  const credits = await checkAndDeductCredits(user.id, COST, 'cover_letter', user.email ?? '', resolvedMarket)
-  if (!credits.ok) {
-    return NextResponse.json({ error: 'Insufficient credits', credits: credits.remaining, required: COST }, { status: 402 })
+  let creditsRemaining: number | undefined
+  if (!isFreeUsage) {
+    const credits = await checkAndDeductCredits(user.id, COST, 'cover_letter', user.email ?? '', resolvedMarket)
+    if (!credits.ok) {
+      return NextResponse.json({ error: 'Insufficient credits', credits: credits.remaining, required: COST }, { status: 402 })
+    }
+    creditsRemaining = credits.remaining
   }
 
   try {
@@ -82,7 +87,7 @@ Write the cover letter:`
       `User applied for ${job?.job_title} at ${job?.employer_name}.\nCV: ${cvText.slice(0, 1500)}`,
     ))
 
-    return NextResponse.json({ coverLetter, creditsRemaining: credits.remaining })
+    return NextResponse.json({ coverLetter, creditsRemaining, freeUsage: isFreeUsage })
   } catch (err) {
     console.error('Cover letter error:', err)
     return NextResponse.json({ error: 'Failed to generate cover letter' }, { status: 500 })

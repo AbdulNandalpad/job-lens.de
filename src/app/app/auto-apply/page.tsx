@@ -106,6 +106,8 @@ export default function AutoApplyPage() {
   const logRef = useRef<HTMLDivElement>(null)
   const logCounter = useRef(0)
 
+  const [targetJob, setTargetJob] = useState<{ title: string; company: string } | null>(null)
+
   useEffect(() => {
     const raw =
       sessionStorage.getItem('jl_cvb_tailored') ||
@@ -117,6 +119,10 @@ export default function AutoApplyPage() {
     setCvText(cv)
     setCoverLetter(cl)
     if (cl) setUseCoverLetter(true)
+    try {
+      const job = JSON.parse(sessionStorage.getItem('jl_cvb_job') || '{}')
+      if (job?.job_title) setTargetJob({ title: job.job_title, company: job.employer_name || '' })
+    } catch { /* no job in session */ }
   }, [])
 
   useEffect(() => {
@@ -358,11 +364,19 @@ export default function AutoApplyPage() {
             <div style={{ fontSize: 22, fontWeight: 700, color: c.primary, fontFamily: f.heading }}>
               {lang === 'DE' ? 'Auto-Bewerbung' : 'Auto Apply'}
             </div>
-            <div style={{ fontSize: 13, color: c.textMuted, marginTop: 3 }}>
-              {mode === 'demo'
-                ? (lang === 'DE' ? 'Sieh, wie Kira eine echte Bewerbung ausfüllt — dann probiere es selbst' : 'See how Kira fills a real job application — then try it yourself')
-                : (lang === 'DE' ? 'Bewerbungs-URL einfügen und Kira das Formular ausfüllen lassen' : 'Paste a job application URL and let Kira fill the form for you')}
-            </div>
+            {targetJob ? (
+              <div style={{ fontSize: 13, color: c.textMuted, marginTop: 3 }}>
+                {lang === 'DE' ? 'Bewerbung für:' : 'Applying for:'}{' '}
+                <strong style={{ color: c.primary }}>{targetJob.title}</strong>
+                {targetJob.company && <> {lang === 'DE' ? 'bei' : 'at'} <strong style={{ color: c.accent }}>{targetJob.company}</strong></>}
+              </div>
+            ) : (
+              <div style={{ fontSize: 13, color: c.textMuted, marginTop: 3 }}>
+                {mode === 'demo'
+                  ? (lang === 'DE' ? 'Sieh, wie Kira eine echte Bewerbung ausfüllt — dann probiere es selbst' : 'See how Kira fills a real job application — then try it yourself')
+                  : (lang === 'DE' ? 'Bewerbungs-URL einfügen und Kira das Formular ausfüllen lassen' : 'Paste a job application URL and let Kira fill the form for you')}
+              </div>
+            )}
           </div>
           {mode === 'active' && (
             <button
@@ -628,9 +642,27 @@ export default function AutoApplyPage() {
 
               {phase === 'confirming' && previewShot && (
                 <div style={{ ...card, overflow: 'hidden' }}>
+                  {mapping.some(m => m.field.type === 'password') && (
+                    <div style={{ padding: '12px 16px', background: '#fef2f2', borderBottom: `1px solid #fca5a5` }}>
+                      <div style={{ fontSize: 13, fontWeight: 700, color: '#b91c1c', marginBottom: 4 }}>
+                        🚫 {lang === 'DE' ? 'Das ist kein Bewerbungsformular!' : 'This is not a job application form!'}
+                      </div>
+                      <div style={{ fontSize: 12, color: '#7f1d1d', lineHeight: 1.6 }}>
+                        {lang === 'DE'
+                          ? 'Die Seite enthält Passwortfelder — es handelt sich um ein Login- oder Registrierungsformular, nicht um eine Bewerbung. Logge dich im Browser auf der Unternehmenswebsite ein, navigiere dann zum eigentlichen Bewerbungsformular und kopiere diese URL.'
+                          : 'This page contains password fields — it\'s a login or registration form, not a job application. Log in to the company portal in your browser, navigate to the actual application form, then paste that URL here.'}
+                      </div>
+                      <button
+                        style={{ marginTop: 10, fontSize: 12, fontWeight: 700, padding: '7px 16px', background: '#b91c1c', color: '#fff', border: 'none', borderRadius: 8, cursor: 'pointer' }}
+                        onClick={() => { setPhase('idle'); setAnalyzeResult(null); setMapping([]); setPreviewShot('') }}
+                      >
+                        {lang === 'DE' ? '← Zurück zur URL-Eingabe' : '← Back to URL input'}
+                      </button>
+                    </div>
+                  )}
                   <div style={{ padding: '12px 16px', borderBottom: `1px solid ${c.border}`, background: c.warningLight }}>
                     <div style={{ fontSize: 13, fontWeight: 700, color: c.primary, fontFamily: f.heading }}>
-                      {lang === 'DE' ? '⚠ Ausgefülltes Formular prüfen — du klickst auf Einreichen' : '⚠ Review filled form — you will click Submit'}
+                      {lang === 'DE' ? '⚠ Ausgefülltes Formular prüfen — du klickst auf Einreichen' : '⚠ Review filled form — confirm to submit'}
                     </div>
                     <div style={{ fontSize: 11, color: c.textMuted, marginTop: 3 }}>
                       {lang === 'DE'

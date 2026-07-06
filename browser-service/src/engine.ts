@@ -472,13 +472,14 @@ export async function analyzeForm(
     else if (url.includes('personio.de') || url.includes('personio.com')) formType = 'Personio'
     else if (url.includes('taleo')) formType = 'Taleo'
 
-    // Detect login walls before attempting field extraction
-    const hasPasswordField = await page.$('input[type="password"]').then(el => !!el).catch(() => false)
+    // Detect login walls — check DOM first (handles shadow DOM miss), also check URL/title patterns
+    const hasPasswordField = await page.locator('input[type="password"]').first().isVisible({ timeout: 2000 }).catch(() => false)
+      || await page.$('input[type="password"]').then(el => !!el).catch(() => false)
     const urlLower = url.toLowerCase()
     const titleLower = pageTitle.toLowerCase()
     const isLoginWall = hasPasswordField ||
       /\/(login|signin|sign-in|authenticate|auth\/login|account\/login)/.test(urlLower) ||
-      /log\s?in|sign\s?in/i.test(titleLower) && !/apply|application|job|career/i.test(titleLower)
+      /log\s?in|sign\s?in|create\s?account|sign\s?up|register/i.test(titleLower) && !/apply|application|job|career/i.test(titleLower)
 
     if (isLoginWall) {
       return {
@@ -494,6 +495,20 @@ export async function analyzeForm(
     }
 
     let fields = await grabFieldsFromDom(page)
+
+    // Second-pass check: if extracted fields contain password inputs, it's still a login wall
+    if (fields.some(f => f.type === 'password')) {
+      return {
+        formType,
+        pageTitle,
+        hasForm: false,
+        requiresLogin: true,
+        fields: [],
+        mapping: [],
+        screenshotB64,
+        error: 'This page appears to be a login or registration form, not a job application form.',
+      }
+    }
 
     if (fields.length === 0) {
       const visionMsg = await anthropic.messages.create({
