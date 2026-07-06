@@ -513,9 +513,9 @@ export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
     src.buffer = buf
     src.connect(ctx.destination)
     const now   = ctx.currentTime
-    // Add 120ms lookahead on first chunk of each response so decode latency doesn't clip the first word
+    // Add 200ms lookahead on first chunk of each response so decode latency doesn't clip the first word
     const start = realtimeNextTimeRef.current <= now
-      ? now + 0.12
+      ? now + 0.20
       : realtimeNextTimeRef.current
     src.start(start)
     realtimeNextTimeRef.current = start + buf.duration

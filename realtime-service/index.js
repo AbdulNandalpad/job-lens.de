@@ -386,7 +386,7 @@ wss.on('connection', (clientWs, req) => {
   }
 
   const openaiWs = new WebSocket(
-    'wss://api.openai.com/v1/realtime?model=gpt-realtime-mini',
+    'wss://api.openai.com/v1/realtime?model=gpt-realtime-mini-2025-12-15',
     { headers: { 'Authorization': `Bearer ${OPENAI_KEY}` } }
   )
 
@@ -410,8 +410,10 @@ wss.on('connection', (clientWs, req) => {
         console.log('[realtime] OpenAI event:', t, evt.delta ? `delta[${evt.delta.length}]` : '', evt.item ? `item.type=${evt.item.type}` : '')
       }
 
-      if (t === 'response.created')  responseInProgress = true
-      if (t === 'response.done')     responseInProgress = false
+      if (t === 'response.created')           responseInProgress = true
+      if (t === 'response.done')              responseInProgress = false
+      // Reset silence timer whenever Kira is actively producing audio
+      if (t === 'response.output_audio.delta') { silenceNudged = false; resetSilenceTimer() }
 
       // gpt-realtime-mini fires response.output_item.done with type=function_call
       if (t === 'response.output_item.done' && evt.item?.type === 'function_call') {
