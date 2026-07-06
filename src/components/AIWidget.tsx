@@ -984,17 +984,17 @@ export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
 
             <input ref={fileInputRef} type="file" accept=".pdf,.doc,.docx,.txt" style={{ display: 'none' }} onChange={handleCvUpload}/>
 
-            {/* Upload CV */}
-            <button title={lang === 'DE' ? 'Lebenslauf hochladen' : 'Upload CV'} onClick={() => fileInputRef.current?.click()} disabled={cvUploading}
+            {/* Upload CV — hidden in maintenance mode for non-admins */}
+            {(!KIRA_MAINTENANCE || isAdmin) && <button title={lang === 'DE' ? 'Lebenslauf hochladen' : 'Upload CV'} onClick={() => fileInputRef.current?.click()} disabled={cvUploading}
               style={{ width: 28, height: 28, borderRadius: 7, border: 'none', background: cvName ? `${accent}22` : 'rgba(255,255,255,.08)', cursor: 'pointer', color: cvName ? accent : 'rgba(255,255,255,.55)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, transition: 'all .15s' }}>
               {cvUploading
                 ? <span style={{ width: 10, height: 10, border: '2px solid rgba(255,255,255,.3)', borderTopColor: '#fff', borderRadius: '50%', display: 'inline-block', animation: 'kira-spin .8s linear infinite' }}/>
                 : <svg width="13" height="13" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10 3v10M6 7l4-4 4 4"/><path d="M3 17h14"/></svg>
               }
-            </button>
+            </button>}
 
-            {/* Live voice (Railway realtime) — optional, only if configured */}
-            {process.env.NEXT_PUBLIC_REALTIME_WS_URL && (
+            {/* Live voice — hidden in maintenance mode for non-admins */}
+            {(!KIRA_MAINTENANCE || isAdmin) && process.env.NEXT_PUBLIC_REALTIME_WS_URL && (
               <button className="kira-mic-btn"
                 title={realtimeMode ? 'End live voice' : `Live voice · ${CREDIT_COST.liveVoice} credits / 5 min`}
                 disabled={realtimeConnecting}
