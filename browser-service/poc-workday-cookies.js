@@ -78,11 +78,13 @@ if (!EMAIL || !PASS) {
   await page.screenshot({ path: 'debug-before-submit.png' })
   console.log('Screenshot saved: debug-before-submit.png')
 
-  // Submit — use automation ID found in Workday DOM, force click past aria-hidden
+  // Submit — aria-hidden blocks Playwright click, use JS directly
   console.log('Submitting...')
-  const submit = page.locator('[data-automation-id="auth_signin_link"]').first()
-  await submit.waitFor({ state: 'attached', timeout: 5000 })
-  await submit.click({ force: true })
+  await page.evaluate(() => {
+    const btn = document.querySelector('[data-automation-id="auth_signin_link"]')
+    if (btn) btn.click()
+    else throw new Error('Submit button not found in DOM')
+  })
 
   console.log('Waiting for post-login...')
   await page.waitForLoadState('networkidle', { timeout: 30000 })
