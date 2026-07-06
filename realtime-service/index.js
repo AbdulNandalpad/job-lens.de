@@ -355,6 +355,9 @@ wss.on('connection', (clientWs, req) => {
   // Tracks pending function calls by call_id
   const pendingCalls = new Map()
 
+  // Track whether OpenAI has an active response in flight
+  let responseInProgress = false
+
   // Cache the last job search result so show_jobs can re-emit without an API call
   let lastJobResult = null
 
@@ -406,6 +409,9 @@ wss.on('connection', (clientWs, req) => {
       if (t.includes('audio') || t.includes('response') || t.includes('speech') || t.includes('function') || t.includes('output_item') || t.includes('call')) {
         console.log('[realtime] OpenAI event:', t, evt.delta ? `delta[${evt.delta.length}]` : '', evt.item ? `item.type=${evt.item.type}` : '')
       }
+
+      if (t === 'response.created')  responseInProgress = true
+      if (t === 'response.done')     responseInProgress = false
 
       // Accumulate function call arguments as they stream in
       if (t === 'response.function_call_arguments.delta' && evt.call_id) {
@@ -466,7 +472,9 @@ wss.on('connection', (clientWs, req) => {
             type: 'conversation.item.create',
             item: { type: 'function_call_output', call_id: callId, output: spokenSummary },
           }))
-          openaiWs.send(JSON.stringify({ type: 'response.create' }))
+          if (!responseInProgress) {
+            openaiWs.send(JSON.stringify({ type: 'response.create' }))
+          }
         }
       }
 
