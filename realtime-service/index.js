@@ -293,17 +293,30 @@ function buildSessionUpdate(instructions) {
     type: 'session.update',
     session: {
       type:         'realtime',
+      modalities:   ['audio'],
       instructions,
-      turn_detection: {
-        type:                'server_vad',
-        threshold:           0.7,
-        prefix_padding_ms:   300,
-        silence_duration_ms: 900,
-        create_response:     true,
-        interrupt_response:  true,
+      audio: {
+        input: {
+          format: 'pcm16',
+          turn_detection: {
+            type:                'server_vad',
+            threshold:           0.7,
+            prefix_padding_ms:   300,
+            silence_duration_ms: 900,
+            create_response:     true,
+            interrupt_response:  true,
+          },
+        },
+        output: {
+          format: 'pcm16',
+          voice:  'alloy',
+        },
       },
-      tools:       TOOLS,
-      tool_choice: 'auto',
+      tools:              TOOLS,
+      tool_choice:        'auto',
+      temperature:        0.8,
+      max_output_tokens:  'inf',
+      truncation:         'auto',
     },
   })
 }
