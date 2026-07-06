@@ -268,6 +268,7 @@ export async function analyzeForm(
   cvText: string,
   coverLetter: string | undefined,
   anthropic: Anthropic,
+  _credentials?: { username: string; password: string },
 ): Promise<AnalyzeResult> {
   const { chromium } = await import('playwright')
   const browser = await chromium.launch({ headless: true })
