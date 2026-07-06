@@ -269,6 +269,7 @@ export async function analyzeForm(
   coverLetter: string | undefined,
   anthropic: Anthropic,
   _credentials?: { username: string; password: string },
+  storageState?: object,
 ): Promise<AnalyzeResult> {
   const { chromium } = await import('playwright')
   const browser = await chromium.launch({ headless: true })
@@ -277,6 +278,8 @@ export async function analyzeForm(
     const ctx = await browser.newContext({
       viewport: { width: 1280, height: 900 },
       userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      ...(storageState ? { storageState: storageState as any } : {}),
     })
     const page = await ctx.newPage()
     await page.goto(jobUrl, { waitUntil: 'networkidle', timeout: 40000 })
@@ -344,6 +347,7 @@ export async function* executeApply(
   mapping: FieldMapping[],
   cvText: string,
   coverLetter: string,
+  storageState?: object,
 ): AsyncGenerator<ExecuteEvent> {
   const { chromium } = await import('playwright')
   const { randomUUID } = await import('crypto')
@@ -365,6 +369,8 @@ export async function* executeApply(
     const ctx = await browser.newContext({
       viewport: { width: 1280, height: 900 },
       userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      ...(storageState ? { storageState: storageState as any } : {}),
     })
     const page = await ctx.newPage()
 

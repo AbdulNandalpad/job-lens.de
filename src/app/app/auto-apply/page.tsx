@@ -106,6 +106,8 @@ export default function AutoApplyPage() {
   const [requiresLogin, setRequiresLogin] = useState(false)
   const [portalUsername, setPortalUsername] = useState('')
   const [portalPassword, setPortalPassword] = useState('')
+  const [sessionState, setSessionState] = useState<object | null>(null)
+  const [sessionFileName, setSessionFileName] = useState('')
   const logRef = useRef<HTMLDivElement>(null)
   const logCounter = useRef(0)
 
@@ -157,6 +159,9 @@ export default function AutoApplyPage() {
     }
     if (withCredentials && portalUsername && portalPassword) {
       body.credentials = { username: portalUsername, password: portalPassword }
+    }
+    if (sessionState) {
+      body.storageState = sessionState
     }
 
     try {
@@ -268,7 +273,7 @@ export default function AutoApplyPage() {
     setSessionId('')
     await streamEvents(
       '/api/auto-apply/execute',
-      { jobUrl: jobUrl.trim(), mapping, cvText, coverLetter: useCoverLetter ? coverLetter : '' },
+      { jobUrl: jobUrl.trim(), mapping, cvText, coverLetter: useCoverLetter ? coverLetter : '', ...(sessionState ? { storageState: sessionState } : {}) },
       () => {},
     )
   }
@@ -600,6 +605,65 @@ export default function AutoApplyPage() {
                     >
                       {lang === 'DE' ? '← Andere URL verwenden' : '← Use a different URL'}
                     </button>
+
+                    {/* Session file upload (Workday / ATS cookie restore) */}
+                    <div style={{ marginTop: 16, borderTop: `1px solid ${c.border}`, paddingTop: 14 }}>
+                      <div style={{ fontSize: 11, fontWeight: 700, color: c.textMuted, marginBottom: 6 }}>
+                        {lang === 'DE' ? '⚡ Experten-Methode: Session-Datei hochladen' : '⚡ Advanced: Upload session file'}
+                      </div>
+                      <div style={{ fontSize: 11, color: c.textFaint, lineHeight: 1.7, marginBottom: 8 }}>
+                        {lang === 'DE' ? (
+                          <>Führe <code style={{ background: c.bgSubtle, padding: '1px 4px', borderRadius: 3, fontSize: 10 }}>node browser-service/poc-workday-cookies.js</code> lokal aus, logge dich manuell ein und lade dann die generierte <strong>workday-session.json</strong> hoch.</>
+                        ) : (
+                          <>Run <code style={{ background: c.bgSubtle, padding: '1px 4px', borderRadius: 3, fontSize: 10 }}>node browser-service/poc-workday-cookies.js</code> locally, log in manually, then upload the generated <strong>workday-session.json</strong> here.</>
+                        )}
+                      </div>
+                      {sessionFileName ? (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, color: c.success, fontWeight: 600, background: c.successLight, borderRadius: 8, padding: '8px 12px', marginBottom: 8 }}>
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M20 6L9 17l-5-5"/></svg>
+                          {sessionFileName}
+                          <button onClick={() => { setSessionState(null); setSessionFileName('') }} style={{ marginLeft: 'auto', fontSize: 10, color: c.textMuted, background: 'none', border: 'none', cursor: 'pointer' }}>✕</button>
+                        </div>
+                      ) : (
+                        <label style={{ display: 'block', cursor: 'pointer' }}>
+                          <div style={{ border: `1.5px dashed ${c.borderLight}`, borderRadius: 8, padding: '10px 14px', fontSize: 12, color: c.textMuted, textAlign: 'center', background: c.bgSubtle }}>
+                            {lang === 'DE' ? '📂 workday-session.json hochladen' : '📂 Upload workday-session.json'}
+                          </div>
+                          <input
+                            type="file"
+                            accept=".json,application/json"
+                            style={{ display: 'none' }}
+                            onChange={async e => {
+                              const file = e.target.files?.[0]
+                              if (!file) return
+                              try {
+                                const text = await file.text()
+                                const json = JSON.parse(text)
+                                setSessionState(json)
+                                setSessionFileName(file.name)
+                              } catch {
+                                setError(lang === 'DE' ? 'Ungültige JSON-Datei' : 'Invalid JSON file')
+                              }
+                            }}
+                          />
+                        </label>
+                      )}
+                      {sessionState && (
+                        <button
+                          className="aa-btn-primary"
+                          style={{ width: '100%', marginTop: 8 }}
+                          disabled={phase === 'analyzing'}
+                          onClick={() => handleAnalyse(false)}
+                        >
+                          {phase === 'analyzing' ? (
+                            <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+                              <svg className="spin" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>
+                              {lang === 'DE' ? 'Analyse läuft…' : 'Analysing…'}
+                            </span>
+                          ) : (lang === 'DE' ? '🚀 Mit Session analysieren' : '🚀 Analyse with session')}
+                        </button>
+                      )}
+                    </div>
                   </div>
                 ) : (
                   <>
@@ -628,7 +692,7 @@ export default function AutoApplyPage() {
                       <button
                         className="aa-btn-outline"
                         style={{ width: '100%', marginTop: 10 }}
-                        onClick={() => { setPhase('idle'); setAnalyzeResult(null); setMapping([]); setError('') }}
+                        onClick={() => { setPhase('idle'); setAnalyzeResult(null); setMapping([]); setError(''); setRequiresLogin(false); setSessionState(null); setSessionFileName('') }}
                       >
                         {lang === 'DE' ? '← Neu starten' : '← Start over'}
                       </button>

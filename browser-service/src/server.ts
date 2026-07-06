@@ -27,11 +27,12 @@ app.get('/health', (_req, res) => {
 app.post('/analyze', async (req: Request, res: Response) => {
   if (!authorized(req, res)) return
 
-  const { jobUrl, cvText, coverLetter, credentials } = req.body as {
+  const { jobUrl, cvText, coverLetter, credentials, storageState } = req.body as {
     jobUrl: string
     cvText: string
     coverLetter?: string
     credentials?: { username: string; password: string }
+    storageState?: object
   }
 
   if (!jobUrl || !cvText) {
@@ -40,7 +41,7 @@ app.post('/analyze', async (req: Request, res: Response) => {
   }
 
   try {
-    const result = await analyzeForm(jobUrl, cvText, coverLetter, anthropic, credentials)
+    const result = await analyzeForm(jobUrl, cvText, coverLetter, anthropic, credentials, storageState)
     res.json(result)
   } catch (err) {
     console.error('[analyze]', err)
@@ -51,11 +52,12 @@ app.post('/analyze', async (req: Request, res: Response) => {
 app.post('/execute', async (req: Request, res: Response) => {
   if (!authorized(req, res)) return
 
-  const { jobUrl, mapping, cvText, coverLetter } = req.body as {
+  const { jobUrl, mapping, cvText, coverLetter, storageState } = req.body as {
     jobUrl: string
     mapping: FieldMapping[]
     cvText: string
     coverLetter: string
+    storageState?: object
   }
 
   res.setHeader('Content-Type', 'text/event-stream')
@@ -65,7 +67,7 @@ app.post('/execute', async (req: Request, res: Response) => {
   const send = (data: unknown) => res.write(`data: ${JSON.stringify(data)}\n\n`)
 
   try {
-    for await (const event of executeApply(jobUrl, mapping, cvText ?? '', coverLetter ?? '')) {
+    for await (const event of executeApply(jobUrl, mapping, cvText ?? '', coverLetter ?? '', storageState)) {
       send(event)
     }
   } catch (err) {

@@ -11,12 +11,14 @@ export async function POST(req: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return new Response('Unauthorized', { status: 401 })
 
-  const { jobUrl, mapping, cvText, coverLetter } = (await req.json()) as {
+  const body = await req.json()
+  const { jobUrl, mapping, cvText, coverLetter } = body as {
     jobUrl: string
     mapping: FieldMapping[]
     cvText: string
     coverLetter: string
   }
+  const storageState = body.storageState && typeof body.storageState === 'object' ? body.storageState : undefined
 
   if (!jobUrl || !jobUrl.startsWith('https://')) {
     return new Response(JSON.stringify({ error: 'Invalid job URL' }), { status: 400 })
@@ -39,7 +41,7 @@ export async function POST(req: NextRequest) {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${railwaySecret}`,
       },
-      body: JSON.stringify({ jobUrl, mapping, cvText, coverLetter }),
+      body: JSON.stringify({ jobUrl, mapping, cvText, coverLetter, storageState }),
     })
 
     if (!upstream.ok || !upstream.body) {
@@ -73,7 +75,7 @@ export async function POST(req: NextRequest) {
         const send = (data: unknown) =>
           controller.enqueue(encoder.encode(`data: ${JSON.stringify(data)}\n\n`))
         try {
-          for await (const event of executeApply(jobUrl, mapping, cvText ?? '', coverLetter ?? '')) {
+          for await (const event of executeApply(jobUrl, mapping, cvText ?? '', coverLetter ?? '', storageState)) {
             send(event)
           }
         } catch (err) {
