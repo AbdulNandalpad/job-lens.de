@@ -26,6 +26,9 @@ export const AI_CHAT_FREE_MESSAGES = 20
 // ── UI threshold — show low-credit warning when credits fall to or below this
 export const LOW_CREDIT_WARN = 2
 
+// ── Kira maintenance mode — set true to block all Kira features for non-admins
+export const KIRA_MAINTENANCE = true
+
 // ── Market identifiers ───────────────────────────────────────────────────────
 export const MARKET = {
   eu: 'eu',

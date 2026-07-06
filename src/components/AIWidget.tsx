@@ -5,7 +5,7 @@ import { createPortal } from 'react-dom'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { theme } from '@/lib/theme'
-import { SS, LS, API, CREDIT_COST, LIVE_VOICE_MAX_SECONDS } from '@/lib/constants'
+import { SS, LS, API, CREDIT_COST, LIVE_VOICE_MAX_SECONDS, KIRA_MAINTENANCE } from '@/lib/constants'
 import SvgIcon from '@/components/SvgIcon'
 import { useLanguage } from '@/lib/i18n'
 
@@ -1044,6 +1044,23 @@ export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
             </button>
           </div>
 
+          {/* ── Maintenance gate ── */}
+          {KIRA_MAINTENANCE && !isAdmin ? (
+            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 16, padding: '32px 24px', textAlign: 'center' }}>
+              <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,.25)" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="12" r="10"/>
+                <line x1="12" y1="8" x2="12" y2="12"/>
+                <circle cx="12" cy="16" r=".5" fill="rgba(255,255,255,.25)" stroke="none"/>
+              </svg>
+              <div style={{ color: 'rgba(255,255,255,.85)', fontSize: 14, fontWeight: 700, fontFamily: f.heading, lineHeight: 1.4 }}>
+                Kira is temporarily offline
+              </div>
+              <div style={{ color: 'rgba(255,255,255,.4)', fontSize: 12, lineHeight: 1.7, maxWidth: 230 }}>
+                We&apos;re improving Kira&apos;s voice and chat experience. She&apos;ll be back soon — check back later.
+              </div>
+            </div>
+          ) : (
+          <>
           {/* ── Realtime voice overlay ── */}
           {realtimeMode ? (
             <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 20, padding: '24px 20px', overflowY: 'auto' }}>
@@ -1266,6 +1283,8 @@ export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
                 {lang === 'DE' ? 'Enter zum Senden' : 'Enter to send'}
               </div>
             </div>
+          )}
+          </>
           )}
         </div>
       )}
