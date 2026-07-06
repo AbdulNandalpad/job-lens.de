@@ -29,52 +29,83 @@ if (!fs.existsSync(SESSION_FILE)) {
 
   console.log('Loading apply page with saved session...')
   await page.goto(JOB_URL, { waitUntil: 'networkidle' })
-  await page.waitForTimeout(3000)
+  await page.waitForTimeout(5000)
 
   const url = page.url()
   console.log('Current URL:', url)
 
   // Check if we're logged in
   const loggedIn = await page.evaluate(() => {
-    const signInLink = document.querySelector('[data-automation-id="userAccount"]')
     const signInText = document.body.innerText.includes('Sign In') && !document.body.innerText.includes('Don\'t have an account')
-    return !signInText || !!signInLink
+    return !signInText
   })
   console.log('Logged in:', loggedIn)
 
   await page.screenshot({ path: 'debug-apply-loaded.png' })
   console.log('Screenshot: debug-apply-loaded.png')
 
-  // Extract all form fields on the page
-  console.log('\nExtracting form fields...')
-  const fields = await page.evaluate(() => {
-    const results = []
+  // Log all iframes found
+  const frames = page.frames()
+  console.log(`\nFrames found: ${frames.length}`)
+  frames.forEach((f, i) => console.log(`  [${i}] ${f.url()}`))
 
-    // All inputs
-    document.querySelectorAll('input, textarea, select').forEach(el => {
-      if (el.type === 'hidden') return
-      results.push({
-        type:         el.tagName.toLowerCase() + (el.type ? `[${el.type}]` : ''),
-        name:         el.name || el.getAttribute('data-automation-id') || '',
-        label:        el.getAttribute('aria-label') || el.getAttribute('placeholder') || '',
-        value:        el.value || '',
-        required:     el.required,
-        automationId: el.getAttribute('data-automation-id') || '',
+  // Wait for form fields to appear — Workday loads them lazily
+  console.log('\nWaiting for form fields to load...')
+  try {
+    await page.waitForSelector('input, [data-automation-id*="Field"], [data-automation-id*="field"]', { timeout: 15000 })
+  } catch { console.log('Timeout waiting for fields — extracting what is available') }
+
+  await page.waitForTimeout(3000)
+  await page.screenshot({ path: 'debug-apply-form.png' })
+
+  // Extract from main page AND all iframes
+  async function extractFields(frame, label) {
+    return frame.evaluate((frameLabel) => {
+      const results = []
+      // Standard inputs
+      document.querySelectorAll('input:not([type="hidden"]), textarea, select').forEach(el => {
+        const labelEl = el.closest('label') || document.querySelector(`label[for="${el.id}"]`)
+        results.push({
+          source:       frameLabel,
+          type:         el.tagName.toLowerCase() + `[${el.type || 'text'}]`,
+          automationId: el.getAttribute('data-automation-id') || '',
+          name:         el.name || '',
+          label:        labelEl?.textContent?.trim() || el.getAttribute('aria-label') || el.getAttribute('placeholder') || '',
+          value:        el.value || '',
+          required:     el.required,
+        })
       })
-    })
+      // Workday rich widgets (dropdowns, date pickers etc)
+      document.querySelectorAll('[data-automation-id]').forEach(el => {
+        const id = el.getAttribute('data-automation-id')
+        if (!id || results.find(r => r.automationId === id)) return
+        if (!id.match(/[Ff]ield|[Ii]nput|[Ss]elect|[Dd]ate|[Pp]icker|[Uu]pload|[Cc]heck|[Rr]adio|[Tt]ext/)) return
+        const nearLabel = el.closest('[data-automation-id$="FormField"]')?.querySelector('[data-automation-id="formLabel"]')?.textContent?.trim()
+          || el.getAttribute('aria-label') || ''
+        results.push({
+          source:       frameLabel,
+          type:         'workday-widget',
+          automationId: id,
+          label:        nearLabel,
+          value:        el.getAttribute('aria-valuetext') || el.textContent?.trim()?.slice(0, 80) || '',
+        })
+      })
+      return results
+    }, label)
+  }
 
-    // Workday custom dropdowns / rich inputs
-    document.querySelectorAll('[data-automation-id]').forEach(el => {
-      const id = el.getAttribute('data-automation-id')
-      if (!id || results.find(r => r.automationId === id)) return
-      const label = el.getAttribute('aria-label') || el.closest('[data-automation-id$="-formField"]')?.querySelector('label')?.textContent?.trim() || ''
-      if (label || id.includes('Field') || id.includes('field')) {
-        results.push({ type: 'workday-widget', automationId: id, label, value: el.textContent?.trim()?.slice(0, 80) || '' })
-      }
-    })
+  // Extract from main page
+  console.log('\nExtracting form fields...')
+  let fields = await extractFields(page, 'main')
 
-    return results
-  })
+  // Extract from each iframe
+  for (const frame of frames) {
+    if (frame === page.mainFrame()) continue
+    try {
+      const iframeFields = await extractFields(frame, frame.url())
+      fields = fields.concat(iframeFields)
+    } catch (e) { console.log('Could not extract from iframe:', e.message) }
+  }
 
   console.log(`\nFound ${fields.length} fields:\n`)
   fields.forEach((f, i) => {
