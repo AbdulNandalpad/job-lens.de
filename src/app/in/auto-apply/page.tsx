@@ -467,11 +467,23 @@ export default function InAutoApplyPage() {
               <div>
                 {requiresLogin ? (
                   <div style={{ background: c.bgCard, border: `1px solid ${ACCENT}`, borderRadius: 10, padding: '14px 16px' }}>
-                    <div style={{ fontSize: 13, fontWeight: 700, color: c.primary, marginBottom: 4 }}>
+                    <div style={{ fontSize: 13, fontWeight: 700, color: c.primary, marginBottom: 8 }}>
                       🔐 Portal login required
                     </div>
-                    <div style={{ fontSize: 11, color: c.textMuted, marginBottom: 12, lineHeight: 1.6 }}>
-                      Enter your portal credentials — Kira will sign in and access the application form. Your credentials are used only for this session and never stored.
+
+                    {/* Best option */}
+                    <div style={{ background: ACCENT_LIGHT, border: `1px solid ${ACCENT_BORDER}`, borderRadius: 8, padding: '10px 12px', marginBottom: 12 }}>
+                      <div style={{ fontSize: 12, fontWeight: 700, color: ACCENT, marginBottom: 4 }}>✅ Recommended: paste the post-login URL</div>
+                      <ol style={{ margin: 0, paddingLeft: 16, fontSize: 11, color: c.navy, lineHeight: 1.9 }}>
+                        <li>Open the URL in your browser and log in normally</li>
+                        <li>Navigate to the actual job application form</li>
+                        <li>Copy the URL from the address bar</li>
+                        <li>Paste that URL above and click Analyse Form</li>
+                      </ol>
+                    </div>
+
+                    <div style={{ fontSize: 11, fontWeight: 600, color: c.textMuted, marginBottom: 6 }}>
+                      Or: try auto-login (may not work on Workday / major portals)
                     </div>
                     <div style={{ fontSize: 11, fontWeight: 600, color: c.textMuted, marginBottom: 4 }}>Email / Username</div>
                     <input
@@ -490,16 +502,21 @@ export default function InAutoApplyPage() {
                       value={portalPassword}
                       onChange={e => setPortalPassword(e.target.value)}
                       placeholder="••••••••"
-                      style={{ marginBottom: 12 }}
+                      style={{ marginBottom: 10 }}
                       autoComplete="off"
                     />
                     {error && (
                       <div style={{ fontSize: 11, color: c.error, background: c.errorLight, border: `1px solid ${c.errorBorder}`, borderRadius: 6, padding: '7px 10px', marginBottom: 10 }}>
                         {error}
+                        {error.includes('failed') && (
+                          <div style={{ marginTop: 4, color: c.textMuted }}>
+                            Tip: Portals like Workday block automated logins. Use the recommended method above instead.
+                          </div>
+                        )}
                       </div>
                     )}
                     <button
-                      className="ina-btn-primary"
+                      className="ina-btn-outline"
                       style={{ width: '100%', marginBottom: 8 }}
                       disabled={!portalUsername || !portalPassword || phase === 'analyzing'}
                       onClick={() => handleAnalyse(true)}
@@ -509,7 +526,7 @@ export default function InAutoApplyPage() {
                           <svg className="spin" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>
                           Signing in…
                         </span>
-                      ) : '→ Sign in & Load Form'}
+                      ) : 'Try auto-login'}
                     </button>
                     <button
                       className="ina-btn-outline"

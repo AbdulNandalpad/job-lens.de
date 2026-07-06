@@ -516,13 +516,37 @@ export default function AutoApplyPage() {
               <div>
                 {requiresLogin ? (
                   <div style={{ background: c.bgCard, border: `1px solid ${c.accent}`, borderRadius: 10, padding: '14px 16px' }}>
-                    <div style={{ fontSize: 13, fontWeight: 700, color: c.primary, marginBottom: 4 }}>
+                    <div style={{ fontSize: 13, fontWeight: 700, color: c.primary, marginBottom: 8 }}>
                       🔐 {lang === 'DE' ? 'Login erforderlich' : 'Portal login required'}
                     </div>
-                    <div style={{ fontSize: 11, color: c.textMuted, marginBottom: 12, lineHeight: 1.6 }}>
-                      {lang === 'DE'
-                        ? 'Diese Seite erfordert einen Login. Gib deine Zugangsdaten ein — Kira loggt sich ein und öffnet dann das Bewerbungsformular automatisch. Deine Daten werden nur für diese Sitzung verwendet und nicht gespeichert.'
-                        : 'This portal requires a login. Enter your credentials — Kira will sign in and then access the application form automatically. Your credentials are used only for this session and never stored.'}
+
+                    {/* Best option: get post-login URL */}
+                    <div style={{ background: c.primaryLight, border: `1px solid ${c.accentLight}`, borderRadius: 8, padding: '10px 12px', marginBottom: 12 }}>
+                      <div style={{ fontSize: 12, fontWeight: 700, color: c.primary, marginBottom: 4 }}>
+                        ✅ {lang === 'DE' ? 'Empfohlen: Direkt-URL nach dem Login' : 'Recommended: paste the post-login URL'}
+                      </div>
+                      <ol style={{ margin: 0, paddingLeft: 16, fontSize: 11, color: c.navy, lineHeight: 1.9 }}>
+                        {lang === 'DE' ? (
+                          <>
+                            <li>Öffne die Seite in deinem Browser und logge dich ein</li>
+                            <li>Navigiere zum eigentlichen Bewerbungsformular</li>
+                            <li>Kopiere die URL aus der Adresszeile</li>
+                            <li>Füge diese URL hier oben ein und klicke auf Analysieren</li>
+                          </>
+                        ) : (
+                          <>
+                            <li>Open the URL in your browser and log in normally</li>
+                            <li>Navigate to the actual job application form</li>
+                            <li>Copy the URL from the address bar</li>
+                            <li>Paste that URL above and click Analyse Form</li>
+                          </>
+                        )}
+                      </ol>
+                    </div>
+
+                    {/* Fallback: try auto-login (may not work on Workday/major ATS) */}
+                    <div style={{ fontSize: 11, fontWeight: 600, color: c.textMuted, marginBottom: 6 }}>
+                      {lang === 'DE' ? 'Oder: Auto-Login versuchen (funktioniert nicht bei Workday)' : 'Or: try auto-login (may not work on Workday / major portals)'}
                     </div>
                     <label style={label12}>{lang === 'DE' ? 'E-Mail / Benutzername' : 'Email / Username'}</label>
                     <input
@@ -541,16 +565,23 @@ export default function AutoApplyPage() {
                       value={portalPassword}
                       onChange={e => setPortalPassword(e.target.value)}
                       placeholder="••••••••"
-                      style={{ marginBottom: 12 }}
+                      style={{ marginBottom: 10 }}
                       autoComplete="off"
                     />
                     {error && (
                       <div style={{ fontSize: 11, color: c.error, background: c.errorLight, border: `1px solid ${c.errorBorder}`, borderRadius: 6, padding: '7px 10px', marginBottom: 10 }}>
                         {error}
+                        {error.includes('failed') && (
+                          <div style={{ marginTop: 4, color: c.textMuted }}>
+                            {lang === 'DE'
+                              ? 'Tipp: Portale wie Workday blockieren automatische Logins. Nutze stattdessen die empfohlene Methode oben.'
+                              : 'Tip: Portals like Workday block automated logins. Use the recommended method above instead.'}
+                          </div>
+                        )}
                       </div>
                     )}
                     <button
-                      className="aa-btn-primary"
+                      className="aa-btn-outline"
                       style={{ width: '100%', marginBottom: 8 }}
                       disabled={!portalUsername || !portalPassword || phase === 'analyzing'}
                       onClick={() => handleAnalyse(true)}
@@ -560,7 +591,7 @@ export default function AutoApplyPage() {
                           <svg className="spin" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>
                           {lang === 'DE' ? 'Anmeldung läuft…' : 'Signing in…'}
                         </span>
-                      ) : (lang === 'DE' ? '→ Anmelden & Formular laden' : '→ Sign in & Load Form')}
+                      ) : (lang === 'DE' ? 'Auto-Login versuchen' : 'Try auto-login')}
                     </button>
                     <button
                       className="aa-btn-outline"
