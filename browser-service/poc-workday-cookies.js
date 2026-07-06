@@ -39,6 +39,15 @@ if (!EMAIL || !PASS) {
   await page.screenshot({ path: 'debug-login-page.png' })
   console.log('Screenshot saved: debug-login-page.png')
 
+  // Accept cookie consent banner first — login fails silently without this
+  console.log('Accepting cookies...')
+  await page.evaluate(() => {
+    const buttons = Array.from(document.querySelectorAll('button, a'))
+    const accept = buttons.find(el => el.textContent.trim() === 'Accept Cookies')
+    if (accept) accept.click()
+  })
+  await page.waitForTimeout(1500)
+
   // Click "Already have an account? Sign In" link
   console.log('Clicking Sign In link...')
   await page.evaluate(() => {
