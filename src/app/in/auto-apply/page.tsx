@@ -89,6 +89,9 @@ export default function InAutoApplyPage() {
   const [sessionId, setSessionId] = useState('')
   const [fieldStatuses, setFieldStatuses] = useState<Record<string, boolean | null>>({})
   const [error, setError] = useState('')
+  const [requiresLogin, setRequiresLogin] = useState(false)
+  const [portalUsername, setPortalUsername] = useState('')
+  const [portalPassword, setPortalPassword] = useState('')
   const logRef = useRef<HTMLDivElement>(null)
   const logCounter = useRef(0)
 
@@ -120,7 +123,7 @@ export default function InAutoApplyPage() {
     if (logRef.current) logRef.current.scrollTop = logRef.current.scrollHeight
   }, [log])
 
-  async function handleAnalyse() {
+  async function handleAnalyse(withCredentials = false) {
     if (!jobUrl.trim()) { setError('Please enter the application URL.'); return }
     if (!cvText.trim()) { setError('No CV found. Please complete the CV Builder first.'); return }
     setError('')
@@ -128,16 +131,21 @@ export default function InAutoApplyPage() {
     setAnalyzeResult(null)
     setMapping([])
 
+    const body: Record<string, unknown> = {
+      jobUrl: jobUrl.trim(),
+      cvText,
+      coverLetter: useCoverLetter ? coverLetter : '',
+      market: 'in',
+    }
+    if (withCredentials && portalUsername && portalPassword) {
+      body.credentials = { username: portalUsername, password: portalPassword }
+    }
+
     try {
       const res = await fetch('/api/auto-apply/analyze', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          jobUrl: jobUrl.trim(),
-          cvText,
-          coverLetter: useCoverLetter ? coverLetter : '',
-          market: 'in',
-        }),
+        body: JSON.stringify(body),
       })
       const data: AnalyzeResult = await res.json()
       if (!res.ok) throw new Error((data as unknown as { error: string }).error || 'Analysis failed')
@@ -145,12 +153,14 @@ export default function InAutoApplyPage() {
       if (data.requiresLogin) {
         setAnalyzeResult(data)
         setPhase('idle')
-        setError(
-          'This page requires you to log in first. Open the URL in your browser, log into the company portal, navigate to the actual application form, then copy that URL and paste it here.'
-        )
+        setRequiresLogin(true)
+        setError(data.error || '')
         return
       }
 
+      setRequiresLogin(false)
+      setPortalUsername('')
+      setPortalPassword('')
       setAnalyzeResult(data)
       setMapping(data.mapping)
       setPhase(data.hasForm ? 'review' : 'idle')
@@ -455,35 +465,93 @@ export default function InAutoApplyPage() {
               </div>
 
               <div>
-                {error && (
-                  <div style={{ fontSize: 12, color: c.error, background: c.errorLight, border: `1px solid ${c.errorBorder}`, borderRadius: 8, padding: '10px 14px', marginBottom: 12 }}>
-                    {error}
+                {requiresLogin ? (
+                  <div style={{ background: c.bgCard, border: `1px solid ${ACCENT}`, borderRadius: 10, padding: '14px 16px' }}>
+                    <div style={{ fontSize: 13, fontWeight: 700, color: c.primary, marginBottom: 4 }}>
+                      🔐 Portal login required
+                    </div>
+                    <div style={{ fontSize: 11, color: c.textMuted, marginBottom: 12, lineHeight: 1.6 }}>
+                      Enter your portal credentials — Kira will sign in and access the application form. Your credentials are used only for this session and never stored.
+                    </div>
+                    <div style={{ fontSize: 11, fontWeight: 600, color: c.textMuted, marginBottom: 4 }}>Email / Username</div>
+                    <input
+                      className="ina-input"
+                      type="email"
+                      value={portalUsername}
+                      onChange={e => setPortalUsername(e.target.value)}
+                      placeholder="you@email.com"
+                      style={{ marginBottom: 10 }}
+                      autoComplete="off"
+                    />
+                    <div style={{ fontSize: 11, fontWeight: 600, color: c.textMuted, marginBottom: 4 }}>Password</div>
+                    <input
+                      className="ina-input"
+                      type="password"
+                      value={portalPassword}
+                      onChange={e => setPortalPassword(e.target.value)}
+                      placeholder="••••••••"
+                      style={{ marginBottom: 12 }}
+                      autoComplete="off"
+                    />
+                    {error && (
+                      <div style={{ fontSize: 11, color: c.error, background: c.errorLight, border: `1px solid ${c.errorBorder}`, borderRadius: 6, padding: '7px 10px', marginBottom: 10 }}>
+                        {error}
+                      </div>
+                    )}
+                    <button
+                      className="ina-btn-primary"
+                      style={{ width: '100%', marginBottom: 8 }}
+                      disabled={!portalUsername || !portalPassword || phase === 'analyzing'}
+                      onClick={() => handleAnalyse(true)}
+                    >
+                      {phase === 'analyzing' ? (
+                        <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+                          <svg className="spin" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>
+                          Signing in…
+                        </span>
+                      ) : '→ Sign in & Load Form'}
+                    </button>
+                    <button
+                      className="ina-btn-outline"
+                      style={{ width: '100%', fontSize: 12 }}
+                      onClick={() => { setRequiresLogin(false); setPortalUsername(''); setPortalPassword(''); setError('') }}
+                    >
+                      ← Use a different URL
+                    </button>
                   </div>
-                )}
-                <button
-                  className="ina-btn-primary"
-                  style={{ width: '100%' }}
-                  disabled={!isUrlValid || !hasCv || phase === 'analyzing' || phase === 'executing'}
-                  onClick={handleAnalyse}
-                >
-                  {phase === 'analyzing' ? (
-                    <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
-                      <svg className="spin" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                        <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/>
-                      </svg>
-                      Analysing form…
-                    </span>
-                  ) : 'Analyse Form — 3 credits'}
-                </button>
+                ) : (
+                  <>
+                    {error && (
+                      <div style={{ fontSize: 12, color: c.error, background: c.errorLight, border: `1px solid ${c.errorBorder}`, borderRadius: 8, padding: '10px 14px', marginBottom: 12 }}>
+                        {error}
+                      </div>
+                    )}
+                    <button
+                      className="ina-btn-primary"
+                      style={{ width: '100%' }}
+                      disabled={!isUrlValid || !hasCv || phase === 'analyzing' || phase === 'executing'}
+                      onClick={() => handleAnalyse(false)}
+                    >
+                      {phase === 'analyzing' ? (
+                        <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+                          <svg className="spin" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                            <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/>
+                          </svg>
+                          Analysing form…
+                        </span>
+                      ) : 'Analyse Form — 3 credits'}
+                    </button>
 
-                {(phase === 'review' || phase === 'done') && (
-                  <button
-                    className="ina-btn-outline"
-                    style={{ width: '100%', marginTop: 10 }}
-                    onClick={() => { setPhase('idle'); setAnalyzeResult(null); setMapping([]); setError('') }}
-                  >
-                    &larr; Start over
-                  </button>
+                    {(phase === 'review' || phase === 'done') && (
+                      <button
+                        className="ina-btn-outline"
+                        style={{ width: '100%', marginTop: 10 }}
+                        onClick={() => { setPhase('idle'); setAnalyzeResult(null); setMapping([]); setError('') }}
+                      >
+                        &larr; Start over
+                      </button>
+                    )}
+                  </>
                 )}
               </div>
 

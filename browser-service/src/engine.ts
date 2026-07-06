@@ -438,6 +438,21 @@ async function fillField(
   }
 }
 
+// ── Mapping helper (used by analyzeForm in both direct and post-login paths) ──
+
+async function buildMapping(fields: DetectedField[], cvText: string, coverLetter: string | undefined, anthropic: Anthropic): Promise<FieldMapping[]> {
+  const cvValues  = extractCvValues(cvText)
+  const cvContext = buildCvContext(cvText, cvValues)
+  const rawMapping = await mapCvToFields(fields, cvContext, coverLetter, anthropic)
+  return applyDeterministicOverrides(
+    fields.map(field => {
+      const match = rawMapping.find(m => matchLabel(field.label, m.label))
+      return { field, value: match?.value ?? '', confidence: match?.confidence ?? 'low', notes: match?.notes }
+    }),
+    cvValues,
+  )
+}
+
 // ── Analyze form ──────────────────────────────────────────────────────────────
 
 export async function analyzeForm(
@@ -445,6 +460,7 @@ export async function analyzeForm(
   cvText: string,
   coverLetter: string | undefined,
   anthropic: Anthropic,
+  credentials?: { username: string; password: string },
 ): Promise<AnalyzeResult> {
   const { chromium } = await import('playwright')
   const browser = await chromium.launch({ headless: true })
@@ -482,6 +498,56 @@ export async function analyzeForm(
       /log\s?in|sign\s?in|create\s?account|sign\s?up|register/i.test(titleLower) && !/apply|application|job|career/i.test(titleLower)
 
     if (isLoginWall) {
+      // If credentials provided, attempt to log in and continue
+      if (credentials?.username && credentials?.password) {
+        try {
+          // Fill email/username field
+          const emailSel = page.locator('input[type="email"], input[name*="email" i], input[name*="user" i], input[autocomplete="username"], input[autocomplete="email"]').first()
+          await emailSel.fill(credentials.username, { timeout: 5000 }).catch(() => {})
+          // Fill password field
+          await page.locator('input[type="password"]').first().fill(credentials.password, { timeout: 5000 }).catch(() => {})
+          // Click the primary submit/login button
+          const loginBtn = page.locator('button[type="submit"], input[type="submit"], button:text-matches("Sign In|Log In|Login|Continue|Submit", "i")').first()
+          await loginBtn.click({ timeout: 5000 }).catch(() => {})
+          // Wait for navigation after login
+          await page.waitForLoadState('networkidle', { timeout: 20000 }).catch(() => {})
+          await page.waitForTimeout(3000)
+          // Check if login succeeded (no longer on a login page)
+          const newUrl = page.url()
+          const newTitle = await page.title()
+          const stillOnLoginPage = await page.locator('input[type="password"]').first().isVisible({ timeout: 2000 }).catch(() => false)
+          const loginShot = (await page.screenshot({ fullPage: false })).toString('base64')
+          if (stillOnLoginPage) {
+            return {
+              formType, pageTitle: newTitle, hasForm: false, requiresLogin: true,
+              fields: [], mapping: [], screenshotB64: loginShot,
+              error: 'Login failed — please check your username and password and try again.',
+            }
+          }
+          // Re-detect form type after login
+          if (newUrl.includes('myworkday') || newUrl.includes('workday.com')) formType = 'Workday'
+          // Continue analysis on the post-login page
+          const postFields = await grabFieldsFromDom(page)
+          const postTitle = newTitle
+          const postShot = loginShot
+          if (postFields.some(f => f.type === 'password')) {
+            return { formType, pageTitle: postTitle, hasForm: false, requiresLogin: true, fields: [], mapping: [], screenshotB64: postShot, error: 'Still on a login page after signing in.' }
+          }
+          if (postFields.length === 0) {
+            return { formType, pageTitle: postTitle, hasForm: false, requiresLogin: false, fields: [], mapping: [], screenshotB64: postShot, error: 'Logged in but no application form found on this page. The form may be on a different URL.' }
+          }
+          const postMapping = await buildMapping(postFields, cvText, coverLetter, anthropic)
+          return { formType, pageTitle: postTitle, hasForm: true, fields: postFields, mapping: postMapping, screenshotB64: postShot }
+        } catch (loginErr) {
+          console.error('[analyzeForm] login attempt failed:', loginErr)
+          return {
+            formType, pageTitle, hasForm: false, requiresLogin: true,
+            fields: [], mapping: [], screenshotB64,
+            error: 'Login attempt failed. Please check your credentials and try again.',
+          }
+        }
+      }
+
       return {
         formType,
         pageTitle,
@@ -498,6 +564,25 @@ export async function analyzeForm(
 
     // Second-pass check: if extracted fields contain password inputs, it's still a login wall
     if (fields.some(f => f.type === 'password')) {
+      if (credentials?.username && credentials?.password) {
+        // Same login attempt for second-pass detection
+        try {
+          await page.locator('input[type="email"], input[name*="email" i], input[name*="user" i]').first().fill(credentials.username, { timeout: 5000 }).catch(() => {})
+          await page.locator('input[type="password"]').first().fill(credentials.password, { timeout: 5000 }).catch(() => {})
+          await page.locator('button[type="submit"], input[type="submit"], button:text-matches("Sign In|Log In|Login|Continue|Submit", "i")').first().click({ timeout: 5000 }).catch(() => {})
+          await page.waitForLoadState('networkidle', { timeout: 20000 }).catch(() => {})
+          await page.waitForTimeout(3000)
+          const stillOnLogin = await page.locator('input[type="password"]').first().isVisible({ timeout: 2000 }).catch(() => false)
+          const postShot = (await page.screenshot({ fullPage: false })).toString('base64')
+          if (stillOnLogin) {
+            return { formType, pageTitle, hasForm: false, requiresLogin: true, fields: [], mapping: [], screenshotB64: postShot, error: 'Login failed — please check your username and password.' }
+          }
+          const postFields = await grabFieldsFromDom(page)
+          if (!postFields.length) return { formType, pageTitle, hasForm: false, requiresLogin: false, fields: [], mapping: [], screenshotB64: postShot, error: 'Logged in but no application form found.' }
+          const postMapping = await buildMapping(postFields, cvText, coverLetter, anthropic)
+          return { formType, pageTitle: await page.title(), hasForm: true, fields: postFields, mapping: postMapping, screenshotB64: postShot }
+        } catch { /* fall through */ }
+      }
       return {
         formType,
         pageTitle,
@@ -539,18 +624,7 @@ If no form visible: {"hasForm":false,"fields":[]}`,
       return { formType, pageTitle, hasForm: false, fields: [], mapping: [], screenshotB64, error: 'No application form fields detected.' }
     }
 
-    const cvValues  = extractCvValues(cvText)
-    const cvContext = buildCvContext(cvText, cvValues)
-    const rawMapping = await mapCvToFields(fields, cvContext, coverLetter, anthropic)
-
-    const mapping: FieldMapping[] = applyDeterministicOverrides(
-      fields.map(field => {
-        const match = rawMapping.find(m => matchLabel(field.label, m.label))
-        return { field, value: match?.value ?? '', confidence: match?.confidence ?? 'low', notes: match?.notes }
-      }),
-      cvValues,
-    )
-
+    const mapping = await buildMapping(fields, cvText, coverLetter, anthropic)
     return { formType, pageTitle, hasForm: true, fields, mapping, screenshotB64 }
   } finally {
     await browser.close()

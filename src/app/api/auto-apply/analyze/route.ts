@@ -19,6 +19,9 @@ export async function POST(req: NextRequest) {
   const cvText      = typeof body.cvText      === 'string' ? body.cvText          : ''
   const coverLetter = typeof body.coverLetter === 'string' ? body.coverLetter     : ''
   const market      = typeof body.market      === 'string' ? body.market          : 'eu'
+  const credentials = body.credentials && typeof body.credentials.username === 'string' && typeof body.credentials.password === 'string'
+    ? { username: body.credentials.username.slice(0, 320), password: body.credentials.password.slice(0, 256) }
+    : undefined
 
   if (!jobUrl || !cvText) {
     return NextResponse.json({ error: 'jobUrl and cvText are required' }, { status: 400 })
@@ -49,7 +52,7 @@ export async function POST(req: NextRequest) {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${railwaySecret}`,
         },
-        body: JSON.stringify({ jobUrl, cvText, coverLetter }),
+        body: JSON.stringify({ jobUrl, cvText, coverLetter, credentials }),
         signal: AbortSignal.timeout(90_000),
       })
       const data = await res.json()
@@ -67,7 +70,7 @@ export async function POST(req: NextRequest) {
       const Anthropic = (await import('@anthropic-ai/sdk')).default
       const { analyzeForm } = await import('@/lib/auto-apply-engine')
       const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
-      const result = await analyzeForm(jobUrl, cvText, coverLetter || undefined, anthropic)
+      const result = await analyzeForm(jobUrl, cvText, coverLetter || undefined, anthropic, credentials)
       return NextResponse.json({ ...result, creditsRemaining: credits.remaining })
     } catch (err) {
       console.error('[auto-apply/analyze]', err)
