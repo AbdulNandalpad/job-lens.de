@@ -296,7 +296,7 @@ function buildSessionUpdate(instructions) {
       instructions,
       audio: {
         input: {
-          format: 'pcm16',
+          format: { type: 'audio/pcm', rate: 24000 },
           turn_detection: {
             type:                'server_vad',
             threshold:           0.7,
@@ -307,7 +307,7 @@ function buildSessionUpdate(instructions) {
           },
         },
         output: {
-          format: 'pcm16',
+          format: { type: 'audio/pcm', rate: 24000 },
           voice:  'alloy',
         },
       },
