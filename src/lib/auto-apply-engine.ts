@@ -22,6 +22,7 @@ export interface AnalyzeResult {
   formType: string
   pageTitle: string
   hasForm: boolean
+  requiresLogin?: boolean
   fields: DetectedField[]
   mapping: FieldMapping[]
   screenshotB64: string

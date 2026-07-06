@@ -154,6 +154,18 @@ export default function AutoApplyPage() {
       const data: AnalyzeResult = await res.json()
       if (!res.ok) throw new Error((data as unknown as { error: string }).error || 'Analysis failed')
 
+      if (data.requiresLogin) {
+        setAnalyzeResult(data)
+        setPhase('idle')
+        setError(
+          (lang === 'DE'
+            ? 'Diese Seite erfordert einen Login. Bitte logge dich im Browser ein, navigiere zur eigentlichen Bewerbungsseite und kopiere die URL des Formulars (die URL nach dem Login).'
+            : 'This page requires you to log in first. Open the URL in your browser, log into the company portal, navigate to the actual application form, then copy that URL and paste it here.'
+          )
+        )
+        return
+      }
+
       setAnalyzeResult(data)
       setMapping(data.mapping)
       setPhase(data.hasForm ? 'review' : 'idle')
@@ -618,10 +630,12 @@ export default function AutoApplyPage() {
                 <div style={{ ...card, overflow: 'hidden' }}>
                   <div style={{ padding: '12px 16px', borderBottom: `1px solid ${c.border}`, background: c.warningLight }}>
                     <div style={{ fontSize: 13, fontWeight: 700, color: c.primary, fontFamily: f.heading }}>
-                      {lang === 'DE' ? 'Ausgefülltes Formular prüfen — bestätigen zum Einreichen' : 'Review filled form — confirm to submit'}
+                      {lang === 'DE' ? '⚠ Ausgefülltes Formular prüfen — du klickst auf Einreichen' : '⚠ Review filled form — you will click Submit'}
                     </div>
                     <div style={{ fontSize: 11, color: c.textMuted, marginTop: 3 }}>
-                      {lang === 'DE' ? 'Kira hat alle Felder ausgefüllt. Prüfe die Vorschau, bevor du einreichst.' : 'Kira has filled all fields. Check the preview below before submitting.'}
+                      {lang === 'DE'
+                        ? 'Kira hat alle erreichbaren Felder ausgefüllt. Überprüfe die Vorschau sorgfältig. Datei-Upload-Felder (CV, Anschreiben) musst du auf der Live-Seite manuell hochladen, bevor du klickst.'
+                        : 'Kira has filled all reachable fields. Carefully review the preview. File upload fields (CV, cover letter) must be manually uploaded on the live page before you click Submit.'}
                     </div>
                   </div>
                   <div style={{ padding: '12px 16px' }}>
@@ -630,9 +644,18 @@ export default function AutoApplyPage() {
                       alt="Filled form preview"
                       style={{ width: '100%', borderRadius: 6, border: `1px solid ${c.border}`, marginBottom: 14 }}
                     />
-                    <div style={{ display: 'flex', gap: 10 }}>
+                    <div style={{ background: c.bgSubtle, borderRadius: 8, padding: '10px 12px', marginBottom: 14, fontSize: 12, color: c.textMuted, lineHeight: 1.7 }}>
+                      <strong style={{ color: c.primary }}>{lang === 'DE' ? 'Checkliste vor dem Einreichen:' : 'Before you submit:'}</strong>
+                      <ul style={{ margin: '6px 0 0', paddingLeft: 16 }}>
+                        <li>{lang === 'DE' ? 'Alle Pflichtfelder (*) ausgefüllt?' : 'All required fields (*) filled correctly?'}</li>
+                        <li>{lang === 'DE' ? 'CV-Datei hochgeladen (falls vom Formular verlangt)?' : 'CV file uploaded (if the form requires a file)?'}</li>
+                        <li>{lang === 'DE' ? 'Anschreiben angehängt (falls vorhanden)?' : 'Cover letter attached (if applicable)?'}</li>
+                        <li>{lang === 'DE' ? 'Einwilligungen / DSGVO akzeptiert?' : 'Any consent / GDPR checkboxes ticked?'}</li>
+                      </ul>
+                    </div>
+                    <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
                       <button className="aa-btn-primary" style={{ flex: 1 }} onClick={handleConfirmSubmit}>
-                        {lang === 'DE' ? '✓ Sieht gut aus — Bewerbung einreichen' : '✓ Looks good — Submit Application'}
+                        {lang === 'DE' ? '✓ Alles geprüft — Bewerbung einreichen' : '✓ All checked — Submit Application'}
                       </button>
                       <button
                         className="aa-btn-outline"
@@ -640,6 +663,11 @@ export default function AutoApplyPage() {
                       >
                         {lang === 'DE' ? '← Felder bearbeiten' : '← Edit fields'}
                       </button>
+                    </div>
+                    <div style={{ marginTop: 10, fontSize: 11, color: c.textMuted }}>
+                      {lang === 'DE'
+                        ? 'Hinweis: Nach dem Einreichen siehst du einen Bestätigungs-Screenshot. Prüfe außerdem deine E-Mails auf eine Bestätigungs-E-Mail der Firma.'
+                        : 'Note: After submitting you\'ll see a confirmation screenshot. Also check your inbox for a confirmation email from the company.'}
                     </div>
                   </div>
                 </div>

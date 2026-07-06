@@ -86,6 +86,8 @@ export default function InAutoApplyPage() {
   const [log, setLog] = useState<LogEntry[]>([])
   const [liveShot, setLiveShot] = useState('')
   const [previewShot, setPreviewShot] = useState('')
+  const [sessionId, setSessionId] = useState('')
+  const [fieldStatuses, setFieldStatuses] = useState<Record<string, boolean | null>>({})
   const [error, setError] = useState('')
   const logRef = useRef<HTMLDivElement>(null)
   const logCounter = useRef(0)
@@ -134,6 +136,15 @@ export default function InAutoApplyPage() {
       const data: AnalyzeResult = await res.json()
       if (!res.ok) throw new Error((data as unknown as { error: string }).error || 'Analysis failed')
 
+      if (data.requiresLogin) {
+        setAnalyzeResult(data)
+        setPhase('idle')
+        setError(
+          'This page requires you to log in first. Open the URL in your browser, log into the company portal, navigate to the actual application form, then copy that URL and paste it here.'
+        )
+        return
+      }
+
       setAnalyzeResult(data)
       setMapping(data.mapping)
       setPhase(data.hasForm ? 'review' : 'idle')
@@ -179,11 +190,18 @@ export default function InAutoApplyPage() {
             switch (ev.type) {
               case 'log':           addLog({ type: 'log', message: ev.message }); break
               case 'screenshot':    setLiveShot(ev.b64); addLog({ type: 'screenshot', message: ev.message, b64: ev.b64 }); break
-              case 'filling':       addLog({ type: 'filling', message: `Filling "${ev.label}" → ${ev.value.slice(0, 40)}` }); break
-              case 'filled':        addLog({ type: 'filled', message: `"${ev.label}" ${ev.success ? '✓ filled' : '⚠ skipped'}`, success: ev.success }); break
+              case 'filling':
+                setFieldStatuses(prev => ({ ...prev, [ev.label]: null }))
+                addLog({ type: 'filling', message: `Filling "${ev.label}" → ${ev.value.slice(0, 40)}` })
+                break
+              case 'filled':
+                setFieldStatuses(prev => ({ ...prev, [ev.label]: ev.success }))
+                addLog({ type: 'filled', message: `"${ev.label}" ${ev.success ? '✓ filled' : '⚠ skipped'}`, success: ev.success })
+                break
               case 'filled_preview':
                 setPreviewShot(ev.b64)
                 setLiveShot(ev.b64)
+                if ('sessionId' in ev) setSessionId((ev as { sessionId: string }).sessionId)
                 addLog({ type: 'log', message: ev.message })
                 setPhase('confirming')
                 break
@@ -213,6 +231,8 @@ export default function InAutoApplyPage() {
     setLog([])
     setLiveShot('')
     setPreviewShot('')
+    setSessionId('')
+    setFieldStatuses({})
     await streamEvents(
       '/api/auto-apply/execute',
       { jobUrl: jobUrl.trim(), mapping, cvText, coverLetter: useCoverLetter ? coverLetter : '' },
@@ -221,13 +241,14 @@ export default function InAutoApplyPage() {
   }
 
   async function handleConfirmSubmit() {
+    if (!sessionId) {
+      setError('Session lost — please go back and re-fill the form.')
+      setPhase('confirming')
+      return
+    }
     setPhase('submitting')
     setLog(prev => [...prev, { id: ++logCounter.current, type: 'log', message: 'User confirmed — submitting application…' }])
-    await streamEvents(
-      '/api/auto-apply/submit',
-      { jobUrl: jobUrl.trim(), mapping, cvText, coverLetter: useCoverLetter ? coverLetter : '' },
-      logToTracker,
-    )
+    await streamEvents('/api/auto-apply/submit', { sessionId }, logToTracker)
   }
 
   function logToTracker() {
@@ -492,7 +513,7 @@ export default function InAutoApplyPage() {
                 </div>
               )}
 
-              {(phase === 'review' || phase === 'executing' || phase === 'done') && analyzeResult && (
+              {(phase === 'review' || phase === 'executing' || phase === 'confirming' || phase === 'submitting' || phase === 'done') && analyzeResult && (
                 <>
                   <div style={card}>
                     <div style={{ padding: '14px 18px', display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap' }}>
@@ -594,28 +615,37 @@ export default function InAutoApplyPage() {
 
               {phase === 'confirming' && previewShot && (
                 <div style={{ ...card, overflow: 'hidden' }}>
-                  <div style={{ padding: '16px 20px', background: `${ACCENT_LIGHT}`, borderBottom: `1px solid ${ACCENT_BORDER}`, display: 'flex', alignItems: 'center', gap: 10 }}>
-                    <div style={{ width: 28, height: 28, borderRadius: '50%', background: ACCENT, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, color: '#fff', flexShrink: 0 }}>!</div>
-                    <div>
-                      <div style={{ fontSize: 13, fontWeight: 700, color: c.primary }}>Review filled form before submitting</div>
-                      <div style={{ fontSize: 11, color: c.textMuted }}>Kira has filled all fields. Check the screenshot below, then confirm.</div>
+                  <div style={{ padding: '12px 16px', borderBottom: `1px solid ${c.border}`, background: c.warningLight }}>
+                    <div style={{ fontSize: 13, fontWeight: 700, color: c.primary }}>
+                      ⚠ Review filled form — you will click Submit
+                    </div>
+                    <div style={{ fontSize: 11, color: c.textMuted, marginTop: 3 }}>
+                      Kira has filled all reachable fields. Carefully review the preview. File upload fields (resume, cover letter) must be manually uploaded on the live page before you click Submit.
                     </div>
                   </div>
-                  <img src={`data:image/png;base64,${previewShot}`} alt="Filled form preview" style={{ width: '100%', display: 'block' }} />
-                  <div style={{ padding: '16px 20px', display: 'flex', gap: 12, borderTop: `1px solid ${c.border}` }}>
-                    <button
-                      className="ina-btn-primary"
-                      style={{ flex: 1 }}
-                      onClick={handleConfirmSubmit}
-                    >
-                      ✓ Looks good — Submit Application
-                    </button>
-                    <button
-                      className="ina-btn-outline"
-                      onClick={() => { setPhase('review'); setPreviewShot('') }}
-                    >
-                      ← Edit fields
-                    </button>
+                  <div style={{ padding: '12px 16px' }}>
+                    <img src={`data:image/png;base64,${previewShot}`} alt="Filled form preview" style={{ width: '100%', borderRadius: 6, border: `1px solid ${c.border}`, marginBottom: 14 }} />
+                    <div style={{ background: c.bgSubtle, borderRadius: 8, padding: '10px 12px', marginBottom: 14, fontSize: 12, color: c.textMuted, lineHeight: 1.7 }}>
+                      <strong style={{ color: c.primary }}>Before you submit:</strong>
+                      <ul style={{ margin: '6px 0 0', paddingLeft: 16 }}>
+                        <li>All required fields (*) filled correctly?</li>
+                        <li>Resume uploaded (if the form requires a file)?</li>
+                        <li>Cover letter attached (if applicable)?</li>
+                        <li>CTC, notice period values correct?</li>
+                        <li>Any consent checkboxes ticked?</li>
+                      </ul>
+                    </div>
+                    <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+                      <button className="ina-btn-primary" style={{ flex: 1 }} onClick={handleConfirmSubmit}>
+                        ✓ All checked — Submit Application
+                      </button>
+                      <button className="ina-btn-outline" onClick={() => { setPhase('review'); setPreviewShot('') }}>
+                        ← Edit fields
+                      </button>
+                    </div>
+                    <div style={{ marginTop: 10, fontSize: 11, color: c.textMuted }}>
+                      Note: After submitting you&apos;ll see a confirmation screenshot. Also check your inbox for a confirmation email.
+                    </div>
                   </div>
                 </div>
               )}

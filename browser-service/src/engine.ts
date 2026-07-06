@@ -22,6 +22,7 @@ export interface AnalyzeResult {
   formType: string
   pageTitle: string
   hasForm: boolean
+  requiresLogin?: boolean
   fields: DetectedField[]
   mapping: FieldMapping[]
   screenshotB64: string
@@ -471,6 +472,27 @@ export async function analyzeForm(
     else if (url.includes('personio.de') || url.includes('personio.com')) formType = 'Personio'
     else if (url.includes('taleo')) formType = 'Taleo'
 
+    // Detect login walls before attempting field extraction
+    const hasPasswordField = await page.$('input[type="password"]').then(el => !!el).catch(() => false)
+    const urlLower = url.toLowerCase()
+    const titleLower = pageTitle.toLowerCase()
+    const isLoginWall = hasPasswordField ||
+      /\/(login|signin|sign-in|authenticate|auth\/login|account\/login)/.test(urlLower) ||
+      /log\s?in|sign\s?in/i.test(titleLower) && !/apply|application|job|career/i.test(titleLower)
+
+    if (isLoginWall) {
+      return {
+        formType,
+        pageTitle,
+        hasForm: false,
+        requiresLogin: true,
+        fields: [],
+        mapping: [],
+        screenshotB64,
+        error: 'This page requires you to log in before accessing the application form.',
+      }
+    }
+
     let fields = await grabFieldsFromDom(page)
 
     if (fields.length === 0) {
@@ -583,6 +605,68 @@ export async function* executeApply(
       const success = await fillField(page, field, value, cvPath, clPath)
       yield { type: 'filled', label: field.label, success }
       await page.waitForTimeout(300)
+    }
+
+    // ── Multi-page form: click Next/Continue until Submit is reachable ─────────
+    const MAX_PAGES = 8
+    const cvValues = extractCvValues(cvText || '')
+    for (let pageNum = 2; pageNum <= MAX_PAGES; pageNum++) {
+      await page.waitForTimeout(800)
+
+      // If a submit button is visible we've reached the last page — stop advancing
+      const submitVisible = await page
+        .getByRole('button', { name: /submit application|apply now|send application|^submit$/i })
+        .first().isVisible().catch(() => false)
+      if (submitVisible) { yield { type: 'log', message: 'Submit button detected — ready to confirm.' }; break }
+
+      // Look for a Next / Continue button
+      const nextBtn = page.locator([
+        'button:text-matches("Next|Continue|Save and Continue|Proceed|Weiter|Nächste", "i")',
+        '[data-automation-id*="next"i]',
+        '[data-automation-id*="continue"i]',
+        '[class*="next-button"i]',
+        '[class*="nextBtn"i]',
+      ].join(', ')).first()
+      const nextVisible = await nextBtn.isVisible().catch(() => false)
+      if (!nextVisible) break  // no more pages
+
+      yield { type: 'log', message: `Multi-page form: clicking Next (page ${pageNum})…` }
+      await nextBtn.click()
+      await page.waitForLoadState('networkidle', { timeout: 15000 }).catch(() => {})
+      await page.waitForTimeout(2500)
+
+      const pageShot = (await page.screenshot({ fullPage: false })).toString('base64')
+      yield { type: 'screenshot', message: `Page ${pageNum} loaded`, b64: pageShot }
+
+      // Extract new fields and map against existing mapping + CV values
+      const newFields = await grabFieldsFromDom(page)
+      if (newFields.length === 0) break
+
+      const newMapping = applyDeterministicOverrides(
+        newFields.map(field => {
+          const existing = mapping.find(m => matchLabel(field.label, m.field.label))
+          return { field, value: existing?.value ?? '', confidence: existing?.confidence ?? 'low' }
+        }),
+        cvValues,
+      )
+
+      const newFillable = newMapping.filter(m => m.value && m.value.trim())
+      if (newFillable.length === 0) continue
+
+      yield { type: 'log', message: `Page ${pageNum}: filling ${newFillable.length} fields…` }
+      for (let i = 0; i < newFillable.length; i++) {
+        const { field, value } = newFillable[i]
+        yield {
+          type: 'filling',
+          label: `[p${pageNum}] ${field.label}`,
+          value: value.startsWith('__') ? `[file: ${value}]` : value,
+          index: i + 1,
+          total: newFillable.length,
+        }
+        const success = await fillField(page, field, value, cvPath, clPath)
+        yield { type: 'filled', label: `[p${pageNum}] ${field.label}`, success }
+        await page.waitForTimeout(300)
+      }
     }
 
     await page.evaluate(() => window.scrollTo(0, 0))

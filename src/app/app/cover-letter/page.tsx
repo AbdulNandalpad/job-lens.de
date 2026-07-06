@@ -50,7 +50,10 @@ export default function CoverLetterPage() {
   const { credits, setCredits, needsCrossMarket, crossMarketAmount } = useCredits()
   const CL_COST = CREDIT_COST.coverLetter
   const [crossWarnPending, setCrossWarnPending] = useState<(() => void) | null>(null)
-  const [openSections, setOpenSections] = useState<Record<string, boolean>>({ style: false, format: false, summary: false })
+  const [openSections, setOpenSections] = useState<Record<string, boolean>>({ contact: false, style: false, format: false, summary: false })
+  const [contactName,  setContactName]  = useState('')
+  const [contactEmail, setContactEmail] = useState('')
+  const [contactPhone, setContactPhone] = useState('')
   const [mobOpen, setMobOpen] = useState(false)
 
   const jobLabel = job ? `${job.employer_name} - ${job.job_title}` : ''
@@ -62,6 +65,21 @@ export default function CoverLetterPage() {
     setCvText(cv)
     if (jobRaw) { try { setJob(JSON.parse(jobRaw)) } catch { } }
     if (saved) setLetter(saved)
+
+    // Auto-extract contact details from CV
+    if (cv) {
+      const emailM = cv.match(/[\w.+\-]+@[\w\-]+(?:\.[\w\-]+)+/i)
+      if (emailM) setContactEmail(emailM[0].toLowerCase())
+      const phoneM = cv.match(/(?:\+\d{1,3}[\s\-.]?)?\(?\d{2,4}\)?[\s\-.]?\d{3,5}[\s\-.]?\d{3,5}(?:[\s\-.]?\d{1,4})?/)
+      if (phoneM) setContactPhone(phoneM[0].trim())
+      for (const line of cv.split('\n')) {
+        const t = line.trim()
+        if (t.length > 2 && t.length < 55 && !t.includes('@') && !/\d/.test(t) && /[A-Za-z]/.test(t)) {
+          const words = t.split(/\s+/)
+          if (words.length >= 2 && words.length <= 5) { setContactName(t); break }
+        }
+      }
+    }
   }, [])
 
   function toggleSection(id: string) {
@@ -104,10 +122,16 @@ export default function CoverLetterPage() {
     if (credits !== null && credits < CL_COST) { alert(`You need ${CL_COST} credit to generate a cover letter. Please top up on the Account page.`); return }
     setLoading(true); setLetter('')
     try {
+      const contactHeader = [
+        contactName  ? `Full Name: ${contactName}`  : '',
+        contactEmail ? `Email: ${contactEmail}`      : '',
+        contactPhone ? `Phone: ${contactPhone}`      : '',
+      ].filter(Boolean).join('\n')
+      const cvWithContact = contactHeader ? `${contactHeader}\n\n${cvText}` : cvText
       const res = await fetch(API.coverLetter, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ cvText, job, tone, length, lang: letterLang, market: MARKET.eu }),
+        body: JSON.stringify({ cvText: cvWithContact, job, tone, length, lang: letterLang, market: MARKET.eu }),
       })
       if (res.status === 402) { const d = await res.json(); if (typeof d.credits === 'number') setCredits(d.credits); setLoading(false); alert('Not enough credits. Please top up on the Account page.'); return }
       const data = await res.json()
@@ -171,8 +195,17 @@ export default function CoverLetterPage() {
       doc.setFont('helvetica', 'bold')
       doc.setFontSize(16)
       doc.setTextColor(4, 44, 83)
-      doc.text('Cover Letter', margin, y)
+      doc.text(contactName || 'Cover Letter', margin, y)
       y += 6
+
+      const contactParts = [contactEmail, contactPhone].filter(Boolean).join('  ·  ')
+      if (contactParts) {
+        doc.setFont('helvetica', 'normal')
+        doc.setFontSize(9)
+        doc.setTextColor(107, 124, 147)
+        doc.text(contactParts, margin, y)
+        y += 5
+      }
 
       if (job) {
         doc.setFont('helvetica', 'normal')
@@ -424,6 +457,49 @@ export default function CoverLetterPage() {
 
           {/* Accordions */}
           <div style={{ flex: 1, overflowY: 'auto' }}>
+
+            {/* SECTION: Contact Details */}
+            <div style={{ borderBottom: '1px solid rgba(255,255,255,0.07)' }}>
+              <button onClick={() => toggleSection('contact')}
+                style={{ width: '100%', padding: '13px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <div style={{ width: 22, height: 22, borderRadius: 6, background: openSections.contact ? accentColor + '25' : 'rgba(255,255,255,0.07)', display: 'flex', alignItems: 'center', justifyContent: 'center', border: `1px solid ${openSections.contact ? accentColor + '40' : 'rgba(255,255,255,0.1)'}` }}>
+                    <span style={{ fontSize: 9, fontWeight: 700, color: openSections.contact ? accentColor : 'rgba(255,255,255,0.4)', fontFamily: 'monospace' }}>✎</span>
+                  </div>
+                  <span style={{ fontSize: 13, fontWeight: 600, color: openSections.contact ? '#fff' : 'rgba(255,255,255,0.55)' }}>
+                    {letterLang === 'DE' ? 'Kontaktdaten' : 'Contact Details'}
+                  </span>
+                  {(contactName || contactEmail) && (
+                    <span style={{ fontSize: 10, color: accentColor, fontWeight: 600 }}>✓ set</span>
+                  )}
+                </div>
+                <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.3)', transform: openSections.contact ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s', display: 'inline-block' }}>v</span>
+              </button>
+              {openSections.contact && (
+                <div style={{ padding: '4px 16px 16px', display: 'flex', flexDirection: 'column', gap: 10 }}>
+                  <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)', lineHeight: 1.5 }}>
+                    {letterLang === 'DE'
+                      ? 'Korrigiere deine Kontaktdaten — diese werden oben im PDF/DOCX und im Anschreiben verwendet.'
+                      : 'Correct your contact details — used in the PDF/DOCX header and passed to the letter generator.'}
+                  </div>
+                  {[
+                    { label: letterLang === 'DE' ? 'Name' : 'Full Name', val: contactName, set: setContactName, ph: 'Jane Smith' },
+                    { label: 'Email', val: contactEmail, set: setContactEmail, ph: 'jane@example.com' },
+                    { label: letterLang === 'DE' ? 'Telefon' : 'Phone', val: contactPhone, set: setContactPhone, ph: '+49 123 456789' },
+                  ].map(({ label, val, set, ph }) => (
+                    <div key={label}>
+                      <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.45)', marginBottom: 4 }}>{label}</div>
+                      <input
+                        value={val}
+                        onChange={e => set(e.target.value)}
+                        placeholder={ph}
+                        style={{ width: '100%', padding: '7px 10px', borderRadius: 7, border: '1px solid rgba(255,255,255,0.14)', background: 'rgba(255,255,255,0.05)', color: '#fff', fontSize: 12, fontFamily: 'inherit', outline: 'none', boxSizing: 'border-box' }}
+                      />
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
 
             {/* SECTION: Style */}
             <div style={{ borderBottom: '1px solid rgba(255,255,255,0.07)' }}>
