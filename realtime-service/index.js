@@ -292,11 +292,11 @@ function buildSessionUpdate(instructions) {
   return JSON.stringify({
     type: 'session.update',
     session: {
-      type:         'realtime',
+      type: 'realtime',
       instructions,
       audio: {
         input: {
-          format: { type: 'audio/pcm', rate: 24000 },
+          format: { type: 'pcm16', rate: 24000 },
           turn_detection: {
             type:                'server_vad',
             threshold:           0.7,
@@ -307,8 +307,8 @@ function buildSessionUpdate(instructions) {
           },
         },
         output: {
-          format: { type: 'audio/pcm', rate: 24000 },
-          voice:  'alloy',
+          format: { type: 'pcm16', rate: 24000 },
+          voice:  'marin',
         },
       },
       tools:             TOOLS,
@@ -480,10 +480,10 @@ wss.on('connection', (clientWs, req) => {
 
       // GA Realtime: output_item.done with type=function_call
       if (t === 'response.output_item.done' && evt.item?.type === 'function_call') {
-        const name   = evt.item.function?.name || evt.item.name || ''
+        const name   = evt.item.name || ''
         const callId = evt.item.call_id || evt.item.id
         let args = {}
-        try { args = JSON.parse(evt.item.function?.arguments || evt.item.arguments || '{}') } catch { /* empty */ }
+        try { args = JSON.parse(evt.item.arguments || '{}') } catch { /* empty */ }
         await executeTool(callId, name, args)
         return
       }
