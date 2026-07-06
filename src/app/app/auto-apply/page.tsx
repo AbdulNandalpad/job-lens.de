@@ -521,149 +521,121 @@ export default function AutoApplyPage() {
               <div>
                 {requiresLogin ? (
                   <div style={{ background: c.bgCard, border: `1px solid ${c.accent}`, borderRadius: 10, padding: '14px 16px' }}>
-                    <div style={{ fontSize: 13, fontWeight: 700, color: c.primary, marginBottom: 8 }}>
-                      🔐 {lang === 'DE' ? 'Login erforderlich' : 'Portal login required'}
+                    <div style={{ fontSize: 13, fontWeight: 700, color: c.primary, marginBottom: 4 }}>
+                      🔐 {lang === 'DE' ? 'Dieses Portal erfordert Login' : 'This portal requires login'}
+                    </div>
+                    <div style={{ fontSize: 11, color: c.textMuted, marginBottom: 12, lineHeight: 1.6 }}>
+                      {lang === 'DE'
+                        ? 'Portale wie Workday blockieren automatische Logins. Exportiere deine Session-Cookies nach dem manuellen Login.'
+                        : 'Portals like Workday block automated logins. Export your session cookies after logging in manually.'}
                     </div>
 
-                    {/* Best option: get post-login URL */}
-                    <div style={{ background: c.primaryLight, border: `1px solid ${c.accentLight}`, borderRadius: 8, padding: '10px 12px', marginBottom: 12 }}>
-                      <div style={{ fontSize: 12, fontWeight: 700, color: c.primary, marginBottom: 4 }}>
-                        ✅ {lang === 'DE' ? 'Empfohlen: Direkt-URL nach dem Login' : 'Recommended: paste the post-login URL'}
+                    {/* Step-by-step cookie export */}
+                    <div style={{ background: c.primaryLight, border: `1px solid ${c.accentLight}`, borderRadius: 8, padding: '12px 14px', marginBottom: 12 }}>
+                      <div style={{ fontSize: 12, fontWeight: 700, color: c.primary, marginBottom: 8 }}>
+                        {lang === 'DE' ? '📋 So funktioniert es (3 Schritte):' : '📋 How to do it (3 steps):'}
                       </div>
-                      <ol style={{ margin: 0, paddingLeft: 16, fontSize: 11, color: c.navy, lineHeight: 1.9 }}>
-                        {lang === 'DE' ? (
-                          <>
-                            <li>Öffne die Seite in deinem Browser und logge dich ein</li>
-                            <li>Navigiere zum eigentlichen Bewerbungsformular</li>
-                            <li>Kopiere die URL aus der Adresszeile</li>
-                            <li>Füge diese URL hier oben ein und klicke auf Analysieren</li>
-                          </>
-                        ) : (
-                          <>
-                            <li>Open the URL in your browser and log in normally</li>
-                            <li>Navigate to the actual job application form</li>
-                            <li>Copy the URL from the address bar</li>
-                            <li>Paste that URL above and click Analyse Form</li>
-                          </>
-                        )}
-                      </ol>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                        {[
+                          {
+                            n: '1',
+                            en: 'Install the free "Cookie-Editor" browser extension',
+                            de: 'Installiere die kostenlose Browser-Extension "Cookie-Editor"',
+                            sub_en: 'Available for Chrome and Firefox — search "Cookie-Editor" in the extension store',
+                            sub_de: 'Für Chrome und Firefox verfügbar — suche "Cookie-Editor" im Extension Store',
+                          },
+                          {
+                            n: '2',
+                            en: 'Open the job portal, log in with your account, navigate to the apply form',
+                            de: 'Öffne das Portal, logge dich ein und navigiere zum Bewerbungsformular',
+                            sub_en: 'Stay on the application page',
+                            sub_de: 'Bleibe auf der Bewerbungsseite',
+                          },
+                          {
+                            n: '3',
+                            en: 'Click the Cookie-Editor icon → Export → Copy to clipboard → Upload below',
+                            de: 'Klicke auf das Cookie-Editor Symbol → Export → In Zwischenablage kopieren → unten einfügen',
+                            sub_en: 'The extension exports a JSON file you paste or upload here',
+                            sub_de: 'Die Extension exportiert eine JSON-Datei, die du hier einfügst oder hochlädst',
+                          },
+                        ].map(s => (
+                          <div key={s.n} style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}>
+                            <div style={{ width: 20, height: 20, borderRadius: '50%', background: c.accent, color: '#fff', fontSize: 11, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: 1 }}>{s.n}</div>
+                            <div>
+                              <div style={{ fontSize: 12, fontWeight: 600, color: c.navy, lineHeight: 1.4 }}>{lang === 'DE' ? s.de : s.en}</div>
+                              <div style={{ fontSize: 10, color: c.textMuted, marginTop: 2 }}>{lang === 'DE' ? s.sub_de : s.sub_en}</div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
                     </div>
 
-                    {/* Fallback: try auto-login (may not work on Workday/major ATS) */}
-                    <div style={{ fontSize: 11, fontWeight: 600, color: c.textMuted, marginBottom: 6 }}>
-                      {lang === 'DE' ? 'Oder: Auto-Login versuchen (funktioniert nicht bei Workday)' : 'Or: try auto-login (may not work on Workday / major portals)'}
-                    </div>
-                    <label style={label12}>{lang === 'DE' ? 'E-Mail / Benutzername' : 'Email / Username'}</label>
-                    <input
-                      className="aa-input"
-                      type="email"
-                      value={portalUsername}
-                      onChange={e => setPortalUsername(e.target.value)}
-                      placeholder="you@email.com"
-                      style={{ marginBottom: 10 }}
-                      autoComplete="off"
-                    />
-                    <label style={label12}>{lang === 'DE' ? 'Passwort' : 'Password'}</label>
-                    <input
-                      className="aa-input"
-                      type="password"
-                      value={portalPassword}
-                      onChange={e => setPortalPassword(e.target.value)}
-                      placeholder="••••••••"
-                      style={{ marginBottom: 10 }}
-                      autoComplete="off"
-                    />
+                    {/* Cookie JSON upload / paste */}
                     {error && (
                       <div style={{ fontSize: 11, color: c.error, background: c.errorLight, border: `1px solid ${c.errorBorder}`, borderRadius: 6, padding: '7px 10px', marginBottom: 10 }}>
                         {error}
-                        {error.includes('failed') && (
-                          <div style={{ marginTop: 4, color: c.textMuted }}>
-                            {lang === 'DE'
-                              ? 'Tipp: Portale wie Workday blockieren automatische Logins. Nutze stattdessen die empfohlene Methode oben.'
-                              : 'Tip: Portals like Workday block automated logins. Use the recommended method above instead.'}
-                          </div>
-                        )}
                       </div>
                     )}
+
+                    {sessionFileName ? (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, color: c.success, fontWeight: 600, background: c.successLight, borderRadius: 8, padding: '10px 12px', marginBottom: 10 }}>
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M20 6L9 17l-5-5"/></svg>
+                        {lang === 'DE' ? 'Session geladen:' : 'Session loaded:'} {sessionFileName}
+                        <button onClick={() => { setSessionState(null); setSessionFileName('') }} style={{ marginLeft: 'auto', fontSize: 11, color: c.textMuted, background: 'none', border: 'none', cursor: 'pointer' }}>✕ {lang === 'DE' ? 'entfernen' : 'remove'}</button>
+                      </div>
+                    ) : (
+                      <label style={{ display: 'block', cursor: 'pointer', marginBottom: 10 }}>
+                        <div style={{ border: `2px dashed ${c.accent}`, borderRadius: 8, padding: '14px 16px', fontSize: 12, color: c.accent, textAlign: 'center', background: c.primaryLight, fontWeight: 600 }}>
+                          📂 {lang === 'DE' ? 'Cookie-JSON hochladen oder einfügen' : 'Upload or paste Cookie JSON'}
+                          <div style={{ fontSize: 10, color: c.textMuted, fontWeight: 400, marginTop: 4 }}>
+                            {lang === 'DE' ? 'Cookie-Editor Export oder workday-session.json' : 'Cookie-Editor export or workday-session.json'}
+                          </div>
+                        </div>
+                        <input
+                          type="file"
+                          accept=".json,application/json"
+                          style={{ display: 'none' }}
+                          onChange={async e => {
+                            const file = e.target.files?.[0]
+                            if (!file) return
+                            try {
+                              const text = await file.text()
+                              const json = JSON.parse(text)
+                              // Support Cookie-Editor array format → convert to Playwright storageState
+                              const state = Array.isArray(json)
+                                ? { cookies: json.map((c: Record<string,unknown>) => ({ ...c, expires: typeof c.expires === 'number' ? c.expires : -1 })), origins: [] }
+                                : json
+                              setSessionState(state)
+                              setSessionFileName(file.name)
+                              setError('')
+                            } catch {
+                              setError(lang === 'DE' ? 'Ungültige JSON-Datei' : 'Invalid JSON file')
+                            }
+                          }}
+                        />
+                      </label>
+                    )}
+
                     <button
-                      className="aa-btn-outline"
-                      style={{ width: '100%', marginBottom: 8 }}
-                      disabled={!portalUsername || !portalPassword || phase === 'analyzing'}
-                      onClick={() => handleAnalyse(true)}
+                      className="aa-btn-primary"
+                      style={{ width: '100%', marginBottom: 8, opacity: sessionState ? 1 : 0.5 }}
+                      disabled={!sessionState || phase === 'analyzing'}
+                      onClick={() => handleAnalyse(false)}
                     >
                       {phase === 'analyzing' ? (
                         <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
                           <svg className="spin" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>
-                          {lang === 'DE' ? 'Anmeldung läuft…' : 'Signing in…'}
+                          {lang === 'DE' ? 'Analyse läuft…' : 'Analysing…'}
                         </span>
-                      ) : (lang === 'DE' ? 'Auto-Login versuchen' : 'Try auto-login')}
+                      ) : (lang === 'DE' ? '🚀 Mit Session analysieren' : '🚀 Analyse with session')}
                     </button>
                     <button
                       className="aa-btn-outline"
                       style={{ width: '100%', fontSize: 12 }}
-                      onClick={() => { setRequiresLogin(false); setPortalUsername(''); setPortalPassword(''); setError('') }}
+                      onClick={() => { setRequiresLogin(false); setPortalUsername(''); setPortalPassword(''); setSessionState(null); setSessionFileName(''); setError('') }}
                     >
                       {lang === 'DE' ? '← Andere URL verwenden' : '← Use a different URL'}
                     </button>
-
-                    {/* Session file upload (Workday / ATS cookie restore) */}
-                    <div style={{ marginTop: 16, borderTop: `1px solid ${c.border}`, paddingTop: 14 }}>
-                      <div style={{ fontSize: 11, fontWeight: 700, color: c.textMuted, marginBottom: 6 }}>
-                        {lang === 'DE' ? '⚡ Experten-Methode: Session-Datei hochladen' : '⚡ Advanced: Upload session file'}
-                      </div>
-                      <div style={{ fontSize: 11, color: c.textFaint, lineHeight: 1.7, marginBottom: 8 }}>
-                        {lang === 'DE' ? (
-                          <>Führe <code style={{ background: c.bgSubtle, padding: '1px 4px', borderRadius: 3, fontSize: 10 }}>node browser-service/poc-workday-cookies.js</code> lokal aus, logge dich manuell ein und lade dann die generierte <strong>workday-session.json</strong> hoch.</>
-                        ) : (
-                          <>Run <code style={{ background: c.bgSubtle, padding: '1px 4px', borderRadius: 3, fontSize: 10 }}>node browser-service/poc-workday-cookies.js</code> locally, log in manually, then upload the generated <strong>workday-session.json</strong> here.</>
-                        )}
-                      </div>
-                      {sessionFileName ? (
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, color: c.success, fontWeight: 600, background: c.successLight, borderRadius: 8, padding: '8px 12px', marginBottom: 8 }}>
-                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M20 6L9 17l-5-5"/></svg>
-                          {sessionFileName}
-                          <button onClick={() => { setSessionState(null); setSessionFileName('') }} style={{ marginLeft: 'auto', fontSize: 10, color: c.textMuted, background: 'none', border: 'none', cursor: 'pointer' }}>✕</button>
-                        </div>
-                      ) : (
-                        <label style={{ display: 'block', cursor: 'pointer' }}>
-                          <div style={{ border: `1.5px dashed ${c.borderLight}`, borderRadius: 8, padding: '10px 14px', fontSize: 12, color: c.textMuted, textAlign: 'center', background: c.bgSubtle }}>
-                            {lang === 'DE' ? '📂 workday-session.json hochladen' : '📂 Upload workday-session.json'}
-                          </div>
-                          <input
-                            type="file"
-                            accept=".json,application/json"
-                            style={{ display: 'none' }}
-                            onChange={async e => {
-                              const file = e.target.files?.[0]
-                              if (!file) return
-                              try {
-                                const text = await file.text()
-                                const json = JSON.parse(text)
-                                setSessionState(json)
-                                setSessionFileName(file.name)
-                              } catch {
-                                setError(lang === 'DE' ? 'Ungültige JSON-Datei' : 'Invalid JSON file')
-                              }
-                            }}
-                          />
-                        </label>
-                      )}
-                      {sessionState && (
-                        <button
-                          className="aa-btn-primary"
-                          style={{ width: '100%', marginTop: 8 }}
-                          disabled={phase === 'analyzing'}
-                          onClick={() => handleAnalyse(false)}
-                        >
-                          {phase === 'analyzing' ? (
-                            <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
-                              <svg className="spin" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>
-                              {lang === 'DE' ? 'Analyse läuft…' : 'Analysing…'}
-                            </span>
-                          ) : (lang === 'DE' ? '🚀 Mit Session analysieren' : '🚀 Analyse with session')}
-                        </button>
-                      )}
-                    </div>
                   </div>
                 ) : (
                   <>
