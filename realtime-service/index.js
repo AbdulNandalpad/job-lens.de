@@ -292,29 +292,19 @@ function buildSessionUpdate(instructions) {
   return JSON.stringify({
     type: 'session.update',
     session: {
-      type:              'realtime',
+      modalities:   ['audio', 'text'],
       instructions,
-      output_modalities: ['audio'],
-      tools:             TOOLS,
-      tool_choice:       'auto',
-      audio: {
-        input: {
-          format: { type: 'audio/pcm', rate: 24000 },
-          turn_detection: {
-            type:                'server_vad',
-            threshold:           0.7,
-            prefix_padding_ms:   300,
-            silence_duration_ms: 900,
-            interrupt_response:  true,
-            create_response:     true,
-          },
-        },
-        output: {
-          format: { type: 'audio/pcm', rate: 24000 },
-          voice:  'marin',
-          speed:  1.1,
-        },
+      voice:        'alloy',
+      input_audio_format:  'pcm16',
+      output_audio_format: 'pcm16',
+      turn_detection: {
+        type:                'server_vad',
+        threshold:           0.7,
+        prefix_padding_ms:   300,
+        silence_duration_ms: 900,
       },
+      tools:       TOOLS,
+      tool_choice: 'auto',
     },
   })
 }
@@ -383,7 +373,7 @@ wss.on('connection', (clientWs, req) => {
   }
 
   const openaiWs = new WebSocket(
-    'wss://api.openai.com/v1/realtime?model=gpt-realtime-mini-2025-12-15',
+    'wss://api.openai.com/v1/realtime?model=gpt-4o-mini-realtime-preview-2024-12-17',
     { headers: { 'Authorization': `Bearer ${OPENAI_KEY}` } }
   )
 
@@ -471,12 +461,7 @@ wss.on('connection', (clientWs, req) => {
               output:  spokenSummary,
             },
           }))
-          // Explicit modalities required for gpt-realtime-mini-2025-12-15 — bare
-          // response.create without this can silently skip audio output generation.
-          openaiWs.send(JSON.stringify({
-            type:     'response.create',
-            response: { modalities: ['audio'] },
-          }))
+          openaiWs.send(JSON.stringify({ type: 'response.create' }))
         }
         // Don't forward function call events to client — they're internal
         return
