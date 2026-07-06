@@ -30,27 +30,28 @@ if (!EMAIL || !PASS) {
   const context = await browser.newContext()
   const page    = await context.newPage()
 
-  // Go directly to login page
+  // Navigate to login page (Workday lands on Create Account — Sign In link is at the bottom)
   console.log('Navigating to login page...')
   await page.goto(LOGIN_URL, { waitUntil: 'domcontentloaded' })
   await page.waitForTimeout(3000)
   console.log('URL:', page.url())
 
-  // If redirected back to create account, look for the Sign In tab/link on that page
-  const currentUrl = page.url()
-  if (currentUrl.includes('createAccount') || currentUrl.includes('create-account')) {
-    console.log('Landed on Create Account — looking for Sign In link...')
-    const signInLink = page.locator('a:has-text("Sign In"), button:has-text("Sign In"), [data-automation-id="signIn"]').first()
-    await signInLink.waitFor({ timeout: 5000 })
-    await signInLink.click()
-    await page.waitForLoadState('networkidle')
-    await page.waitForTimeout(2000)
-    console.log('URL after Sign In click:', page.url())
-  }
-
-  // Take a screenshot so we can see what page we're on
   await page.screenshot({ path: 'debug-login-page.png' })
   console.log('Screenshot saved: debug-login-page.png')
+
+  // Click "Already have an account? Sign In" link
+  console.log('Clicking Sign In link...')
+  await page.evaluate(() => {
+    const links = Array.from(document.querySelectorAll('a, button'))
+    const signIn = links.find(el => el.textContent.trim() === 'Sign In')
+    if (signIn) signIn.click()
+    else throw new Error('Sign In link not found')
+  })
+  await page.waitForLoadState('networkidle')
+  await page.waitForTimeout(2000)
+  console.log('URL after Sign In click:', page.url())
+  await page.screenshot({ path: 'debug-signin-page.png' })
+  console.log('Screenshot saved: debug-signin-page.png')
 
   // Fill email
   console.log('Filling email...')
