@@ -413,25 +413,17 @@ wss.on('connection', (clientWs, req) => {
       if (t === 'response.created')  responseInProgress = true
       if (t === 'response.done')     responseInProgress = false
 
-      // Accumulate function call arguments as they stream in
-      if (t === 'response.function_call_arguments.delta' && evt.call_id) {
-        const prev = pendingCalls.get(evt.call_id) || { name: evt.name || '', args: '' }
-        prev.args += evt.delta || ''
-        if (evt.name) prev.name = evt.name
-        pendingCalls.set(evt.call_id, prev)
-      }
-
-      // New GA Realtime API: output_item.done with type=function_call
+      // gpt-realtime-mini fires response.output_item.done with type=function_call
       if (t === 'response.output_item.done' && evt.item?.type === 'function_call') {
-        const name = evt.item.function?.name || evt.item.name || ''
-        const args = JSON.parse(evt.item.function?.arguments || evt.item.arguments || '{}')
-        console.log('[realtime] function call (output_item):', name, args)
-        pendingCalls.set(evt.item.call_id || evt.item.id, { name, args: JSON.stringify(args), done: true })
-      }
+        const name   = evt.item.name || ''
+        const callId = evt.item.call_id || evt.item.id
+        let args = {}
+        try { args = JSON.parse(evt.item.arguments || '{}') } catch { /* empty */ }
+        console.log('[realtime] tool call:', name, args)
 
-      // Execute a tool call and send the result back to OpenAI
-      async function executeTool(callId, name, args) {
-        console.log('[realtime] function call:', name, args)
+        // Pause silence timer during tool execution so Kira doesn't nudge mid-call
+        if (silenceTimer) clearTimeout(silenceTimer)
+
         let spokenSummary = 'Tool not available.'
         if (name === 'search_jobs') {
           const result = await searchJobs(args, market)
@@ -466,35 +458,15 @@ wss.on('connection', (clientWs, req) => {
         } else if (name === 'research_company') {
           spokenSummary = await researchCompany(args.company_name, args.aspect)
         }
-        console.log('[realtime] function result:', spokenSummary)
+
+        console.log('[realtime] tool result:', spokenSummary.slice(0, 80))
         if (openaiWs.readyState === WebSocket.OPEN) {
           openaiWs.send(JSON.stringify({
             type: 'conversation.item.create',
             item: { type: 'function_call_output', call_id: callId, output: spokenSummary },
           }))
-          if (!responseInProgress) {
-            openaiWs.send(JSON.stringify({ type: 'response.create' }))
-          }
+          openaiWs.send(JSON.stringify({ type: 'response.create' }))
         }
-      }
-
-      // GA Realtime: output_item.done with type=function_call
-      if (t === 'response.output_item.done' && evt.item?.type === 'function_call') {
-        const name   = evt.item.name || ''
-        const callId = evt.item.call_id || evt.item.id
-        let args = {}
-        try { args = JSON.parse(evt.item.arguments || '{}') } catch { /* empty */ }
-        await executeTool(callId, name, args)
-        return
-      }
-
-      // Legacy Realtime: response.function_call_arguments.done
-      if (t === 'response.function_call_arguments.done' && evt.call_id) {
-        const call = pendingCalls.get(evt.call_id) || { name: evt.name || '', args: evt.arguments || '{}' }
-        pendingCalls.delete(evt.call_id)
-        let args = {}
-        try { args = JSON.parse(call.args || evt.arguments || '{}') } catch { /* empty */ }
-        await executeTool(evt.call_id, call.name, args)
         return
       }
     }
