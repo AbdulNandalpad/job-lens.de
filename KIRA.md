@@ -96,6 +96,17 @@ Using the `gpt-4o-realtime-preview` flat schema against this model produces:
 | omit `type` entirely | `Missing required parameter: 'session.type'` |
 | `input_audio_format: 'pcm16'` at top level | silently ignored or rejected |
 
+### What NOT to include in session.update
+
+These fields are **rejected** by `gpt-realtime-mini-2025-12-15` and will cause a `400 invalid_request_error`:
+
+- `session.modalities` — use `output_modalities` at the session level instead, or omit (audio is default)
+- `session.voice` — must be inside `session.audio.output.voice`, not at the top level
+- `session.temperature` — not accepted
+- `session.input_audio_format` / `session.output_audio_format` at top level — must go inside `session.audio.input.format` / `session.audio.output.format`
+- `response.modalities` inside a `response.create` event — rejected; omit it entirely
+- Tools with nested `function` wrapper: `{ type: 'function', function: { name, description, parameters } }` — wrong. Use flat format: `{ type: 'function', name, description, parameters }`
+
 ### Common errors
 
 | Error shown in Kira chat | Cause | Fix |
@@ -103,8 +114,91 @@ Using the `gpt-4o-realtime-preview` flat schema against this model produces:
 | `Voice connection error: Unknown parameter: 'session.modalities'` | Wrong schema applied (gpt-4o format used on this model) | Restore the nested `audio.input`/`audio.output` format above |
 | `Voice connection error: Invalid value: 'session'` | `session.type` was set to `'session'` | Must be `'realtime'` |
 | `Voice connection error: Missing required parameter: 'session.type'` | `session.type` omitted | Add `type: 'realtime'` inside `session` |
+| `Voice connection error: Unknown parameter: 'session.voice'` | `voice` set at top level of session | Move to `session.audio.output.voice` |
+| `Voice connection error: Unknown parameter: 'session.temperature'` | `temperature` not supported | Remove it |
+| `Voice connection error: Invalid type for 'session.audio.input.format'` | Format passed as string `'pcm16'` | Use object: `{ type: 'audio/pcm', rate: 24000 }` |
+| `Voice connection error: Invalid value: 'pcm16'` | Format type string is wrong | Use `'audio/pcm'` not `'pcm16'` |
+| `Voice connection error: Missing required parameter: 'session.tools[0].name'` | Tools sent in nested `function` wrapper | Use flat format: `{ type: 'function', name, description, parameters }` |
+| `Voice connection error: Conversation already has an active response in progress` | `response.create` called while a response is pending | Guard with `responseInProgress` flag; set true on `response.created`, false on `response.done` |
 | `Voice connection error: OpenAI rejected (401)` | `OPENAI_API_KEY` missing or wrong on Railway | Set the env var in Railway dashboard |
 | User sees "Listening…" but hears nothing, no error | Session config accepted but output is text-only | Ensure `output_modalities: ['audio']` is present |
+
+---
+
+## Tool call handling (realtime-service)
+
+`gpt-realtime-mini-2025-12-15` signals a completed tool call via **`response.output_item.done`** where `item.type === 'function_call'`. Do NOT rely on the legacy `response.function_call_arguments.done` event — it fires on this model too, causing double execution if both handlers are active.
+
+Correct handler:
+
+```js
+if (t === 'response.output_item.done' && evt.item?.type === 'function_call') {
+  const name   = evt.item.name || ''
+  const callId = evt.item.call_id || evt.item.id
+  let args = {}
+  try { args = JSON.parse(evt.item.arguments || '{}') } catch {}
+
+  // Pause silence timer while tool executes (Anthropic API can take 2-5s)
+  if (silenceTimer) clearTimeout(silenceTimer)
+
+  // ... execute tool ...
+
+  openaiWs.send(JSON.stringify({
+    type: 'conversation.item.create',
+    item: { type: 'function_call_output', call_id: callId, output: JSON.stringify(result) },
+  }))
+  if (!responseInProgress) {
+    openaiWs.send(JSON.stringify({ type: 'response.create' }))
+  }
+}
+```
+
+**Do not send `response.modalities` inside `response.create`** — that field is rejected.
+
+---
+
+## Silence timer behaviour
+
+`realtime-service` runs a silence-nudge timer: if the user is quiet for N seconds, it injects a system message to prevent Kira going idle. Two bugs to avoid:
+
+1. **Timer fires during tool execution** — the Anthropic API can take 2–5 s. The silence timer must be paused when a tool call starts and reset (not restarted) after the tool result is sent back.
+2. **Timer fires while Kira is speaking** — in half-duplex mode the mic is gated during playback, so no audio reaches the server → silence timer counts down and fires mid-speech. Fix: reset the silence timer on every `response.output_audio.delta` event (i.e. while Kira is speaking).
+
+```js
+if (t === 'response.output_audio.delta') {
+  silenceNudged = false
+  resetSilenceTimer()   // keep resetting while Kira talks
+}
+```
+
+---
+
+## Audio scheduling (AIWidget.tsx)
+
+PCM16 chunks arrive as `response.audio.delta` (base64). Each chunk must be decoded and scheduled on the `AudioContext` timeline with a small lookahead to avoid gaps:
+
+```js
+const now   = ctx.currentTime
+const start = realtimeNextTimeRef.current <= now
+  ? now + 0.20          // 200 ms buffer to absorb network jitter
+  : realtimeNextTimeRef.current
+src.start(start)
+realtimeNextTimeRef.current = start + buf.duration
+```
+
+- **200 ms lookahead** prevents first-word cutoff (the initial chunk often arrives before the context clock catches up).
+- `realtimeNextTimeRef` chains chunks seamlessly — each starts where the previous ended.
+- Reset `realtimeNextTimeRef` to `0` whenever realtime mode is exited.
+
+---
+
+## Maintenance mode
+
+**`KIRA_MAINTENANCE`** in `src/lib/constants.ts` is a compile-time flag. When `true`, non-admin users see a "Kira is temporarily offline" screen instead of the full widget. Admins (checked via `isAdmin` from `/api/user/profile`) bypass it and get the full widget.
+
+To re-enable Kira: set `KIRA_MAINTENANCE = false` and redeploy to Vercel.
+
+The maintenance gate is in `AIWidget.tsx` immediately after the panel header `</div>`.
 
 ---
 
