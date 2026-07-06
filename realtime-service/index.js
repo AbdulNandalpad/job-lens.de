@@ -79,41 +79,35 @@ const MODE_FOCUS = {
 const TOOLS = [
   {
     type: 'function',
-    function: {
-      name: 'search_jobs',
-      description: 'Search live job listings via Adzuna. Call this whenever the user asks about job availability, salary ranges, hiring demand, or wants to see what roles exist in a location.',
-      parameters: {
-        type: 'object',
-        properties: {
-          role:     { type: 'string', description: 'Job title or keywords, e.g. "Product Manager" or "Senior Java Developer"' },
-          location: { type: 'string', description: 'City or region, e.g. "Berlin", "Munich", "Bangalore"' },
-          country:  { type: 'string', description: 'Two-letter ISO country code: de, at, ch, in, gb, us, fr, nl. Default to the user\'s market if not stated.' },
-        },
-        required: ['role'],
+    name: 'search_jobs',
+    description: 'Search live job listings via Adzuna. Call this whenever the user asks about job availability, salary ranges, hiring demand, or wants to see what roles exist in a location.',
+    parameters: {
+      type: 'object',
+      properties: {
+        role:     { type: 'string', description: 'Job title or keywords, e.g. "Product Manager" or "Senior Java Developer"' },
+        location: { type: 'string', description: 'City or region, e.g. "Berlin", "Munich", "Bangalore"' },
+        country:  { type: 'string', description: 'Two-letter ISO country code: de, at, ch, in, gb, us, fr, nl. Default to the user\'s market if not stated.' },
       },
+      required: ['role'],
     },
   },
   {
     type: 'function',
-    function: {
-      name: 'show_jobs',
-      description: 'Re-display the job listings already found in this session to the user. Call this when the user asks to see, list, or show the jobs that were already found — do NOT call search_jobs again.',
-      parameters: { type: 'object', properties: {}, required: [] },
-    },
+    name: 'show_jobs',
+    description: 'Re-display the job listings already found in this session to the user. Call this when the user asks to see, list, or show the jobs that were already found — do NOT call search_jobs again.',
+    parameters: { type: 'object', properties: {}, required: [] },
   },
   {
     type: 'function',
-    function: {
-      name: 'research_company',
-      description: 'Research a company using live web search. Call this when the user asks what a company does, its culture, employee reviews, recent news, layoffs, salary levels, or reputation as an employer.',
-      parameters: {
-        type: 'object',
-        properties: {
-          company_name: { type: 'string', description: 'The name of the company to research, e.g. "SAP", "Infosys", "Bosch"' },
-          aspect:       { type: 'string', description: 'What to focus on: "overview", "culture", "salaries", "reviews", "news", "layoffs". Defaults to "overview" if not specified.' },
-        },
-        required: ['company_name'],
+    name: 'research_company',
+    description: 'Research a company using live web search. Call this when the user asks what a company does, its culture, employee reviews, recent news, layoffs, salary levels, or reputation as an employer.',
+    parameters: {
+      type: 'object',
+      properties: {
+        company_name: { type: 'string', description: 'The name of the company to research, e.g. "SAP", "Infosys", "Bosch"' },
+        aspect:       { type: 'string', description: 'What to focus on: "overview", "culture", "salaries", "reviews", "news", "layoffs". Defaults to "overview" if not specified.' },
       },
+      required: ['company_name'],
     },
   },
 ]
