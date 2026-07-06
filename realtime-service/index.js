@@ -79,35 +79,41 @@ const MODE_FOCUS = {
 const TOOLS = [
   {
     type: 'function',
-    name: 'search_jobs',
-    description: 'Search live job listings via Adzuna. Call this whenever the user asks about job availability, salary ranges, hiring demand, or wants to see what roles exist in a location.',
-    parameters: {
-      type: 'object',
-      properties: {
-        role:     { type: 'string', description: 'Job title or keywords, e.g. "Product Manager" or "Senior Java Developer"' },
-        location: { type: 'string', description: 'City or region, e.g. "Berlin", "Munich", "Bangalore"' },
-        country:  { type: 'string', description: 'Two-letter ISO country code: de, at, ch, in, gb, us, fr, nl. Default to the user\'s market if not stated.' },
+    function: {
+      name: 'search_jobs',
+      description: 'Search live job listings via Adzuna. Call this whenever the user asks about job availability, salary ranges, hiring demand, or wants to see what roles exist in a location.',
+      parameters: {
+        type: 'object',
+        properties: {
+          role:     { type: 'string', description: 'Job title or keywords, e.g. "Product Manager" or "Senior Java Developer"' },
+          location: { type: 'string', description: 'City or region, e.g. "Berlin", "Munich", "Bangalore"' },
+          country:  { type: 'string', description: 'Two-letter ISO country code: de, at, ch, in, gb, us, fr, nl. Default to the user\'s market if not stated.' },
+        },
+        required: ['role'],
       },
-      required: ['role'],
     },
   },
   {
     type: 'function',
-    name: 'show_jobs',
-    description: 'Re-display the job listings already found in this session to the user. Call this when the user asks to see, list, or show the jobs that were already found — do NOT call search_jobs again.',
-    parameters: { type: 'object', properties: {}, required: [] },
+    function: {
+      name: 'show_jobs',
+      description: 'Re-display the job listings already found in this session to the user. Call this when the user asks to see, list, or show the jobs that were already found — do NOT call search_jobs again.',
+      parameters: { type: 'object', properties: {}, required: [] },
+    },
   },
   {
     type: 'function',
-    name: 'research_company',
-    description: 'Research a company using live web search. Call this when the user asks what a company does, its culture, employee reviews, recent news, layoffs, salary levels, or reputation as an employer.',
-    parameters: {
-      type: 'object',
-      properties: {
-        company_name: { type: 'string', description: 'The name of the company to research, e.g. "SAP", "Infosys", "Bosch"' },
-        aspect:       { type: 'string', description: 'What to focus on: "overview", "culture", "salaries", "reviews", "news", "layoffs". Defaults to "overview" if not specified.' },
+    function: {
+      name: 'research_company',
+      description: 'Research a company using live web search. Call this when the user asks what a company does, its culture, employee reviews, recent news, layoffs, salary levels, or reputation as an employer.',
+      parameters: {
+        type: 'object',
+        properties: {
+          company_name: { type: 'string', description: 'The name of the company to research, e.g. "SAP", "Infosys", "Bosch"' },
+          aspect:       { type: 'string', description: 'What to focus on: "overview", "culture", "salaries", "reviews", "news", "layoffs". Defaults to "overview" if not specified.' },
+        },
+        required: ['company_name'],
       },
-      required: ['company_name'],
     },
   },
 ]
@@ -403,8 +409,8 @@ wss.on('connection', (clientWs, req) => {
       if (evt.error) console.error('[realtime] OpenAI error:', JSON.stringify(evt.error))
 
       const t = evt.type || ''
-      if (t.includes('audio') || t.includes('response') || t.includes('speech') || t.includes('function')) {
-        console.log('[realtime] OpenAI event:', t, evt.delta ? `delta[${evt.delta.length}]` : '')
+      if (t.includes('audio') || t.includes('response') || t.includes('speech') || t.includes('function') || t.includes('output_item') || t.includes('call')) {
+        console.log('[realtime] OpenAI event:', t, evt.delta ? `delta[${evt.delta.length}]` : '', evt.item ? `item.type=${evt.item.type}` : '')
       }
 
       // Accumulate function call arguments as they stream in
@@ -415,18 +421,19 @@ wss.on('connection', (clientWs, req) => {
         pendingCalls.set(evt.call_id, prev)
       }
 
-      // Function call complete — execute and return result to OpenAI
-      if (t === 'response.function_call_arguments.done' && evt.call_id) {
-        const call = pendingCalls.get(evt.call_id) || { name: evt.name || '', args: evt.arguments || '{}' }
-        pendingCalls.delete(evt.call_id)
+      // New GA Realtime API: output_item.done with type=function_call
+      if (t === 'response.output_item.done' && evt.item?.type === 'function_call') {
+        const name = evt.item.function?.name || evt.item.name || ''
+        const args = JSON.parse(evt.item.function?.arguments || evt.item.arguments || '{}')
+        console.log('[realtime] function call (output_item):', name, args)
+        pendingCalls.set(evt.item.call_id || evt.item.id, { name, args: JSON.stringify(args), done: true })
+      }
 
-        let args = {}
-        try { args = JSON.parse(call.args || evt.arguments || '{}') } catch { /* use empty */ }
-
-        console.log('[realtime] function call:', call.name, args)
-
+      // Execute a tool call and send the result back to OpenAI
+      async function executeTool(callId, name, args) {
+        console.log('[realtime] function call:', name, args)
         let spokenSummary = 'Tool not available.'
-        if (call.name === 'search_jobs') {
+        if (name === 'search_jobs') {
           const result = await searchJobs(args, market)
           spokenSummary = result.summary
           if (result.jobs.length) {
@@ -441,7 +448,7 @@ wss.on('connection', (clientWs, req) => {
               }))
             }
           }
-        } else if (call.name === 'show_jobs') {
+        } else if (name === 'show_jobs') {
           if (lastJobResult && lastJobResult.jobs.length) {
             if (clientWs.readyState === WebSocket.OPEN) {
               clientWs.send(JSON.stringify({
@@ -456,24 +463,36 @@ wss.on('connection', (clientWs, req) => {
           } else {
             spokenSummary = "I don't have any job listings cached from this session yet — let me know what role and location you're looking for and I'll search now."
           }
-        } else if (call.name === 'research_company') {
+        } else if (name === 'research_company') {
           spokenSummary = await researchCompany(args.company_name, args.aspect)
         }
-
         console.log('[realtime] function result:', spokenSummary)
-
         if (openaiWs.readyState === WebSocket.OPEN) {
           openaiWs.send(JSON.stringify({
             type: 'conversation.item.create',
-            item: {
-              type:    'function_call_output',
-              call_id: evt.call_id,
-              output:  spokenSummary,
-            },
+            item: { type: 'function_call_output', call_id: callId, output: spokenSummary },
           }))
           openaiWs.send(JSON.stringify({ type: 'response.create' }))
         }
-        // Don't forward function call events to client — they're internal
+      }
+
+      // GA Realtime: output_item.done with type=function_call
+      if (t === 'response.output_item.done' && evt.item?.type === 'function_call') {
+        const name   = evt.item.function?.name || evt.item.name || ''
+        const callId = evt.item.call_id || evt.item.id
+        let args = {}
+        try { args = JSON.parse(evt.item.function?.arguments || evt.item.arguments || '{}') } catch { /* empty */ }
+        await executeTool(callId, name, args)
+        return
+      }
+
+      // Legacy Realtime: response.function_call_arguments.done
+      if (t === 'response.function_call_arguments.done' && evt.call_id) {
+        const call = pendingCalls.get(evt.call_id) || { name: evt.name || '', args: evt.arguments || '{}' }
+        pendingCalls.delete(evt.call_id)
+        let args = {}
+        try { args = JSON.parse(call.args || evt.arguments || '{}') } catch { /* empty */ }
+        await executeTool(evt.call_id, call.name, args)
         return
       }
     }
