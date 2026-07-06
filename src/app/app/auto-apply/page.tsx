@@ -103,8 +103,13 @@ export default function AutoApplyPage() {
   const [error, setError] = useState<string>('')
   const [sessionId, setSessionId] = useState<string>('')
   const [fieldStatuses, setFieldStatuses] = useState<Record<string, boolean | null>>({})
+  const [requiresLogin, setRequiresLogin] = useState(false)
+  const [portalUsername, setPortalUsername] = useState('')
+  const [portalPassword, setPortalPassword] = useState('')
   const logRef = useRef<HTMLDivElement>(null)
   const logCounter = useRef(0)
+
+  const [targetJob, setTargetJob] = useState<{ title: string; company: string } | null>(null)
 
   useEffect(() => {
     const raw =
@@ -117,6 +122,10 @@ export default function AutoApplyPage() {
     setCvText(cv)
     setCoverLetter(cl)
     if (cl) setUseCoverLetter(true)
+    try {
+      const job = JSON.parse(sessionStorage.getItem('jl_cvb_job') || '{}')
+      if (job?.job_title) setTargetJob({ title: job.job_title, company: job.employer_name || '' })
+    } catch { /* no job in session */ }
   }, [])
 
   useEffect(() => {
@@ -130,7 +139,7 @@ export default function AutoApplyPage() {
     if (logRef.current) logRef.current.scrollTop = logRef.current.scrollHeight
   }, [log])
 
-  async function handleAnalyse() {
+  async function handleAnalyse(withCredentials = false) {
     if (!jobUrl.trim()) { setError(lang === 'DE' ? 'Bitte Bewerbungs-URL eingeben.' : 'Please enter the application URL.'); return }
     if (!cvText.trim()) { setError(lang === 'DE' ? 'Kein Lebenslauf gefunden. Bitte zuerst den CV Builder abschließen.' : 'No CV found. Please complete the CV Builder first.'); return }
     setError('')
@@ -140,20 +149,36 @@ export default function AutoApplyPage() {
     setSessionId('')
     setFieldStatuses({})
 
+    const body: Record<string, unknown> = {
+      jobUrl: jobUrl.trim(),
+      cvText,
+      coverLetter: useCoverLetter ? coverLetter : '',
+      market: 'eu',
+    }
+    if (withCredentials && portalUsername && portalPassword) {
+      body.credentials = { username: portalUsername, password: portalPassword }
+    }
+
     try {
       const res = await fetch('/api/auto-apply/analyze', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          jobUrl: jobUrl.trim(),
-          cvText,
-          coverLetter: useCoverLetter ? coverLetter : '',
-          market: 'eu',
-        }),
+        body: JSON.stringify(body),
       })
       const data: AnalyzeResult = await res.json()
       if (!res.ok) throw new Error((data as unknown as { error: string }).error || 'Analysis failed')
 
+      if (data.requiresLogin) {
+        setAnalyzeResult(data)
+        setPhase('idle')
+        setRequiresLogin(true)
+        setError(data.error || '')
+        return
+      }
+
+      setRequiresLogin(false)
+      setPortalUsername('')
+      setPortalPassword('')
       setAnalyzeResult(data)
       setMapping(data.mapping)
       setPhase(data.hasForm ? 'review' : 'idle')
@@ -346,11 +371,19 @@ export default function AutoApplyPage() {
             <div style={{ fontSize: 22, fontWeight: 700, color: c.primary, fontFamily: f.heading }}>
               {lang === 'DE' ? 'Auto-Bewerbung' : 'Auto Apply'}
             </div>
-            <div style={{ fontSize: 13, color: c.textMuted, marginTop: 3 }}>
-              {mode === 'demo'
-                ? (lang === 'DE' ? 'Sieh, wie Kira eine echte Bewerbung ausfüllt — dann probiere es selbst' : 'See how Kira fills a real job application — then try it yourself')
-                : (lang === 'DE' ? 'Bewerbungs-URL einfügen und Kira das Formular ausfüllen lassen' : 'Paste a job application URL and let Kira fill the form for you')}
-            </div>
+            {targetJob ? (
+              <div style={{ fontSize: 13, color: c.textMuted, marginTop: 3 }}>
+                {lang === 'DE' ? 'Bewerbung für:' : 'Applying for:'}{' '}
+                <strong style={{ color: c.primary }}>{targetJob.title}</strong>
+                {targetJob.company && <> {lang === 'DE' ? 'bei' : 'at'} <strong style={{ color: c.accent }}>{targetJob.company}</strong></>}
+              </div>
+            ) : (
+              <div style={{ fontSize: 13, color: c.textMuted, marginTop: 3 }}>
+                {mode === 'demo'
+                  ? (lang === 'DE' ? 'Sieh, wie Kira eine echte Bewerbung ausfüllt — dann probiere es selbst' : 'See how Kira fills a real job application — then try it yourself')
+                  : (lang === 'DE' ? 'Bewerbungs-URL einfügen und Kira das Formular ausfüllen lassen' : 'Paste a job application URL and let Kira fill the form for you')}
+              </div>
+            )}
           </div>
           {mode === 'active' && (
             <button
@@ -481,35 +514,95 @@ export default function AutoApplyPage() {
 
               {/* Action */}
               <div>
-                {error && (
-                  <div style={{ fontSize: 12, color: c.error, background: c.errorLight, border: `1px solid ${c.errorBorder}`, borderRadius: 8, padding: '10px 14px', marginBottom: 12 }}>
-                    {error}
+                {requiresLogin ? (
+                  <div style={{ background: c.bgCard, border: `1px solid ${c.accent}`, borderRadius: 10, padding: '14px 16px' }}>
+                    <div style={{ fontSize: 13, fontWeight: 700, color: c.primary, marginBottom: 4 }}>
+                      🔐 {lang === 'DE' ? 'Login erforderlich' : 'Portal login required'}
+                    </div>
+                    <div style={{ fontSize: 11, color: c.textMuted, marginBottom: 12, lineHeight: 1.6 }}>
+                      {lang === 'DE'
+                        ? 'Diese Seite erfordert einen Login. Gib deine Zugangsdaten ein — Kira loggt sich ein und öffnet dann das Bewerbungsformular automatisch. Deine Daten werden nur für diese Sitzung verwendet und nicht gespeichert.'
+                        : 'This portal requires a login. Enter your credentials — Kira will sign in and then access the application form automatically. Your credentials are used only for this session and never stored.'}
+                    </div>
+                    <label style={label12}>{lang === 'DE' ? 'E-Mail / Benutzername' : 'Email / Username'}</label>
+                    <input
+                      className="aa-input"
+                      type="email"
+                      value={portalUsername}
+                      onChange={e => setPortalUsername(e.target.value)}
+                      placeholder="you@email.com"
+                      style={{ marginBottom: 10 }}
+                      autoComplete="off"
+                    />
+                    <label style={label12}>{lang === 'DE' ? 'Passwort' : 'Password'}</label>
+                    <input
+                      className="aa-input"
+                      type="password"
+                      value={portalPassword}
+                      onChange={e => setPortalPassword(e.target.value)}
+                      placeholder="••••••••"
+                      style={{ marginBottom: 12 }}
+                      autoComplete="off"
+                    />
+                    {error && (
+                      <div style={{ fontSize: 11, color: c.error, background: c.errorLight, border: `1px solid ${c.errorBorder}`, borderRadius: 6, padding: '7px 10px', marginBottom: 10 }}>
+                        {error}
+                      </div>
+                    )}
+                    <button
+                      className="aa-btn-primary"
+                      style={{ width: '100%', marginBottom: 8 }}
+                      disabled={!portalUsername || !portalPassword || phase === 'analyzing'}
+                      onClick={() => handleAnalyse(true)}
+                    >
+                      {phase === 'analyzing' ? (
+                        <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+                          <svg className="spin" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>
+                          {lang === 'DE' ? 'Anmeldung läuft…' : 'Signing in…'}
+                        </span>
+                      ) : (lang === 'DE' ? '→ Anmelden & Formular laden' : '→ Sign in & Load Form')}
+                    </button>
+                    <button
+                      className="aa-btn-outline"
+                      style={{ width: '100%', fontSize: 12 }}
+                      onClick={() => { setRequiresLogin(false); setPortalUsername(''); setPortalPassword(''); setError('') }}
+                    >
+                      {lang === 'DE' ? '← Andere URL verwenden' : '← Use a different URL'}
+                    </button>
                   </div>
-                )}
-                <button
-                  className="aa-btn-primary"
-                  style={{ width: '100%' }}
-                  disabled={!isUrlValid || !hasCv || phase === 'analyzing' || phase === 'executing'}
-                  onClick={handleAnalyse}
-                >
-                  {phase === 'analyzing' ? (
-                    <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
-                      <svg className="spin" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                        <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/>
-                      </svg>
-                      {lang === 'DE' ? 'Analyse läuft…' : 'Analysing form…'}
-                    </span>
-                  ) : (lang === 'DE' ? 'Bewerbungsformular analysieren' : 'Analyse Form')}
-                </button>
+                ) : (
+                  <>
+                    {error && (
+                      <div style={{ fontSize: 12, color: c.error, background: c.errorLight, border: `1px solid ${c.errorBorder}`, borderRadius: 8, padding: '10px 14px', marginBottom: 12 }}>
+                        {error}
+                      </div>
+                    )}
+                    <button
+                      className="aa-btn-primary"
+                      style={{ width: '100%' }}
+                      disabled={!isUrlValid || !hasCv || phase === 'analyzing' || phase === 'executing'}
+                      onClick={() => handleAnalyse(false)}
+                    >
+                      {phase === 'analyzing' ? (
+                        <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+                          <svg className="spin" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                            <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/>
+                          </svg>
+                          {lang === 'DE' ? 'Analyse läuft…' : 'Analysing form…'}
+                        </span>
+                      ) : (lang === 'DE' ? 'Bewerbungsformular analysieren' : 'Analyse Form')}
+                    </button>
 
-                {(phase === 'review' || phase === 'done') && (
-                  <button
-                    className="aa-btn-outline"
-                    style={{ width: '100%', marginTop: 10 }}
-                    onClick={() => { setPhase('idle'); setAnalyzeResult(null); setMapping([]); setError('') }}
-                  >
-                    {lang === 'DE' ? '← Neu starten' : '← Start over'}
-                  </button>
+                    {(phase === 'review' || phase === 'done') && (
+                      <button
+                        className="aa-btn-outline"
+                        style={{ width: '100%', marginTop: 10 }}
+                        onClick={() => { setPhase('idle'); setAnalyzeResult(null); setMapping([]); setError('') }}
+                      >
+                        {lang === 'DE' ? '← Neu starten' : '← Start over'}
+                      </button>
+                    )}
+                  </>
                 )}
               </div>
 
@@ -616,12 +709,32 @@ export default function AutoApplyPage() {
 
               {phase === 'confirming' && previewShot && (
                 <div style={{ ...card, overflow: 'hidden' }}>
+                  {mapping.some(m => m.field.type === 'password') && (
+                    <div style={{ padding: '12px 16px', background: '#fef2f2', borderBottom: `1px solid #fca5a5` }}>
+                      <div style={{ fontSize: 13, fontWeight: 700, color: '#b91c1c', marginBottom: 4 }}>
+                        🚫 {lang === 'DE' ? 'Das ist kein Bewerbungsformular!' : 'This is not a job application form!'}
+                      </div>
+                      <div style={{ fontSize: 12, color: '#7f1d1d', lineHeight: 1.6 }}>
+                        {lang === 'DE'
+                          ? 'Die Seite enthält Passwortfelder — es handelt sich um ein Login- oder Registrierungsformular, nicht um eine Bewerbung. Logge dich im Browser auf der Unternehmenswebsite ein, navigiere dann zum eigentlichen Bewerbungsformular und kopiere diese URL.'
+                          : 'This page contains password fields — it\'s a login or registration form, not a job application. Log in to the company portal in your browser, navigate to the actual application form, then paste that URL here.'}
+                      </div>
+                      <button
+                        style={{ marginTop: 10, fontSize: 12, fontWeight: 700, padding: '7px 16px', background: '#b91c1c', color: '#fff', border: 'none', borderRadius: 8, cursor: 'pointer' }}
+                        onClick={() => { setPhase('idle'); setAnalyzeResult(null); setMapping([]); setPreviewShot('') }}
+                      >
+                        {lang === 'DE' ? '← Zurück zur URL-Eingabe' : '← Back to URL input'}
+                      </button>
+                    </div>
+                  )}
                   <div style={{ padding: '12px 16px', borderBottom: `1px solid ${c.border}`, background: c.warningLight }}>
                     <div style={{ fontSize: 13, fontWeight: 700, color: c.primary, fontFamily: f.heading }}>
-                      {lang === 'DE' ? 'Ausgefülltes Formular prüfen — bestätigen zum Einreichen' : 'Review filled form — confirm to submit'}
+                      {lang === 'DE' ? '⚠ Ausgefülltes Formular prüfen — du klickst auf Einreichen' : '⚠ Review filled form — confirm to submit'}
                     </div>
                     <div style={{ fontSize: 11, color: c.textMuted, marginTop: 3 }}>
-                      {lang === 'DE' ? 'Kira hat alle Felder ausgefüllt. Prüfe die Vorschau, bevor du einreichst.' : 'Kira has filled all fields. Check the preview below before submitting.'}
+                      {lang === 'DE'
+                        ? 'Kira hat alle erreichbaren Felder ausgefüllt. Überprüfe die Vorschau sorgfältig. Datei-Upload-Felder (CV, Anschreiben) musst du auf der Live-Seite manuell hochladen, bevor du klickst.'
+                        : 'Kira has filled all reachable fields. Carefully review the preview. File upload fields (CV, cover letter) must be manually uploaded on the live page before you click Submit.'}
                     </div>
                   </div>
                   <div style={{ padding: '12px 16px' }}>
@@ -630,9 +743,18 @@ export default function AutoApplyPage() {
                       alt="Filled form preview"
                       style={{ width: '100%', borderRadius: 6, border: `1px solid ${c.border}`, marginBottom: 14 }}
                     />
-                    <div style={{ display: 'flex', gap: 10 }}>
+                    <div style={{ background: c.bgSubtle, borderRadius: 8, padding: '10px 12px', marginBottom: 14, fontSize: 12, color: c.textMuted, lineHeight: 1.7 }}>
+                      <strong style={{ color: c.primary }}>{lang === 'DE' ? 'Checkliste vor dem Einreichen:' : 'Before you submit:'}</strong>
+                      <ul style={{ margin: '6px 0 0', paddingLeft: 16 }}>
+                        <li>{lang === 'DE' ? 'Alle Pflichtfelder (*) ausgefüllt?' : 'All required fields (*) filled correctly?'}</li>
+                        <li>{lang === 'DE' ? 'CV-Datei hochgeladen (falls vom Formular verlangt)?' : 'CV file uploaded (if the form requires a file)?'}</li>
+                        <li>{lang === 'DE' ? 'Anschreiben angehängt (falls vorhanden)?' : 'Cover letter attached (if applicable)?'}</li>
+                        <li>{lang === 'DE' ? 'Einwilligungen / DSGVO akzeptiert?' : 'Any consent / GDPR checkboxes ticked?'}</li>
+                      </ul>
+                    </div>
+                    <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
                       <button className="aa-btn-primary" style={{ flex: 1 }} onClick={handleConfirmSubmit}>
-                        {lang === 'DE' ? '✓ Sieht gut aus — Bewerbung einreichen' : '✓ Looks good — Submit Application'}
+                        {lang === 'DE' ? '✓ Alles geprüft — Bewerbung einreichen' : '✓ All checked — Submit Application'}
                       </button>
                       <button
                         className="aa-btn-outline"
@@ -640,6 +762,11 @@ export default function AutoApplyPage() {
                       >
                         {lang === 'DE' ? '← Felder bearbeiten' : '← Edit fields'}
                       </button>
+                    </div>
+                    <div style={{ marginTop: 10, fontSize: 11, color: c.textMuted }}>
+                      {lang === 'DE'
+                        ? 'Hinweis: Nach dem Einreichen siehst du einen Bestätigungs-Screenshot. Prüfe außerdem deine E-Mails auf eine Bestätigungs-E-Mail der Firma.'
+                        : 'Note: After submitting you\'ll see a confirmation screenshot. Also check your inbox for a confirmation email from the company.'}
                     </div>
                   </div>
                 </div>
@@ -742,17 +869,37 @@ export default function AutoApplyPage() {
                   </div>
 
                   {phase === 'review' && (
-                    <div style={{ display: 'flex', gap: 12 }}>
-                      <button className="aa-btn-primary" style={{ flex: 1 }} onClick={handleExecute}>
-                        {lang === 'DE' ? 'Formular ausfüllen (zuerst Vorschau) →' : 'Fill Form (Preview First) →'}
-                      </button>
-                      <a
-                        href={jobUrl} target="_blank" rel="noopener noreferrer"
-                        style={{ flex: '0 0 auto', padding: '11px 20px', borderRadius: 9, background: c.bgCard, color: c.primary, border: `1.5px solid ${c.primary}`, textDecoration: 'none', fontFamily: f.heading, fontSize: 13, fontWeight: 700 }}
-                      >
-                        {lang === 'DE' ? 'Manuell öffnen' : 'Open manually'}
-                      </a>
-                    </div>
+                    mapping.some(m => m.field.type === 'password') ? (
+                      <div style={{ background: '#fef2f2', border: '1px solid #fca5a5', borderRadius: 10, padding: '14px 16px' }}>
+                        <div style={{ fontSize: 13, fontWeight: 700, color: '#b91c1c', marginBottom: 6 }}>
+                          🚫 {lang === 'DE' ? 'Das ist kein Bewerbungsformular' : 'This is not a job application form'}
+                        </div>
+                        <div style={{ fontSize: 12, color: '#7f1d1d', lineHeight: 1.6, marginBottom: 10 }}>
+                          {lang === 'DE'
+                            ? 'Die Seite enthält Passwortfelder — es handelt sich um ein Login- oder Registrierungsformular. Logge dich auf der Unternehmenswebsite ein, navigiere zum eigentlichen Bewerbungsformular und kopiere diese URL.'
+                            : 'This page has password fields — it\'s a login or registration form, not a job application. Log into the company portal in your browser, find the actual application form, then paste that URL here.'}
+                        </div>
+                        <button
+                          className="aa-btn-outline"
+                          style={{ width: '100%' }}
+                          onClick={() => { setPhase('idle'); setAnalyzeResult(null); setMapping([]); setError('') }}
+                        >
+                          {lang === 'DE' ? '← Andere URL eingeben' : '← Enter a different URL'}
+                        </button>
+                      </div>
+                    ) : (
+                      <div style={{ display: 'flex', gap: 12 }}>
+                        <button className="aa-btn-primary" style={{ flex: 1 }} onClick={handleExecute}>
+                          {lang === 'DE' ? 'Formular ausfüllen (zuerst Vorschau) →' : 'Fill Form (Preview First) →'}
+                        </button>
+                        <a
+                          href={jobUrl} target="_blank" rel="noopener noreferrer"
+                          style={{ flex: '0 0 auto', padding: '11px 20px', borderRadius: 9, background: c.bgCard, color: c.primary, border: `1.5px solid ${c.primary}`, textDecoration: 'none', fontFamily: f.heading, fontSize: 13, fontWeight: 700 }}
+                        >
+                          {lang === 'DE' ? 'Manuell öffnen' : 'Open manually'}
+                        </a>
+                      </div>
+                    )
                   )}
 
                   {phase === 'done' && (

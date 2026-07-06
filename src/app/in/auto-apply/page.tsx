@@ -86,9 +86,16 @@ export default function InAutoApplyPage() {
   const [log, setLog] = useState<LogEntry[]>([])
   const [liveShot, setLiveShot] = useState('')
   const [previewShot, setPreviewShot] = useState('')
+  const [sessionId, setSessionId] = useState('')
+  const [fieldStatuses, setFieldStatuses] = useState<Record<string, boolean | null>>({})
   const [error, setError] = useState('')
+  const [requiresLogin, setRequiresLogin] = useState(false)
+  const [portalUsername, setPortalUsername] = useState('')
+  const [portalPassword, setPortalPassword] = useState('')
   const logRef = useRef<HTMLDivElement>(null)
   const logCounter = useRef(0)
+
+  const [targetJob, setTargetJob] = useState<{ title: string; company: string } | null>(null)
 
   useEffect(() => {
     const raw =
@@ -99,6 +106,10 @@ export default function InAutoApplyPage() {
     const cl = sessionStorage.getItem('jl_cl_letter') || ''
     setCoverLetter(cl)
     if (cl) setUseCoverLetter(true)
+    try {
+      const job = JSON.parse(sessionStorage.getItem('jl_in_selected_job') || sessionStorage.getItem('jl_cvb_job') || '{}')
+      if (job?.job_title) setTargetJob({ title: job.job_title, company: job.employer_name || '' })
+    } catch { /* no job in session */ }
   }, [])
 
   useEffect(() => {
@@ -112,7 +123,7 @@ export default function InAutoApplyPage() {
     if (logRef.current) logRef.current.scrollTop = logRef.current.scrollHeight
   }, [log])
 
-  async function handleAnalyse() {
+  async function handleAnalyse(withCredentials = false) {
     if (!jobUrl.trim()) { setError('Please enter the application URL.'); return }
     if (!cvText.trim()) { setError('No CV found. Please complete the CV Builder first.'); return }
     setError('')
@@ -120,20 +131,36 @@ export default function InAutoApplyPage() {
     setAnalyzeResult(null)
     setMapping([])
 
+    const body: Record<string, unknown> = {
+      jobUrl: jobUrl.trim(),
+      cvText,
+      coverLetter: useCoverLetter ? coverLetter : '',
+      market: 'in',
+    }
+    if (withCredentials && portalUsername && portalPassword) {
+      body.credentials = { username: portalUsername, password: portalPassword }
+    }
+
     try {
       const res = await fetch('/api/auto-apply/analyze', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          jobUrl: jobUrl.trim(),
-          cvText,
-          coverLetter: useCoverLetter ? coverLetter : '',
-          market: 'in',
-        }),
+        body: JSON.stringify(body),
       })
       const data: AnalyzeResult = await res.json()
       if (!res.ok) throw new Error((data as unknown as { error: string }).error || 'Analysis failed')
 
+      if (data.requiresLogin) {
+        setAnalyzeResult(data)
+        setPhase('idle')
+        setRequiresLogin(true)
+        setError(data.error || '')
+        return
+      }
+
+      setRequiresLogin(false)
+      setPortalUsername('')
+      setPortalPassword('')
       setAnalyzeResult(data)
       setMapping(data.mapping)
       setPhase(data.hasForm ? 'review' : 'idle')
@@ -179,11 +206,18 @@ export default function InAutoApplyPage() {
             switch (ev.type) {
               case 'log':           addLog({ type: 'log', message: ev.message }); break
               case 'screenshot':    setLiveShot(ev.b64); addLog({ type: 'screenshot', message: ev.message, b64: ev.b64 }); break
-              case 'filling':       addLog({ type: 'filling', message: `Filling "${ev.label}" → ${ev.value.slice(0, 40)}` }); break
-              case 'filled':        addLog({ type: 'filled', message: `"${ev.label}" ${ev.success ? '✓ filled' : '⚠ skipped'}`, success: ev.success }); break
+              case 'filling':
+                setFieldStatuses(prev => ({ ...prev, [ev.label]: null }))
+                addLog({ type: 'filling', message: `Filling "${ev.label}" → ${ev.value.slice(0, 40)}` })
+                break
+              case 'filled':
+                setFieldStatuses(prev => ({ ...prev, [ev.label]: ev.success }))
+                addLog({ type: 'filled', message: `"${ev.label}" ${ev.success ? '✓ filled' : '⚠ skipped'}`, success: ev.success })
+                break
               case 'filled_preview':
                 setPreviewShot(ev.b64)
                 setLiveShot(ev.b64)
+                if ('sessionId' in ev) setSessionId((ev as { sessionId: string }).sessionId)
                 addLog({ type: 'log', message: ev.message })
                 setPhase('confirming')
                 break
@@ -213,6 +247,8 @@ export default function InAutoApplyPage() {
     setLog([])
     setLiveShot('')
     setPreviewShot('')
+    setSessionId('')
+    setFieldStatuses({})
     await streamEvents(
       '/api/auto-apply/execute',
       { jobUrl: jobUrl.trim(), mapping, cvText, coverLetter: useCoverLetter ? coverLetter : '' },
@@ -221,13 +257,14 @@ export default function InAutoApplyPage() {
   }
 
   async function handleConfirmSubmit() {
+    if (!sessionId) {
+      setError('Session lost — please go back and re-fill the form.')
+      setPhase('confirming')
+      return
+    }
     setPhase('submitting')
     setLog(prev => [...prev, { id: ++logCounter.current, type: 'log', message: 'User confirmed — submitting application…' }])
-    await streamEvents(
-      '/api/auto-apply/submit',
-      { jobUrl: jobUrl.trim(), mapping, cvText, coverLetter: useCoverLetter ? coverLetter : '' },
-      logToTracker,
-    )
+    await streamEvents('/api/auto-apply/submit', { sessionId }, logToTracker)
   }
 
   function logToTracker() {
@@ -294,11 +331,18 @@ export default function InAutoApplyPage() {
             <div style={{ fontSize: 22, fontWeight: 700, color: c.primary, fontFamily: f.heading }}>
               Auto Apply
             </div>
-            <div style={{ fontSize: 13, color: c.textMuted, marginTop: 3 }}>
-              {mode === 'demo'
-                ? 'See how Kira fills a real job application — then try it yourself'
-                : 'Paste an application URL and let Kira fill the form for you'}
-            </div>
+            {targetJob ? (
+              <div style={{ fontSize: 13, color: c.textMuted, marginTop: 3 }}>
+                Applying for: <strong style={{ color: c.primary }}>{targetJob.title}</strong>
+                {targetJob.company && <> at <strong style={{ color: ACCENT }}>{targetJob.company}</strong></>}
+              </div>
+            ) : (
+              <div style={{ fontSize: 13, color: c.textMuted, marginTop: 3 }}>
+                {mode === 'demo'
+                  ? 'See how Kira fills a real job application — then try it yourself'
+                  : 'Paste an application URL and let Kira fill the form for you'}
+              </div>
+            )}
           </div>
           {mode === 'active' && (
             <button
@@ -421,35 +465,93 @@ export default function InAutoApplyPage() {
               </div>
 
               <div>
-                {error && (
-                  <div style={{ fontSize: 12, color: c.error, background: c.errorLight, border: `1px solid ${c.errorBorder}`, borderRadius: 8, padding: '10px 14px', marginBottom: 12 }}>
-                    {error}
+                {requiresLogin ? (
+                  <div style={{ background: c.bgCard, border: `1px solid ${ACCENT}`, borderRadius: 10, padding: '14px 16px' }}>
+                    <div style={{ fontSize: 13, fontWeight: 700, color: c.primary, marginBottom: 4 }}>
+                      🔐 Portal login required
+                    </div>
+                    <div style={{ fontSize: 11, color: c.textMuted, marginBottom: 12, lineHeight: 1.6 }}>
+                      Enter your portal credentials — Kira will sign in and access the application form. Your credentials are used only for this session and never stored.
+                    </div>
+                    <div style={{ fontSize: 11, fontWeight: 600, color: c.textMuted, marginBottom: 4 }}>Email / Username</div>
+                    <input
+                      className="ina-input"
+                      type="email"
+                      value={portalUsername}
+                      onChange={e => setPortalUsername(e.target.value)}
+                      placeholder="you@email.com"
+                      style={{ marginBottom: 10 }}
+                      autoComplete="off"
+                    />
+                    <div style={{ fontSize: 11, fontWeight: 600, color: c.textMuted, marginBottom: 4 }}>Password</div>
+                    <input
+                      className="ina-input"
+                      type="password"
+                      value={portalPassword}
+                      onChange={e => setPortalPassword(e.target.value)}
+                      placeholder="••••••••"
+                      style={{ marginBottom: 12 }}
+                      autoComplete="off"
+                    />
+                    {error && (
+                      <div style={{ fontSize: 11, color: c.error, background: c.errorLight, border: `1px solid ${c.errorBorder}`, borderRadius: 6, padding: '7px 10px', marginBottom: 10 }}>
+                        {error}
+                      </div>
+                    )}
+                    <button
+                      className="ina-btn-primary"
+                      style={{ width: '100%', marginBottom: 8 }}
+                      disabled={!portalUsername || !portalPassword || phase === 'analyzing'}
+                      onClick={() => handleAnalyse(true)}
+                    >
+                      {phase === 'analyzing' ? (
+                        <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+                          <svg className="spin" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>
+                          Signing in…
+                        </span>
+                      ) : '→ Sign in & Load Form'}
+                    </button>
+                    <button
+                      className="ina-btn-outline"
+                      style={{ width: '100%', fontSize: 12 }}
+                      onClick={() => { setRequiresLogin(false); setPortalUsername(''); setPortalPassword(''); setError('') }}
+                    >
+                      ← Use a different URL
+                    </button>
                   </div>
-                )}
-                <button
-                  className="ina-btn-primary"
-                  style={{ width: '100%' }}
-                  disabled={!isUrlValid || !hasCv || phase === 'analyzing' || phase === 'executing'}
-                  onClick={handleAnalyse}
-                >
-                  {phase === 'analyzing' ? (
-                    <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
-                      <svg className="spin" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                        <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/>
-                      </svg>
-                      Analysing form…
-                    </span>
-                  ) : 'Analyse Form — 3 credits'}
-                </button>
+                ) : (
+                  <>
+                    {error && (
+                      <div style={{ fontSize: 12, color: c.error, background: c.errorLight, border: `1px solid ${c.errorBorder}`, borderRadius: 8, padding: '10px 14px', marginBottom: 12 }}>
+                        {error}
+                      </div>
+                    )}
+                    <button
+                      className="ina-btn-primary"
+                      style={{ width: '100%' }}
+                      disabled={!isUrlValid || !hasCv || phase === 'analyzing' || phase === 'executing'}
+                      onClick={() => handleAnalyse(false)}
+                    >
+                      {phase === 'analyzing' ? (
+                        <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+                          <svg className="spin" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                            <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/>
+                          </svg>
+                          Analysing form…
+                        </span>
+                      ) : 'Analyse Form — 3 credits'}
+                    </button>
 
-                {(phase === 'review' || phase === 'done') && (
-                  <button
-                    className="ina-btn-outline"
-                    style={{ width: '100%', marginTop: 10 }}
-                    onClick={() => { setPhase('idle'); setAnalyzeResult(null); setMapping([]); setError('') }}
-                  >
-                    &larr; Start over
-                  </button>
+                    {(phase === 'review' || phase === 'done') && (
+                      <button
+                        className="ina-btn-outline"
+                        style={{ width: '100%', marginTop: 10 }}
+                        onClick={() => { setPhase('idle'); setAnalyzeResult(null); setMapping([]); setError('') }}
+                      >
+                        &larr; Start over
+                      </button>
+                    )}
+                  </>
                 )}
               </div>
 
@@ -492,7 +594,7 @@ export default function InAutoApplyPage() {
                 </div>
               )}
 
-              {(phase === 'review' || phase === 'executing' || phase === 'done') && analyzeResult && (
+              {(phase === 'review' || phase === 'executing' || phase === 'confirming' || phase === 'submitting' || phase === 'done') && analyzeResult && (
                 <>
                   <div style={card}>
                     <div style={{ padding: '14px 18px', display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap' }}>
@@ -569,14 +671,32 @@ export default function InAutoApplyPage() {
                   </div>
 
                   {phase === 'review' && (
-                    <div style={{ display: 'flex', gap: 12 }}>
-                      <button className="ina-btn-primary" style={{ flex: 1 }} onClick={handleExecute}>
-                        Fill Form (Preview First) →
-                      </button>
-                      <a href={jobUrl} target="_blank" rel="noopener noreferrer" style={{ flex: '0 0 auto', padding: '11px 20px', borderRadius: 9, background: c.bgCard, color: ACCENT, border: `1.5px solid ${ACCENT}`, textDecoration: 'none', fontFamily: f.heading, fontSize: 13, fontWeight: 700 }}>
-                        Open manually
-                      </a>
-                    </div>
+                    mapping.some(m => m.field.type === 'password') ? (
+                      <div style={{ background: '#fef2f2', border: '1px solid #fca5a5', borderRadius: 10, padding: '14px 16px' }}>
+                        <div style={{ fontSize: 13, fontWeight: 700, color: '#b91c1c', marginBottom: 6 }}>
+                          🚫 This is not a job application form
+                        </div>
+                        <div style={{ fontSize: 12, color: '#7f1d1d', lineHeight: 1.6, marginBottom: 10 }}>
+                          This page has password fields — it is a login or registration form, not a job application. Log into the company portal in your browser, navigate to the actual application form, then paste that URL here.
+                        </div>
+                        <button
+                          className="ina-btn-outline"
+                          style={{ width: '100%' }}
+                          onClick={() => { setPhase('idle'); setAnalyzeResult(null); setMapping([]); setError('') }}
+                        >
+                          ← Enter a different URL
+                        </button>
+                      </div>
+                    ) : (
+                      <div style={{ display: 'flex', gap: 12 }}>
+                        <button className="ina-btn-primary" style={{ flex: 1 }} onClick={handleExecute}>
+                          Fill Form (Preview First) →
+                        </button>
+                        <a href={jobUrl} target="_blank" rel="noopener noreferrer" style={{ flex: '0 0 auto', padding: '11px 20px', borderRadius: 9, background: c.bgCard, color: ACCENT, border: `1.5px solid ${ACCENT}`, textDecoration: 'none', fontFamily: f.heading, fontSize: 13, fontWeight: 700 }}>
+                          Open manually
+                        </a>
+                      </div>
+                    )
                   )}
 
                   {phase === 'done' && (
@@ -594,28 +714,53 @@ export default function InAutoApplyPage() {
 
               {phase === 'confirming' && previewShot && (
                 <div style={{ ...card, overflow: 'hidden' }}>
-                  <div style={{ padding: '16px 20px', background: `${ACCENT_LIGHT}`, borderBottom: `1px solid ${ACCENT_BORDER}`, display: 'flex', alignItems: 'center', gap: 10 }}>
-                    <div style={{ width: 28, height: 28, borderRadius: '50%', background: ACCENT, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, color: '#fff', flexShrink: 0 }}>!</div>
-                    <div>
-                      <div style={{ fontSize: 13, fontWeight: 700, color: c.primary }}>Review filled form before submitting</div>
-                      <div style={{ fontSize: 11, color: c.textMuted }}>Kira has filled all fields. Check the screenshot below, then confirm.</div>
+                  {mapping.some(m => m.field.type === 'password') && (
+                    <div style={{ padding: '12px 16px', background: '#fef2f2', borderBottom: '1px solid #fca5a5' }}>
+                      <div style={{ fontSize: 13, fontWeight: 700, color: '#b91c1c', marginBottom: 4 }}>
+                        🚫 This is not a job application form!
+                      </div>
+                      <div style={{ fontSize: 12, color: '#7f1d1d', lineHeight: 1.6 }}>
+                        This page contains password fields — it is a login or registration form, not a job application. Log into the company portal in your browser, navigate to the actual application form, then paste that URL here.
+                      </div>
+                      <button
+                        style={{ marginTop: 10, fontSize: 12, fontWeight: 700, padding: '7px 16px', background: '#b91c1c', color: '#fff', border: 'none', borderRadius: 8, cursor: 'pointer' }}
+                        onClick={() => { setPhase('idle'); setAnalyzeResult(null); setMapping([]); setPreviewShot('') }}
+                      >
+                        ← Back to URL input
+                      </button>
+                    </div>
+                  )}
+                  <div style={{ padding: '12px 16px', borderBottom: `1px solid ${c.border}`, background: c.warningLight }}>
+                    <div style={{ fontSize: 13, fontWeight: 700, color: c.primary }}>
+                      ⚠ Review filled form — confirm to submit
+                    </div>
+                    <div style={{ fontSize: 11, color: c.textMuted, marginTop: 3 }}>
+                      Kira has filled all reachable fields. Carefully review the preview. File upload fields (resume, cover letter) must be manually uploaded on the live page before you click Submit.
                     </div>
                   </div>
-                  <img src={`data:image/png;base64,${previewShot}`} alt="Filled form preview" style={{ width: '100%', display: 'block' }} />
-                  <div style={{ padding: '16px 20px', display: 'flex', gap: 12, borderTop: `1px solid ${c.border}` }}>
-                    <button
-                      className="ina-btn-primary"
-                      style={{ flex: 1 }}
-                      onClick={handleConfirmSubmit}
-                    >
-                      ✓ Looks good — Submit Application
-                    </button>
-                    <button
-                      className="ina-btn-outline"
-                      onClick={() => { setPhase('review'); setPreviewShot('') }}
-                    >
-                      ← Edit fields
-                    </button>
+                  <div style={{ padding: '12px 16px' }}>
+                    <img src={`data:image/png;base64,${previewShot}`} alt="Filled form preview" style={{ width: '100%', borderRadius: 6, border: `1px solid ${c.border}`, marginBottom: 14 }} />
+                    <div style={{ background: c.bgSubtle, borderRadius: 8, padding: '10px 12px', marginBottom: 14, fontSize: 12, color: c.textMuted, lineHeight: 1.7 }}>
+                      <strong style={{ color: c.primary }}>Before you submit:</strong>
+                      <ul style={{ margin: '6px 0 0', paddingLeft: 16 }}>
+                        <li>All required fields (*) filled correctly?</li>
+                        <li>Resume uploaded (if the form requires a file)?</li>
+                        <li>Cover letter attached (if applicable)?</li>
+                        <li>CTC, notice period values correct?</li>
+                        <li>Any consent checkboxes ticked?</li>
+                      </ul>
+                    </div>
+                    <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+                      <button className="ina-btn-primary" style={{ flex: 1 }} onClick={handleConfirmSubmit}>
+                        ✓ All checked — Submit Application
+                      </button>
+                      <button className="ina-btn-outline" onClick={() => { setPhase('review'); setPreviewShot('') }}>
+                        ← Edit fields
+                      </button>
+                    </div>
+                    <div style={{ marginTop: 10, fontSize: 11, color: c.textMuted }}>
+                      Note: After submitting you&apos;ll see a confirmation screenshot. Also check your inbox for a confirmation email.
+                    </div>
                   </div>
                 </div>
               )}

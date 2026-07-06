@@ -2,7 +2,7 @@ import Anthropic from '@anthropic-ai/sdk'
 
 export interface DetectedField {
   label: string
-  type: 'text' | 'email' | 'tel' | 'select' | 'textarea' | 'file' | 'checkbox' | 'radio' | 'date' | 'number' | 'url'
+  type: 'text' | 'email' | 'tel' | 'select' | 'textarea' | 'file' | 'checkbox' | 'radio' | 'date' | 'number' | 'url' | 'password'
   required: boolean
   selector: string
   placeholder?: string
@@ -22,6 +22,7 @@ export interface AnalyzeResult {
   formType: string
   pageTitle: string
   hasForm: boolean
+  requiresLogin?: boolean
   fields: DetectedField[]
   mapping: FieldMapping[]
   screenshotB64: string

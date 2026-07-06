@@ -36,10 +36,15 @@ export default function IndiaCoverLetterPage() {
   const [feedback, setFeedback] = useState('')
   const [applyingFeedback, setApplyingFeedback] = useState(false)
   const [downloading, setDownloading] = useState<'pdf' | 'docx' | null>(null)
-  const [openSections, setOpenSections] = useState<Record<string, boolean>>({ style: false, format: false })
+  const [openSections, setOpenSections] = useState<Record<string, boolean>>({ contact: false, style: false, format: false })
   const [mobOpen, setMobOpen] = useState(false)
+  const [contactName,  setContactName]  = useState('')
+  const [contactEmail, setContactEmail] = useState('')
+  const [contactPhone, setContactPhone] = useState('')
   const { credits, setCredits, needsCrossMarket, crossMarketAmount } = useCredits()
   const CL_COST = CREDIT_COST.coverLetter
+  const FREE_CHANGES = 3
+  const [freeChangesLeft, setFreeChangesLeft] = useState(FREE_CHANGES + 1)
   const [crossWarnPending, setCrossWarnPending] = useState<(() => void) | null>(null)
 
   const jobLabel = job ? `${job.employer_name} - ${job.job_title}` : ''
@@ -51,6 +56,20 @@ export default function IndiaCoverLetterPage() {
     setCvText(cv)
     if (jobRaw) { try { setJob(JSON.parse(jobRaw)) } catch { } }
     if (saved) setLetter(saved)
+
+    if (cv) {
+      const emailM = cv.match(/[\w.+\-]+@[\w\-]+(?:\.[\w\-]+)+/i)
+      if (emailM) setContactEmail(emailM[0].toLowerCase())
+      const phoneM = cv.match(/(?:\+\d{1,3}[\s\-.]?)?\(?\d{2,4}\)?[\s\-.]?\d{3,5}[\s\-.]?\d{3,5}(?:[\s\-.]?\d{1,4})?/)
+      if (phoneM) setContactPhone(phoneM[0].trim())
+      for (const line of cv.split('\n')) {
+        const t = line.trim()
+        if (t.length > 2 && t.length < 55 && !t.includes('@') && !/\d/.test(t) && /[A-Za-z]/.test(t)) {
+          const words = t.split(/\s+/)
+          if (words.length >= 2 && words.length <= 5) { setContactName(t); break }
+        }
+      }
+    }
   }, [])
 
   function toggle(id: string) { setOpenSections(p => ({ ...p, [id]: !p[id] })) }
@@ -75,23 +94,32 @@ export default function IndiaCoverLetterPage() {
 
   async function generate() {
     if (!cvText.trim()) return
-    if (credits !== null && credits < CL_COST) { alert(`You need ${CL_COST} credit. Please top up on the Account page.`); return }
+    const isFree = freeChangesLeft > 0
+    if (!isFree && credits !== null && credits < CL_COST) { alert(`You need ${CL_COST} credit. Please top up on the Account page.`); return }
     setLoading(true); setLetter('')
     try {
+      const contactHeader = [
+        contactName  ? `Full Name: ${contactName}`  : '',
+        contactEmail ? `Email: ${contactEmail}`      : '',
+        contactPhone ? `Phone: ${contactPhone}`      : '',
+      ].filter(Boolean).join('\n')
+      const cvWithContact = contactHeader ? `${contactHeader}\n\n${cvText}` : cvText
       const res = await fetch(API.coverLetter, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ cvText, job, tone, length, lang, market: MARKET.in }),
+        body: JSON.stringify({ cvText: cvWithContact, job, tone, length, lang, market: MARKET.in, freeUsage: isFree }),
       })
       if (res.status === 402) { const d = await res.json(); if (typeof d.credits === 'number') setCredits(d.credits); setLoading(false); alert('Not enough credits.'); return }
       const data = await res.json()
       if (typeof data.creditsRemaining === 'number') setCredits(data.creditsRemaining)
       const cl = data.coverLetter || data.letter || ''
       setLetter(cl); sessionStorage.setItem(SS.clLetter, cl)
+      if (isFree) setFreeChangesLeft(p => p - 1)
     } catch { setLetter('Failed to generate. Please try again.') }
     finally { setLoading(false) }
   }
 
   function handleGenerate() {
+    if (freeChangesLeft > 0) { generate(); return }
     if (needsCrossMarket(CL_COST, MARKET.in)) {
       setCrossWarnPending(() => generate)
     } else {
@@ -101,16 +129,20 @@ export default function IndiaCoverLetterPage() {
 
   async function applyFeedback() {
     if (!feedback.trim() || !letter) return
+    const isFree = freeChangesLeft > 0
+    if (!isFree && credits !== null && credits < CL_COST) { alert(`You need ${CL_COST} credit. Please top up on the Account page.`); return }
     setApplyingFeedback(true)
     try {
       const res = await fetch(API.coverLetter, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ cvText, job, tone, length, lang, feedback, currentLetter: letter, market: MARKET.in }),
+        body: JSON.stringify({ cvText, job, tone, length, lang, feedback, currentLetter: letter, market: MARKET.in, freeUsage: isFree }),
       })
       if (res.status === 402) { alert('Not enough credits.'); setApplyingFeedback(false); return }
       const data = await res.json()
+      if (typeof data.creditsRemaining === 'number') setCredits(data.creditsRemaining)
       const cl = data.coverLetter || data.letter || ''
       setLetter(cl); sessionStorage.setItem(SS.clLetter, cl); setFeedback('')
+      if (isFree) setFreeChangesLeft(p => p - 1)
     } catch { }
     setApplyingFeedback(false)
   }
@@ -125,7 +157,9 @@ export default function IndiaCoverLetterPage() {
       doc.setFillColor(255, 153, 51); doc.rect(0, 10, W, 2, 'F')
       let y = 24
       doc.setFont('helvetica', 'bold'); doc.setFontSize(16); doc.setTextColor(4, 44, 83)
-      doc.text('Cover Letter', margin, y); y += 6
+      doc.text(contactName || 'Cover Letter', margin, y); y += 6
+      const cpIndia = [contactEmail, contactPhone].filter(Boolean).join('  ·  ')
+      if (cpIndia) { doc.setFont('helvetica', 'normal'); doc.setFontSize(9); doc.setTextColor(107, 124, 147); doc.text(cpIndia, margin, y); y += 5 }
       if (job) { doc.setFont('helvetica', 'normal'); doc.setFontSize(9); doc.setTextColor(107, 124, 147); doc.text(`${job.employer_name} - ${job.job_title}`, margin, y); y += 5 }
       doc.setDrawColor(220, 228, 238); doc.setLineWidth(0.4); doc.line(margin, y, W - margin, y); y += 10
       const paragraphs = letter.split('\n').filter(p => p.trim())
@@ -244,6 +278,39 @@ export default function IndiaCoverLetterPage() {
           </div>
 
           <div style={{ flex: 1, overflowY: 'auto' }}>
+
+            {/* Contact Details */}
+            <div style={{ borderBottom: '1px solid rgba(255,255,255,0.07)' }}>
+              <button onClick={() => toggle('contact')} style={{ width: '100%', padding: '13px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <div style={{ width: 22, height: 22, borderRadius: 6, background: openSections.contact ? accent + '25' : 'rgba(255,255,255,0.07)', display: 'flex', alignItems: 'center', justifyContent: 'center', border: `1px solid ${openSections.contact ? accent + '40' : 'rgba(255,255,255,0.1)'}` }}>
+                    <span style={{ fontSize: 9, fontWeight: 700, color: openSections.contact ? accent : 'rgba(255,255,255,0.4)', fontFamily: 'monospace' }}>✎</span>
+                  </div>
+                  <span style={{ fontSize: 13, fontWeight: 600, color: openSections.contact ? '#fff' : 'rgba(255,255,255,0.55)' }}>Contact Details</span>
+                  {(contactName || contactEmail) && <span style={{ fontSize: 10, color: accent, fontWeight: 600 }}>✓ set</span>}
+                </div>
+                <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.3)', transform: openSections.contact ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s', display: 'inline-block' }}>v</span>
+              </button>
+              {openSections.contact && (
+                <div style={{ padding: '4px 16px 16px', display: 'flex', flexDirection: 'column', gap: 10 }}>
+                  <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)', lineHeight: 1.5 }}>
+                    Correct your contact details — used in the PDF/DOCX header and passed to the letter generator.
+                  </div>
+                  {[
+                    { label: 'Full Name', val: contactName, set: setContactName, ph: 'Priya Sharma' },
+                    { label: 'Email',     val: contactEmail, set: setContactEmail, ph: 'priya@example.com' },
+                    { label: 'Phone',     val: contactPhone, set: setContactPhone, ph: '+91 98765 43210' },
+                  ].map(({ label, val, set, ph }) => (
+                    <div key={label}>
+                      <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.45)', marginBottom: 4 }}>{label}</div>
+                      <input value={val} onChange={e => set(e.target.value)} placeholder={ph}
+                        style={{ width: '100%', padding: '7px 10px', borderRadius: 7, border: '1px solid rgba(255,255,255,0.14)', background: 'rgba(255,255,255,0.05)', color: '#fff', fontSize: 12, fontFamily: 'inherit', outline: 'none', boxSizing: 'border-box' }} />
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
             {/* Tone */}
             <div style={{ borderBottom: '1px solid rgba(255,255,255,0.07)' }}>
               <button onClick={() => toggle('style')} style={{ width: '100%', padding: '13px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit' }}>
@@ -321,10 +388,17 @@ export default function IndiaCoverLetterPage() {
                 {credits === 0 ? 'No credits left. Top up on Account page.' : `${credits} credit${credits === 1 ? '' : 's'} remaining.`}
               </div>
             )}
-            <button className="cl-gen" onClick={handleGenerate} disabled={loading || !cvText.trim() || (credits !== null && credits < CL_COST)}
-              style={{ width: '100%', padding: '12px 0', borderRadius: 10, border: 'none', background: loading || !cvText.trim() || (credits !== null && credits < CL_COST) ? 'rgba(255,255,255,0.08)' : `linear-gradient(135deg, ${accent}, #e67300)`, color: loading || !cvText.trim() || (credits !== null && credits < CL_COST) ? 'rgba(255,255,255,0.25)' : '#fff', fontFamily: "'Outfit', sans-serif", fontSize: 13, fontWeight: 700, cursor: loading || !cvText.trim() || (credits !== null && credits < CL_COST) ? 'not-allowed' : 'pointer', transition: 'all 0.2s', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+            {freeChangesLeft > 0 && (
+              <div style={{ background: 'rgba(34,197,94,0.1)', border: '1px solid rgba(34,197,94,0.3)', borderRadius: 8, padding: '6px 10px', fontSize: 11, color: '#4ade80', marginBottom: 8, lineHeight: 1.5 }}>
+                ✓ {freeChangesLeft} free use{freeChangesLeft !== 1 ? 's' : ''} remaining
+              </div>
+            )}
+            <button className="cl-gen" onClick={handleGenerate} disabled={loading || !cvText.trim() || (freeChangesLeft <= 0 && credits !== null && credits < CL_COST)}
+              style={{ width: '100%', padding: '12px 0', borderRadius: 10, border: 'none', background: loading || !cvText.trim() || (freeChangesLeft <= 0 && credits !== null && credits < CL_COST) ? 'rgba(255,255,255,0.08)' : `linear-gradient(135deg, ${accent}, #e67300)`, color: loading || !cvText.trim() || (freeChangesLeft <= 0 && credits !== null && credits < CL_COST) ? 'rgba(255,255,255,0.25)' : '#fff', fontFamily: "'Outfit', sans-serif", fontSize: 13, fontWeight: 700, cursor: loading || !cvText.trim() || (freeChangesLeft <= 0 && credits !== null && credits < CL_COST) ? 'not-allowed' : 'pointer', transition: 'all 0.2s', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
               {loading
                 ? <><div style={{ width: 14, height: 14, borderRadius: '50%', border: '2px solid rgba(255,255,255,0.15)', borderTopColor: 'rgba(255,255,255,0.7)', animation: 'spin 0.7s linear infinite' }} /> Writing...</>
+                : freeChangesLeft > 0
+                ? (letter ? 'Regenerate — Free' : 'Generate Letter — Free')
                 : credits !== null && credits < CL_COST
                 ? `Need ${CL_COST} credit — you have ${credits}`
                 : letter ? `Regenerate Letter (${CL_COST} credit)` : `Generate Letter (${CL_COST} credit)`}
@@ -352,9 +426,9 @@ export default function IndiaCoverLetterPage() {
                   {TONES.map(t => <button key={t.id} onClick={() => setTone(t.id)} style={{ flex: 1, padding: '8px 4px', borderRadius: 8, border: `1px solid ${tone === t.id ? accent : 'rgba(255,255,255,0.1)'}`, background: tone === t.id ? accent + '20' : 'rgba(255,255,255,0.04)', color: tone === t.id ? '#fff' : 'rgba(255,255,255,0.45)', fontSize: 11, cursor: 'pointer', fontFamily: 'inherit' }}>{t.label}</button>)}
                 </div>
               </div>
-              <button className="cl-gen" onClick={() => { handleGenerate(); setMobOpen(false) }} disabled={loading || !cvText.trim() || (credits !== null && credits < CL_COST)}
-                style={{ width: '100%', padding: '12px 0', borderRadius: 10, border: 'none', background: loading || !cvText.trim() || (credits !== null && credits < CL_COST) ? 'rgba(255,255,255,0.08)' : `linear-gradient(135deg, ${accent}, #e67300)`, color: loading || !cvText.trim() || (credits !== null && credits < CL_COST) ? 'rgba(255,255,255,0.25)' : '#fff', fontFamily: "'Outfit', sans-serif", fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>
-                {loading ? 'Writing...' : letter ? `Regenerate (${CL_COST} credit)` : `Generate Letter (${CL_COST} credit)`}
+              <button className="cl-gen" onClick={() => { handleGenerate(); setMobOpen(false) }} disabled={loading || !cvText.trim() || (freeChangesLeft <= 0 && credits !== null && credits < CL_COST)}
+                style={{ width: '100%', padding: '12px 0', borderRadius: 10, border: 'none', background: loading || !cvText.trim() || (freeChangesLeft <= 0 && credits !== null && credits < CL_COST) ? 'rgba(255,255,255,0.08)' : `linear-gradient(135deg, ${accent}, #e67300)`, color: loading || !cvText.trim() || (freeChangesLeft <= 0 && credits !== null && credits < CL_COST) ? 'rgba(255,255,255,0.25)' : '#fff', fontFamily: "'Outfit', sans-serif", fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>
+                {loading ? 'Writing...' : freeChangesLeft > 0 ? (letter ? 'Regenerate — Free' : 'Generate Letter — Free') : letter ? `Regenerate (${CL_COST} credit)` : `Generate Letter (${CL_COST} credit)`}
               </button>
             </div>
           )}
@@ -389,7 +463,7 @@ export default function IndiaCoverLetterPage() {
             {!loading && !letter && (
               <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', flex: 1, gap: 24 }}>
                 <div style={{ fontSize: 15, fontWeight: 600, color: 'rgba(255,255,255,0.4)', fontFamily: "'Outfit', sans-serif" }}>{cvText ? 'Ready to write' : 'Upload your CV to start'}</div>
-                {cvText && <button onClick={handleGenerate} className="cl-gen" style={{ padding: '11px 28px', borderRadius: 10, border: 'none', background: `linear-gradient(135deg, ${accent}, #e67300)`, color: '#fff', fontFamily: "'Outfit', sans-serif", fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>Generate Letter</button>}
+                {cvText && <button onClick={handleGenerate} className="cl-gen" style={{ padding: '11px 28px', borderRadius: 10, border: 'none', background: `linear-gradient(135deg, ${accent}, #e67300)`, color: '#fff', fontFamily: "'Outfit', sans-serif", fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>{freeChangesLeft > 0 ? 'Generate Letter — Free' : 'Generate Letter'}</button>}
               </div>
             )}
             {!loading && letter && (
@@ -410,7 +484,7 @@ export default function IndiaCoverLetterPage() {
                     rows={2} style={{ width: '100%', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 7, color: '#E6F1FB', fontSize: 12, padding: '8px 10px', resize: 'vertical' as const, fontFamily: "'DM Sans', sans-serif", outline: 'none', boxSizing: 'border-box' as const }} />
                   <button onClick={applyFeedback} disabled={!feedback.trim() || applyingFeedback}
                     style={{ marginTop: 8, padding: '7px 18px', borderRadius: 7, border: 'none', background: feedback.trim() && !applyingFeedback ? accent : 'rgba(255,255,255,0.08)', color: feedback.trim() && !applyingFeedback ? '#fff' : 'rgba(255,255,255,0.25)', fontSize: 12, fontWeight: 700, cursor: feedback.trim() && !applyingFeedback ? 'pointer' : 'not-allowed', fontFamily: "'Outfit', sans-serif" }}>
-                    {applyingFeedback ? 'Applying...' : 'Apply changes — 1 credit'}
+                    {applyingFeedback ? 'Applying...' : freeChangesLeft > 0 ? `Apply changes — Free (${freeChangesLeft} left)` : `Apply changes — ${CL_COST} credit`}
                   </button>
                 </div>
                 <div style={{ display: 'flex', gap: 10, marginTop: 20, justifyContent: 'center', paddingBottom: 32, flexWrap: 'wrap' }}>

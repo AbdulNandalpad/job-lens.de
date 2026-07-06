@@ -27,10 +27,11 @@ app.get('/health', (_req, res) => {
 app.post('/analyze', async (req: Request, res: Response) => {
   if (!authorized(req, res)) return
 
-  const { jobUrl, cvText, coverLetter } = req.body as {
+  const { jobUrl, cvText, coverLetter, credentials } = req.body as {
     jobUrl: string
     cvText: string
     coverLetter?: string
+    credentials?: { username: string; password: string }
   }
 
   if (!jobUrl || !cvText) {
@@ -39,7 +40,7 @@ app.post('/analyze', async (req: Request, res: Response) => {
   }
 
   try {
-    const result = await analyzeForm(jobUrl, cvText, coverLetter, anthropic)
+    const result = await analyzeForm(jobUrl, cvText, coverLetter, anthropic, credentials)
     res.json(result)
   } catch (err) {
     console.error('[analyze]', err)
