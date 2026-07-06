@@ -29,6 +29,9 @@ export const LOW_CREDIT_WARN = 2
 // ── Kira maintenance mode — set true to block all Kira features for non-admins
 export const KIRA_MAINTENANCE = true
 
+// ── Auto Apply maintenance mode — set true to block for non-admins
+export const AUTO_APPLY_MAINTENANCE = true
+
 // ── Market identifiers ───────────────────────────────────────────────────────
 export const MARKET = {
   eu: 'eu',

@@ -66,6 +66,16 @@ export default function AutoApplyPage() {
   const router = useRouter()
   const { lang } = useLanguage()
 
+  const [isAdmin, setIsAdmin] = useState(false)
+  const [adminChecked, setAdminChecked] = useState(false)
+
+  useEffect(() => {
+    fetch('/api/user/profile').then(r => r.json()).then(d => {
+      setIsAdmin(!!d.isAdmin)
+      setAdminChecked(true)
+    }).catch(() => setAdminChecked(true))
+  }, [])
+
   const [mode, setMode] = useState<Mode>('demo')
 
   const [jobUrl, setJobUrl] = useState('')
@@ -368,6 +378,26 @@ export default function AutoApplyPage() {
 
       <Navbar />
 
+      {adminChecked && !isAdmin && (
+        <div style={{ minHeight: 'calc(100vh - 64px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '40px 20px' }}>
+          <div style={{ textAlign: 'center', maxWidth: 400 }}>
+            <svg width="56" height="56" viewBox="0 0 56 56" fill="none" style={{ margin: '0 auto 20px' }}>
+              <circle cx="28" cy="28" r="27" fill={c.primaryLight} stroke={c.accentLight} strokeWidth="1.5"/>
+              <path d="M28 18v12M28 34v2" stroke={c.accent} strokeWidth="2.5" strokeLinecap="round"/>
+            </svg>
+            <div style={{ fontSize: 18, fontWeight: 700, color: c.primary, fontFamily: f.heading, marginBottom: 10 }}>
+              {lang === 'DE' ? 'Auto-Bewerbung in Wartung' : 'Auto Apply is currently in maintenance mode'}
+            </div>
+            <div style={{ fontSize: 13, color: c.textMuted, lineHeight: 1.7 }}>
+              {lang === 'DE'
+                ? 'Wir verbessern gerade die Funktion. Sie ist bald wieder verfügbar — schau später nochmal vorbei.'
+                : "We're improving Auto Apply. It will be back soon — check back later."}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {(!adminChecked || isAdmin) && (
       <div style={{ maxWidth: 1240, margin: '0 auto', padding: '24px 20px' }}>
 
         {/* Page header */}
@@ -1054,6 +1084,7 @@ export default function AutoApplyPage() {
           </div>
         )}
       </div>
+      )}
     </div>
   )
 }
