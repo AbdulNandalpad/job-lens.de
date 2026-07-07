@@ -189,6 +189,7 @@ export default function CareerScanPage() {
   }
 
   function handleRunScan() {
+    if (!hasEnoughCredits) { alert(cs.sidebar.noCredits); return }
     if (needsCrossMarket(SCAN_COST, MARKET.eu)) {
       setCrossWarnPending(() => runScan)
     } else {
@@ -263,7 +264,8 @@ export default function CareerScanPage() {
 
   const extracting = fileLoading
   const hasEnoughCredits = credits === null || credits >= SCAN_COST
-  const canScan = cvText.trim().length > 0 && role.trim() && phase !== 'loading' && !extracting && hasEnoughCredits
+  const meetsInputRequirements = cvText.trim().length > 0 && role.trim() && phase !== 'loading' && !extracting
+  const canScan = meetsInputRequirements && hasEnoughCredits
 
   const cs = t.careerScan
 
@@ -346,14 +348,14 @@ export default function CareerScanPage() {
       )}
 
       <button
-        disabled={!canScan}
+        disabled={!meetsInputRequirements}
         onClick={handleRunScan}
         style={{
           width: '100%', padding: 12, borderRadius: 10, border: 'none',
           background: canScan ? g.button : 'rgba(255,255,255,0.1)',
           color: canScan ? '#fff' : 'rgba(255,255,255,0.4)',
           fontFamily: f.heading, fontSize: 14, fontWeight: 700,
-          cursor: canScan ? 'pointer' : 'not-allowed',
+          cursor: canScan ? 'pointer' : (meetsInputRequirements ? 'pointer' : 'not-allowed'),
           boxShadow: canScan ? theme.shadow.glow : 'none',
           transition: 'all 0.2s',
         }}
