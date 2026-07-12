@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import mammoth from 'mammoth'
-import { createServerSupabase } from '@/lib/supabase-server'
+import { createServerSupabase, isUserRateLimited } from '@/lib/supabase-server'
 
 const MAX_FILE_BYTES = 10 * 1024 * 1024 // 10 MB
 
@@ -9,6 +9,10 @@ export async function POST(req: NextRequest) {
   const supabase = await createServerSupabase()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
+  if (await isUserRateLimited(user.id, 'extract_pdf', 20)) {
+    return NextResponse.json({ error: 'Too many requests. Please wait a minute.' }, { status: 429 })
+  }
 
   try {
     const formData = await req.formData()

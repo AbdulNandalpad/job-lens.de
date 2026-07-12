@@ -32,7 +32,10 @@ export async function POST(req: NextRequest) {
   const status    = typeof body.status   === 'string' && VALID_STATUSES.has(body.status) ? body.status : 'applied'
   const location  = typeof body.location === 'string' ? body.location.trim().slice(0, 200) : null
   const notes     = typeof body.notes    === 'string' ? body.notes.trim().slice(0, 1000)   : null
-  const applied_at = typeof body.applied_at === 'string' ? body.applied_at.slice(0, 10)   : new Date().toISOString().slice(0, 10)
+  const rawAppliedAt = typeof body.applied_at === 'string' ? body.applied_at.slice(0, 10) : ''
+  const applied_at = rawAppliedAt && !isNaN(new Date(rawAppliedAt).getTime())
+    ? rawAppliedAt
+    : new Date().toISOString().slice(0, 10)
 
   // Only allow https:// job URLs
   const rawUrl = typeof body.job_url === 'string' ? body.job_url.trim() : ''

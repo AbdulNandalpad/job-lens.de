@@ -1,10 +1,14 @@
 import { NextRequest } from 'next/server'
-import { createServerSupabase } from '@/lib/supabase-server'
+import { createServerSupabase, isUserRateLimited } from '@/lib/supabase-server'
 
 export async function POST(req: NextRequest) {
   const supabase = await createServerSupabase()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return new Response('Unauthorized', { status: 401 })
+
+  if (await isUserRateLimited(user.id, 'tts', 20)) {
+    return new Response('Too many requests', { status: 429 })
+  }
 
   const { text } = await req.json()
   if (!text?.trim()) return new Response('No text', { status: 400 })

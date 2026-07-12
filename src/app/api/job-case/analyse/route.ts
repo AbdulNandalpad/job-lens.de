@@ -8,7 +8,9 @@
  */
 import { NextRequest, NextResponse } from 'next/server'
 import Anthropic from '@anthropic-ai/sdk'
-import { createServerSupabase } from '@/lib/supabase-server'
+import { createServerSupabase, isUserRateLimited } from '@/lib/supabase-server'
+
+const SSRF_RE = /^(localhost|127\.|10\.|192\.168\.|172\.(1[6-9]|2[0-9]|3[01])\.|169\.254\.|::1$|fc[0-9a-f]{2}:|fd)/i
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
 
@@ -40,19 +42,50 @@ function stripHtml(html: string): string {
  * Times out after 8 s to avoid blocking the API response.
  * Returns null if the fetch fails or the page is not HTML.
  */
+const MAX_REDIRECTS = 3
+
 async function fetchJobText(url: string): Promise<string | null> {
+  // SSRF guard — validate scheme and hostname before fetching
+  if (!url.startsWith('https://')) return null
+  try {
+    const h = new URL(url).hostname
+    if (SSRF_RE.test(h)) return null
+  } catch {
+    return null
+  }
+
   try {
     const controller = new AbortController()
     const timeout = setTimeout(() => controller.abort(), 8000)
-    const res = await fetch(url, {
-      signal: controller.signal,
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (compatible; JobLens/1.0; +https://job-lens.de)',
-        'Accept': 'text/html,application/xhtml+xml',
-      },
-      redirect: 'follow',
-    })
+
+    let currentUrl = url
+    let redirectsLeft = MAX_REDIRECTS
+    let res: Response | null = null
+
+    while (redirectsLeft-- >= 0) {
+      res = await fetch(currentUrl, {
+        signal: controller.signal,
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (compatible; JobLens/1.0; +https://job-lens.de)',
+          'Accept': 'text/html,application/xhtml+xml',
+        },
+        redirect: 'manual',
+      })
+      if (res.status >= 300 && res.status < 400) {
+        const location = res.headers.get('location') ?? ''
+        if (!location.startsWith('https://')) break
+        try {
+          const rh = new URL(location).hostname
+          if (SSRF_RE.test(rh)) break
+        } catch { break }
+        currentUrl = location
+        continue
+      }
+      break
+    }
+
     clearTimeout(timeout)
+    if (!res) return null
     const contentType = res.headers.get('content-type') ?? ''
     if (!contentType.includes('text/html')) return null
     const html = await res.text()
@@ -69,19 +102,34 @@ export async function POST(req: NextRequest) {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
+    if (await isUserRateLimited(user.id, 'job_case_analyse', 10)) {
+      return NextResponse.json({ error: 'Too many requests. Please wait a minute.' }, { status: 429 })
+    }
+
     const { jobText, jobUrl, cvText } = await req.json()
     if (!jobText?.trim() && !jobUrl?.trim()) {
       return NextResponse.json({ error: 'Job text or URL required' }, { status: 400 })
     }
 
+    // Validate jobUrl before fetching — must be https and not internal
+    const safeJobUrl = typeof jobUrl === 'string' ? jobUrl.trim() : ''
+    if (safeJobUrl && !safeJobUrl.startsWith('https://')) {
+      return NextResponse.json({ error: 'jobUrl must start with https://' }, { status: 400 })
+    }
+    if (safeJobUrl) {
+      try {
+        const h = new URL(safeJobUrl).hostname
+        if (SSRF_RE.test(h)) return NextResponse.json({ error: 'Invalid job URL' }, { status: 400 })
+      } catch {
+        return NextResponse.json({ error: 'Invalid job URL' }, { status: 400 })
+      }
+    }
+
     // If a URL is provided, fetch the full page text and prefer it over the
     // (often truncated) Adzuna search snippet in jobText.
     let fullText = (jobText ?? '').trim()
-    if (jobUrl?.trim()) {
-      const fetched = await fetchJobText(jobUrl.trim())
-      if (fetched && fetched.length > fullText.length) {
-        fullText = fetched
-      }
+    if (safeJobUrl) {
+      if (fetched && fetched.length > fullText.length) fullText = fetched
     }
 
     // GDPR: scrub any PII before sending to Anthropic

@@ -90,9 +90,13 @@ export async function refundCredits(
 ): Promise<void> {
   try {
     const admin = createAdminSupabase()
-    const { data: profile } = await admin.from('profiles').select('credits').eq('id', userId).single()
-    if (!profile) return
-    await admin.from('profiles').update({ credits: (profile.credits ?? 0) + amount }).eq('id', userId)
+    // Atomic increment — avoids TOCTOU race on concurrent refunds.
+    // Refunds always go back to common credits (the first pool deducted).
+    const { error } = await admin.rpc('increment_credits', { p_user_id: userId, p_amount: amount })
+    if (error) {
+      console.error('Credit refund RPC failed:', error.message)
+      return
+    }
     await admin.from('usage_events').insert({ user_id: userId, action: `refund_${action}`, credits_used: -amount })
   } catch (err) {
     console.error('Credit refund failed:', err)

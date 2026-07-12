@@ -138,10 +138,16 @@ export async function POST(req: NextRequest) {
       jobText, jobTitle, companyName,
       requirements, evidence,
       questions, answers, tabSwitches,
-      videoStorageKey, videoDurationSeconds,
       consent, cvText,
       market,
     } = body
+
+    // Validate videoStorageKey ownership — must start with the calling user's id
+    const videoStorageKey: string | null = typeof body.videoStorageKey === 'string' ? body.videoStorageKey : null
+    const videoDurationSeconds: number | null = typeof body.videoDurationSeconds === 'number' ? body.videoDurationSeconds : null
+    if (videoStorageKey && !videoStorageKey.startsWith(`${user.id}/`)) {
+      return NextResponse.json({ error: 'Invalid video storage key' }, { status: 400 })
+    }
 
     // Validate consent
     if (!consent?.video || !consent?.test || !consent?.tracking) {

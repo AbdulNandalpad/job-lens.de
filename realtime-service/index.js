@@ -239,7 +239,10 @@ async function searchJobs(args, market) {
 }
 
 // Company research via Claude claude-haiku-4-5-20251001 + built-in web_search
-async function researchCompany(companyName, aspect) {
+async function researchCompany(rawName, rawAspect) {
+  // Sanitize tool arguments — they come from the user via OpenAI tool calling
+  const companyName = sanitizeForPrompt(String(rawName || '')).slice(0, 100)
+  const aspect      = /^(overview|culture|salaries|reviews|news|layoffs)$/.test(rawAspect) ? rawAspect : 'overview'
   const focus = aspect || 'overview'
   const prompts = {
     overview:  `Give a brief overview of ${companyName}: what they do, their size, key markets, and reputation as an employer.`,
@@ -361,6 +364,10 @@ wss.on('connection', (clientWs, req) => {
   // Cache the last job search result so show_jobs can re-emit without an API call
   let lastJobResult = null
 
+  // Per-session tool call caps — prevent runaway API cost within one 3-credit session
+  const toolCallCounts = { search_jobs: 0, research_company: 0 }
+  const TOOL_CAPS      = { search_jobs: 10, research_company: 5 }
+
   // Silence timeout — nudge Kira if no audio from client for 30s
   let silenceTimer = null
   let silenceNudged = false
@@ -427,6 +434,20 @@ wss.on('connection', (clientWs, req) => {
         if (silenceTimer) clearTimeout(silenceTimer)
 
         let spokenSummary = 'Tool not available.'
+
+        // Enforce per-session cap to avoid runaway API cost
+        if (name in toolCallCounts) {
+          toolCallCounts[name] = (toolCallCounts[name] || 0) + 1
+          if (toolCallCounts[name] > (TOOL_CAPS[name] || 10)) {
+            spokenSummary = "I've already done quite a few searches this session — let's wrap up what we found."
+            if (openaiWs.readyState === WebSocket.OPEN) {
+              openaiWs.send(JSON.stringify({ type: 'conversation.item.create', item: { type: 'function_call_output', call_id: callId, output: spokenSummary } }))
+              openaiWs.send(JSON.stringify({ type: 'response.create' }))
+            }
+            return
+          }
+        }
+
         if (name === 'search_jobs') {
           const result = await searchJobs(args, market)
           spokenSummary = result.summary

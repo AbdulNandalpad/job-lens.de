@@ -17,11 +17,10 @@ export async function POST(req: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const { query, cvText, jobs } = await req.json() as {
-    query: string
-    cvText?: string
-    jobs: JobInput[]
-  }
+  const body = await req.json()
+  const query  = typeof body.query === 'string' ? body.query.slice(0, 200) : ''
+  const cvText = typeof body.cvText === 'string' ? body.cvText : undefined
+  const jobs   = Array.isArray(body.jobs) ? body.jobs as JobInput[] : []
 
   if (!jobs?.length || !query?.trim()) {
     return NextResponse.json({ scores: [] })

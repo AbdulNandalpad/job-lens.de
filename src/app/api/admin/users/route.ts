@@ -4,7 +4,10 @@ import { createServerSupabase, createAdminSupabase } from '@/lib/supabase-server
 const ADMIN_EMAILS = (process.env.ADMIN_EMAILS || '').split(',').map(e => e.trim().toLowerCase()).filter(Boolean)
 
 async function requireAdmin(req: NextRequest) {
-  if (ADMIN_EMAILS.length === 0) return null
+  if (ADMIN_EMAILS.length === 0) {
+    console.error('[admin] ADMIN_EMAILS not configured — all admin endpoints are locked')
+    return null
+  }
   const supabase = await createServerSupabase()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user || !ADMIN_EMAILS.includes((user.email || '').toLowerCase())) return null

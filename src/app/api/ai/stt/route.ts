@@ -1,10 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createServerSupabase } from '@/lib/supabase-server'
+import { createServerSupabase, isUserRateLimited } from '@/lib/supabase-server'
 
 export async function POST(req: NextRequest) {
   const supabase = await createServerSupabase()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
+  if (await isUserRateLimited(user.id, 'stt', 10)) {
+    return NextResponse.json({ error: 'Too many requests. Please wait a minute.' }, { status: 429 })
+  }
 
   const apiKey = process.env.OPENAI_API_KEY
   if (!apiKey) return NextResponse.json({ error: 'STT not configured' }, { status: 503 })

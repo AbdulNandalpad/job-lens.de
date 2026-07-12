@@ -21,7 +21,8 @@ export async function GET(
     // Server-side access gate: require a valid jl_cv cookie that proves the
     // recruiter clicked the magic link for this specific job case.
     const viewId = req.cookies.get('jl_cv')?.value
-    if (!viewId) {
+    const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+    if (!viewId || !UUID_RE.test(viewId)) {
       return NextResponse.json({ error: 'Access denied' }, { status: 403 })
     }
 

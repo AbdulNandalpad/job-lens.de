@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createServerSupabase, createAdminSupabase } from '@/lib/supabase-server'
+import { createServerSupabase, createAdminSupabase, isUserRateLimited } from '@/lib/supabase-server'
 
 // POST /api/feedback { feature, rating, prompt?, output? }
 // Captures a thumbs up/down on an AI output for the future fine-tuning dataset.
@@ -7,6 +7,10 @@ export async function POST(req: NextRequest) {
   const supabase = await createServerSupabase()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
+  if (await isUserRateLimited(user.id, 'feedback', 30)) {
+    return NextResponse.json({ error: 'Too many requests. Please wait a minute.' }, { status: 429 })
+  }
 
   const body = await req.json().catch(() => ({}))
   const feature = typeof body.feature === 'string' ? body.feature.slice(0, 64) : ''
