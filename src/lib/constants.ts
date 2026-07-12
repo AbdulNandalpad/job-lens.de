@@ -27,7 +27,7 @@ export const AI_CHAT_FREE_MESSAGES = 20
 export const LOW_CREDIT_WARN = 2
 
 // ── Kira maintenance mode — set true to block all Kira features for non-admins
-export const KIRA_MAINTENANCE = true
+export const KIRA_MAINTENANCE = false
 
 // ── Auto Apply maintenance mode — set true to block for non-admins
 export const AUTO_APPLY_MAINTENANCE = true
