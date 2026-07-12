@@ -182,11 +182,12 @@ export async function POST(req: NextRequest) {
     admin.from('profiles').update({ scan_cache: { hash, result: safe } }).eq('id', user.id)
       .then(() => null, () => null)
 
-    // Extract durable facts from the scan (no injection here — scan is
-    // deterministic + cached on CV/role, so memory must not alter its output)
+    // Extract durable facts from the scan result only — NOT from raw CV text.
+    // GDPR G4: CV text must not be stored persistently; only AI-derived, non-PII
+    // career metadata (headline, role, market) is passed to memory.
     after(() => saveMemoriesFromInteraction(
       user.id,
-      `Career scan for target role "${role}" (${market}). Headline: ${safe.headline}. CV: ${cvText.slice(0, 1500)}`,
+      `Career scan for target role "${role}" (${market}). Headline: ${safe.headline}. Score: ${safe.score ?? ''}. Strengths: ${(safe.strengths ?? []).slice(0, 3).join(', ')}.`,
     ))
 
     return NextResponse.json(safe)

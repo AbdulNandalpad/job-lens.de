@@ -114,9 +114,11 @@ function IndiaLoginForm() {
           ))}
         </div>
 
-        <p style={{ fontSize:11, color:'rgba(255,255,255,0.25)', margin:0, lineHeight:1.6 }}>
-          By continuing you agree to our Terms of Service.<br/>
-          Your data is private and never shared.
+        <p style={{ fontSize:11, color:'rgba(255,255,255,0.35)', margin:0, lineHeight:1.8 }}>
+          By continuing you confirm you are <strong>18 years or older</strong> and consent to processing of your personal data as described in our{' '}
+          <Link href="/privacy" style={{ color:'rgba(255,153,51,0.8)', textDecoration:'underline' }}>Privacy Policy</Link>
+          {' '}and{' '}
+          <Link href="/terms" style={{ color:'rgba(255,153,51,0.8)', textDecoration:'underline' }}>Terms of Service</Link>.
         </p>
 
         <Link href="/in" style={{ display:'block', marginTop:20, fontSize:12, color:'rgba(255,255,255,0.3)', textDecoration:'none', transition:'color .15s' }}

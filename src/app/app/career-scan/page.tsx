@@ -10,6 +10,7 @@ import { useLanguage } from '@/lib/i18n'
 import CrossMarketModal from '@/components/CrossMarketModal'
 import CareerCard from '@/components/CareerCard'
 import { CREDIT_COST, LOW_CREDIT_WARN, MARKET, SS, API } from '@/lib/constants'
+import { AiDisclosureNotice } from '@/components/AiDisclosureNotice'
 import SvgIcon, { type IconName } from '@/components/SvgIcon'
 
 const { colors: c, gradients: g, fonts: f } = theme
@@ -419,6 +420,9 @@ export default function CareerScanPage() {
           </div>
         </div>
       )}
+
+      {/* EU AI Act Art. 50 — AI transparency notice */}
+      {!result.domain_mismatch && <AiDisclosureNotice lang={lang as 'DE' | 'EN'} />}
 
       {/* Header + mode toggle — hidden when domain mismatch */}
       {!result.domain_mismatch && <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 10 }}>

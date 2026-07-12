@@ -17,9 +17,8 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 export default function DatenschutzPage() {
   return (
     <div style={{ minHeight: '100vh', background: c.bg, fontFamily: f.body }}>
-      <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=Outfit:wght@400;600;700&display=swap');
-      `}</style>
+      {/* Google Fonts CDN removed — IP would be sent to Google, violating GDPR G10.
+          Fonts are loaded via Next.js font optimization (self-hosted) in layout.tsx. */}
 
       {/* Navbar */}
       <div style={{ background: theme.navbar.bg, padding: '0 24px', height: theme.navbar.height, display: 'flex', alignItems: 'center', justifyContent: 'space-between', position: 'sticky', top: 0, zIndex: 100, borderBottom: `1px solid ${theme.navbar.border}` }}>
@@ -70,7 +69,7 @@ export default function DatenschutzPage() {
 
           <p style={{ margin: '0 0 6px', fontWeight: 600, color: c.primary }}>b) Hochgeladene Lebenslaufdaten</p>
           <p style={{ margin: '0 0 16px' }}>
-            Wenn Sie einen Lebenslauf oder LinkedIn-Export hochladen, wird der Textinhalt <strong>ausschließlich für die Dauer Ihrer Sitzung</strong> im Browser-Speicher (sessionStorage) gehalten und zur KI-Analyse an unsere Verarbeitungspartner (Anthropic) übermittelt. Die Rohdatei wird nicht auf unseren Servern gespeichert. Rechtsgrundlage: Art. 6 Abs. 1 lit. b DSGVO.
+            Wenn Sie einen Lebenslauf oder LinkedIn-Export hochladen, wird der Textinhalt für die KI-Analyse an unsere Verarbeitungspartner (Anthropic, OpenAI) übermittelt. Der rohe Lebenslauf-Text wird <strong>nicht dauerhaft auf unseren Servern gespeichert</strong> — er verbleibt im Browser-Speicher (sessionStorage) Ihres Geräts für die Dauer der Sitzung. Aus dem Career Scan werden strukturierte, anonymisierte Karrieredaten extrahiert und in Ihrem Nutzerkonto gespeichert (vgl. Abschnitt e) unten). Rechtsgrundlage: Art. 6 Abs. 1 lit. b DSGVO.
           </p>
 
           <p style={{ margin: '0 0 6px', fontWeight: 600, color: c.primary }}>c) Zahlungsdaten</p>
@@ -99,6 +98,7 @@ export default function DatenschutzPage() {
               { name: 'OpenAI Inc.', country: 'USA', purpose: 'KI-Sprachsynthese — Text-zu-Sprache für den Kira-Assistenten (TTS API)', link: 'https://openai.com/policies/privacy-policy' },
               { name: 'Adzuna Ltd.', country: 'Großbritannien', purpose: 'Jobsuche-API', link: 'https://www.adzuna.de/privacy' },
               { name: 'PayPal (Europe) S.à r.l.', country: 'Luxemburg / USA', purpose: 'Zahlungsabwicklung', link: 'https://www.paypal.com/de/webapps/mpp/ua/privacy-full' },
+              { name: 'Resend Inc.', country: 'USA', purpose: 'Transaktions-E-Mails (z.B. Benachrichtigungen bei Job Case-Ansichten)', link: 'https://resend.com/legal/privacy-policy' },
             ].map(p => (
               <div key={p.name} style={{ padding: '12px 14px', borderRadius: 10, background: '#fff', border: `1px solid ${c.border}` }}>
                 <div style={{ fontWeight: 600, color: c.primary, marginBottom: 2 }}>{p.name} ({p.country})</div>
@@ -119,8 +119,36 @@ export default function DatenschutzPage() {
         </Section>
 
         <Section title="5. Cookies und Tracking">
-          <p style={{ margin: 0 }}>
-            Wir verwenden ausschließlich technisch notwendige Cookies (Session-Management durch Supabase). Es werden keine Analyse- oder Werbe-Cookies eingesetzt. Es erfolgt kein Tracking durch Dritte.
+          <p style={{ margin: '0 0 12px' }}>
+            Wir setzen ausschließlich technisch notwendige Cookies ein, die für den Betrieb der Plattform erforderlich sind. Werbecookies werden nicht verwendet.
+          </p>
+          <div style={{ overflowX: 'auto' as const }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse' as const, fontSize: 13 }}>
+              <thead>
+                <tr style={{ background: 'rgba(55,138,221,0.06)' }}>
+                  {['Cookie-Name', 'Zweck', 'Speicherdauer', 'Anbieter'].map(h => (
+                    <th key={h} style={{ padding: '8px 12px', textAlign: 'left' as const, fontWeight: 700, color: c.primary, borderBottom: `1px solid ${c.border}` }}>{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {[
+                  { name: 'sb-*', purpose: 'Authentifizierung (Supabase Session)', duration: '1 Stunde / 7 Tage', provider: 'Supabase (EU-West, Irland)' },
+                  { name: 'jl_cv', purpose: 'Recruiter-Zugriffstoken für Job Case', duration: '24 Stunden', provider: 'Job-Lens (First Party)' },
+                  { name: 'jl_login_next', purpose: 'OAuth-Zustand bei der Anmeldung', duration: '5 Minuten', provider: 'Job-Lens (First Party)' },
+                ].map(row => (
+                  <tr key={row.name} style={{ borderBottom: `1px solid ${c.border}` }}>
+                    <td style={{ padding: '8px 12px', fontFamily: 'monospace', fontSize: 12 }}>{row.name}</td>
+                    <td style={{ padding: '8px 12px' }}>{row.purpose}</td>
+                    <td style={{ padding: '8px 12px', whiteSpace: 'nowrap' as const }}>{row.duration}</td>
+                    <td style={{ padding: '8px 12px' }}>{row.provider}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <p style={{ margin: '12px 0 0', fontSize: 13 }}>
+            Es werden keine Analyse- oder Werbe-Cookies von Dritten gesetzt. Website-Analysedienste werden nur mit ausdrücklicher Einwilligung aktiviert (TTDSG §25).
           </p>
         </Section>
 
@@ -144,8 +172,10 @@ export default function DatenschutzPage() {
             ))}
           </div>
           <p style={{ margin: '16px 0 0' }}>
-            Zur Ausübung Ihrer Rechte wenden Sie sich bitte an:{' '}
-            <a href="mailto:munira.nandalpad@job-lens.de" style={{ color: c.accent }}>munira.nandalpad@job-lens.de</a>.
+            Den Datenexport (Art. 20 – Datenübertragbarkeit) können Sie selbst unter{' '}
+            <Link href="/app/account" style={{ color: c.accent }}>Einstellungen → Daten exportieren</Link> durchführen.
+            Für alle anderen Anfragen wenden Sie sich bitte an:{' '}
+            <a href="mailto:privacy@job-lens.de" style={{ color: c.accent }}>privacy@job-lens.de</a>.
             Sie haben zudem das Recht, sich bei einer Datenschutz-Aufsichtsbehörde zu beschweren. Zuständig ist die Aufsichtsbehörde Ihres Bundeslandes.
           </p>
         </Section>

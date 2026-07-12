@@ -13,11 +13,20 @@ export async function POST() {
   const uid = user.id
 
   // Best-effort purge of all per-user rows
-  const tables = ['user_memories', 'training_feedback', 'usage_events', 'purchase_events']
+  const tables = ['user_memories', 'training_feedback', 'usage_events']
   for (const t of tables) {
     const { error } = await admin.from(t).delete().eq('user_id', uid)
     if (error) console.error(`[account/delete] ${t} delete failed:`, error.message)
   }
+
+  // GDPR G9 / §147 AO: purchase_events must be retained 10 years for financial records,
+  // but personal identifiers (paypal_payer_email) must be erased per Art.17.
+  // Pseudonymize: null out the email, keep transaction metadata.
+  const { error: peErr } = await admin
+    .from('purchase_events')
+    .update({ paypal_payer_email: null })
+    .eq('user_id', uid)
+  if (peErr) console.error('[account/delete] purchase_events pseudonymize failed:', peErr.message)
   const { error: profErr } = await admin.from('profiles').delete().eq('id', uid)
   if (profErr) console.error('[account/delete] profiles delete failed:', profErr.message)
 

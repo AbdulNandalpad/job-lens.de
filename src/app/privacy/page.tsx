@@ -18,9 +18,8 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 export default function PrivacyPage() {
   return (
     <div style={{ minHeight: '100vh', background: '#f8fafc', fontFamily: "'DM Sans',sans-serif" }}>
-      <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=Outfit:wght@400;600;700&display=swap');
-      `}</style>
+      {/* Google Fonts CDN removed — IP would be sent to Google, violating GDPR G10.
+          Fonts are loaded via Next.js font optimization (self-hosted) in layout.tsx. */}
 
       {/* Navbar */}
       <div style={{ background: navy, padding: '0 24px', height: 56, display: 'flex', alignItems: 'center', justifyContent: 'space-between', position: 'sticky', top: 0, zIndex: 100 }}>
@@ -109,6 +108,7 @@ export default function PrivacyPage() {
               { name: 'OpenAI Inc.', country: 'USA', purpose: 'AI voice synthesis — text-to-speech for the Kira assistant (TTS API)', link: 'https://openai.com/policies/privacy-policy' },
               { name: 'Adzuna Ltd.', country: 'United Kingdom', purpose: 'Job search API — live job listings', link: 'https://www.adzuna.in/privacy' },
               { name: 'Razorpay Software Pvt. Ltd.', country: 'India', purpose: 'Payment processing for credit top-ups (INR)', link: 'https://razorpay.com/privacy/' },
+              { name: 'Resend Inc.', country: 'USA', purpose: 'Transactional emails (e.g., notifications when a recruiter views your Job Case)', link: 'https://resend.com/legal/privacy-policy' },
             ].map(p => (
               <div key={p.name} style={{ padding: '12px 14px', borderRadius: 10, background: '#fff', border: `1px solid ${border}` }}>
                 <div style={{ fontWeight: 600, color: navy, marginBottom: 2 }}>{p.name} ({p.country})</div>
@@ -154,21 +154,44 @@ export default function PrivacyPage() {
             ))}
           </div>
           <p style={{ margin: '16px 0 0' }}>
-            To exercise your rights, contact us at:{' '}
-            <a href="mailto:munira.nandalpad@job-lens.de" style={{ color: saffron }}>
-              munira.nandalpad@job-lens.de
+            To exercise your rights or export your data, use the self-service option in{' '}
+            <Link href="/app/account" style={{ color: saffron }}>Account Settings → Export my data</Link>.
+            You may also contact us at:{' '}
+            <a href="mailto:privacy@job-lens.de" style={{ color: saffron }}>
+              privacy@job-lens.de
             </a>
             . Under the DPDP Act 2023, you may also lodge a complaint with the Data Protection Board of India once it is operational.
           </p>
         </Section>
 
-        <Section title="7. Data Security">
+        <Section title="7. Grievance Mechanism (DPDP Act 2023 — Section 13)">
+          <p style={{ margin: '0 0 12px' }}>
+            If you have a complaint about how we process your personal data, you may raise a grievance:
+          </p>
+          <ol style={{ margin: '0 0 12px', paddingLeft: 20, lineHeight: 2 }}>
+            <li>Email <a href="mailto:privacy@job-lens.de?subject=DPDP%20Grievance" style={{ color: saffron }}>privacy@job-lens.de</a> with subject line <strong>"DPDP Grievance"</strong>.</li>
+            <li>We will acknowledge receipt within <strong>48 hours</strong>.</li>
+            <li>We will resolve or respond to your grievance within <strong>30 days</strong>.</li>
+            <li>If unresolved, you may escalate your complaint to the <strong>Data Protection Board of India</strong> once it is operational.</li>
+          </ol>
+          <p style={{ margin: 0 }}>
+            <strong>Data Fiduciary:</strong> Munira Nandalpad, Job-Lens AI, Böblingen, Germany.
+          </p>
+        </Section>
+
+        <Section title="8. Age Restriction">
+          <p style={{ margin: 0 }}>
+            Job-Lens is intended for users who are <strong>18 years of age or older</strong>. We do not knowingly collect personal data from persons under 18. If you believe a minor has registered, please contact us immediately at <a href="mailto:privacy@job-lens.de" style={{ color: saffron }}>privacy@job-lens.de</a> and we will delete the data promptly.
+          </p>
+        </Section>
+
+        <Section title="9. Data Security">
           <p style={{ margin: 0 }}>
             All data transmissions are encrypted via HTTPS/TLS. Passwords are hashed with bcrypt by Supabase and never stored in plain text. Your Kira AI career profile is stored with row-level security — only you can access your own data. Access to production data is restricted to authorised personnel.
           </p>
         </Section>
 
-        <Section title="8. Changes to This Policy">
+        <Section title="10. Changes to This Policy">
           <p style={{ margin: 0 }}>
             We may update this policy as the service evolves. The current version is always available on this page. For material changes, registered users will be notified by email.
           </p>

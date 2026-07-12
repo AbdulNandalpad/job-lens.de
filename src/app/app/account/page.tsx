@@ -388,6 +388,12 @@ export default function AccountPage() {
                   style={{ padding: '9px 20px', borderRadius: 8, border: `1px solid ${c.border}`, background: 'transparent', color: c.textMuted, fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: f.heading }}>
                   {t.account.signOut}
                 </button>
+                <a
+                  href="/api/account/export"
+                  download
+                  style={{ padding: '9px 20px', borderRadius: 8, border: `1px solid ${c.border}`, background: 'transparent', color: c.textMuted, fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: f.heading, textDecoration: 'none', display: 'inline-block' }}>
+                  {lang === 'DE' ? 'Daten exportieren (DSGVO Art. 20)' : 'Export my data (GDPR Art. 20)'}
+                </a>
                 {!showDeleteConfirm ? (
                   <button onClick={() => setShowDeleteConfirm(true)}
                     style={{ padding: '9px 20px', borderRadius: 8, border: `1px solid ${c.danger}`, background: 'transparent', color: c.danger, fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: f.heading }}>

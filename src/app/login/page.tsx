@@ -64,9 +64,11 @@ function LoginForm() {
           Continue with Google
         </button>
 
-        <p style={{ fontSize: 11, color: '#6b7c93', marginTop: 20, lineHeight: 1.6 }}>
-          By continuing you agree to our Terms of Service.<br/>
-          Your data is private and never shared.
+        <p style={{ fontSize: 11, color: '#6b7c93', marginTop: 20, lineHeight: 1.8 }}>
+          By continuing you confirm you are <strong>16 years or older</strong> and have read our{' '}
+          <Link href="/datenschutz" style={{ color: '#378ADD', textDecoration: 'underline' }}>Privacy Policy</Link>
+          {' '}and{' '}
+          <Link href="/agb" style={{ color: '#378ADD', textDecoration: 'underline' }}>Terms of Service</Link>.
         </p>
 
         <Link href="/" style={{ display: 'block', marginTop: 20, fontSize: 12, color: '#9aafbc', textDecoration: 'none', transition: 'color .15s' }}

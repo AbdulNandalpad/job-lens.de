@@ -971,7 +971,8 @@ export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ color: '#fff', fontSize: 13, fontWeight: 700, fontFamily: f.heading }}>{AGENT}</div>
               <div style={{ fontSize: 10, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 5 }}>
-                <span style={{ color: accent }}>AI Career Assistant</span>
+                {/* EU AI Act Art. 50 — AI system identity disclosure */}
+                <span style={{ color: accent }}>AI Assistant · Powered by Claude</span>
                 {cvName && (
                   <span style={{ color: '#4ade80', display: 'flex', alignItems: 'center', gap: 3 }}>
                     <span>·</span>
