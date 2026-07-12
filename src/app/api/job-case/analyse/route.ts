@@ -129,6 +129,7 @@ export async function POST(req: NextRequest) {
     // (often truncated) Adzuna search snippet in jobText.
     let fullText = (jobText ?? '').trim()
     if (safeJobUrl) {
+      const fetched = await fetchJobText(safeJobUrl)
       if (fetched && fetched.length > fullText.length) fullText = fetched
     }
 

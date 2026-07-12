@@ -8,10 +8,6 @@ const { colors: c, fonts: f } = theme
 export default function ImpressumPage() {
   return (
     <div style={{ minHeight: '100vh', background: c.bg, fontFamily: f.body }}>
-      <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=Outfit:wght@400;600;700&display=swap');
-      `}</style>
-
       {/* Navbar */}
       <div style={{ background: theme.navbar.bg, padding: '0 24px', height: theme.navbar.height, display: 'flex', alignItems: 'center', justifyContent: 'space-between', position: 'sticky', top: 0, zIndex: 100, borderBottom: `1px solid ${theme.navbar.border}` }}>
         <Link href="/" style={{ display: 'flex', alignItems: 'center', gap: 10, textDecoration: 'none' }}>

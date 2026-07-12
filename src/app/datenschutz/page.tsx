@@ -42,7 +42,7 @@ export default function DatenschutzPage() {
             Datenschutzerklärung
           </h1>
           <p style={{ fontSize: 13, color: c.textMuted, margin: 0 }}>
-            Gemäß DSGVO (EU) 2016/679 · Stand: Mai 2026
+            Gemäß DSGVO (EU) 2016/679 · Stand: Juli 2026
           </p>
         </div>
 
@@ -186,7 +186,25 @@ export default function DatenschutzPage() {
           </p>
         </Section>
 
-        <Section title="8. Änderungen dieser Datenschutzerklärung">
+        <Section title="8. Datenpannenmeldung (Art. 33 DSGVO)">
+          <p style={{ margin: '0 0 12px' }}>
+            Im Falle einer Verletzung des Schutzes personenbezogener Daten (Datenpanne) handeln wir unverzüglich nach folgendem Verfahren:
+          </p>
+          <ol style={{ margin: '0 0 12px', paddingLeft: 20, lineHeight: 2 }}>
+            <li><strong>Sofortmaßnahme:</strong> Benachrichtigung des Verantwortlichen telefonisch unter <a href="tel:+4915141412851" style={{ color: c.accent }}>+49 151 41412851</a> und per E-Mail an <a href="mailto:privacy@job-lens.de" style={{ color: c.accent }}>privacy@job-lens.de</a>.</li>
+            <li><strong>Meldung an die Behörde:</strong> Innerhalb von <strong>72 Stunden</strong> nach Bekanntwerden der Datenpanne wird diese dem Landesbeauftragten für den Datenschutz und die Informationsfreiheit Baden-Württemberg (LfDI BW) gemeldet (Art. 33 DSGVO).</li>
+            <li><strong>Benachrichtigung der Betroffenen:</strong> Sofern die Datenpanne voraussichtlich ein hohes Risiko für betroffene Personen mit sich bringt, werden diese unverzüglich informiert (Art. 34 DSGVO).</li>
+            <li><strong>Dokumentation:</strong> Alle Datenpannen werden intern dokumentiert (Art. 33 Abs. 5 DSGVO), auch wenn keine Meldepflicht besteht.</li>
+          </ol>
+          <p style={{ margin: 0, padding: '12px 14px', background: '#fff', borderRadius: 10, border: `1px solid ${c.border ?? '#edf1f6'}`, fontSize: 13 }}>
+            <strong>Kontakt im Notfall:</strong><br />
+            Telefon: <a href="tel:+4915141412851" style={{ color: c.accent }}>+49 151 41412851</a> (Munira Nandalpad)<br />
+            E-Mail: <a href="mailto:privacy@job-lens.de" style={{ color: c.accent }}>privacy@job-lens.de</a><br />
+            Aufsichtsbehörde: LfDI Baden-Württemberg, Königstraße 10a, 70173 Stuttgart
+          </p>
+        </Section>
+
+        <Section title="9. Änderungen dieser Datenschutzerklärung">
           <p style={{ margin: 0 }}>
             Wir behalten uns vor, diese Datenschutzerklärung bei Bedarf anzupassen. Die jeweils aktuelle Version ist auf dieser Seite abrufbar. Bei wesentlichen Änderungen werden registrierte Nutzer per E-Mail informiert.
           </p>
