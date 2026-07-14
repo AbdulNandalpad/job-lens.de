@@ -280,11 +280,12 @@ export default function DACHDashboard() {
   const [showCustomize,    setShowCustomize]    = useState(false)
   const { isVisible, widgets, toggle, resetDefaults } = useDashWidgets(MARKET.eu)
 
-  const { hasCv: hasSavedCv, loadingSavedCv, refetchSavedCv } = useSavedCv()
+  const { hasCv: hasSavedCv, fileName: savedCvFileName, updatedAt: savedCvUpdatedAt, loadingSavedCv, refetchSavedCv } = useSavedCv()
   const [cvPromptDismissed, setCvPromptDismissed] = useState(true) // default true until we've checked localStorage, avoids a flash
   const [cvConsentChecked, setCvConsentChecked] = useState(false)
   const [cvUploading, setCvUploading] = useState(false)
   const [cvError, setCvError] = useState('')
+  const [cvDeleting, setCvDeleting] = useState(false)
   const cvPromptInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
@@ -335,6 +336,17 @@ export default function DACHDashboard() {
     } finally {
       setCvUploading(false)
       if (cvPromptInputRef.current) cvPromptInputRef.current.value = ''
+    }
+  }
+
+  async function deleteSavedCvFromDash() {
+    setCvDeleting(true)
+    try {
+      await fetch(API.userCv, { method: 'DELETE' })
+      await refetchSavedCv()
+      setCvConsentChecked(false)
+    } finally {
+      setCvDeleting(false)
     }
   }
 
@@ -597,7 +609,40 @@ export default function DACHDashboard() {
       {/* ── ANALYTICS BODY ───────────────────────────── */}
       <div className="dash-page" style={{ maxWidth: 1100, margin: '0 auto', padding: '28px 20px 80px' }}>
 
-        {/* ── Saved CV prompt — shown once until dismissed or a CV is saved ── */}
+        {/* ── Saved CV — persistent status card once a CV is saved ── */}
+        {!loadingSavedCv && hasSavedCv && (
+          <div style={{ background: card, border: `1px solid ${border}`, borderRadius: 16, padding: '14px 18px', marginBottom: 20, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 14, flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+              <div style={{ width: 36, height: 36, borderRadius: 9, background: `${blue}18`, border: `1px solid ${blue}30`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                <SvgIcon name="document" size={16} color={blue} />
+              </div>
+              <div>
+                <div style={{ fontSize: 13, fontWeight: 700, color: txt1 }}>
+                  {savedCvFileName || t('Gespeicherter Lebenslauf', 'Saved CV')}
+                </div>
+                <div style={{ fontSize: 11, color: txt3, marginTop: 1 }}>
+                  {t('Wird automatisch in Career Scan, CV Builder & mehr verwendet', 'Auto-used across Career Scan, CV Builder & more')}
+                  {savedCvUpdatedAt && ` · ${t('aktualisiert', 'updated')} ${new Date(savedCvUpdatedAt).toLocaleDateString(lang === 'DE' ? 'de-DE' : 'en-GB', { day: 'numeric', month: 'short' })}`}
+                </div>
+              </div>
+            </div>
+            <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+              {cvError && <span style={{ fontSize: 11, color: '#ef4444' }}>{cvError}</span>}
+              <button onClick={() => { setCvConsentChecked(true); cvPromptInputRef.current?.click() }} disabled={cvUploading}
+                style={{ padding: '7px 14px', borderRadius: 8, border: `1px solid ${border}`, background: 'transparent', color: txt2, fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: "var(--font-dm-sans), system-ui, sans-serif" }}>
+                {cvUploading ? t('Lädt hoch…', 'Uploading…') : t('Ersetzen', 'Replace')}
+              </button>
+              <button onClick={deleteSavedCvFromDash} disabled={cvDeleting}
+                style={{ padding: '7px 14px', borderRadius: 8, border: `1px solid ${border}`, background: 'transparent', color: '#ef4444', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: "var(--font-dm-sans), system-ui, sans-serif" }}>
+                {cvDeleting ? t('Löscht…', 'Deleting…') : t('Entfernen', 'Remove')}
+              </button>
+              <input ref={cvPromptInputRef} type="file" accept=".pdf,.txt,.doc,.docx" style={{ display: 'none' }}
+                onChange={e => { const file = e.target.files?.[0]; if (file) handleCvPromptFile(file) }} />
+            </div>
+          </div>
+        )}
+
+        {/* ── Saved CV prompt — shown until dismissed or a CV is saved ── */}
         {!loadingSavedCv && !hasSavedCv && !cvPromptDismissed && (
           <div style={{ background: 'linear-gradient(135deg,rgba(55,138,221,.08),rgba(55,138,221,.03))', border: `1.5px solid rgba(55,138,221,.3)`, borderRadius: 16, padding: '18px 20px', marginBottom: 20, position: 'relative' }}>
             <button onClick={dismissCvPrompt} aria-label="Dismiss"
