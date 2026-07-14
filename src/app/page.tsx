@@ -500,17 +500,17 @@ export default function HomePage() {
       `}</style>
 
       {/* ── Navbar ── */}
-      <div style={{ background: '#fff', padding: '0 24px', height: theme.navbar.height, display: 'flex', alignItems: 'center', justifyContent: 'space-between', position: 'sticky', top: 0, zIndex: 100, borderBottom: '1px solid #e2e8f0', boxShadow: '0 1px 4px rgba(55,138,221,0.07)' }}>
+      <div style={{ background: '#042C53', padding: '0 24px', height: theme.navbar.height, display: 'flex', alignItems: 'center', justifyContent: 'space-between', position: 'sticky', top: 0, zIndex: 100, borderBottom: '1px solid rgba(255,255,255,0.08)', boxShadow: '0 2px 12px rgba(4,44,83,0.25)' }}>
         <Link href="/" style={{ display: 'flex', alignItems: 'center', gap: 10, textDecoration: 'none' }}>
           <svg width="26" height="26" viewBox="0 0 44 44">
-            <circle cx="20" cy="20" r="13" fill="none" stroke={c.accent} strokeWidth="2.5"/>
-            <circle cx="20" cy="20" r="8" fill="none" stroke={c.accentLight} strokeWidth="1.2"/>
-            <circle cx="20" cy="20" r="3" fill={c.accent}/>
-            <line x1="7" y1="20" x2="33" y2="20" stroke={c.accent} strokeWidth="0.8" strokeDasharray="2,2" opacity="0.5"/>
-            <line x1="28" y1="28" x2="36" y2="36" stroke={c.accent} strokeWidth="3" strokeLinecap="round"/>
+            <circle cx="20" cy="20" r="13" fill="none" stroke={c.accentLight} strokeWidth="2.5"/>
+            <circle cx="20" cy="20" r="8" fill="none" stroke={c.accentLight} strokeWidth="1.2" opacity="0.6"/>
+            <circle cx="20" cy="20" r="3" fill={c.accentLight}/>
+            <line x1="7" y1="20" x2="33" y2="20" stroke={c.accentLight} strokeWidth="0.8" strokeDasharray="2,2" opacity="0.5"/>
+            <line x1="28" y1="28" x2="36" y2="36" stroke={c.accentLight} strokeWidth="3" strokeLinecap="round"/>
           </svg>
-          <span className="jl-home-logo-text" style={{ fontFamily: f.heading, fontSize: 16, fontWeight: 700, color: '#1a2332' }}>
-            Job-Lens <span style={{ color: c.accent }}>AI</span>
+          <span className="jl-home-logo-text" style={{ fontFamily: f.heading, fontSize: 16, fontWeight: 700, color: '#fff' }}>
+            Job-Lens <span style={{ color: c.accentLight }}>AI</span>
           </span>
         </Link>
 
@@ -518,15 +518,15 @@ export default function HomePage() {
           {/* Language dropdown */}
           <div className="jl-home-lang" style={{ position: 'relative' }}>
             <button onClick={() => setLangOpen(o => !o)}
-              style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '5px 10px', borderRadius: 10, border: '1px solid #e2e8f0', background: '#f8faff', cursor: 'pointer', fontSize: 11, fontWeight: 600, color: '#1a2332', fontFamily: 'inherit' }}>
-              {lang} <span style={{ fontSize: 9, opacity: 0.5, marginLeft: 2 }}>{langOpen ? '▲' : '▼'}</span>
+              style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '5px 10px', borderRadius: 10, border: '1px solid rgba(255,255,255,0.16)', background: 'rgba(255,255,255,0.08)', cursor: 'pointer', fontSize: 11, fontWeight: 600, color: '#fff', fontFamily: 'inherit' }}>
+              {lang} <span style={{ fontSize: 9, opacity: 0.7, marginLeft: 2 }}>{langOpen ? '▲' : '▼'}</span>
             </button>
             {langOpen && (
-              <div style={{ position: 'absolute', top: '100%', right: 0, marginTop: 6, background: '#fff', border: '1px solid #e2e8f0', borderRadius: 10, overflow: 'hidden', zIndex: 200, minWidth: 110, boxShadow: '0 8px 24px rgba(55,138,221,0.12)' }}>
+              <div style={{ position: 'absolute', top: '100%', right: 0, marginTop: 6, background: '#0d2137', border: '1px solid rgba(255,255,255,0.14)', borderRadius: 10, overflow: 'hidden', zIndex: 200, minWidth: 110, boxShadow: '0 8px 24px rgba(0,0,0,0.35)' }}>
                 {(['DE', 'EN'] as const).map(code => (
                   <button key={code} onClick={() => { setLang(code); setLangOpen(false) }}
-                    style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', padding: '9px 14px', border: 'none', background: lang === code ? 'rgba(55,138,221,0.08)' : 'transparent', color: lang === code ? '#378ADD' : '#4a5568', fontSize: 12, fontWeight: lang === code ? 700 : 400, cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left' }}>
-                    {code} <span style={{ opacity: 0.5, fontWeight: 400 }}>— {code === 'DE' ? 'Deutsch' : 'English'}</span>
+                    style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', padding: '9px 14px', border: 'none', background: lang === code ? 'rgba(133,183,235,0.22)' : 'transparent', color: lang === code ? '#fff' : 'rgba(255,255,255,0.75)', fontSize: 12, fontWeight: lang === code ? 700 : 400, cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left' }}>
+                    {code} <span style={{ opacity: 0.7, fontWeight: 400 }}>— {code === 'DE' ? 'Deutsch' : 'English'}</span>
                   </button>
                 ))}
               </div>
@@ -535,17 +535,17 @@ export default function HomePage() {
 
           {/* Market pills */}
           <div style={{ display: 'flex', gap: 6 }}>
-            <span className="jl-home-dach-pill" style={{ fontSize: 11, fontWeight: 700, padding: '5px 12px', borderRadius: 10, border: '1px solid rgba(55,138,221,0.35)', background: 'rgba(55,138,221,0.08)', color: '#378ADD', fontFamily: 'inherit', display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+            <span className="jl-home-dach-pill" style={{ fontSize: 11, fontWeight: 700, padding: '5px 12px', borderRadius: 10, border: '1px solid rgba(133,183,235,0.5)', background: 'rgba(133,183,235,0.14)', color: '#a9d0f5', fontFamily: 'inherit', display: 'inline-flex', alignItems: 'center', gap: 5 }}>
               <SvgIcon name="flag-de" size={14} /> DACH
             </span>
-            <Link href="/in" style={{ fontSize: 11, fontWeight: 600, textDecoration: 'none', padding: '5px 12px', borderRadius: 10, border: '1px solid rgba(255,153,51,0.2)', background: 'rgba(255,153,51,0.07)', color: '#FF9933', fontFamily: 'inherit', display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+            <Link href="/in" style={{ fontSize: 11, fontWeight: 600, textDecoration: 'none', padding: '5px 12px', borderRadius: 10, border: '1px solid rgba(255,153,51,0.4)', background: 'rgba(255,153,51,0.12)', color: '#FFB566', fontFamily: 'inherit', display: 'inline-flex', alignItems: 'center', gap: 5 }}>
               <SvgIcon name="flag-in" size={14} /> India
             </Link>
           </div>
 
           {!loading && (user ? (
             <>
-              <span className="jl-home-greeting" style={{ fontSize: 13, color: '#4a5568' }}>Hi, {user.name}</span>
+              <span className="jl-home-greeting" style={{ fontSize: 13, color: 'rgba(255,255,255,0.85)' }}>Hi, {user.name}</span>
               <Link href="/app" className="jl-btn-primary" style={{ fontSize: 12, padding: '6px 18px', borderRadius: 20, color: '#fff', textDecoration: 'none', fontWeight: 600 }}>
                 {t.navGoToApp}
               </Link>
@@ -714,7 +714,7 @@ export default function HomePage() {
                 {t.autoApplySpotlightH2}
               </h2>
 
-              <p style={{ fontSize: 14, color: 'rgba(255,255,255,0.55)', lineHeight: 1.7, marginBottom: 24, margin: '0 0 24px' }}>
+              <p style={{ fontSize: 14, color: 'rgba(255,255,255,0.82)', lineHeight: 1.7, marginBottom: 24, margin: '0 0 24px' }}>
                 {t.autoApplySpotlightSub}
               </p>
 
@@ -740,7 +740,7 @@ export default function HomePage() {
                 >
                   {t.autoApplyCta}
                 </Link>
-                <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.62)' }}>
+                <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.82)' }}>
                   {t.autoApplyNote}
                 </span>
               </div>
@@ -1010,7 +1010,7 @@ export default function HomePage() {
                   {t.jobCaseH2}
                 </h2>
 
-                <p style={{ fontSize: 14, color: 'rgba(255,255,255,0.55)', lineHeight: 1.7, margin: '0 0 24px' }}>
+                <p style={{ fontSize: 14, color: 'rgba(255,255,255,0.82)', lineHeight: 1.7, margin: '0 0 24px' }}>
                   {t.jobCaseSub}
                 </p>
 
@@ -1168,13 +1168,13 @@ export default function HomePage() {
 
         {/* ── Bottom CTA ── */}
         <div className="jl-subsection jl-cta-block" style={{ background: 'linear-gradient(135deg,#042C53 0%,#0d3f72 50%,#1a5499 100%)', borderRadius: 20, padding: '56px 32px', textAlign: 'center' }}>
-          <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.65)', marginBottom: 16, letterSpacing: 0.5 }}>
+          <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.85)', marginBottom: 16, letterSpacing: 0.5, fontWeight: 600 }}>
             {t.ctaTag}
           </div>
           <div style={{ fontFamily: f.heading, fontSize: 28, fontWeight: 700, color: '#fff', marginBottom: 10, letterSpacing: -0.3 }}>
             {t.ctaTitle}
           </div>
-          <div style={{ fontSize: 15, color: 'rgba(255,255,255,0.55)', marginBottom: 36, lineHeight: 1.65 }}>
+          <div style={{ fontSize: 15, color: 'rgba(255,255,255,0.82)', marginBottom: 36, lineHeight: 1.65 }}>
             {t.ctaSub}
           </div>
           <div style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap' }}>
@@ -1190,26 +1190,26 @@ export default function HomePage() {
         {/* Footer */}
         <div style={{ textAlign: 'center', marginTop: 48, paddingBottom: 8 }}>
           <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 20, flexWrap: 'wrap', marginBottom: 12 }}>
-            <span style={{ fontSize: 12, color: c.textFaint }}>{t.footerBrand}</span>
+            <span style={{ fontSize: 12, color: '#54627a' }}>{t.footerBrand}</span>
             <span style={{ fontSize: 12, color: c.border }}>|</span>
             {user ? (
-              <Link href="/app/career-scan" style={{ fontSize: 12, color: c.textFaint, textDecoration: 'none' }}>{t.footerGoApp}</Link>
+              <Link href="/app/career-scan" style={{ fontSize: 12, color: '#54627a', textDecoration: 'none' }}>{t.footerGoApp}</Link>
             ) : (
-              <Link href="/login" style={{ fontSize: 12, color: c.textFaint, textDecoration: 'none' }}>{t.footerSignIn}</Link>
+              <Link href="/login" style={{ fontSize: 12, color: '#54627a', textDecoration: 'none' }}>{t.footerSignIn}</Link>
             )}
-            <Link href="/app/career-scan" style={{ fontSize: 12, color: c.textFaint, textDecoration: 'none' }}>{t.footerCareerScan}</Link>
-            <Link href="/app/jobs" style={{ fontSize: 12, color: c.textFaint, textDecoration: 'none' }}>{t.footerJobSearch}</Link>
+            <Link href="/app/career-scan" style={{ fontSize: 12, color: '#54627a', textDecoration: 'none' }}>{t.footerCareerScan}</Link>
+            <Link href="/app/jobs" style={{ fontSize: 12, color: '#54627a', textDecoration: 'none' }}>{t.footerJobSearch}</Link>
           </div>
           <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
-            <Link href="/impressum" style={{ fontSize: 11, color: c.textFaint, textDecoration: 'none' }}>Impressum</Link>
+            <Link href="/impressum" style={{ fontSize: 11, color: '#54627a', textDecoration: 'none' }}>Impressum</Link>
             <span style={{ fontSize: 11, color: c.border }}>·</span>
-            <Link href="/datenschutz" style={{ fontSize: 11, color: c.textFaint, textDecoration: 'none' }}>Datenschutzerklärung</Link>
+            <Link href="/datenschutz" style={{ fontSize: 11, color: '#54627a', textDecoration: 'none' }}>Datenschutzerklärung</Link>
             <span style={{ fontSize: 11, color: c.border }}>·</span>
-            <Link href="/privacy" style={{ fontSize: 11, color: c.textFaint, textDecoration: 'none' }}>Privacy Policy</Link>
+            <Link href="/privacy" style={{ fontSize: 11, color: '#54627a', textDecoration: 'none' }}>Privacy Policy</Link>
             <span style={{ fontSize: 11, color: c.border }}>·</span>
-            <Link href="/agb" style={{ fontSize: 11, color: c.textFaint, textDecoration: 'none' }}>AGB</Link>
+            <Link href="/agb" style={{ fontSize: 11, color: '#54627a', textDecoration: 'none' }}>AGB</Link>
             <span style={{ fontSize: 11, color: c.border }}>·</span>
-            <Link href="/contact" style={{ fontSize: 11, color: c.textFaint, textDecoration: 'none' }}>Contact</Link>
+            <Link href="/contact" style={{ fontSize: 11, color: '#54627a', textDecoration: 'none' }}>Contact</Link>
           </div>
         </div>
       </div>
