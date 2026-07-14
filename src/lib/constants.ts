@@ -120,6 +120,7 @@ export const API = {
   autoApplyAnalyze: '/api/auto-apply/analyze',
   jobsRank:         '/api/jobs/rank',
   userProfile:          '/api/user/profile',
+  userCv:               '/api/user/cv',
   indiaCareerScanPro:   '/api/india/career-scan-pro',
   aiChat:               '/api/ai/chat',
   aiTts:                '/api/ai/tts',

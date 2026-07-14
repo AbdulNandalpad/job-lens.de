@@ -15,6 +15,17 @@ Numbering is stable — refer to items by number in future chats so we can pick 
 | 7 | Make scanner + CV generation deterministic — same input should give the same output every time, not a different answer per run | Not started |
 | 8 | Fix CV generation styles — correct padding/spacing when a line break occurs | Not started |
 | 9 | Job Case: confetti animation when a case is successfully created | ✅ Done — `src/lib/confetti.ts` (zero-dependency canvas confetti), fired in `src/app/app/job-case/new/page.tsx` on `step === 'done'` |
+| 10 | One saved CV across the platform (Account settings) instead of re-uploading on every page | In progress — see below |
+
+### Item 10 detail — saved CV
+
+- Migration `013_saved_cv.sql`: `profiles.cv_text` (encrypted), `cv_file_name`, `cv_updated_at`, `cv_consent_at`
+- `/api/user/cv` (GET/POST/DELETE) — encrypts with the same AES-256-GCM lib as migration 012; POST requires `consent: true`
+- `src/lib/useSavedCv.ts` — read hook for any page to consume
+- Account page (`src/app/app/account/page.tsx`) — new "Saved CV" card: upload with mandatory consent checkbox, replace, remove
+- GDPR text updated: `datenschutz/page.tsx` §2f, `privacy/page.tsx` §2g
+- Wired into `career-scan/page.tsx` and `cv-builder/page.tsx` as a "Use my saved CV" quick action when no CV is in the current session
+- **Still open**: run migration 013 in Supabase; wire the same quick action into `cover-letter`, `job-case/new`, `smart-apply`, `auto-apply`, `ai` (Kira), and the India equivalents once confirmed working on DACH; consider an "update my saved CV" prompt after a fresh upload elsewhere so it doesn't silently go stale
 
 
 

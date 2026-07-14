@@ -4,6 +4,7 @@ import React, { useState, useEffect, useLayoutEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import Navbar from '../components/Navbar'
 import { useCredits } from '@/lib/useCredits'
+import { useSavedCv } from '@/lib/useSavedCv'
 import { useLanguage } from '@/lib/i18n'
 import CrossMarketModal from '@/components/CrossMarketModal'
 import SkillGapModal from '@/components/SkillGapModal'
@@ -760,6 +761,7 @@ export default function CVBuilderPage() {
   const [originalFileUrl, setOriginalFileUrl] = useState<string | null>(null)
   const [originalFileIsPdf, setOriginalFileIsPdf] = useState(true)
   const { credits, setCredits, needsCrossMarket, crossMarketAmount } = useCredits()
+  const { hasCv: hasSavedCv, cvText: savedCvText, fileName: savedCvFileName, loadingSavedCv } = useSavedCv()
   const CV_COST = CREDIT_COST.tailorCv
   const [crossWarnPending, setCrossWarnPending] = useState<(() => void) | null>(null)
   const [mobOpen, setMobOpen] = useState(false)
@@ -827,6 +829,13 @@ export default function CVBuilderPage() {
       } catch { alert('Failed to read file. Please try again.'); setCvFileName('') }
       setFileLoading(false)
     }
+  }
+
+  function useSavedCvNow() {
+    if (!savedCvText) return
+    setCvText(savedCvText)
+    setCvFileName(savedCvFileName || (lang === 'DE' ? 'Gespeicherter Lebenslauf' : 'Saved CV'))
+    sessionStorage.setItem(SS.cvText, savedCvText)
   }
 
   function toggleSection(id: string) {
@@ -1517,6 +1526,13 @@ export default function CVBuilderPage() {
             )}
             <input ref={fileInputRef} type="file" accept=".pdf,.doc,.docx,.txt" style={{ display: 'none' }}
               onChange={e => e.target.files?.[0] && handleCvFile(e.target.files[0])} />
+            {!cvText && !loadingSavedCv && hasSavedCv && (
+              <button onClick={useSavedCvNow}
+                style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 12, padding: '10px 12px', borderRadius: 8, border: '1px solid rgba(55,138,221,0.4)', background: 'rgba(55,138,221,0.12)', color: '#85B7EB', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left' as const, width: '100%' }}>
+                <span style={{ fontSize: 14 }}>📄</span>
+                {lang === 'DE' ? `Gespeicherten Lebenslauf verwenden${savedCvFileName ? ` (${savedCvFileName})` : ''}` : `Use my saved CV${savedCvFileName ? ` (${savedCvFileName})` : ''}`}
+              </button>
+            )}
             {!cvText ? (
               <div onClick={() => fileInputRef.current?.click()}
                 onDragOver={e => e.preventDefault()}

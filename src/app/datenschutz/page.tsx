@@ -69,7 +69,7 @@ export default function DatenschutzPage() {
 
           <p style={{ margin: '0 0 6px', fontWeight: 600, color: c.primary }}>b) Hochgeladene Lebenslaufdaten</p>
           <p style={{ margin: '0 0 16px' }}>
-            Wenn Sie einen Lebenslauf oder LinkedIn-Export hochladen, wird der Textinhalt für die KI-Analyse an unsere Verarbeitungspartner (Anthropic, OpenAI) übermittelt. Der rohe Lebenslauf-Text wird <strong>nicht dauerhaft auf unseren Servern gespeichert</strong> — er verbleibt im Browser-Speicher (sessionStorage) Ihres Geräts für die Dauer der Sitzung. Aus dem Career Scan werden strukturierte, anonymisierte Karrieredaten extrahiert und in Ihrem Nutzerkonto gespeichert (vgl. Abschnitt e) unten). Rechtsgrundlage: Art. 6 Abs. 1 lit. b DSGVO.
+            Wenn Sie einen Lebenslauf oder LinkedIn-Export hochladen, wird der Textinhalt für die KI-Analyse an unsere Verarbeitungspartner (Anthropic, OpenAI) übermittelt. Standardmäßig wird der rohe Lebenslauf-Text <strong>nicht dauerhaft auf unseren Servern gespeichert</strong> — er verbleibt im Browser-Speicher (sessionStorage) Ihres Geräts für die Dauer der Sitzung. Aus dem Career Scan werden strukturierte, anonymisierte Karrieredaten extrahiert und in Ihrem Nutzerkonto gespeichert (vgl. Abschnitt e) unten). Rechtsgrundlage: Art. 6 Abs. 1 lit. b DSGVO. Für die optionale dauerhafte Speicherung Ihres Lebenslaufs siehe Abschnitt f) unten.
           </p>
 
           <p style={{ margin: '0 0 6px', fontWeight: 600, color: c.primary }}>c) Zahlungsdaten</p>
@@ -83,8 +83,13 @@ export default function DatenschutzPage() {
           </p>
 
           <p style={{ margin: '0 0 6px', fontWeight: 600, color: c.primary }}>e) KI-Karriereprofil (Kira)</p>
-          <p style={{ margin: '0 0 0' }}>
+          <p style={{ margin: '0 0 16px' }}>
             Wenn Sie einen Lebenslauf hochladen und in die KI-Analyse durch Kira einwilligen, extrahieren wir strukturierte Karrieredaten (u.a. Berufsbezeichnung, Fähigkeiten, Berufserfahrung in Jahren, Zielrollen) und speichern diese dauerhaft in Ihrem Nutzerkonto in unserer Datenbank (Supabase, Region EU-West, Irland). Diese Daten dienen ausschließlich der personalisierten Job-Empfehlung und CV-Optimierung innerhalb der Plattform. Rechtsgrundlage: Art. 6 Abs. 1 lit. a DSGVO (Einwilligung). Sie können Ihr Karriereprofil jederzeit unter <em>Einstellungen → Kira AI Profildaten</em> vollständig löschen.
+          </p>
+
+          <p style={{ margin: '0 0 6px', fontWeight: 600, color: c.primary }}>f) Gespeicherter Lebenslauf (optional)</p>
+          <p style={{ margin: '0 0 0' }}>
+            Sie können optional in <em>Konto → Gespeicherter Lebenslauf</em> Ihren vollständigen Lebenslauf-Text dauerhaft speichern lassen, damit er automatisch in Career Scan, CV Builder, Anschreiben, Job Case und weiteren Funktionen zur Verfügung steht, ohne dass Sie ihn erneut hochladen müssen. Diese Speicherung erfolgt ausschließlich nach Ihrer ausdrücklichen Einwilligung (Checkbox beim Hochladen) und wird zeitgestempelt protokolliert. Der Text wird auf Anwendungsebene mit AES-256-GCM verschlüsselt in unserer Datenbank abgelegt — der Schlüssel liegt ausschließlich auf unseren Servern, nicht in der Datenbank selbst. Rechtsgrundlage: Art. 6 Abs. 1 lit. a DSGVO (Einwilligung). Sie können Ihre Einwilligung jederzeit widerrufen, indem Sie den gespeicherten Lebenslauf unter <em>Konto → Gespeicherter Lebenslauf → Entfernen</em> löschen; dies löscht den Text und den Einwilligungs-Zeitstempel sofort und unwiderruflich.
           </p>
         </Section>
 

@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation'
 import Navbar from '../components/Navbar'
 import { theme } from '@/lib/theme'
 import { useCredits } from '@/lib/useCredits'
+import { useSavedCv } from '@/lib/useSavedCv'
 import { useLanguage } from '@/lib/i18n'
 import CrossMarketModal from '@/components/CrossMarketModal'
 import CareerCard from '@/components/CareerCard'
@@ -101,6 +102,13 @@ export default function CareerScanPage() {
   const [toastMsg, setToastMsg] = useState('')
   const [showJobSearchBanner, setShowJobSearchBanner] = useState(false)
   const { credits, setCredits, needsCrossMarket, crossMarketAmount } = useCredits()
+  const { hasCv: hasSavedCv, cvText: savedCvText, fileName: savedCvFileName, loadingSavedCv } = useSavedCv()
+
+  function useSavedCvNow() {
+    if (!savedCvText) return
+    setCvText(savedCvText)
+    setFileName(savedCvFileName || (lang === 'DE' ? 'Gespeicherter Lebenslauf' : 'Saved CV'))
+  }
   const SCAN_COST = CREDIT_COST.careerScan
   const [crossWarnPending, setCrossWarnPending] = useState<(() => void) | null>(null)
 
@@ -281,6 +289,14 @@ export default function CareerScanPage() {
           </span>
         </div>
       </div>
+
+      {!loadingSavedCv && hasSavedCv && !cvText && (
+        <button onClick={useSavedCvNow}
+          style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 14px', borderRadius: 8, border: '1px solid rgba(55,138,221,0.4)', background: 'rgba(55,138,221,0.12)', color: '#85B7EB', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left' as const, width: '100%' }}>
+          <span style={{ fontSize: 15 }}>📄</span>
+          {lang === 'DE' ? `Gespeicherten Lebenslauf verwenden${savedCvFileName ? ` (${savedCvFileName})` : ''}` : `Use my saved CV${savedCvFileName ? ` (${savedCvFileName})` : ''}`}
+        </button>
+      )}
 
       <UploadBox label={cs.sidebar.cvLabel} sublabel={cs.sidebar.cvSub} fileName={fileName} inputRef={fileInputRef} onFile={handleFile} onClear={clearCvFile} accept=".pdf,.txt,.doc,.docx" />
 

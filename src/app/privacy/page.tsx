@@ -72,9 +72,9 @@ export default function PrivacyPage() {
             When you register, we collect your email address and a password (stored encrypted). Legal basis: GDPR Art. 6(1)(b) — contract performance; DPDP Act S. 4 — lawful purpose.
           </p>
 
-          <p style={{ margin: '0 0 6px', fontWeight: 600, color: navy }}>b) CV Text (session only)</p>
+          <p style={{ margin: '0 0 6px', fontWeight: 600, color: navy }}>b) CV Text (session only by default)</p>
           <p style={{ margin: '0 0 16px' }}>
-            When you upload or paste a CV, the text content is held <strong>only for the duration of your browser session</strong> (sessionStorage) and transmitted to our AI processing partners (Anthropic) for analysis. The raw file is never stored on our servers. Legal basis: GDPR Art. 6(1)(b); DPDP Act S. 4.
+            When you upload or paste a CV, the text content is held <strong>only for the duration of your browser session</strong> (sessionStorage) by default and transmitted to our AI processing partners (Anthropic) for analysis. The raw file is never stored on our servers unless you opt in to saved-CV storage — see (g) below. Legal basis: GDPR Art. 6(1)(b); DPDP Act S. 4.
           </p>
 
           <p style={{ margin: '0 0 6px', fontWeight: 600, color: navy }}>c) Kira AI Career Profile</p>
@@ -93,8 +93,13 @@ export default function PrivacyPage() {
           </p>
 
           <p style={{ margin: '0 0 6px', fontWeight: 600, color: navy }}>f) Voice Synthesis (Kira voice)</p>
-          <p style={{ margin: '0 0 0' }}>
+          <p style={{ margin: '0 0 16px' }}>
             When you use Kira&apos;s voice feature, the text of Kira&apos;s response is sent to OpenAI&apos;s Text-to-Speech API to generate audio. This text is not linked to your personal identity. Legal basis: GDPR Art. 6(1)(b); DPDP Act S. 4.
+          </p>
+
+          <p style={{ margin: '0 0 6px', fontWeight: 600, color: navy }}>g) Saved CV (optional)</p>
+          <p style={{ margin: '0 0 0' }}>
+            You may optionally save your full CV text permanently under <em>Account → Saved CV</em> so it auto-fills across Career Scan, CV Builder, Cover Letter, Job Case and other features instead of re-uploading each time. This only happens after your explicit consent (a checkbox shown at upload time), which is timestamped. The text is encrypted at the application level (AES-256-GCM) before it is stored — the encryption key never lives in the database. Legal basis: GDPR Art. 6(1)(a) / DPDP Act S. 6 — consent. You can withdraw consent at any time by removing the saved CV under <em>Account → Saved CV → Remove</em>, which deletes both the text and the consent record immediately.
           </p>
         </Section>
 

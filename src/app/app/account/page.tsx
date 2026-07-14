@@ -6,7 +6,8 @@ import Navbar from '../components/Navbar'
 import { createClient } from '@/lib/supabase'
 import { theme } from '@/lib/theme'
 import { useLanguage } from '@/lib/i18n'
-import { MARKET, CREDIT_COST, AI_CHAT_FREE_MESSAGES, API } from '@/lib/constants'
+import { CREDIT_COST, AI_CHAT_FREE_MESSAGES, API } from '@/lib/constants'
+import { useSavedCv } from '@/lib/useSavedCv'
 import { getIcon } from '@/components/SvgIcon'
 
 const { colors: c, gradients: g, fonts: f } = theme
@@ -44,6 +45,13 @@ export default function AccountPage() {
   const [deletingKiraData, setDeletingKiraData] = useState(false)
   const [kiraDataDeleted, setKiraDataDeleted] = useState(false)
 
+  const { hasCv, fileName: savedCvFileName, updatedAt: savedCvUpdatedAt, loadingSavedCv, refetchSavedCv } = useSavedCv()
+  const [cvUploading, setCvUploading] = useState(false)
+  const [cvConsentChecked, setCvConsentChecked] = useState(false)
+  const [cvSaveError, setCvSaveError] = useState('')
+  const [cvDeleting, setCvDeleting] = useState(false)
+  const cvFileInputRef = React.useRef<HTMLInputElement>(null)
+
   const paymentStatus = typeof window !== 'undefined'
     ? new URLSearchParams(window.location.search).get('payment')
     : null
@@ -78,6 +86,61 @@ export default function AccountPage() {
     const supabase = createClient()
     await supabase.auth.signOut()
     router.push('/')
+  }
+
+  async function handleCvFile(file: File) {
+    setCvSaveError('')
+    if (!cvConsentChecked) {
+      setCvSaveError(lang === 'DE'
+        ? 'Bitte bestätige zuerst die Einwilligung unten, um deinen Lebenslauf zu speichern.'
+        : 'Please confirm the consent checkbox below before saving your CV.')
+      if (cvFileInputRef.current) cvFileInputRef.current.value = ''
+      return
+    }
+    setCvUploading(true)
+    try {
+      let text = ''
+      if (file.name.endsWith('.txt') || file.type === 'text/plain') {
+        text = await file.text()
+      } else {
+        const form = new FormData()
+        form.append('file', file)
+        const res = await fetch(API.extractPdf, { method: 'POST', body: form })
+        const data = await res.json()
+        text = data.text ?? ''
+      }
+      if (!text || text.trim().length < 50) {
+        setCvSaveError(lang === 'DE' ? 'Konnte den Lebenslauf nicht lesen. Bitte versuche eine andere Datei.' : 'Could not read that CV. Please try a different file.')
+        return
+      }
+      const saveRes = await fetch(API.userCv, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text, fileName: file.name, consent: true }),
+      })
+      if (!saveRes.ok) {
+        const err = await saveRes.json().catch(() => ({}))
+        setCvSaveError(err.error || (lang === 'DE' ? 'Speichern fehlgeschlagen.' : 'Failed to save.'))
+        return
+      }
+      await refetchSavedCv()
+    } catch {
+      setCvSaveError(lang === 'DE' ? 'Speichern fehlgeschlagen.' : 'Failed to save.')
+    } finally {
+      setCvUploading(false)
+      if (cvFileInputRef.current) cvFileInputRef.current.value = ''
+    }
+  }
+
+  async function deleteSavedCv() {
+    setCvDeleting(true)
+    try {
+      await fetch(API.userCv, { method: 'DELETE' })
+      await refetchSavedCv()
+      setCvConsentChecked(false)
+    } finally {
+      setCvDeleting(false)
+    }
   }
 
   const providerLabel = profile?.provider === 'linkedin_oidc' ? 'LinkedIn' : 'Google'
@@ -341,6 +404,67 @@ export default function AccountPage() {
                   Switch to India →
                 </button>
               </div>
+            </div>
+
+            {/* ── Saved CV ── */}
+            <div style={{ background: c.bgCard, border: `1px solid ${c.border}`, borderRadius: 16, padding: '20px', marginBottom: 16 }}>
+              <div style={{ fontFamily: f.heading, fontSize: 15, fontWeight: 700, color: c.primary, marginBottom: 6 }}>
+                {lang === 'DE' ? 'Gespeicherter Lebenslauf' : 'Saved CV'}
+              </div>
+              <p style={{ fontSize: 13, color: c.textMuted, lineHeight: 1.6, margin: '0 0 14px' }}>
+                {lang === 'DE'
+                  ? 'Speichere deinen Lebenslauf einmal hier und verwende ihn danach in Career Scan, CV Builder, Anschreiben, Job Case und mehr — ohne ihn jedes Mal neu hochzuladen. Er wird verschlüsselt gespeichert und ist nur für dich sichtbar.'
+                  : 'Save your CV once here and reuse it across Career Scan, CV Builder, Cover Letter, Job Case and more — without re-uploading every time. It is stored encrypted and only visible to you.'}
+              </p>
+
+              {loadingSavedCv ? (
+                <div style={{ fontSize: 13, color: c.textFaint }}>{lang === 'DE' ? 'Lädt…' : 'Loading…'}</div>
+              ) : hasCv ? (
+                <div>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, padding: '10px 14px', background: c.bgSubtle, borderRadius: 8, border: `1px solid ${c.border}`, marginBottom: 12, flexWrap: 'wrap' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <span style={{ fontSize: 16 }}>📄</span>
+                      <div>
+                        <div style={{ fontSize: 13, fontWeight: 600, color: c.primary }}>{savedCvFileName || (lang === 'DE' ? 'Gespeicherter Lebenslauf' : 'Saved CV')}</div>
+                        {savedCvUpdatedAt && (
+                          <div style={{ fontSize: 11, color: c.textFaint, marginTop: 1 }}>
+                            {lang === 'DE' ? 'Aktualisiert' : 'Updated'} {new Date(savedCvUpdatedAt).toLocaleDateString(lang === 'DE' ? 'de-DE' : 'en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                    <button onClick={deleteSavedCv} disabled={cvDeleting}
+                      style={{ padding: '7px 14px', borderRadius: 8, border: `1px solid ${c.border}`, background: 'transparent', color: c.danger, fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: f.heading }}>
+                      {cvDeleting ? (lang === 'DE' ? 'Löscht…' : 'Deleting…') : (lang === 'DE' ? 'Entfernen' : 'Remove')}
+                    </button>
+                  </div>
+                  <button onClick={() => cvFileInputRef.current?.click()} disabled={cvUploading}
+                    style={{ padding: '8px 16px', borderRadius: 8, border: `1px solid ${c.border}`, background: c.bgSubtle, color: c.textMuted, fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: f.heading }}>
+                    {cvUploading ? (lang === 'DE' ? 'Lädt hoch…' : 'Uploading…') : (lang === 'DE' ? 'Ersetzen' : 'Replace')}
+                  </button>
+                  <input ref={cvFileInputRef} type="file" accept=".pdf,.txt,.doc,.docx" style={{ display: 'none' }}
+                    onChange={e => { const file = e.target.files?.[0]; if (file) handleCvFile(file) }} />
+                </div>
+              ) : (
+                <div>
+                  <label style={{ display: 'flex', alignItems: 'flex-start', gap: 8, marginBottom: 12, cursor: 'pointer' }}>
+                    <input type="checkbox" checked={cvConsentChecked} onChange={e => setCvConsentChecked(e.target.checked)}
+                      style={{ marginTop: 2, flexShrink: 0 }} />
+                    <span style={{ fontSize: 12, color: c.textMuted, lineHeight: 1.6 }}>
+                      {lang === 'DE'
+                        ? <>Ich stimme zu, dass Job-Lens AI meinen Lebenslauf verschlüsselt speichert, um ihn über Sitzungen hinweg auf dieser Plattform wiederzuverwenden. Ich kann diese Einwilligung jederzeit widerrufen, indem ich den Lebenslauf hier entferne. Siehe <a href="/datenschutz" target="_blank" style={{ color: c.accent }}>Datenschutzerklärung</a>.</>
+                        : <>I agree that Job-Lens AI stores my CV encrypted to reuse it across sessions on this platform. I can withdraw this consent at any time by removing it here. See the <a href="/privacy" target="_blank" style={{ color: c.accent }}>Privacy Policy</a>.</>}
+                    </span>
+                  </label>
+                  <button onClick={() => cvFileInputRef.current?.click()} disabled={cvUploading || !cvConsentChecked}
+                    style={{ padding: '9px 18px', borderRadius: 8, border: 'none', background: cvConsentChecked ? g.primaryBtn : c.borderLight, color: cvConsentChecked ? '#fff' : c.textFaint, fontSize: 13, fontWeight: 700, cursor: cvConsentChecked ? 'pointer' : 'not-allowed', fontFamily: f.heading }}>
+                    {cvUploading ? (lang === 'DE' ? 'Lädt hoch…' : 'Uploading…') : (lang === 'DE' ? 'Lebenslauf hochladen' : 'Upload CV')}
+                  </button>
+                  <input ref={cvFileInputRef} type="file" accept=".pdf,.txt,.doc,.docx" style={{ display: 'none' }}
+                    onChange={e => { const file = e.target.files?.[0]; if (file) handleCvFile(file) }} />
+                </div>
+              )}
+              {cvSaveError && <div style={{ fontSize: 12, color: c.danger, marginTop: 10 }}>{cvSaveError}</div>}
             </div>
 
             {/* ── AI Profile Data ── */}

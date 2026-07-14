@@ -10,7 +10,7 @@ Before writing ANY code, check that the thing you are referencing actually exist
 - **sessionStorage keys** — only the keys in `src/lib/constants.ts → SS` exist. Do not invent new `jl_*` keys. If you need a new key, add it to `SS` first.
 - **Components** — check that the component file exists before importing it. Do not import `<SomeComponent>` unless you have confirmed the file exists.
 - **Hooks** — same rule. Do not use `useXxx()` unless `src/lib/useXxx.ts` or `src/hooks/useXxx.ts` exists.
-- **DB columns** — the `profiles` table has: `id`, `credits`, `eu_credits`, `in_credits`, `status`, `paypal_payer_email`. Do not reference columns that are not in this list.
+- **DB columns** — the `profiles` table has: `id`, `credits`, `eu_credits`, `in_credits`, `status`, `paypal_payer_email`, `full_name`, `avatar_url`, `created_at`, `signup_country`, `cv_text` (encrypted), `cv_file_name`, `cv_updated_at`, `cv_consent_at`. Do not reference columns that are not in this list.
 - **Theme tokens** — always import from `src/lib/theme.ts`. Never hardcode hex colours.
 
 ---
@@ -106,6 +106,7 @@ Only these routes exist under `src/app/api/`:
 | `/api/auto-apply/analyze` | POST | Auto apply form analysis (proxies to Railway browser service) | body.market | 3 |
 | `/api/auto-apply/execute` | POST | Auto apply form execution — SSE stream (proxies to Railway) | body.market | 0 |
 | `/api/user/profile` | GET | Fetch credits + usage log | both | free |
+| `/api/user/cv` | GET/POST/DELETE | Persistent saved CV (encrypted) — GET fetches, POST saves (requires consent:true), DELETE removes | both | free |
 | `/api/cv/skill-gap` | POST | Compare CV text vs JD, return matching/missing skills | both | free |
 | `/api/paypal/webhook` | POST | PayPal IPN → top up eu_credits | — | — |
 | `/api/ai/chat` | POST | AI assistant with tool use (search_jobs + score_jobs) | body.market | 1 |
