@@ -376,8 +376,6 @@ export default function HomePage() {
   return (
     <div style={{ minHeight: '100vh', background: c.bg, fontFamily: f.body, overflowX: 'hidden' }}>
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=Outfit:wght@400;600;700&display=swap');
-
         @keyframes fadeUp { from { opacity:0; transform:translateY(22px); } to { opacity:1; transform:translateY(0); } }
         @keyframes fadeIn { from { opacity:0; } to { opacity:1; } }
         @keyframes slideCard { from { opacity:0; transform:translateY(28px); } to { opacity:1; transform:translateY(0); } }
@@ -502,7 +500,7 @@ export default function HomePage() {
       `}</style>
 
       {/* ── Navbar ── */}
-      <div style={{ background: theme.navbar.bg, padding: '0 24px', height: theme.navbar.height, display: 'flex', alignItems: 'center', justifyContent: 'space-between', position: 'sticky', top: 0, zIndex: 100, borderBottom: `1px solid ${theme.navbar.border}`, boxShadow: '0 1px 0 rgba(255,255,255,0.05)' }}>
+      <div style={{ background: '#fff', padding: '0 24px', height: theme.navbar.height, display: 'flex', alignItems: 'center', justifyContent: 'space-between', position: 'sticky', top: 0, zIndex: 100, borderBottom: '1px solid #e2e8f0', boxShadow: '0 1px 4px rgba(55,138,221,0.07)' }}>
         <Link href="/" style={{ display: 'flex', alignItems: 'center', gap: 10, textDecoration: 'none' }}>
           <svg width="26" height="26" viewBox="0 0 44 44">
             <circle cx="20" cy="20" r="13" fill="none" stroke={c.accent} strokeWidth="2.5"/>
@@ -511,7 +509,7 @@ export default function HomePage() {
             <line x1="7" y1="20" x2="33" y2="20" stroke={c.accent} strokeWidth="0.8" strokeDasharray="2,2" opacity="0.5"/>
             <line x1="28" y1="28" x2="36" y2="36" stroke={c.accent} strokeWidth="3" strokeLinecap="round"/>
           </svg>
-          <span className="jl-home-logo-text" style={{ fontFamily: f.heading, fontSize: 16, fontWeight: 700, color: theme.navbar.text }}>
+          <span className="jl-home-logo-text" style={{ fontFamily: f.heading, fontSize: 16, fontWeight: 700, color: '#1a2332' }}>
             Job-Lens <span style={{ color: c.accent }}>AI</span>
           </span>
         </Link>
@@ -520,14 +518,14 @@ export default function HomePage() {
           {/* Language dropdown */}
           <div className="jl-home-lang" style={{ position: 'relative' }}>
             <button onClick={() => setLangOpen(o => !o)}
-              style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '5px 10px', borderRadius: 10, border: '1px solid rgba(255,255,255,0.08)', background: 'rgba(255,255,255,0.05)', cursor: 'pointer', fontSize: 11, fontWeight: 600, color: '#fff', fontFamily: 'inherit' }}>
+              style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '5px 10px', borderRadius: 10, border: '1px solid #e2e8f0', background: '#f8faff', cursor: 'pointer', fontSize: 11, fontWeight: 600, color: '#1a2332', fontFamily: 'inherit' }}>
               {lang} <span style={{ fontSize: 9, opacity: 0.5, marginLeft: 2 }}>{langOpen ? '▲' : '▼'}</span>
             </button>
             {langOpen && (
-              <div style={{ position: 'absolute', top: '100%', right: 0, marginTop: 6, background: '#0d2137', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 10, overflow: 'hidden', zIndex: 200, minWidth: 110, boxShadow: '0 8px 24px rgba(0,0,0,0.3)' }}>
+              <div style={{ position: 'absolute', top: '100%', right: 0, marginTop: 6, background: '#fff', border: '1px solid #e2e8f0', borderRadius: 10, overflow: 'hidden', zIndex: 200, minWidth: 110, boxShadow: '0 8px 24px rgba(55,138,221,0.12)' }}>
                 {(['DE', 'EN'] as const).map(code => (
                   <button key={code} onClick={() => { setLang(code); setLangOpen(false) }}
-                    style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', padding: '9px 14px', border: 'none', background: lang === code ? 'rgba(55,138,221,0.2)' : 'transparent', color: lang === code ? '#fff' : 'rgba(255,255,255,0.55)', fontSize: 12, fontWeight: lang === code ? 700 : 400, cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left' }}>
+                    style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', padding: '9px 14px', border: 'none', background: lang === code ? 'rgba(55,138,221,0.08)' : 'transparent', color: lang === code ? '#378ADD' : '#4a5568', fontSize: 12, fontWeight: lang === code ? 700 : 400, cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left' }}>
                     {code} <span style={{ opacity: 0.5, fontWeight: 400 }}>— {code === 'DE' ? 'Deutsch' : 'English'}</span>
                   </button>
                 ))}
@@ -537,7 +535,7 @@ export default function HomePage() {
 
           {/* Market pills */}
           <div style={{ display: 'flex', gap: 6 }}>
-            <span className="jl-home-dach-pill" style={{ fontSize: 11, fontWeight: 700, padding: '5px 12px', borderRadius: 10, border: '1px solid rgba(55,138,221,0.4)', background: 'rgba(55,138,221,0.12)', color: '#85B7EB', fontFamily: 'inherit', display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+            <span className="jl-home-dach-pill" style={{ fontSize: 11, fontWeight: 700, padding: '5px 12px', borderRadius: 10, border: '1px solid rgba(55,138,221,0.35)', background: 'rgba(55,138,221,0.08)', color: '#378ADD', fontFamily: 'inherit', display: 'inline-flex', alignItems: 'center', gap: 5 }}>
               <SvgIcon name="flag-de" size={14} /> DACH
             </span>
             <Link href="/in" style={{ fontSize: 11, fontWeight: 600, textDecoration: 'none', padding: '5px 12px', borderRadius: 10, border: '1px solid rgba(255,153,51,0.2)', background: 'rgba(255,153,51,0.07)', color: '#FF9933', fontFamily: 'inherit', display: 'inline-flex', alignItems: 'center', gap: 5 }}>
@@ -547,7 +545,7 @@ export default function HomePage() {
 
           {!loading && (user ? (
             <>
-              <span className="jl-home-greeting" style={{ fontSize: 13, color: theme.navbar.textMuted }}>Hi, {user.name}</span>
+              <span className="jl-home-greeting" style={{ fontSize: 13, color: '#4a5568' }}>Hi, {user.name}</span>
               <Link href="/app" className="jl-btn-primary" style={{ fontSize: 12, padding: '6px 18px', borderRadius: 20, color: '#fff', textDecoration: 'none', fontWeight: 600 }}>
                 {t.navGoToApp}
               </Link>
@@ -566,7 +564,7 @@ export default function HomePage() {
       <HeroDACH lang={lang} user={user} />
 
       {/* ── Job Case spotlight ── */}
-      <div style={{ background: 'linear-gradient(135deg, #0d2416 0%, #102e1a 50%, #0b2012 100%)', borderTop: '1px solid rgba(34,197,94,0.15)', borderBottom: '1px solid rgba(34,197,94,0.15)', padding: '60px 24px' }}>
+      <div style={{ background: 'linear-gradient(135deg, #f0fdf4 0%, #dcfce7 50%, #f0fdf4 100%)', borderTop: '1px solid rgba(34,197,94,0.2)', borderBottom: '1px solid rgba(34,197,94,0.2)', padding: '60px 24px' }}>
         <div style={{ maxWidth: 1100, margin: '0 auto' }}>
 
           {/* Top: hook + headline */}
@@ -577,15 +575,15 @@ export default function HomePage() {
                 {lang === 'DE' ? 'Neu — Job Case' : 'New — Job Case'}
               </span>
             </div>
-            <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.65)', margin: '0 0 14px', letterSpacing: 0.2 }}>
+            <p style={{ fontSize: 13, color: '#4a5568', margin: '0 0 14px', letterSpacing: 0.2 }}>
               {lang === 'DE' ? 'Der PDF-Lebenslauf ist 30 Jahre alt. Es ist Zeit, ihn zu ersetzen.' : 'The PDF résumé is 30 years old. It\'s time to move on.'}
             </p>
-            <h2 style={{ fontFamily: f.heading, fontSize: 'clamp(24px,3.2vw,42px)', fontWeight: 800, color: '#fff', lineHeight: 1.1, letterSpacing: -1.2, margin: '0 auto 18px', maxWidth: 700 }}>
+            <h2 style={{ fontFamily: f.heading, fontSize: 'clamp(24px,3.2vw,42px)', fontWeight: 800, color: '#1a2332', lineHeight: 1.1, letterSpacing: -1.2, margin: '0 auto 18px', maxWidth: 700 }}>
               {lang === 'DE'
-                ? <><span style={{ color: 'rgba(255,255,255,0.9)' }}>Job Case ist ein lebendes, teilbares</span><br /><span style={{ color: '#22c55e' }}>Karriereprofil — kein statisches Dokument.</span></>
-                : <><span style={{ color: 'rgba(255,255,255,0.9)' }}>Job Case is a living, shareable career profile</span><br /><span style={{ color: '#22c55e' }}>— not a static document.</span></>}
+                ? <><span style={{ color: '#1a2332' }}>Job Case ist ein lebendes, teilbares</span><br /><span style={{ color: '#22c55e' }}>Karriereprofil — kein statisches Dokument.</span></>
+                : <><span style={{ color: '#1a2332' }}>Job Case is a living, shareable career profile</span><br /><span style={{ color: '#22c55e' }}>— not a static document.</span></>}
             </h2>
-            <p style={{ fontSize: 15, color: 'rgba(255,255,255,0.72)', lineHeight: 1.8, margin: '0 auto 32px', maxWidth: 540 }}>
+            <p style={{ fontSize: 15, color: '#4a5568', lineHeight: 1.8, margin: '0 auto 32px', maxWidth: 540 }}>
               {lang === 'DE'
                 ? 'Recruiter verbringen 6 Sekunden mit einem Lebenslauf. Job Case macht diese 6 Sekunden bedeutsam.'
                 : 'Recruiters spend 6 seconds on a CV. Job Case makes those 6 seconds count.'}
@@ -623,8 +621,8 @@ export default function HomePage() {
             ] as { icon: string; title: string; body: string }[]).map((item, i) => (
               <div key={i} className="jc-diff-tile" style={{ display: 'flex', flexDirection: 'column' as const, gap: 10, padding: '20px 18px', background: 'rgba(34,197,94,0.05)', border: '1px solid rgba(34,197,94,0.12)', borderRadius: 16 }}>
                 <span style={{ fontSize: 26 }}>{item.icon}</span>
-                <div style={{ fontFamily: f.heading, fontSize: 14, fontWeight: 700, color: '#fff' }}>{item.title}</div>
-                <div className="jc-diff-body" style={{ fontSize: 12, color: 'rgba(255,255,255,0.7)', lineHeight: 1.65 }}>{item.body}</div>
+                <div style={{ fontFamily: f.heading, fontSize: 14, fontWeight: 700, color: '#1a2332' }}>{item.title}</div>
+                <div className="jc-diff-body" style={{ fontSize: 12, color: '#4a5568', lineHeight: 1.65 }}>{item.body}</div>
               </div>
             ))}
           </div>
@@ -632,7 +630,7 @@ export default function HomePage() {
       </div>
 
       {/* ── Market Facts Bar ── */}
-      <div ref={trustRef} style={{ background: 'linear-gradient(90deg,#0d1e30 0%,#142a45 50%,#0d1e30 100%)', borderBottom: '1px solid rgba(55,138,221,0.15)' }}>
+      <div ref={trustRef} style={{ background: 'linear-gradient(90deg,#f0f6ff 0%,#eef4ff 50%,#f0f6ff 100%)', borderBottom: '1px solid rgba(55,138,221,0.15)' }}>
         <div className="jl-trust-grid" style={{ maxWidth: 1100, margin: '0 auto', padding: '0 24px', display: 'grid', gridTemplateColumns: 'repeat(4,1fr)' }}>
           {([
             { val: '75%', label: lang === 'DE' ? 'der Lebensläufe scheitern am ATS-Filter' : 'of CVs fail the ATS filter', color: '#E24B4A', src: 'Jobscan 2024' },
@@ -640,10 +638,10 @@ export default function HomePage() {
             { val: '186k+', label: lang === 'DE' ? 'offene Stellen in DACH' : 'open positions in DACH', color: '#10b981', src: 'Adzuna' },
             { val: '3 Mon.', label: lang === 'DE' ? 'ø Jobsuche in Deutschland' : 'avg job search in Germany', color: '#a855f7', src: 'Statista 2024' },
           ] as const).map((s, i) => (
-            <div key={i} style={{ textAlign: 'center', padding: '22px 12px', borderRight: i < 3 ? '1px solid rgba(255,255,255,0.05)' : 'none' }}>
+            <div key={i} style={{ textAlign: 'center', padding: '22px 12px', borderRight: i < 3 ? '1px solid rgba(55,138,221,0.1)' : 'none' }}>
               <div style={{ fontFamily: f.heading, fontSize: 'clamp(20px,2.8vw,30px)', fontWeight: 800, color: s.color, lineHeight: 1, letterSpacing: -0.5 }}>{s.val}</div>
-              <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.78)', marginTop: 6, lineHeight: 1.45 }}>{s.label}</div>
-              <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.55)', marginTop: 4 }}>{s.src}</div>
+              <div style={{ fontSize: 11, color: '#4a5568', marginTop: 6, lineHeight: 1.45 }}>{s.label}</div>
+              <div style={{ fontSize: 9, color: '#6b7c93', marginTop: 4 }}>{s.src}</div>
             </div>
           ))}
         </div>
@@ -928,7 +926,7 @@ export default function HomePage() {
         {/* ── Kira Section ── */}
         <div id="kira-demo" className="jl-subsection">
           <div className="jl-kira-demo-box" style={{
-            background: 'linear-gradient(160deg,#112540 0%,#0d1a2e 100%)',
+            background: 'linear-gradient(160deg,#f0f4ff 0%,#eef0ff 100%)',
           }}>
             {/* Background glow */}
             <div style={{ position: 'absolute', top: -80, left: '50%', transform: 'translateX(-50%)', width: 600, height: 320, background: 'radial-gradient(ellipse, rgba(109,40,217,0.18) 0%, rgba(55,138,221,0.1) 45%, transparent 70%)', pointerEvents: 'none' }} />
@@ -941,13 +939,13 @@ export default function HomePage() {
                 <div style={{ width: 28, height: 28, borderRadius: '50%', background: 'linear-gradient(135deg,#6D28D9,#378ADD)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                   <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10a7 7 0 0 0 14 0"/><line x1="12" y1="19" x2="12" y2="22"/></svg>
                 </div>
-                <span style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.72)', letterSpacing: 1.5, textTransform: 'uppercase' as const }}>
+                <span style={{ fontSize: 11, fontWeight: 700, color: '#4a5568', letterSpacing: 1.5, textTransform: 'uppercase' as const }}>
                   {t.kiraTag}
                 </span>
               </div>
 
               {/* Headline */}
-              <h2 style={{ fontFamily: f.heading, fontSize: 'clamp(30px,4.5vw,52px)', fontWeight: 700, color: '#fff', margin: '0 0 20px', lineHeight: 1.12, letterSpacing: -0.8 }}>
+              <h2 style={{ fontFamily: f.heading, fontSize: 'clamp(30px,4.5vw,52px)', fontWeight: 700, color: '#1a2332', margin: '0 0 20px', lineHeight: 1.12, letterSpacing: -0.8 }}>
                 {t.kiraHeadline1}{' '}
                 <span style={{ background: 'linear-gradient(90deg,#00e8d0,#378ADD,#a855f7)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>
                   {t.kiraHeadline2}
@@ -955,18 +953,18 @@ export default function HomePage() {
               </h2>
 
               {/* Sub */}
-              <p style={{ fontSize: 16, color: 'rgba(255,255,255,0.78)', maxWidth: 520, margin: '0 auto 40px', lineHeight: 1.8, fontWeight: 400 }}>
+              <p style={{ fontSize: 16, color: '#4a5568', maxWidth: 520, margin: '0 auto 40px', lineHeight: 1.8, fontWeight: 400 }}>
                 {t.kiraSub}
               </p>
 
               {/* Feature pills */}
               <div style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap' }}>
                 {t.kiraFeatures.map(feat => (
-                  <div key={feat.label} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 18px', borderRadius: 14, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', backdropFilter: 'blur(8px)' }}>
-                    <SvgIcon name={feat.icon as IconName} size={20} color="rgba(255,255,255,0.8)" />
+                  <div key={feat.label} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 18px', borderRadius: 14, background: 'rgba(55,138,221,0.07)', border: '1px solid rgba(55,138,221,0.15)' }}>
+                    <SvgIcon name={feat.icon as IconName} size={20} color="#378ADD" />
                     <div style={{ textAlign: 'left' }}>
-                      <div style={{ fontSize: 12, fontWeight: 700, color: '#fff', fontFamily: f.heading }}>{feat.label}</div>
-                      <div className="jl-pill-desc" style={{ fontSize: 11, color: 'rgba(255,255,255,0.65)', marginTop: 1 }}>{feat.desc}</div>
+                      <div style={{ fontSize: 12, fontWeight: 700, color: '#1a2332', fontFamily: f.heading }}>{feat.label}</div>
+                      <div className="jl-pill-desc" style={{ fontSize: 11, color: '#4a5568', marginTop: 1 }}>{feat.desc}</div>
                     </div>
                   </div>
                 ))}
@@ -1169,7 +1167,7 @@ export default function HomePage() {
         </div>
 
         {/* ── Bottom CTA ── */}
-        <div className="jl-subsection jl-cta-block" style={{ background: g.ctaBlock, borderRadius: 20, padding: '56px 32px', textAlign: 'center' }}>
+        <div className="jl-subsection jl-cta-block" style={{ background: 'linear-gradient(135deg,#042C53 0%,#0d3f72 50%,#1a5499 100%)', borderRadius: 20, padding: '56px 32px', textAlign: 'center' }}>
           <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.65)', marginBottom: 16, letterSpacing: 0.5 }}>
             {t.ctaTag}
           </div>

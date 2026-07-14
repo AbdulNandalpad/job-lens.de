@@ -17,13 +17,13 @@ const emerald = '#10b981'
 const red     = '#ef4444'
 const orange  = '#f59e0b'
 
-const bg      = '#07111f'
-const card    = 'rgba(255,255,255,0.07)'
-const cardHov = 'rgba(255,255,255,0.11)'
-const border  = 'rgba(255,255,255,0.10)'
-const txt1    = '#f1f5f9'
-const txt2    = '#94a3b8'
-const txt3    = '#7a8fa8'
+const bg      = '#f8faff'
+const card    = '#ffffff'
+const cardHov = '#f0f6ff'
+const border  = '#e2e8f0'
+const txt1    = '#1a2332'
+const txt2    = '#4a5568'
+const txt3    = '#6b7c93'
 
 type Country = 'de' | 'ch' | 'at'
 
@@ -183,15 +183,15 @@ function GlowDot({ color }: { color: string }) {
 // ── Source tag — small credibility footnote at the bottom of a card ──────────
 function SourceTag({ sources }: { sources: { label: string; url?: string }[] }) {
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', marginTop: 16, paddingTop: 12, borderTop: 'rgba(255,255,255,0.07) 1px solid' }}>
-      <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.25)', letterSpacing: 0.4, flexShrink: 0 }}>Sources:</span>
+    <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', marginTop: 16, paddingTop: 12, borderTop: '#e2e8f0 1px solid' }}>
+      <span style={{ fontSize: 10, color: '#6b7c93', letterSpacing: 0.4, flexShrink: 0 }}>Sources:</span>
       {sources.map((s, i) => (
         <span key={i} style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
           {s.url
-            ? <a href={s.url} target="_blank" rel="noopener noreferrer" style={{ fontSize: 10, color: 'rgba(55,138,221,0.6)', textDecoration: 'none', borderBottom: '1px dotted rgba(55,138,221,0.3)' }}>{s.label}</a>
-            : <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)' }}>{s.label}</span>
+            ? <a href={s.url} target="_blank" rel="noopener noreferrer" style={{ fontSize: 10, color: '#378ADD', textDecoration: 'none', borderBottom: '1px dotted rgba(55,138,221,0.4)' }}>{s.label}</a>
+            : <span style={{ fontSize: 10, color: '#6b7c93' }}>{s.label}</span>
           }
-          {i < sources.length - 1 && <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.15)' }}>·</span>}
+          {i < sources.length - 1 && <span style={{ fontSize: 10, color: '#adb5bd' }}>·</span>}
         </span>
       ))}
     </div>
@@ -204,8 +204,8 @@ function SectionHeader({ icon, title, sub }: { icon: string; title: string; sub:
     <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 20 }}>
       <GlowDot color={blue} />
       <div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 7, fontFamily: "'Outfit',sans-serif", fontSize: 14, fontWeight: 700, color: '#fff' }}>
-          {getIcon(icon, 14, '#fff')}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 7, fontFamily: "'Outfit',sans-serif", fontSize: 14, fontWeight: 700, color: txt1 }}>
+          {getIcon(icon, 14, txt1)}
           {title}
         </div>
         <div style={{ fontSize: 11, color: txt3, marginTop: 1 }}>{sub}</div>
@@ -229,7 +229,7 @@ function BarChart({ data }: { data: { label: string; count: number; color: strin
             <text x={LEFT - 8} y={y + 14} fontSize="11.5" fill={txt2} textAnchor="end" dominantBaseline="middle">
               {d.label}
             </text>
-            <rect x={LEFT} y={y + 6} width={BAR} height={16} rx={8} fill="rgba(255,255,255,0.04)" />
+            <rect x={LEFT} y={y + 6} width={BAR} height={16} rx={8} fill="#edf1f6" />
             <rect x={LEFT} y={y + 6} width={0} height={16} rx={8} fill={d.color} opacity={0.75}>
               <animate attributeName="width" from="0" to={bw} dur="0.7s" begin={`${i * 0.08}s`} fill="freeze" calcMode="spline" keySplines="0.4 0 0.2 1" />
             </rect>
@@ -254,9 +254,9 @@ function SalaryBar({ role, min, max, avg, sym, scaleMax }: { role: string; min: 
         <span style={{ fontSize: 12, color: txt2, fontWeight: 500 }}>{role}</span>
         <span style={{ fontSize: 12, color: blue, fontWeight: 700 }}>{sym}{avg}k avg</span>
       </div>
-      <div style={{ position: 'relative', height: 8, background: 'rgba(255,255,255,0.06)', borderRadius: 4 }}>
+      <div style={{ position: 'relative', height: 8, background: '#edf1f6', borderRadius: 4 }}>
         <div style={{ position: 'absolute', left: `${minPct}%`, width: `${maxPct - minPct}%`, height: '100%', background: `linear-gradient(90deg,${blue}35,${blue}70)`, borderRadius: 4 }} />
-        <div style={{ position: 'absolute', left: `${avgPct}%`, top: '50%', transform: 'translate(-50%,-50%)', width: 14, height: 14, borderRadius: '50%', background: blue, border: `2.5px solid ${bg}`, boxShadow: `0 0 8px ${blue}90` }} />
+        <div style={{ position: 'absolute', left: `${avgPct}%`, top: '50%', transform: 'translate(-50%,-50%)', width: 14, height: 14, borderRadius: '50%', background: blue, border: `2.5px solid #fff`, boxShadow: `0 0 8px ${blue}90` }} />
       </div>
       <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 4 }}>
         <span style={{ fontSize: 10, color: txt3 }}>{sym}{min}k min</span>
@@ -321,26 +321,25 @@ export default function DACHDashboard() {
   return (
     <div style={{ minHeight: '100vh', background: bg, fontFamily: "'DM Sans',sans-serif", color: txt1 }}>
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=Outfit:wght@400;600;700;800&display=swap');
         @keyframes fadeUp { from{opacity:0;transform:translateY(14px)} to{opacity:1;transform:none} }
         @keyframes glow   { 0%,100%{box-shadow:0 0 20px rgba(55,138,221,.15)} 50%{box-shadow:0 0 40px rgba(55,138,221,.4)} }
         * { box-sizing:border-box }
 
         .dash-page {
           background-color:${bg};
-          background-image:linear-gradient(rgba(255,255,255,.018) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.018) 1px,transparent 1px);
+          background-image:linear-gradient(rgba(55,138,221,.03) 1px,transparent 1px),linear-gradient(90deg,rgba(55,138,221,.03) 1px,transparent 1px);
           background-size:52px 52px;
         }
         .dash-hero {
-          background:linear-gradient(135deg,#081525 0%,#091522 55%,#080d1a 100%);
+          background:linear-gradient(135deg,#eef4ff 0%,#f0f6ff 55%,#e8f0fb 100%);
           padding:32px 28px 36px;
           position:relative; overflow:hidden;
           border-bottom:1px solid ${border};
         }
         /* KPI */
         .kpi-grid { display:grid;grid-template-columns:repeat(6,1fr);gap:14px;margin-bottom:24px }
-        .kpi-card { background:${card};border:1px solid ${border};border-radius:16px;padding:20px;transition:all .2s }
-        .kpi-card:hover { background:${cardHov};border-color:rgba(255,255,255,.18) }
+        .kpi-card { background:${card};border:1px solid ${border};border-radius:16px;padding:20px;transition:all .2s;box-shadow:0 1px 4px rgba(55,138,221,.06) }
+        .kpi-card:hover { background:${cardHov};border-color:rgba(55,138,221,.28) }
         /* Two column layouts */
         .two-col   { display:grid;grid-template-columns:1fr 1fr;gap:18px }
         .skills-cols { display:grid;grid-template-columns:1fr 1fr;gap:16px }
@@ -351,7 +350,7 @@ export default function DACHDashboard() {
         .country-pill { cursor:pointer;transition:all .15s }
         .country-pill:hover { border-color:rgba(55,138,221,.5) !important }
         /* expand button */
-        .expand-btn { background:none;border:1px solid rgba(255,255,255,.1);color:${txt2};border-radius:8px;padding:6px 18px;font-size:12px;cursor:pointer;margin-top:14px;width:100%;font-family:inherit;transition:all .15s }
+        .expand-btn { background:none;border:1px solid ${border};color:${txt2};border-radius:8px;padding:6px 18px;font-size:12px;cursor:pointer;margin-top:14px;width:100%;font-family:inherit;transition:all .15s }
         .expand-btn:hover { border-color:rgba(55,138,221,.4);color:${blue} }
         /* go to app button */
         .goto-app-btn { display:flex;align-items:center;gap:7px;padding:10px 20px;border-radius:12px;border:1px solid rgba(55,138,221,.6);background:linear-gradient(135deg,rgba(55,138,221,.2),rgba(55,138,221,.1));color:${blue};font-size:13px;font-weight:700;cursor:pointer;font-family:"Outfit",sans-serif;transition:all .2s;animation:glow 3s infinite }
@@ -417,7 +416,7 @@ export default function DACHDashboard() {
                   <line x1="7" y1="20" x2="33" y2="20" stroke={blue} strokeWidth="0.8" strokeDasharray="2,2" opacity="0.5" />
                   <line x1="28" y1="28" x2="36" y2="36" stroke={blue} strokeWidth="3" strokeLinecap="round" />
                 </svg>
-                <span style={{ fontFamily: "'Outfit',sans-serif", fontSize: 12, fontWeight: 700, color: 'rgba(255,255,255,0.45)', letterSpacing: 0.5 }}>
+                <span style={{ fontFamily: "'Outfit',sans-serif", fontSize: 12, fontWeight: 700, color: txt2, letterSpacing: 0.5 }}>
                   Job-Lens <span style={{ color: blue }}>AI</span>
                   <span style={{ color: txt3, fontWeight: 400, marginLeft: 7 }}>· DACH Intelligence</span>
                 </span>
@@ -428,7 +427,7 @@ export default function DACHDashboard() {
                   {new Date().toLocaleDateString(lang === 'DE' ? 'de-DE' : 'en-GB', { weekday: 'long', day: 'numeric', month: 'long' })}
                 </span>
               </div>
-              <h1 style={{ margin: 0, fontFamily: "'Outfit',sans-serif", fontSize: 'clamp(20px,4.5vw,30px)', fontWeight: 800, color: '#fff', letterSpacing: -0.5 }}>
+              <h1 style={{ margin: 0, fontFamily: "'Outfit',sans-serif", fontSize: 'clamp(20px,4.5vw,30px)', fontWeight: 800, color: txt1, letterSpacing: -0.5 }}>
                 {greeting}{firstName ? `, ${firstName}` : ''}
               </h1>
               <p style={{ margin: '5px 0 0', fontSize: 13, color: txt2 }}>
@@ -439,22 +438,22 @@ export default function DACHDashboard() {
             {/* Right controls */}
             <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
               {/* Country switcher — pills on desktop, select on mobile */}
-              <div className="country-pills-desktop" style={{ display: 'flex', gap: 4, background: 'rgba(255,255,255,.04)', border: `1px solid ${border}`, borderRadius: 12, padding: 4 }}>
+              <div className="country-pills-desktop" style={{ display: 'flex', gap: 4, background: 'rgba(55,138,221,.05)', border: `1px solid ${border}`, borderRadius: 12, padding: 4 }}>
                 {COUNTRIES.map(c => (
                   <button key={c.code} className="country-pill" onClick={() => setCountry(c.code)}
-                    style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '7px 13px', borderRadius: 8, border: `1px solid ${country === c.code ? blue : 'transparent'}`, background: country === c.code ? blue + '22' : 'transparent', color: country === c.code ? '#fff' : txt2, fontSize: 12, fontWeight: country === c.code ? 700 : 400, cursor: 'pointer', fontFamily: "'DM Sans',sans-serif" }}>
+                    style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '7px 13px', borderRadius: 8, border: `1px solid ${country === c.code ? blue : 'transparent'}`, background: country === c.code ? blue + '22' : 'transparent', color: country === c.code ? blue : txt2, fontSize: 12, fontWeight: country === c.code ? 700 : 400, cursor: 'pointer', fontFamily: "'DM Sans',sans-serif" }}>
                     <SvgIcon name={c.flag} size={18} />
                     {c.name}
                   </button>
                 ))}
               </div>
-              <div className="country-select-mobile" style={{ alignItems: 'center', gap: 6, background: 'rgba(255,255,255,.04)', border: `1px solid ${border}`, borderRadius: 12, padding: '2px 6px' }}>
+              <div className="country-select-mobile" style={{ alignItems: 'center', gap: 6, background: '#fff', border: `1px solid ${border}`, borderRadius: 12, padding: '2px 6px' }}>
                 <select
                   value={country}
                   onChange={e => setCountry(e.target.value as Country)}
-                  style={{ background: 'transparent', border: 'none', color: '#fff', fontSize: 13, fontWeight: 700, fontFamily: "'DM Sans',sans-serif", cursor: 'pointer', outline: 'none', padding: '7px 4px' }}>
+                  style={{ background: 'transparent', border: 'none', color: txt1, fontSize: 13, fontWeight: 700, fontFamily: "'DM Sans',sans-serif", cursor: 'pointer', outline: 'none', padding: '7px 4px' }}>
                   {COUNTRIES.map(c => (
-                    <option key={c.code} value={c.code} style={{ background: '#0e1a28', color: '#fff' }}>
+                    <option key={c.code} value={c.code} style={{ background: '#fff', color: txt1 }}>
                       {c.code.toUpperCase()} — {c.name}
                     </option>
                   ))}
@@ -476,7 +475,7 @@ export default function DACHDashboard() {
               {/* Customize */}
               <button
                 onClick={() => setShowCustomize(p => !p)}
-                style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '10px 16px', borderRadius: 12, border: `1px solid ${showCustomize ? blue + '80' : 'rgba(255,255,255,.12)'}`, background: showCustomize ? blue + '18' : 'rgba(255,255,255,.04)', color: showCustomize ? blue : txt2, fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: "'DM Sans',sans-serif", transition: 'all .2s' }}>
+                style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '10px 16px', borderRadius: 12, border: `1px solid ${showCustomize ? blue + '80' : border}`, background: showCustomize ? blue + '18' : '#fff', color: showCustomize ? blue : txt2, fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: "'DM Sans',sans-serif", transition: 'all .2s' }}>
                 <svg width="13" height="13" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="10" cy="10" r="3"/><path d="M10 1v2M10 17v2M1 10h2M17 10h2M3.5 3.5l1.4 1.4M15.1 15.1l1.4 1.4M3.5 16.5l1.4-1.4M15.1 4.9l1.4-1.4"/></svg>
                 {t('Anpassen', 'Customize')}
               </button>
@@ -492,7 +491,7 @@ export default function DACHDashboard() {
 
               {/* Sign Out */}
               <button onClick={signOut}
-                style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '10px 16px', borderRadius: 12, border: '1px solid rgba(255,255,255,.12)', background: 'rgba(255,255,255,.04)', color: txt3, fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: "'DM Sans',sans-serif", transition: 'all .2s' }}>
+                style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '10px 16px', borderRadius: 12, border: `1px solid ${border}`, background: '#fff', color: txt3, fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: "'DM Sans',sans-serif", transition: 'all .2s' }}>
                 ↩ {t('Abmelden', 'Sign Out')}
               </button>
             </div>
@@ -502,13 +501,13 @@ export default function DACHDashboard() {
 
       {/* ── CUSTOMIZE PANEL ──────────────────────────── */}
       {showCustomize && (
-        <div style={{ background: 'rgba(55,138,221,.06)', borderBottom: `1px solid ${border}`, padding: '18px 28px' }}>
+        <div style={{ background: 'rgba(55,138,221,.04)', borderBottom: `1px solid ${border}`, padding: '18px 28px' }}>
           <div style={{ maxWidth: 1100, margin: '0 auto' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
-              <span style={{ fontFamily: "'Outfit',sans-serif", fontSize: 13, fontWeight: 700, color: '#fff' }}>
+              <span style={{ fontFamily: "'Outfit',sans-serif", fontSize: 13, fontWeight: 700, color: txt1 }}>
                 {t('Widgets auswählen', 'Choose your widgets')}
               </span>
-              <button onClick={resetDefaults} style={{ fontSize: 11, color: txt3, background: 'none', border: `1px solid rgba(255,255,255,.12)`, borderRadius: 6, padding: '4px 10px', cursor: 'pointer', fontFamily: "'DM Sans',sans-serif" }}>
+              <button onClick={resetDefaults} style={{ fontSize: 11, color: txt3, background: 'none', border: `1px solid ${border}`, borderRadius: 6, padding: '4px 10px', cursor: 'pointer', fontFamily: "'DM Sans',sans-serif" }}>
                 {t('Alle entfernen', 'Clear all')}
               </button>
             </div>
@@ -517,7 +516,7 @@ export default function DACHDashboard() {
                 const on = isVisible(w.id)
                 return (
                   <button key={w.id} onClick={() => toggle(w.id)}
-                    style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '8px 14px', borderRadius: 20, border: `1px solid ${on ? blue + '60' : 'rgba(255,255,255,.12)'}`, background: on ? blue + '18' : 'rgba(255,255,255,.04)', color: on ? blue : txt2, fontSize: 12, fontWeight: on ? 700 : 400, cursor: 'pointer', fontFamily: "'DM Sans',sans-serif", transition: 'all .15s' }}>
+                    style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '8px 14px', borderRadius: 20, border: `1px solid ${on ? blue + '60' : border}`, background: on ? blue + '18' : '#fff', color: on ? blue : txt2, fontSize: 12, fontWeight: on ? 700 : 400, cursor: 'pointer', fontFamily: "'DM Sans',sans-serif", transition: 'all .15s' }}>
                     <SvgIcon name={w.icon as Parameters<typeof SvgIcon>[0]['name']} size={13} color="currentColor" />
                     {w.label}
                     {on && <span style={{ fontSize: 10, opacity: .7 }}>✓</span>}
@@ -591,8 +590,8 @@ export default function DACHDashboard() {
               { label: t('Zeugnis',     'Zeugnis'),      icon: 'flag-de'  as IconName, href: '/app/zeugnis'      },
             ] as { label: string; icon: IconName; href: string }[]).map(a => (
               <button key={a.href} onClick={() => router.push(a.href)}
-                style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 12px', borderRadius: 10, border: `1px solid ${border}`, background: 'rgba(255,255,255,.04)', color: txt2, fontSize: 12, fontWeight: 500, cursor: 'pointer', fontFamily: "'DM Sans',sans-serif", transition: 'all .15s', textAlign: 'left' as const }}
-                onMouseEnter={e => { e.currentTarget.style.borderColor = blue + '60'; e.currentTarget.style.color = '#fff' }}
+                style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 12px', borderRadius: 10, border: `1px solid ${border}`, background: '#fff', color: txt2, fontSize: 12, fontWeight: 500, cursor: 'pointer', fontFamily: "'DM Sans',sans-serif", transition: 'all .15s', textAlign: 'left' as const }}
+                onMouseEnter={e => { e.currentTarget.style.borderColor = blue + '60'; e.currentTarget.style.color = blue }}
                 onMouseLeave={e => { e.currentTarget.style.borderColor = border; e.currentTarget.style.color = txt2 }}>
                 <SvgIcon name={a.icon} size={15} color="currentColor" />
                 <span>{a.label}</span>
@@ -627,7 +626,7 @@ export default function DACHDashboard() {
             <div style={cardStyle}>
               <SectionHeader icon="rocket" title={t('Wachsende Skills', 'Rising Skills')} sub={t('Nachfrage-Anstieg YoY · DACH', 'YoY demand growth · DACH market')} />
               {RISING_SKILLS.map(s => (
-                <div key={s.skill} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '9px 0', borderBottom: `1px solid rgba(255,255,255,.05)` }}>
+                <div key={s.skill} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '9px 0', borderBottom: `1px solid ${border}` }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                     {s.hot && <span style={{ fontSize: 9, fontWeight: 700, color: orange, background: `${orange}20`, padding: '1px 6px', borderRadius: 8, letterSpacing: 0.3 }}>HOT</span>}
                     <span style={{ fontSize: 13, color: txt2 }}>{s.skill}</span>
@@ -644,7 +643,7 @@ export default function DACHDashboard() {
             <div style={cardStyle}>
               <SectionHeader icon="trending-down" title={t('Sinkende Skills', 'Declining Skills')} sub={t('Rückgang der Jobnachfrage · DACH', 'Drop in job demand · DACH market')} />
               {DECLINING_SKILLS.map(s => (
-                <div key={s.skill} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '9px 0', borderBottom: `1px solid rgba(255,255,255,.05)` }}>
+                <div key={s.skill} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '9px 0', borderBottom: `1px solid ${border}` }}>
                   <span style={{ fontSize: 13, color: txt2 }}>{s.skill}</span>
                   <span style={{ fontSize: 13, fontWeight: 700, color: red }}>{s.drop}</span>
                 </div>
@@ -718,7 +717,7 @@ export default function DACHDashboard() {
           {/* Collapsible header */}
           <div onClick={() => setAiExpanded(p => !p)} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer', userSelect: 'none' }}>
             <SectionHeader icon="bot" title={t('KI-Auswirkung nach Sektor', 'AI Impact by Sector')} sub={t('DACH-Markt 2026 · Grün = schafft Jobs · Rot = verdrängt Jobs', 'DACH 2026 · Green = creating jobs · Red = disrupting roles')} />
-            <span style={{ fontSize: 18, color: txt2, marginTop: -12, flexShrink: 0 }}>{aiExpanded ? '▲' : '▼'}</span>
+            <span style={{ fontSize: 14, color: txt3, marginTop: -12, flexShrink: 0 }}>{aiExpanded ? '▲' : '▼'}</span>
           </div>
           {aiExpanded && (
             <div>
@@ -736,7 +735,7 @@ export default function DACHDashboard() {
                         <SvgIcon name={x.icon} size={16} color={x.color} />
                         <div style={{ display: 'flex', gap: 3 }}>
                           {Array.from({ length: 5 }).map((_, i) => (
-                            <div key={i} style={{ width: 6, height: 6, borderRadius: 1, background: i < Math.round(x.score / 20) ? emerald : 'rgba(255,255,255,.1)' }} />
+                            <div key={i} style={{ width: 6, height: 6, borderRadius: 1, background: i < Math.round(x.score / 20) ? emerald : '#dde3ec' }} />
                           ))}
                         </div>
                       </div>
@@ -760,7 +759,7 @@ export default function DACHDashboard() {
                         <SvgIcon name={x.icon} size={16} color={x.color} />
                         <div style={{ display: 'flex', gap: 3 }}>
                           {Array.from({ length: 5 }).map((_, i) => (
-                            <div key={i} style={{ width: 6, height: 6, borderRadius: 1, background: i < Math.round(x.score / 20) ? orange : 'rgba(255,255,255,.1)' }} />
+                            <div key={i} style={{ width: 6, height: 6, borderRadius: 1, background: i < Math.round(x.score / 20) ? orange : '#dde3ec' }} />
                           ))}
                         </div>
                       </div>
@@ -784,7 +783,7 @@ export default function DACHDashboard() {
                         <SvgIcon name={x.icon} size={16} color={x.color} />
                         <div style={{ display: 'flex', gap: 3 }}>
                           {Array.from({ length: 5 }).map((_, i) => (
-                            <div key={i} style={{ width: 6, height: 6, borderRadius: 1, background: i < Math.round(x.score / 20) ? red : 'rgba(255,255,255,.1)' }} />
+                            <div key={i} style={{ width: 6, height: 6, borderRadius: 1, background: i < Math.round(x.score / 20) ? red : '#dde3ec' }} />
                           ))}
                         </div>
                       </div>

@@ -17,7 +17,7 @@ const features = [
     icon: <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1.5" fill="currentColor" stroke="none"/></svg>,
     name: { DE: 'Career Scan', EN: 'Career Scan' },
     desc: { DE: 'ATS-Score & KI-Feedback', EN: 'ATS score & AI feedback' },
-    grad: 'linear-gradient(175deg, #142a45 0%, #091a2c 100%)',
+    grad: 'linear-gradient(175deg, #dceeff 0%, #c8e3ff 100%)',
     accent: '#378ADD',
     href: '/app/career-scan',
     hover: {
@@ -29,7 +29,7 @@ const features = [
     icon: <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="7" width="13" height="11" rx="2"/><path d="M9 7V5a2 2 0 0 1 4 0v2"/><circle cx="18.5" cy="9.5" r="3"/><line x1="20.6" y1="11.6" x2="22.5" y2="13.5"/></svg>,
     name: { DE: 'Job-Suche', EN: 'Job Search' },
     desc: { DE: '186k+ DACH-Stellen', EN: '186k+ DACH roles' },
-    grad: 'linear-gradient(175deg, #0b2b1e 0%, #061812 100%)',
+    grad: 'linear-gradient(175deg, #d1fae5 0%, #a7f3d0 100%)',
     accent: '#10b981',
     href: '/app/jobs',
     hover: {
@@ -41,7 +41,7 @@ const features = [
     icon: <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>,
     name: { DE: 'CV Builder', EN: 'CV Builder' },
     desc: { DE: 'Auf jede Stelle zugeschnitten', EN: 'Tailored to every role' },
-    grad: 'linear-gradient(175deg, #231640 0%, #130c26 100%)',
+    grad: 'linear-gradient(175deg, #ede9fe 0%, #ddd6fe 100%)',
     accent: '#8b5cf6',
     href: '/app/cv-builder',
     hover: {
@@ -53,7 +53,7 @@ const features = [
     icon: <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>,
     name: { DE: 'Anschreiben', EN: 'Cover Letter' },
     desc: { DE: 'Überzeugend & persönlich', EN: 'Personal & persuasive' },
-    grad: 'linear-gradient(175deg, #2c1e07 0%, #1a1205 100%)',
+    grad: 'linear-gradient(175deg, #fef3c7 0%, #fde68a 100%)',
     accent: '#f59e0b',
     href: '/app/cv-builder',
     hover: {
@@ -65,7 +65,7 @@ const features = [
     icon: <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>,
     name: { DE: 'Auto Apply', EN: 'Auto Apply' },
     desc: { DE: 'Automatisch bewerben', EN: 'Apply on autopilot' },
-    grad: 'linear-gradient(175deg, #141840 0%, #0b0e28 100%)',
+    grad: 'linear-gradient(175deg, #e0e7ff 0%, #c7d2fe 100%)',
     accent: '#6366f1',
     href: '/app/auto-apply',
     hover: {
@@ -77,7 +77,7 @@ const features = [
     icon: <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/><circle cx="17" cy="8" r="2"/><path d="M17 10v3"/></svg>,
     name: { DE: 'Job Case', EN: 'Job Case' },
     desc: { DE: 'Video-Bewerbung & Beweis', EN: 'Video pitch & proof' },
-    grad: 'linear-gradient(175deg, #0f2318 0%, #081410 100%)',
+    grad: 'linear-gradient(175deg, #dcfce7 0%, #bbf7d0 100%)',
     accent: '#22c55e',
     href: '/app/job-case',
     hover: {
@@ -89,7 +89,7 @@ const features = [
     icon: <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>,
     name: { DE: 'Kira AI', EN: 'Kira AI' },
     desc: { DE: 'Dein Karriere-Coach', EN: 'Your career coach' },
-    grad: 'linear-gradient(175deg, #30102a 0%, #1c0919 100%)',
+    grad: 'linear-gradient(175deg, #fce7f3 0%, #fbcfe8 100%)',
     accent: '#ec4899',
     href: '/app/ai',
     hover: {
@@ -163,7 +163,7 @@ export default function HeroDACH({ lang, user }: Props) {
         .ticker-track-a:hover, .ticker-track-b:hover { animation-play-state: paused; }
       `}</style>
 
-      <div style={{ background:'linear-gradient(145deg,#030f1c 0%,#04111f 50%,#071929 100%)', minHeight:'88vh', display:'flex', flexDirection:'column', alignItems:'stretch', overflow:'hidden', position:'relative' }}>
+      <div style={{ background:'linear-gradient(145deg,#f8faff 0%,#eef4ff 50%,#f0f6ff 100%)', minHeight:'88vh', display:'flex', flexDirection:'column', alignItems:'stretch', overflow:'hidden', position:'relative' }}>
         {/* inner wrapper provides vertical centering for the grid — ticker sits below */}
         <div style={{ flex:1, display:'flex', alignItems:'center' }}>
         {/* ambient glow — shifts color when hovering */}
@@ -197,11 +197,11 @@ export default function HeroDACH({ lang, user }: Props) {
                   <span style={{ width:6, height:6, borderRadius:'50%', background:feat!.accent, display:'inline-block', boxShadow:`0 0 6px ${feat!.accent}` }} />
                   <span style={{ fontSize:11, fontWeight:700, color:feat!.accent, letterSpacing:1.2, textTransform:'uppercase' as const }}>{hc.tag}</span>
                 </div>
-                <h1 style={{ fontFamily:f.heading, fontSize:'clamp(26px,3.5vw,46px)', fontWeight:800, color:'#fff', lineHeight:1.1, letterSpacing:-1.2, margin:'0 0 20px' }}>
+                <h1 style={{ fontFamily:f.heading, fontSize:'clamp(26px,3.5vw,46px)', fontWeight:800, color:'#1a2332', lineHeight:1.1, letterSpacing:-1.2, margin:'0 0 20px' }}>
                   {hc.h1.split(' ').slice(0, Math.ceil(hc.h1.split(' ').length / 2)).join(' ')}<br />
                   <span style={{ color:feat!.accent }}>{hc.h1.split(' ').slice(Math.ceil(hc.h1.split(' ').length / 2)).join(' ')}</span>
                 </h1>
-                <p style={{ fontSize:15, color:'rgba(255,255,255,0.75)', lineHeight:1.8, margin:'0 0 34px', maxWidth:400 }}>{hc.sub}</p>
+                <p style={{ fontSize:15, color:'#4a5568', lineHeight:1.8, margin:'0 0 34px', maxWidth:400 }}>{hc.sub}</p>
                 <Link href={go(feat!.href)} style={{ display:'inline-block', background:feat!.accent, color:'#fff', padding:'14px 30px', borderRadius:10, fontFamily:f.heading, fontWeight:700, fontSize:15, textDecoration:'none', boxShadow:`0 4px 20px ${feat!.accent}40`, letterSpacing:-0.2 }}>
                   {hc.cta}
                 </Link>
@@ -210,7 +210,7 @@ export default function HeroDACH({ lang, user }: Props) {
               /* Default hero state */
               <>
                 {user ? (
-                  <div style={{ fontSize:14, color:c.accent, fontWeight:600, marginBottom:26 }}>
+                  <div style={{ fontSize:14, color:'#378ADD', fontWeight:600, marginBottom:26 }}>
                     {isDE ? `Willkommen zurück, ${user.name} 👋` : `Welcome back, ${user.name} 👋`}
                   </div>
                 ) : (
@@ -221,10 +221,10 @@ export default function HeroDACH({ lang, user }: Props) {
                     </span>
                   </div>
                 )}
-                <h1 style={{ fontFamily:f.heading, fontSize:'clamp(30px,4vw,54px)', fontWeight:800, color:'#fff', lineHeight:1.08, letterSpacing:-1.5, margin:'0 0 22px' }}>
-                  {isDE ? <><span style={{ color:'rgba(255,255,255,0.92)' }}>Der klügste Weg</span><br /><span style={{ color:c.accent }}>zu deinem Job.</span></> : <><span style={{ color:'rgba(255,255,255,0.92)' }}>The smartest way</span><br /><span style={{ color:c.accent }}>to your next job.</span></>}
+                <h1 style={{ fontFamily:f.heading, fontSize:'clamp(30px,4vw,54px)', fontWeight:800, color:'#1a2332', lineHeight:1.08, letterSpacing:-1.5, margin:'0 0 22px' }}>
+                  {isDE ? <><span style={{ color:'#1a2332' }}>Der klügste Weg</span><br /><span style={{ color:c.accent }}>zu deinem Job.</span></> : <><span style={{ color:'#1a2332' }}>The smartest way</span><br /><span style={{ color:c.accent }}>to your next job.</span></>}
                 </h1>
-                <p style={{ fontSize:16, color:'rgba(255,255,255,0.72)', lineHeight:1.8, margin:'0 0 38px', maxWidth:390 }}>
+                <p style={{ fontSize:16, color:'#4a5568', lineHeight:1.8, margin:'0 0 38px', maxWidth:390 }}>
                   {isDE
                     ? 'KI-Lebenslaufanalyse, DACH-Jobsuche, maßgeschneidertes Anschreiben und Auto-Bewerbung — alles in einer Plattform.'
                     : 'AI CV scan, DACH job search, tailored cover letter and Auto Apply — one platform, end to end.'}
@@ -233,11 +233,11 @@ export default function HeroDACH({ lang, user }: Props) {
                   <Link href={go('/app/career-scan')} style={{ display:'inline-block', background:c.accent, color:'#fff', padding:'15px 32px', borderRadius:10, fontFamily:f.heading, fontWeight:700, fontSize:15, textDecoration:'none', boxShadow:'0 4px 24px rgba(55,138,221,0.38)', letterSpacing:-0.2 }}>
                     {isDE ? 'Kostenlos starten →' : 'Get started free →'}
                   </Link>
-                  <Link href="#how-it-works" style={{ display:'inline-block', background:'rgba(255,255,255,0.06)', color:'rgba(255,255,255,0.65)', padding:'15px 28px', borderRadius:10, fontFamily:f.heading, fontWeight:600, fontSize:15, textDecoration:'none', border:'1px solid rgba(255,255,255,0.09)' }}>
+                  <Link href="#how-it-works" style={{ display:'inline-block', background:'rgba(55,138,221,0.06)', color:'#4a5568', padding:'15px 28px', borderRadius:10, fontFamily:f.heading, fontWeight:600, fontSize:15, textDecoration:'none', border:'1px solid rgba(55,138,221,0.18)' }}>
                     {isDE ? 'So funktioniert es' : 'How it works'}
                   </Link>
                 </div>
-                <p style={{ fontSize:12, color:'rgba(255,255,255,0.55)', marginTop:24, lineHeight:1.8 }}>
+                <p style={{ fontSize:12, color:'#6b7c93', marginTop:24, lineHeight:1.8 }}>
                   {isDE ? '✓ 5 kostenlose Credits  ·  ✓ Keine Kreditkarte  ·  ✓ Start in 30 Sekunden' : '✓ 5 free credits  ·  ✓ No card needed  ·  ✓ Up in 30 seconds'}
                 </p>
               </>
@@ -254,17 +254,17 @@ export default function HeroDACH({ lang, user }: Props) {
                   className={`hero-panel${i === 0 ? ' hero-panel-first' : ''}`}
                   onMouseEnter={() => handleEnter(i)}
                   onMouseLeave={handleLeave}
-                  style={{ flex:'0 0 auto', width:112, marginLeft:i===0?0:-24, background:feat.grad, borderRadius:18, border:`1px solid ${feat.accent}1a`, transform:'skewX(-6deg)', display:'flex', flexDirection:'column' as const, alignItems:'center', justifyContent:'center', padding:'0 12px', textDecoration:'none', boxShadow:`0 16px 48px rgba(0,0,0,0.38), inset 0 1px 0 rgba(255,255,255,0.04)`, position:'relative', overflow:'hidden', zIndex:features.length-i }}
+                  style={{ flex:'0 0 auto', width:112, marginLeft:i===0?0:-24, background:feat.grad, borderRadius:18, border:`1px solid ${feat.accent}40`, transform:'skewX(-6deg)', display:'flex', flexDirection:'column' as const, alignItems:'center', justifyContent:'center', padding:'0 12px', textDecoration:'none', boxShadow:`0 8px 32px rgba(55,138,221,0.12), inset 0 1px 0 rgba(255,255,255,0.6)`, position:'relative', overflow:'hidden', zIndex:features.length-i }}
                 >
                   <div className="panel-bar" style={{ position:'absolute', top:0, left:0, right:0, height:3, background:`linear-gradient(90deg,transparent,${feat.accent},transparent)`, opacity:0.45, transition:'opacity 0.25s' }} />
-                  <div style={{ position:'absolute', bottom:0, left:0, right:0, height:80, background:'linear-gradient(0deg,rgba(0,0,0,0.35) 0%,transparent 100%)', pointerEvents:'none' }} />
+                  <div style={{ position:'absolute', bottom:0, left:0, right:0, height:80, background:'linear-gradient(0deg,rgba(0,0,0,0.06) 0%,transparent 100%)', pointerEvents:'none' }} />
                   <div className="panel-content" style={{ transform:'skewX(6deg)', display:'flex', flexDirection:'column' as const, alignItems:'center', gap:14, textAlign:'center' as const }}>
                     <div className="panel-icon" style={{ width:50, height:50, borderRadius:14, background:`${feat.accent}16`, border:`1px solid ${feat.accent}30`, color:feat.accent, display:'flex', alignItems:'center', justifyContent:'center', boxShadow:`0 4px 18px ${feat.accent}18` }}>
                       {feat.icon}
                     </div>
                     <div>
-                      <div className="panel-name" style={{ fontFamily:f.heading, fontSize:12, fontWeight:700, color:'#fff', marginBottom:6, lineHeight:1.3 }}>{feat.name[lang]}</div>
-                      <div className="panel-desc" style={{ fontSize:10, color:'rgba(255,255,255,0.62)', lineHeight:1.55, maxWidth:80 }}>{feat.desc[lang]}</div>
+                      <div className="panel-name" style={{ fontFamily:f.heading, fontSize:12, fontWeight:700, color:'#1a2332', marginBottom:6, lineHeight:1.3 }}>{feat.name[lang]}</div>
+                      <div className="panel-desc" style={{ fontSize:10, color:'#4a5568', lineHeight:1.55, maxWidth:80 }}>{feat.desc[lang]}</div>
                     </div>
                   </div>
                 </Link>
@@ -288,8 +288,8 @@ export default function HeroDACH({ lang, user }: Props) {
             )`,
           }} />
           {/* Left/right fade masks */}
-          <div style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: 48, zIndex: 3, background: 'linear-gradient(90deg, #030f1c 0%, transparent 100%)', pointerEvents: 'none' }} />
-          <div style={{ position: 'absolute', right: 0, top: 0, bottom: 0, width: 48, zIndex: 3, background: 'linear-gradient(270deg, #030f1c 0%, transparent 100%)', pointerEvents: 'none' }} />
+          <div style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: 48, zIndex: 3, background: 'linear-gradient(90deg, #f0f6ff 0%, transparent 100%)', pointerEvents: 'none' }} />
+          <div style={{ position: 'absolute', right: 0, top: 0, bottom: 0, width: 48, zIndex: 3, background: 'linear-gradient(270deg, #f0f6ff 0%, transparent 100%)', pointerEvents: 'none' }} />
 
           {/* Row A — scrolls left */}
           <div style={{ overflow: 'hidden', padding: '14px 0 8px' }}>
@@ -298,8 +298,8 @@ export default function HeroDACH({ lang, user }: Props) {
                 <div key={i} style={{ display: 'inline-flex', alignItems: 'center', gap: 10, padding: '8px 18px', marginRight: 10, borderRadius: 10, background: `${f.accent}12`, border: `1px solid ${f.accent}28`, flexShrink: 0 }}>
                   <div style={{ color: f.accent, display: 'flex', alignItems: 'center', flexShrink: 0 }}>{f.icon}</div>
                   <div>
-                    <div style={{ fontFamily: fonts.heading, fontSize: 12, fontWeight: 700, color: '#fff', whiteSpace: 'nowrap' as const }}>{f.name[lang]}</div>
-                    <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.62)', whiteSpace: 'nowrap' as const }}>{f.desc[lang]}</div>
+                    <div style={{ fontFamily: fonts.heading, fontSize: 12, fontWeight: 700, color: '#1a2332', whiteSpace: 'nowrap' as const }}>{f.name[lang]}</div>
+                    <div style={{ fontSize: 10, color: '#4a5568', whiteSpace: 'nowrap' as const }}>{f.desc[lang]}</div>
                   </div>
                 </div>
               ))}
@@ -313,8 +313,8 @@ export default function HeroDACH({ lang, user }: Props) {
                 <div key={i} style={{ display: 'inline-flex', alignItems: 'center', gap: 10, padding: '8px 18px', marginRight: 10, borderRadius: 10, background: `${f.accent}0c`, border: `1px solid ${f.accent}20`, flexShrink: 0 }}>
                   <div style={{ color: f.accent, display: 'flex', alignItems: 'center', flexShrink: 0 }}>{f.icon}</div>
                   <div>
-                    <div style={{ fontFamily: fonts.heading, fontSize: 12, fontWeight: 700, color: 'rgba(255,255,255,0.75)', whiteSpace: 'nowrap' as const }}>{f.name[lang]}</div>
-                    <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)', whiteSpace: 'nowrap' as const }}>{f.desc[lang]}</div>
+                    <div style={{ fontFamily: fonts.heading, fontSize: 12, fontWeight: 700, color: '#1a2332', whiteSpace: 'nowrap' as const }}>{f.name[lang]}</div>
+                    <div style={{ fontSize: 10, color: '#6b7c93', whiteSpace: 'nowrap' as const }}>{f.desc[lang]}</div>
                   </div>
                 </div>
               ))}
