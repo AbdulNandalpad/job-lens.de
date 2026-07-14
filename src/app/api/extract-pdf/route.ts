@@ -74,7 +74,9 @@ export async function POST(req: NextRequest) {
       },
       body: JSON.stringify({
         model: 'claude-haiku-4-5-20251001',
-        max_tokens: 4000,
+        // 4000 was truncating longer (2+ page) CVs mid-extraction, which then fed
+        // a half-CV into every downstream feature (tailoring, career scan, etc).
+        max_tokens: 8000,
         messages: [
           {
             role: 'user',

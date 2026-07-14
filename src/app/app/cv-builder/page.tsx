@@ -833,9 +833,16 @@ export default function CVBuilderPage() {
 
   function useSavedCvNow() {
     if (!savedCvText) return
+    const name = savedCvFileName || (lang === 'DE' ? 'Gespeicherter Lebenslauf' : 'Saved CV')
     setCvText(savedCvText)
-    setCvFileName(savedCvFileName || (lang === 'DE' ? 'Gespeicherter Lebenslauf' : 'Saved CV'))
+    setCvFileName(name)
     sessionStorage.setItem(SS.cvText, savedCvText)
+    // Build an object URL for the saved text so the original/generated preview
+    // toggle keeps working, same as a fresh upload does.
+    if (originalFileUrl) URL.revokeObjectURL(originalFileUrl)
+    const blob = new Blob([savedCvText], { type: 'text/plain' })
+    setOriginalFileUrl(URL.createObjectURL(blob))
+    setOriginalFileIsPdf(false)
   }
 
   function toggleSection(id: string) {
