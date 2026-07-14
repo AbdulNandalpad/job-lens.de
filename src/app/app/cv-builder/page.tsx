@@ -39,12 +39,13 @@ interface CVData {
   languages: { name: string; level: number }[]
   tools: string[]
   highlights: string[]
+  matchGaps: { requirement: string; missing: string; workaround: string; idealAddition: string }[]
 }
 
 const EMPTY_CV: CVData = {
   name: '', title: '', tagline: '', email: '', phone: '', location: '', linkedin: '',
   summary: '', stats: [], skills: [], experience: [], education: [],
-  certifications: [], languages: [], tools: [], highlights: []
+  certifications: [], languages: [], tools: [], highlights: [], matchGaps: []
 }
 
 function normalizeCv(data: Partial<CVData>): CVData {
@@ -61,6 +62,7 @@ function normalizeCv(data: Partial<CVData>): CVData {
     languages:      sa(data.languages),
     tools:          sa(data.tools),
     highlights:     sa(data.highlights),
+    matchGaps:      sa(data.matchGaps),
     education:      sa(data.education),
     experience:     sa(data.experience).map((raw) => {
       const e = raw as Partial<CVData['experience'][0]>
@@ -1740,6 +1742,34 @@ export default function CVBuilderPage() {
                 </div>
               )}
             </div>
+
+            {/* Job Match — gap analysis, shown once a job-tailored CV has been generated */}
+            {cvData && cvData.matchGaps.length > 0 && (
+              <div style={{ margin: '4px 16px 16px', padding: '14px', borderRadius: 10, background: 'rgba(245,158,11,0.06)', border: '1px solid rgba(245,158,11,0.25)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 10 }}>
+                  <span style={{ fontSize: 13 }}>⚠</span>
+                  <span style={{ fontSize: 12, fontWeight: 700, color: '#fbbf24' }}>
+                    {lang === 'DE' ? `${cvData.matchGaps.length} Lücke${cvData.matchGaps.length > 1 ? 'n' : ''} zur Stellenanzeige` : `${cvData.matchGaps.length} gap${cvData.matchGaps.length > 1 ? 's' : ''} vs. this job`}
+                  </span>
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                  {cvData.matchGaps.map((gap, i) => (
+                    <div key={i} style={{ paddingBottom: i < cvData.matchGaps.length - 1 ? 10 : 0, borderBottom: i < cvData.matchGaps.length - 1 ? '1px solid rgba(245,158,11,0.15)' : 'none' }}>
+                      <div style={{ fontSize: 11.5, fontWeight: 700, color: '#fcd34d', marginBottom: 4 }}>*** {gap.requirement}</div>
+                      <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.55)', lineHeight: 1.55, marginBottom: 3 }}>
+                        <span style={{ color: 'rgba(255,255,255,0.35)' }}>{lang === 'DE' ? 'Fehlt: ' : 'Missing: '}</span>{gap.missing}
+                      </div>
+                      <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.55)', lineHeight: 1.55, marginBottom: 3 }}>
+                        <span style={{ color: 'rgba(255,255,255,0.35)' }}>{lang === 'DE' ? 'Lösung im CV: ' : 'What we did: '}</span>{gap.workaround}
+                      </div>
+                      <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.55)', lineHeight: 1.55 }}>
+                        <span style={{ color: 'rgba(255,255,255,0.35)' }}>{lang === 'DE' ? 'Ideal wäre: ' : 'Ideally: '}</span>{gap.idealAddition}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
 
           </div>
 
