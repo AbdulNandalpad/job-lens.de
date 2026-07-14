@@ -1,5 +1,7 @@
 # Job-Lens AI — Agent Instructions
 
+> **Active TODO list**: see `PROGRESS.md → Active TODO`. That is the pinned, numbered list of in-flight product/eng work — check it before starting unscoped "what should we work on" tasks, and update its Status column when items are picked up or finished.
+
 ## 1. CRITICAL: Do not hallucinate
 
 Before writing ANY code, check that the thing you are referencing actually exists:

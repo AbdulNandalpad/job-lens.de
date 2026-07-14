@@ -1,5 +1,23 @@
 # Job-Lens — Design Progress
 
+## Active TODO — pinned, tracked until all items are done
+
+Numbering is stable — refer to items by number in future chats so we can pick up where we left off.
+
+| # | Item | Status |
+|---|------|--------|
+| 1 | Tighten CV Builder — better UI/design and better prompts so the tailored CV output is the best possible match for the job | Not started |
+| 2 | Inject intent/context into AI prompts without inflating token usage, and ensure the right CV comes out the other end | Not started |
+| 3 | Add observability and guardrails (logging, tracing, rate/abuse limits, output validation) across AI routes | Not started |
+| 4 | Increase security and data encryption further | Ongoing — app-level AES-256-GCM encryption shipped for `user_memories`, `job_cases`, `proof_items`, `training_feedback`; key rollout + backfill still pending on production |
+| 5 | Give Kira more flexibility (broader tool use / less rigid conversation flow) | Not started |
+| 6 | Tighten job search with the right search parameters | Not started |
+| 7 | Make scanner + CV generation deterministic — same input should give the same output every time, not a different answer per run | Not started |
+| 8 | Fix CV generation styles — correct padding/spacing when a line break occurs | Not started |
+| 9 | Job Case: confetti animation when a case is successfully created | ✅ Done — `src/lib/confetti.ts` (zero-dependency canvas confetti), fired in `src/app/app/job-case/new/page.tsx` on `step === 'done'` |
+
+
+
 ## Done
 
 | Page | Status |

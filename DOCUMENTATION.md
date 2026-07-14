@@ -5,6 +5,8 @@
 **Author:** Munira Nandalpad  
 **Stack:** Next.js 16, Supabase, Anthropic Claude, Vercel
 
+> **Active TODO list**: see `PROGRESS.md → Active TODO` for the pinned, numbered list of in-flight product/eng work (CV Builder quality, prompt/token discipline, observability, security, Kira flexibility, job search params, deterministic AI output, CV render styling, Job Case confetti).
+
 ---
 
 ## 1. Concept & Vision

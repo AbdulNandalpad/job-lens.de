@@ -8,6 +8,7 @@ import { JOB_CASE, SS, API } from '@/lib/constants'
 import { useCredits } from '@/lib/useCredits'
 import AdminGate from '@/components/AdminGate'
 import { useLanguage } from '@/lib/i18n'
+import { fireConfetti } from '@/lib/confetti'
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -641,6 +642,7 @@ export default function JobCaseNewPage() {
   useEffect(() => {
     if (step === 'done') {
       try { sessionStorage.removeItem(SS.jcDraft) } catch {}
+      fireConfetti()
     }
   }, [step])
 
