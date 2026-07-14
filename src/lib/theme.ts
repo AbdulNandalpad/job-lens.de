@@ -55,8 +55,8 @@ export const theme = {
     blur: 'blur(16px)',
   },
   fonts: {
-    body: "'DM Sans', system-ui, sans-serif",
-    heading: "'Outfit', sans-serif",
+    body: "var(--font-dm-sans), system-ui, sans-serif",
+    heading: "var(--font-outfit), system-ui, sans-serif",
   },
   fontSize: {
     xs: 10, sm: 11, base: 12, md: 13, lg: 14, xl: 15, '2xl': 16, '3xl': 18,

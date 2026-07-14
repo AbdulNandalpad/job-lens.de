@@ -204,7 +204,7 @@ function SectionHeader({ icon, title, sub }: { icon: string; title: string; sub:
     <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 20 }}>
       <GlowDot color={blue} />
       <div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 7, fontFamily: "'Outfit',sans-serif", fontSize: 14, fontWeight: 700, color: txt1 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 7, fontFamily: "var(--font-outfit), system-ui, sans-serif", fontSize: 14, fontWeight: 700, color: txt1 }}>
           {getIcon(icon, 14, txt1)}
           {title}
         </div>
@@ -319,7 +319,7 @@ export default function DACHDashboard() {
   const visibleSalaries = salaryExpanded ? salaries : salaries.slice(0, 5)
 
   return (
-    <div style={{ minHeight: '100vh', background: bg, fontFamily: "'DM Sans',sans-serif", color: txt1 }}>
+    <div style={{ minHeight: '100vh', background: bg, fontFamily: "var(--font-dm-sans), system-ui, sans-serif", color: txt1 }}>
       <style>{`
         @keyframes fadeUp { from{opacity:0;transform:translateY(14px)} to{opacity:1;transform:none} }
         @keyframes glow   { 0%,100%{box-shadow:0 0 20px rgba(55,138,221,.15)} 50%{box-shadow:0 0 40px rgba(55,138,221,.4)} }
@@ -416,7 +416,7 @@ export default function DACHDashboard() {
                   <line x1="7" y1="20" x2="33" y2="20" stroke={blue} strokeWidth="0.8" strokeDasharray="2,2" opacity="0.5" />
                   <line x1="28" y1="28" x2="36" y2="36" stroke={blue} strokeWidth="3" strokeLinecap="round" />
                 </svg>
-                <span style={{ fontFamily: "'Outfit',sans-serif", fontSize: 12, fontWeight: 700, color: txt2, letterSpacing: 0.5 }}>
+                <span style={{ fontFamily: "var(--font-outfit), system-ui, sans-serif", fontSize: 12, fontWeight: 700, color: txt2, letterSpacing: 0.5 }}>
                   Job-Lens <span style={{ color: blue }}>AI</span>
                   <span style={{ color: txt3, fontWeight: 400, marginLeft: 7 }}>· DACH Intelligence</span>
                 </span>
@@ -427,7 +427,7 @@ export default function DACHDashboard() {
                   {new Date().toLocaleDateString(lang === 'DE' ? 'de-DE' : 'en-GB', { weekday: 'long', day: 'numeric', month: 'long' })}
                 </span>
               </div>
-              <h1 style={{ margin: 0, fontFamily: "'Outfit',sans-serif", fontSize: 'clamp(20px,4.5vw,30px)', fontWeight: 800, color: txt1, letterSpacing: -0.5 }}>
+              <h1 style={{ margin: 0, fontFamily: "var(--font-outfit), system-ui, sans-serif", fontSize: 'clamp(20px,4.5vw,30px)', fontWeight: 800, color: txt1, letterSpacing: -0.5 }}>
                 {greeting}{firstName ? `, ${firstName}` : ''}
               </h1>
               <p style={{ margin: '5px 0 0', fontSize: 13, color: txt2 }}>
@@ -441,7 +441,7 @@ export default function DACHDashboard() {
               <div className="country-pills-desktop" style={{ display: 'flex', gap: 4, background: 'rgba(55,138,221,.05)', border: `1px solid ${border}`, borderRadius: 12, padding: 4 }}>
                 {COUNTRIES.map(c => (
                   <button key={c.code} className="country-pill" onClick={() => setCountry(c.code)}
-                    style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '7px 13px', borderRadius: 8, border: `1px solid ${country === c.code ? blue : 'transparent'}`, background: country === c.code ? blue + '22' : 'transparent', color: country === c.code ? blue : txt2, fontSize: 12, fontWeight: country === c.code ? 700 : 400, cursor: 'pointer', fontFamily: "'DM Sans',sans-serif" }}>
+                    style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '7px 13px', borderRadius: 8, border: `1px solid ${country === c.code ? blue : 'transparent'}`, background: country === c.code ? blue + '22' : 'transparent', color: country === c.code ? blue : txt2, fontSize: 12, fontWeight: country === c.code ? 700 : 400, cursor: 'pointer', fontFamily: "var(--font-dm-sans), system-ui, sans-serif" }}>
                     <SvgIcon name={c.flag} size={18} />
                     {c.name}
                   </button>
@@ -451,7 +451,7 @@ export default function DACHDashboard() {
                 <select
                   value={country}
                   onChange={e => setCountry(e.target.value as Country)}
-                  style={{ background: 'transparent', border: 'none', color: txt1, fontSize: 13, fontWeight: 700, fontFamily: "'DM Sans',sans-serif", cursor: 'pointer', outline: 'none', padding: '7px 4px' }}>
+                  style={{ background: 'transparent', border: 'none', color: txt1, fontSize: 13, fontWeight: 700, fontFamily: "var(--font-dm-sans), system-ui, sans-serif", cursor: 'pointer', outline: 'none', padding: '7px 4px' }}>
                   {COUNTRIES.map(c => (
                     <option key={c.code} value={c.code} style={{ background: '#fff', color: txt1 }}>
                       {c.code.toUpperCase()} — {c.name}
@@ -466,7 +466,7 @@ export default function DACHDashboard() {
                   style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'rgba(55,138,221,.1)', border: '1px solid rgba(55,138,221,.28)', borderRadius: 12, padding: '8px 16px', cursor: 'pointer', animation: 'glow 3s infinite' }}>
                   <SvgIcon name="lightning" size={18} color={blue} />
                   <div>
-                    <div style={{ fontFamily: "'Outfit',sans-serif", fontSize: 20, fontWeight: 800, color: blue, lineHeight: 1 }}>{totalCredits}</div>
+                    <div style={{ fontFamily: "var(--font-outfit), system-ui, sans-serif", fontSize: 20, fontWeight: 800, color: blue, lineHeight: 1 }}>{totalCredits}</div>
                     <div style={{ fontSize: 10, color: 'rgba(55,138,221,.55)', letterSpacing: 0.5 }}>CREDITS</div>
                   </div>
                 </div>
@@ -475,7 +475,7 @@ export default function DACHDashboard() {
               {/* Customize */}
               <button
                 onClick={() => setShowCustomize(p => !p)}
-                style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '10px 16px', borderRadius: 12, border: `1px solid ${showCustomize ? blue + '80' : border}`, background: showCustomize ? blue + '18' : '#fff', color: showCustomize ? blue : txt2, fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: "'DM Sans',sans-serif", transition: 'all .2s' }}>
+                style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '10px 16px', borderRadius: 12, border: `1px solid ${showCustomize ? blue + '80' : border}`, background: showCustomize ? blue + '18' : '#fff', color: showCustomize ? blue : txt2, fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: "var(--font-dm-sans), system-ui, sans-serif", transition: 'all .2s' }}>
                 <svg width="13" height="13" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="10" cy="10" r="3"/><path d="M10 1v2M10 17v2M1 10h2M17 10h2M3.5 3.5l1.4 1.4M15.1 15.1l1.4 1.4M3.5 16.5l1.4-1.4M15.1 4.9l1.4-1.4"/></svg>
                 {t('Anpassen', 'Customize')}
               </button>
@@ -491,7 +491,7 @@ export default function DACHDashboard() {
 
               {/* Sign Out */}
               <button onClick={signOut}
-                style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '10px 16px', borderRadius: 12, border: `1px solid ${border}`, background: '#fff', color: txt3, fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: "'DM Sans',sans-serif", transition: 'all .2s' }}>
+                style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '10px 16px', borderRadius: 12, border: `1px solid ${border}`, background: '#fff', color: txt3, fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: "var(--font-dm-sans), system-ui, sans-serif", transition: 'all .2s' }}>
                 ↩ {t('Abmelden', 'Sign Out')}
               </button>
             </div>
@@ -504,10 +504,10 @@ export default function DACHDashboard() {
         <div style={{ background: 'rgba(55,138,221,.04)', borderBottom: `1px solid ${border}`, padding: '18px 28px' }}>
           <div style={{ maxWidth: 1100, margin: '0 auto' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
-              <span style={{ fontFamily: "'Outfit',sans-serif", fontSize: 13, fontWeight: 700, color: txt1 }}>
+              <span style={{ fontFamily: "var(--font-outfit), system-ui, sans-serif", fontSize: 13, fontWeight: 700, color: txt1 }}>
                 {t('Widgets auswählen', 'Choose your widgets')}
               </span>
-              <button onClick={resetDefaults} style={{ fontSize: 11, color: txt3, background: 'none', border: `1px solid ${border}`, borderRadius: 6, padding: '4px 10px', cursor: 'pointer', fontFamily: "'DM Sans',sans-serif" }}>
+              <button onClick={resetDefaults} style={{ fontSize: 11, color: txt3, background: 'none', border: `1px solid ${border}`, borderRadius: 6, padding: '4px 10px', cursor: 'pointer', fontFamily: "var(--font-dm-sans), system-ui, sans-serif" }}>
                 {t('Alle entfernen', 'Clear all')}
               </button>
             </div>
@@ -516,7 +516,7 @@ export default function DACHDashboard() {
                 const on = isVisible(w.id)
                 return (
                   <button key={w.id} onClick={() => toggle(w.id)}
-                    style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '8px 14px', borderRadius: 20, border: `1px solid ${on ? blue + '60' : border}`, background: on ? blue + '18' : '#fff', color: on ? blue : txt2, fontSize: 12, fontWeight: on ? 700 : 400, cursor: 'pointer', fontFamily: "'DM Sans',sans-serif", transition: 'all .15s' }}>
+                    style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '8px 14px', borderRadius: 20, border: `1px solid ${on ? blue + '60' : border}`, background: on ? blue + '18' : '#fff', color: on ? blue : txt2, fontSize: 12, fontWeight: on ? 700 : 400, cursor: 'pointer', fontFamily: "var(--font-dm-sans), system-ui, sans-serif", transition: 'all .15s' }}>
                     <SvgIcon name={w.icon as Parameters<typeof SvgIcon>[0]['name']} size={13} color="currentColor" />
                     {w.label}
                     {on && <span style={{ fontSize: 10, opacity: .7 }}>✓</span>}
@@ -558,7 +558,7 @@ export default function DACHDashboard() {
               },
             ]).map(card => (
               <button key={card.href} onClick={() => router.push(card.href)}
-                style={{ background: `linear-gradient(135deg,${card.color}18,${card.color}08)`, border: `1.5px solid ${card.color}40`, borderRadius: 18, padding: '24px 20px', cursor: 'pointer', textAlign: 'left' as const, fontFamily: "'DM Sans',sans-serif", transition: 'all .2s', width: '100%' }}
+                style={{ background: `linear-gradient(135deg,${card.color}18,${card.color}08)`, border: `1.5px solid ${card.color}40`, borderRadius: 18, padding: '24px 20px', cursor: 'pointer', textAlign: 'left' as const, fontFamily: "var(--font-dm-sans), system-ui, sans-serif", transition: 'all .2s', width: '100%' }}
                 onMouseEnter={e => { e.currentTarget.style.borderColor = card.color; e.currentTarget.style.background = `linear-gradient(135deg,${card.color}28,${card.color}12)` }}
                 onMouseLeave={e => { e.currentTarget.style.borderColor = `${card.color}40`; e.currentTarget.style.background = `linear-gradient(135deg,${card.color}18,${card.color}08)` }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
@@ -567,7 +567,7 @@ export default function DACHDashboard() {
                   </div>
                   <span style={{ fontSize: 10, fontWeight: 700, color: card.color, background: `${card.color}15`, padding: '3px 10px', borderRadius: 20, letterSpacing: 0.5 }}>{card.step}</span>
                 </div>
-                <div style={{ fontFamily: "'Outfit',sans-serif", fontSize: 17, fontWeight: 700, color: txt1, marginBottom: 6 }}>{card.title}</div>
+                <div style={{ fontFamily: "var(--font-outfit), system-ui, sans-serif", fontSize: 17, fontWeight: 700, color: txt1, marginBottom: 6 }}>{card.title}</div>
                 <div style={{ fontSize: 13, color: txt2, lineHeight: 1.55 }}>{card.desc}</div>
                 <div style={{ marginTop: 16, fontSize: 12, color: card.color, fontWeight: 600 }}>{card.cta}</div>
               </button>
@@ -590,7 +590,7 @@ export default function DACHDashboard() {
               { label: t('Zeugnis',     'Zeugnis'),      icon: 'flag-de'  as IconName, href: '/app/zeugnis'      },
             ] as { label: string; icon: IconName; href: string }[]).map(a => (
               <button key={a.href} onClick={() => router.push(a.href)}
-                style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 12px', borderRadius: 10, border: `1px solid ${border}`, background: '#fff', color: txt2, fontSize: 12, fontWeight: 500, cursor: 'pointer', fontFamily: "'DM Sans',sans-serif", transition: 'all .15s', textAlign: 'left' as const }}
+                style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 12px', borderRadius: 10, border: `1px solid ${border}`, background: '#fff', color: txt2, fontSize: 12, fontWeight: 500, cursor: 'pointer', fontFamily: "var(--font-dm-sans), system-ui, sans-serif", transition: 'all .15s', textAlign: 'left' as const }}
                 onMouseEnter={e => { e.currentTarget.style.borderColor = blue + '60'; e.currentTarget.style.color = blue }}
                 onMouseLeave={e => { e.currentTarget.style.borderColor = border; e.currentTarget.style.color = txt2 }}>
                 <SvgIcon name={a.icon} size={15} color="currentColor" />
@@ -612,7 +612,7 @@ export default function DACHDashboard() {
                   <span style={{ fontSize: 10, fontWeight: 600, color: txt3, letterSpacing: 0.7, textTransform: 'uppercase' }}>{k.label}</span>
                   <div style={{ width: 32, height: 32, borderRadius: 9, background: `${k.color}15`, border: `1px solid ${k.color}28`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><SvgIcon name={k.icon} size={15} color={k.color} /></div>
                 </div>
-                <div style={{ fontFamily: "'Outfit',sans-serif", fontSize: 26, fontWeight: 800, color: k.color, lineHeight: 1, letterSpacing: -0.5 }}>{k.value}</div>
+                <div style={{ fontFamily: "var(--font-outfit), system-ui, sans-serif", fontSize: 26, fontWeight: 800, color: k.color, lineHeight: 1, letterSpacing: -0.5 }}>{k.value}</div>
                 <div style={{ fontSize: 11, color: txt3, marginTop: 6 }}>{k.sub}</div>
               </div>
             ))}
@@ -703,7 +703,7 @@ export default function DACHDashboard() {
                     <SvgIcon name={ind.icon} size={22} color={tc} />
                     <span style={{ fontSize: 12, fontWeight: 700, color: tc, background: `${tc}18`, padding: '2px 8px', borderRadius: 20 }}>{arr}</span>
                   </div>
-                  <div style={{ fontFamily: "'Outfit',sans-serif", fontSize: 28, fontWeight: 800, color: tc, lineHeight: 1 }}>{ind.value}{ind.unit}</div>
+                  <div style={{ fontFamily: "var(--font-outfit), system-ui, sans-serif", fontSize: 28, fontWeight: 800, color: tc, lineHeight: 1 }}>{ind.value}{ind.unit}</div>
                   <div style={{ fontSize: 12, color: txt2, marginTop: 6 }}>{ind.label}</div>
                   <div style={{ fontSize: 10, color: txt3, marginTop: 2 }}>{ind.year}</div>
                 </div>

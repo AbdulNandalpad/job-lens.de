@@ -1,5 +1,5 @@
 'use client'
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 import Link from 'next/link'
 import { theme } from '@/lib/theme'
 
@@ -105,13 +105,22 @@ export default function HeroDACH({ lang, user }: Props) {
 
   const [displayIdx, setDisplayIdx] = useState<number | null>(null)
   const [fading, setFading] = useState(false)
+  const [hoverIdx, setHoverIdx] = useState<number | null>(null)
+  const [mounted, setMounted] = useState(false)
+
+  useEffect(() => {
+    const t = setTimeout(() => setMounted(true), 60)
+    return () => clearTimeout(t)
+  }, [])
 
   const handleEnter = useCallback((idx: number) => {
+    setHoverIdx(idx)
     setFading(true)
     setTimeout(() => { setDisplayIdx(idx); setFading(false) }, 140)
   }, [])
 
   const handleLeave = useCallback(() => {
+    setHoverIdx(null)
     setFading(true)
     setTimeout(() => { setDisplayIdx(null); setFading(false) }, 140)
   }, [])
@@ -123,10 +132,13 @@ export default function HeroDACH({ lang, user }: Props) {
     <>
       <style>{`
         .hero-panel {
-          transition: transform 0.28s cubic-bezier(0.34,1.56,0.64,1), box-shadow 0.28s ease;
+          transition: transform 0.4s cubic-bezier(0.34,1.56,0.64,1), box-shadow 0.28s ease, opacity 0.5s ease;
         }
-        .hero-panel:hover { transform: skewX(-6deg) translateY(-14px) !important; z-index: 10 !important; }
-        .hero-panel:hover .panel-bar { opacity: 1 !important; }
+        @keyframes iconBob {
+          0%,100% { transform: translateY(0); }
+          50% { transform: translateY(-4px); }
+        }
+        .panel-icon { animation: iconBob 2.8s ease-in-out infinite; }
 
         /* Desktop: show panels, hide ticker */
         .hero-mobile-ticker { display: none; }
@@ -248,19 +260,36 @@ export default function HeroDACH({ lang, user }: Props) {
           {/* ── Right: slanted vertical panels (desktop only) ── */}
           <div className="hero-dach-panels" style={{ display:'flex', justifyContent:'flex-end' }}>
             <div className="hero-panels-inner" style={{ display:'flex', height:460, alignItems:'stretch' }}>
-              {features.map((feat, i) => (
+              {features.map((feat, i) => {
+                const isHover = hoverIdx === i
+                const dist = hoverIdx === null ? 0 : i - hoverIdx
+                const pushX = dist === 0 ? 0 : Math.sign(dist) * Math.max(0, 20 - Math.abs(dist) * 5)
+                const liftY = isHover ? -18 : hoverIdx !== null ? -3 : 0
+                const scale = isHover ? 1.04 : 1
+                const entranceX = mounted ? 0 : 36
+                const entranceOpacity = mounted ? 1 : 0
+                return (
                 <Link
                   key={i}
                   href={go(feat.href)}
                   className={`hero-panel${i === 0 ? ' hero-panel-first' : ''}`}
                   onMouseEnter={() => handleEnter(i)}
                   onMouseLeave={handleLeave}
-                  style={{ flex:'0 0 auto', width:112, marginLeft:i===0?0:-24, background:feat.grad, borderRadius:18, border:`1px solid ${feat.accent}40`, transform:'skewX(-6deg)', display:'flex', flexDirection:'column' as const, alignItems:'center', justifyContent:'center', padding:'0 12px', textDecoration:'none', boxShadow:`0 8px 32px rgba(55,138,221,0.12), inset 0 1px 0 rgba(255,255,255,0.6)`, position:'relative', overflow:'hidden', zIndex:features.length-i }}
+                  style={{
+                    flex:'0 0 auto', width:112, marginLeft:i===0?0:-24, background:feat.grad, borderRadius:18,
+                    border:`1px solid ${feat.accent}40`,
+                    transform:`skewX(-6deg) translate(${pushX + entranceX}px, ${liftY}px) scale(${scale})`,
+                    opacity:entranceOpacity,
+                    transitionDelay: mounted ? '0s' : `${i * 70}ms`,
+                    display:'flex', flexDirection:'column' as const, alignItems:'center', justifyContent:'center', padding:'0 12px', textDecoration:'none',
+                    boxShadow: isHover ? `0 20px 44px ${feat.accent}30, inset 0 1px 0 rgba(255,255,255,0.7)` : `0 8px 32px rgba(55,138,221,0.12), inset 0 1px 0 rgba(255,255,255,0.6)`,
+                    position:'relative', overflow:'hidden', zIndex: isHover ? 20 : features.length-i,
+                  }}
                 >
-                  <div className="panel-bar" style={{ position:'absolute', top:0, left:0, right:0, height:3, background:`linear-gradient(90deg,transparent,${feat.accent},transparent)`, opacity:0.45, transition:'opacity 0.25s' }} />
+                  <div className="panel-bar" style={{ position:'absolute', top:0, left:0, right:0, height:3, background:`linear-gradient(90deg,transparent,${feat.accent},transparent)`, opacity:isHover?1:0.45, transition:'opacity 0.25s' }} />
                   <div style={{ position:'absolute', bottom:0, left:0, right:0, height:80, background:'linear-gradient(0deg,rgba(0,0,0,0.06) 0%,transparent 100%)', pointerEvents:'none' }} />
                   <div className="panel-content" style={{ transform:'skewX(6deg)', display:'flex', flexDirection:'column' as const, alignItems:'center', gap:16, textAlign:'center' as const }}>
-                    <div className="panel-icon" style={{ width:50, height:50, borderRadius:14, background:`${feat.accent}16`, border:`1px solid ${feat.accent}30`, color:feat.accent, display:'flex', alignItems:'center', justifyContent:'center', boxShadow:`0 4px 18px ${feat.accent}18` }}>
+                    <div className="panel-icon" style={{ width:50, height:50, borderRadius:14, background:`${feat.accent}16`, border:`1px solid ${feat.accent}30`, color:feat.accent, display:'flex', alignItems:'center', justifyContent:'center', boxShadow:`0 4px 18px ${feat.accent}18`, animationDelay:`${i * 0.18}s` }}>
                       {feat.icon}
                     </div>
                     <div>
@@ -269,7 +298,8 @@ export default function HeroDACH({ lang, user }: Props) {
                     </div>
                   </div>
                 </Link>
-              ))}
+                )
+              })}
             </div>
           </div>
         </div>
