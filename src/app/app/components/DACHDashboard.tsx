@@ -315,6 +315,13 @@ export default function DACHDashboard() {
 
   const cardStyle: React.CSSProperties = { background: card, border: `1px solid ${border}`, borderRadius: 20, padding: '22px 24px' }
 
+  // Light-on-dark tokens for the dark navy hero bar only — the rest of the page stays light theme
+  const heroText1  = '#ffffff'
+  const heroText2  = 'rgba(255,255,255,0.78)'
+  const heroText3  = 'rgba(255,255,255,0.55)'
+  const heroBorder = 'rgba(255,255,255,0.16)'
+  const heroCard   = 'rgba(255,255,255,0.08)'
+
   const visibleSectors = sectorsExpanded ? sectors : sectors.slice(0, 5)
   const visibleSalaries = salaryExpanded ? salaries : salaries.slice(0, 5)
 
@@ -331,10 +338,10 @@ export default function DACHDashboard() {
           background-size:52px 52px;
         }
         .dash-hero {
-          background:linear-gradient(135deg,#eef4ff 0%,#f0f6ff 55%,#e8f0fb 100%);
+          background:linear-gradient(135deg,#042C53 0%,#0d3f72 55%,#083761 100%);
           padding:32px 28px 36px;
           position:relative; overflow:hidden;
-          border-bottom:1px solid ${border};
+          border-bottom:1px solid rgba(255,255,255,0.08);
         }
         /* KPI */
         .kpi-grid { display:grid;grid-template-columns:repeat(6,1fr);gap:14px;margin-bottom:24px }
@@ -416,21 +423,21 @@ export default function DACHDashboard() {
                   <line x1="7" y1="20" x2="33" y2="20" stroke={blue} strokeWidth="0.8" strokeDasharray="2,2" opacity="0.5" />
                   <line x1="28" y1="28" x2="36" y2="36" stroke={blue} strokeWidth="3" strokeLinecap="round" />
                 </svg>
-                <span style={{ fontFamily: "var(--font-outfit), system-ui, sans-serif", fontSize: 12, fontWeight: 700, color: txt2, letterSpacing: 0.5 }}>
-                  Job-Lens <span style={{ color: blue }}>AI</span>
-                  <span style={{ color: txt3, fontWeight: 400, marginLeft: 7 }}>· DACH Intelligence</span>
+                <span style={{ fontFamily: "var(--font-outfit), system-ui, sans-serif", fontSize: 12, fontWeight: 700, color: heroText2, letterSpacing: 0.5 }}>
+                  Job-Lens <span style={{ color: '#85B7EB' }}>AI</span>
+                  <span style={{ color: heroText3, fontWeight: 400, marginLeft: 7 }}>· DACH Intelligence</span>
                 </span>
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
                 <GlowDot color={emerald} />
-                <span style={{ fontSize: 11, color: txt3, letterSpacing: 0.8, textTransform: 'uppercase' }}>
+                <span style={{ fontSize: 11, color: heroText3, letterSpacing: 0.8, textTransform: 'uppercase' }}>
                   {new Date().toLocaleDateString(lang === 'DE' ? 'de-DE' : 'en-GB', { weekday: 'long', day: 'numeric', month: 'long' })}
                 </span>
               </div>
-              <h1 style={{ margin: 0, fontFamily: "var(--font-outfit), system-ui, sans-serif", fontSize: 'clamp(20px,4.5vw,30px)', fontWeight: 800, color: txt1, letterSpacing: -0.5 }}>
+              <h1 style={{ margin: 0, fontFamily: "var(--font-outfit), system-ui, sans-serif", fontSize: 'clamp(20px,4.5vw,30px)', fontWeight: 800, color: heroText1, letterSpacing: -0.5 }}>
                 {greeting}{firstName ? `, ${firstName}` : ''}
               </h1>
-              <p style={{ margin: '5px 0 0', fontSize: 13, color: txt2 }}>
+              <p style={{ margin: '5px 0 0', fontSize: 13, color: heroText2 }}>
                 {t('Dein DACH-Karriere-Intelligence-Dashboard', 'Your DACH career intelligence dashboard')}
               </p>
             </div>
@@ -438,22 +445,22 @@ export default function DACHDashboard() {
             {/* Right controls */}
             <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
               {/* Country switcher — pills on desktop, select on mobile */}
-              <div className="country-pills-desktop" style={{ display: 'flex', gap: 4, background: 'rgba(55,138,221,.05)', border: `1px solid ${border}`, borderRadius: 12, padding: 4 }}>
+              <div className="country-pills-desktop" style={{ display: 'flex', gap: 4, background: heroCard, border: `1px solid ${heroBorder}`, borderRadius: 12, padding: 4 }}>
                 {COUNTRIES.map(c => (
                   <button key={c.code} className="country-pill" onClick={() => setCountry(c.code)}
-                    style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '7px 13px', borderRadius: 8, border: `1px solid ${country === c.code ? blue : 'transparent'}`, background: country === c.code ? blue + '22' : 'transparent', color: country === c.code ? blue : txt2, fontSize: 12, fontWeight: country === c.code ? 700 : 400, cursor: 'pointer', fontFamily: "var(--font-dm-sans), system-ui, sans-serif" }}>
+                    style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '7px 13px', borderRadius: 8, border: `1px solid ${country === c.code ? '#85B7EB' : 'transparent'}`, background: country === c.code ? 'rgba(133,183,235,.22)' : 'transparent', color: country === c.code ? '#fff' : heroText2, fontSize: 12, fontWeight: country === c.code ? 700 : 400, cursor: 'pointer', fontFamily: "var(--font-dm-sans), system-ui, sans-serif" }}>
                     <SvgIcon name={c.flag} size={18} />
                     {c.name}
                   </button>
                 ))}
               </div>
-              <div className="country-select-mobile" style={{ alignItems: 'center', gap: 6, background: '#fff', border: `1px solid ${border}`, borderRadius: 12, padding: '2px 6px' }}>
+              <div className="country-select-mobile" style={{ alignItems: 'center', gap: 6, background: heroCard, border: `1px solid ${heroBorder}`, borderRadius: 12, padding: '2px 6px' }}>
                 <select
                   value={country}
                   onChange={e => setCountry(e.target.value as Country)}
-                  style={{ background: 'transparent', border: 'none', color: txt1, fontSize: 13, fontWeight: 700, fontFamily: "var(--font-dm-sans), system-ui, sans-serif", cursor: 'pointer', outline: 'none', padding: '7px 4px' }}>
+                  style={{ background: 'transparent', border: 'none', color: heroText1, fontSize: 13, fontWeight: 700, fontFamily: "var(--font-dm-sans), system-ui, sans-serif", cursor: 'pointer', outline: 'none', padding: '7px 4px' }}>
                   {COUNTRIES.map(c => (
-                    <option key={c.code} value={c.code} style={{ background: '#fff', color: txt1 }}>
+                    <option key={c.code} value={c.code} style={{ background: '#0d2137', color: '#fff' }}>
                       {c.code.toUpperCase()} — {c.name}
                     </option>
                   ))}
@@ -475,7 +482,7 @@ export default function DACHDashboard() {
               {/* Customize */}
               <button
                 onClick={() => setShowCustomize(p => !p)}
-                style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '10px 16px', borderRadius: 12, border: `1px solid ${showCustomize ? blue + '80' : border}`, background: showCustomize ? blue + '18' : '#fff', color: showCustomize ? blue : txt2, fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: "var(--font-dm-sans), system-ui, sans-serif", transition: 'all .2s' }}>
+                style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '10px 16px', borderRadius: 12, border: `1px solid ${showCustomize ? '#85B7EB' : heroBorder}`, background: showCustomize ? 'rgba(133,183,235,.22)' : heroCard, color: showCustomize ? '#fff' : heroText2, fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: "var(--font-dm-sans), system-ui, sans-serif", transition: 'all .2s' }}>
                 <svg width="13" height="13" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="10" cy="10" r="3"/><path d="M10 1v2M10 17v2M1 10h2M17 10h2M3.5 3.5l1.4 1.4M15.1 15.1l1.4 1.4M3.5 16.5l1.4-1.4M15.1 4.9l1.4-1.4"/></svg>
                 {t('Anpassen', 'Customize')}
               </button>
@@ -491,7 +498,7 @@ export default function DACHDashboard() {
 
               {/* Sign Out */}
               <button onClick={signOut}
-                style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '10px 16px', borderRadius: 12, border: `1px solid ${border}`, background: '#fff', color: txt3, fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: "var(--font-dm-sans), system-ui, sans-serif", transition: 'all .2s' }}>
+                style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '10px 16px', borderRadius: 12, border: `1px solid ${heroBorder}`, background: heroCard, color: heroText3, fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: "var(--font-dm-sans), system-ui, sans-serif", transition: 'all .2s' }}>
                 ↩ {t('Abmelden', 'Sign Out')}
               </button>
             </div>
