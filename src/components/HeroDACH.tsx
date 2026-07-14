@@ -209,16 +209,9 @@ export default function HeroDACH({ lang, user }: Props) {
             ) : (
               /* Default hero state */
               <>
-                {user ? (
-                  <div style={{ fontSize:14, color:'#378ADD', fontWeight:600, marginBottom:26 }}>
+                {user && (
+                  <div style={{ fontSize:14, color:c.accent, fontWeight:600, marginBottom:26 }}>
                     {isDE ? `Willkommen zurück, ${user.name} 👋` : `Welcome back, ${user.name} 👋`}
-                  </div>
-                ) : (
-                  <div style={{ display:'inline-flex', alignItems:'center', gap:8, background:'rgba(55,138,221,0.08)', border:'1px solid rgba(55,138,221,0.20)', borderRadius:20, padding:'6px 16px', marginBottom:28 }}>
-                    <span style={{ width:6, height:6, borderRadius:'50%', background:'#10b981', display:'inline-block', boxShadow:'0 0 6px #10b981' }} />
-                    <span style={{ fontSize:11, fontWeight:700, color:c.accent, letterSpacing:1.2, textTransform:'uppercase' as const }}>
-                      {isDE ? 'KI-Plattform für DACH' : 'AI Job Platform · DACH'}
-                    </span>
                   </div>
                 )}
                 <h1 style={{ fontFamily:f.heading, fontSize:'clamp(30px,4vw,54px)', fontWeight:800, color:'#1a2332', lineHeight:1.08, letterSpacing:-1.5, margin:'0 0 22px' }}>
