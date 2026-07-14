@@ -26,23 +26,11 @@ const features = [
     },
   },
   {
-    icon: <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="7" width="13" height="11" rx="2"/><path d="M9 7V5a2 2 0 0 1 4 0v2"/><circle cx="18.5" cy="9.5" r="3"/><line x1="20.6" y1="11.6" x2="22.5" y2="13.5"/></svg>,
-    name: { DE: 'Job-Suche', EN: 'Job Search' },
-    desc: { DE: '186k+ DACH-Stellen', EN: '186k+ DACH roles' },
-    grad: 'linear-gradient(175deg, #d1fae5 0%, #a7f3d0 100%)',
-    accent: '#10b981',
-    href: '/app/jobs',
-    hover: {
-      DE: { tag: 'Job-Suche', h1: '186k+ offene Stellen — nur die, die wirklich passen', sub: 'Kein Scrollen durch irrelevante Jobs. Die KI analysiert jede Stelle und zeigt dir nur Angebote, die zu deinem Profil passen.', cta: 'Jobs durchsuchen →' },
-      EN: { tag: 'Job Search', h1: '186k+ open positions — only the ones that fit', sub: 'No scrolling through irrelevant listings. AI scores every role against your profile so you only see what matters.', cta: 'Browse jobs →' },
-    },
-  },
-  {
     icon: <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>,
     name: { DE: 'CV Builder', EN: 'CV Builder' },
     desc: { DE: 'Auf jede Stelle zugeschnitten', EN: 'Tailored to every role' },
-    grad: 'linear-gradient(175deg, #ede9fe 0%, #ddd6fe 100%)',
-    accent: '#8b5cf6',
+    grad: 'linear-gradient(175deg, #dceeff 0%, #b8ddff 100%)',
+    accent: '#378ADD',
     href: '/app/cv-builder',
     hover: {
       DE: { tag: 'CV Builder', h1: 'Ein Lebenslauf, der zu jeder Stelle passt', sub: 'Füge eine Stellenanzeige ein — die KI passt deinen Lebenslauf automatisch an die Keywords und Anforderungen an. In unter einer Minute.', cta: 'CV anpassen →' },
@@ -50,35 +38,11 @@ const features = [
     },
   },
   {
-    icon: <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>,
-    name: { DE: 'Anschreiben', EN: 'Cover Letter' },
-    desc: { DE: 'Überzeugend & persönlich', EN: 'Personal & persuasive' },
-    grad: 'linear-gradient(175deg, #fef3c7 0%, #fde68a 100%)',
-    accent: '#f59e0b',
-    href: '/app/cv-builder',
-    hover: {
-      DE: { tag: 'Anschreiben', h1: 'Überzeugend, persönlich und in 60 Sekunden fertig', sub: 'Kein Boilerplate. Kein Copy-Paste. Jedes Anschreiben wird individuell auf die Stelle und dein Profil zugeschnitten.', cta: 'Anschreiben erstellen →' },
-      EN: { tag: 'Cover Letter', h1: 'Compelling, personal and done in 60 seconds', sub: 'No boilerplate. No copy-paste. Every cover letter is written fresh for the specific role and your exact profile.', cta: 'Create cover letter →' },
-    },
-  },
-  {
-    icon: <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>,
-    name: { DE: 'Auto Apply', EN: 'Auto Apply' },
-    desc: { DE: 'Automatisch bewerben', EN: 'Apply on autopilot' },
-    grad: 'linear-gradient(175deg, #e0e7ff 0%, #c7d2fe 100%)',
-    accent: '#6366f1',
-    href: '/app/auto-apply',
-    hover: {
-      DE: { tag: 'Auto Apply', h1: 'Bewirb dich automatisch — während du schläfst', sub: 'Der Browser-Bot füllt Bewerbungsformulare für dich aus. Du wählst die Stellen, er erledigt den Rest. Sicher, schnell und nachvollziehbar.', cta: 'Auto Apply starten →' },
-      EN: { tag: 'Auto Apply', h1: 'Apply automatically — while you sleep', sub: "The browser bot fills out application forms on your behalf. You pick the roles, it handles the rest. Safe, fast and transparent.", cta: 'Start Auto Apply →' },
-    },
-  },
-  {
     icon: <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/><circle cx="17" cy="8" r="2"/><path d="M17 10v3"/></svg>,
     name: { DE: 'Job Case', EN: 'Job Case' },
     desc: { DE: 'Video-Bewerbung & Beweis', EN: 'Video pitch & proof' },
-    grad: 'linear-gradient(175deg, #dcfce7 0%, #bbf7d0 100%)',
-    accent: '#22c55e',
+    grad: 'linear-gradient(175deg, #d1e9ff 0%, #a3d3ff 100%)',
+    accent: '#0e7fd6',
     href: '/app/job-case',
     hover: {
       DE: { tag: 'Job Case', h1: 'Ein lebendes Karriereprofil — kein statisches Dokument.', sub: 'Skills, Erfahrungstiefe und ein kurzes Pitch-Video — auf einen Blick, auf jedem Gerät. Recruiter verbringen 6 Sekunden mit einem Lebenslauf. Job Case macht diese 6 Sekunden bedeutsam.', cta: 'Job Case erstellen →' },
@@ -86,11 +50,23 @@ const features = [
     },
   },
   {
-    icon: <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>,
+    icon: <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1.5" fill="currentColor" stroke="none"/></svg>,
+    name: { DE: 'Career Scan', EN: 'Career Scan' },
+    desc: { DE: 'ATS-Score & KI-Feedback', EN: 'ATS score & AI feedback' },
+    grad: 'linear-gradient(175deg, #c8e0ff 0%, #92c2ff 100%)',
+    accent: '#1d6fc4',
+    href: '/app/career-scan',
+    hover: {
+      DE: { tag: 'Career Scan', h1: 'Weißt du, warum dein Lebenslauf abgelehnt wird?', sub: 'Lade deinen Lebenslauf hoch — in 30 Sekunden erhältst du einen ATS-Score, eine Keyword-Analyse und konkrete Verbesserungsvorschläge.', cta: 'Career Scan starten →' },
+      EN: { tag: 'Career Scan', h1: 'Do you know why your CV gets rejected?', sub: 'Upload your CV and get an ATS score, keyword gap analysis and concrete improvements in 30 seconds.', cta: 'Start Career Scan →' },
+    },
+  },
+  {
+    icon: <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10a7 7 0 0 0 14 0"/><line x1="12" y1="19" x2="12" y2="22"/></svg>,
     name: { DE: 'Kira AI', EN: 'Kira AI' },
     desc: { DE: 'Dein Karriere-Coach', EN: 'Your career coach' },
-    grad: 'linear-gradient(175deg, #fce7f3 0%, #fbcfe8 100%)',
-    accent: '#ec4899',
+    grad: 'linear-gradient(175deg, #bcd6ff 0%, #85b3ff 100%)',
+    accent: '#2f5fc4',
     href: '/app/ai',
     hover: {
       DE: { tag: 'Kira AI', h1: 'Dein persönlicher KI-Karrierecoach — jederzeit', sub: 'Kira beantwortet Fragen zu deiner Bewerbung, hilft bei der Interview-Vorbereitung und gibt dir ehrliches, sofortiges Feedback.', cta: 'Kira fragen →' },
@@ -226,13 +202,21 @@ export default function HeroDACH({ lang, user }: Props) {
                   <Link href={go('/app/career-scan')} style={{ display:'inline-block', background:c.accent, color:'#fff', padding:'15px 32px', borderRadius:10, fontFamily:f.heading, fontWeight:700, fontSize:15, textDecoration:'none', boxShadow:'0 4px 24px rgba(55,138,221,0.38)', letterSpacing:-0.2 }}>
                     {isDE ? 'Kostenlos starten →' : 'Get started free →'}
                   </Link>
-                  <Link href="#how-it-works" style={{ display:'inline-block', background:'rgba(55,138,221,0.06)', color:'#4a5568', padding:'15px 28px', borderRadius:10, fontFamily:f.heading, fontWeight:600, fontSize:15, textDecoration:'none', border:'1px solid rgba(55,138,221,0.18)' }}>
+                  <Link href="#how-it-works" style={{ display:'inline-block', background:'#fff', color:'#1a2332', padding:'15px 28px', borderRadius:10, fontFamily:f.heading, fontWeight:700, fontSize:15, textDecoration:'none', border:'1.5px solid #d7e3f5' }}>
                     {isDE ? 'So funktioniert es' : 'How it works'}
                   </Link>
                 </div>
-                <p style={{ fontSize:12, color:'#6b7c93', marginTop:24, lineHeight:1.8 }}>
-                  {isDE ? '✓ 5 kostenlose Credits  ·  ✓ Keine Kreditkarte  ·  ✓ Start in 30 Sekunden' : '✓ 5 free credits  ·  ✓ No card needed  ·  ✓ Up in 30 seconds'}
-                </p>
+                <div style={{ display:'flex', gap:18, flexWrap:'wrap' as const, marginTop:28 }}>
+                  {(isDE
+                    ? ['5 kostenlose Credits', 'Keine Kreditkarte', 'Start in 30 Sekunden']
+                    : ['5 free credits', 'No card needed', 'Up in 30 seconds']
+                  ).map(item => (
+                    <div key={item} style={{ display:'flex', alignItems:'center', gap:6, fontSize:13, color:'#374357', fontWeight:600 }}>
+                      <span style={{ width:16, height:16, borderRadius:'50%', background:'#e7f4ea', color:'#1d9e75', display:'inline-flex', alignItems:'center', justifyContent:'center', fontSize:10, fontWeight:800, flexShrink:0 }}>✓</span>
+                      {item}
+                    </div>
+                  ))}
+                </div>
               </>
             )}
           </div>
@@ -247,17 +231,17 @@ export default function HeroDACH({ lang, user }: Props) {
                   className={`hero-panel${i === 0 ? ' hero-panel-first' : ''}`}
                   onMouseEnter={() => handleEnter(i)}
                   onMouseLeave={handleLeave}
-                  style={{ flex:'0 0 auto', width:112, marginLeft:i===0?0:-24, background:feat.grad, borderRadius:18, border:`1px solid ${feat.accent}40`, transform:'skewX(-6deg)', display:'flex', flexDirection:'column' as const, alignItems:'center', justifyContent:'center', padding:'0 12px', textDecoration:'none', boxShadow:`0 8px 32px rgba(55,138,221,0.12), inset 0 1px 0 rgba(255,255,255,0.6)`, position:'relative', overflow:'hidden', zIndex:features.length-i }}
+                  style={{ flex:'0 0 auto', width:150, marginLeft:i===0?0:-30, background:feat.grad, borderRadius:20, border:`1px solid ${feat.accent}40`, transform:'skewX(-6deg)', display:'flex', flexDirection:'column' as const, alignItems:'center', justifyContent:'center', padding:'0 14px', textDecoration:'none', boxShadow:`0 8px 32px rgba(55,138,221,0.12), inset 0 1px 0 rgba(255,255,255,0.6)`, position:'relative', overflow:'hidden', zIndex:features.length-i }}
                 >
                   <div className="panel-bar" style={{ position:'absolute', top:0, left:0, right:0, height:3, background:`linear-gradient(90deg,transparent,${feat.accent},transparent)`, opacity:0.45, transition:'opacity 0.25s' }} />
                   <div style={{ position:'absolute', bottom:0, left:0, right:0, height:80, background:'linear-gradient(0deg,rgba(0,0,0,0.06) 0%,transparent 100%)', pointerEvents:'none' }} />
-                  <div className="panel-content" style={{ transform:'skewX(6deg)', display:'flex', flexDirection:'column' as const, alignItems:'center', gap:14, textAlign:'center' as const }}>
-                    <div className="panel-icon" style={{ width:50, height:50, borderRadius:14, background:`${feat.accent}16`, border:`1px solid ${feat.accent}30`, color:feat.accent, display:'flex', alignItems:'center', justifyContent:'center', boxShadow:`0 4px 18px ${feat.accent}18` }}>
+                  <div className="panel-content" style={{ transform:'skewX(6deg)', display:'flex', flexDirection:'column' as const, alignItems:'center', gap:16, textAlign:'center' as const }}>
+                    <div className="panel-icon" style={{ width:56, height:56, borderRadius:16, background:`${feat.accent}16`, border:`1px solid ${feat.accent}30`, color:feat.accent, display:'flex', alignItems:'center', justifyContent:'center', boxShadow:`0 4px 18px ${feat.accent}18` }}>
                       {feat.icon}
                     </div>
                     <div>
-                      <div className="panel-name" style={{ fontFamily:f.heading, fontSize:12, fontWeight:700, color:'#1a2332', marginBottom:6, lineHeight:1.3 }}>{feat.name[lang]}</div>
-                      <div className="panel-desc" style={{ fontSize:10, color:'#4a5568', lineHeight:1.55, maxWidth:80 }}>{feat.desc[lang]}</div>
+                      <div className="panel-name" style={{ fontFamily:f.heading, fontSize:13, fontWeight:700, color:'#1a2332', marginBottom:6, lineHeight:1.3 }}>{feat.name[lang]}</div>
+                      <div className="panel-desc" style={{ fontSize:11, color:'#4a5568', lineHeight:1.55, maxWidth:105 }}>{feat.desc[lang]}</div>
                     </div>
                   </div>
                 </Link>
