@@ -195,7 +195,7 @@ function ExecutiveTemplate({ cv, photo }: { cv: CVData; photo?: string }) {
               <span>Executive Summary</span>
               <div style={{ flex: 1, height: 1, background: '#edf1f6' }} />
             </div>
-            <div style={{ fontSize: 12, color: '#374151', lineHeight: 1.8 }}>{cv.summary}</div>
+            <div style={{ fontSize: 12, color: '#374151', lineHeight: 1.8, whiteSpace: 'pre-wrap' as const }}>{cv.summary}</div>
           </div>
         )}
 
@@ -238,7 +238,7 @@ function ExecutiveTemplate({ cv, photo }: { cv: CVData; photo?: string }) {
                   {(exp.bullets ?? []).map((b, j) => (
                     <div key={j} style={{ display: 'flex', gap: 6, marginBottom: 4, alignItems: 'flex-start' }}>
                       <span style={{ color: '#00C9A7', fontSize: 10, marginTop: 3, flexShrink: 0 }}>+</span>
-                      <span style={{ fontSize: 11, color: '#374151', lineHeight: 1.6 }}>{b}</span>
+                      <span style={{ fontSize: 11, color: '#374151', lineHeight: 1.6, whiteSpace: 'pre-wrap' as const }}>{b}</span>
                     </div>
                   ))}
                 </div>
@@ -378,7 +378,7 @@ function ModernTemplate({ cv }: { cv: CVData }) {
               <div style={{ fontSize: 9, fontWeight: 700, color: '#042C53', letterSpacing: 1.5, textTransform: 'uppercase', marginBottom: 8, display: 'flex', alignItems: 'center', gap: 8 }}>
                 <span>Profile</span><div style={{ flex: 1, height: 1, background: '#edf1f6' }} />
               </div>
-              <div style={{ fontSize: 12, color: '#374151', lineHeight: 1.8 }}>{cv.summary}</div>
+              <div style={{ fontSize: 12, color: '#374151', lineHeight: 1.8, whiteSpace: 'pre-wrap' as const }}>{cv.summary}</div>
             </div>
           )}
 
@@ -413,7 +413,7 @@ function ModernTemplate({ cv }: { cv: CVData }) {
                   {(exp.bullets ?? []).map((b, j) => (
                     <div key={j} style={{ display: 'flex', gap: 6, marginBottom: 3 }}>
                       <span style={{ color: '#1D9E75', fontSize: 10, marginTop: 3, flexShrink: 0 }}>+</span>
-                      <span style={{ fontSize: 11, color: '#374151', lineHeight: 1.6 }}>{b}</span>
+                      <span style={{ fontSize: 11, color: '#374151', lineHeight: 1.6, whiteSpace: 'pre-wrap' as const }}>{b}</span>
                     </div>
                   ))}
                 </div>
@@ -458,7 +458,7 @@ function MinimalTemplate({ cv }: { cv: CVData }) {
           {cv.summary && (
             <div style={{ marginBottom: 28 }}>
               <div style={{ fontSize: 9, fontWeight: 700, letterSpacing: 2, textTransform: 'uppercase', color: '#8fa3b8', marginBottom: 10 }}>Summary</div>
-              <div style={{ fontSize: 12, color: '#374151', lineHeight: 1.9, fontWeight: 300 }}>{cv.summary}</div>
+              <div style={{ fontSize: 12, color: '#374151', lineHeight: 1.9, fontWeight: 300, whiteSpace: 'pre-wrap' as const }}>{cv.summary}</div>
             </div>
           )}
 
@@ -475,7 +475,7 @@ function MinimalTemplate({ cv }: { cv: CVData }) {
                   {(exp.bullets ?? []).map((b, j) => (
                     <div key={j} style={{ display: 'flex', gap: 8, marginBottom: 3 }}>
                       <span style={{ color: '#1a2332', fontSize: 10 }}>-</span>
-                      <span style={{ fontSize: 11, color: '#374151', lineHeight: 1.7, fontWeight: 300 }}>{b}</span>
+                      <span style={{ fontSize: 11, color: '#374151', lineHeight: 1.7, fontWeight: 300, whiteSpace: 'pre-wrap' as const }}>{b}</span>
                     </div>
                   ))}
                 </div>
@@ -642,7 +642,7 @@ function TechnicalTemplate({ cv }: { cv: CVData }) {
           {cv.summary && (
             <div style={{ marginBottom: 22, padding: '14px 16px', background: '#fafbfd', border: '1px solid #edf1f6', borderLeft: '3px solid #6C8EF5', borderRadius: 6 }}>
               <div style={{ fontSize: 9, fontWeight: 700, color: '#6C8EF5', letterSpacing: 1.5, textTransform: 'uppercase', marginBottom: 6 }}>Profile</div>
-              <div style={{ fontSize: 11, color: '#374151', lineHeight: 1.8 }}>{cv.summary}</div>
+              <div style={{ fontSize: 11, color: '#374151', lineHeight: 1.8, whiteSpace: 'pre-wrap' as const }}>{cv.summary}</div>
             </div>
           )}
 
@@ -678,7 +678,7 @@ function TechnicalTemplate({ cv }: { cv: CVData }) {
                   {(exp.bullets ?? []).map((b, j) => (
                     <div key={j} style={{ display: 'flex', gap: 6, marginBottom: 3 }}>
                       <span style={{ color: '#6C8EF5', fontSize: 11, marginTop: 2, flexShrink: 0 }}>+</span>
-                      <span style={{ fontSize: 11, color: '#374151', lineHeight: 1.6 }}>{b}</span>
+                      <span style={{ fontSize: 11, color: '#374151', lineHeight: 1.6, whiteSpace: 'pre-wrap' as const }}>{b}</span>
                     </div>
                   ))}
                 </div>
