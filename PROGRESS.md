@@ -13,7 +13,7 @@ Numbering is stable — refer to items by number in future chats so we can pick 
 | 5 | Give Kira more flexibility (broader tool use / less rigid conversation flow) | Not started |
 | 6 | Tighten job search with the right search parameters | Not started |
 | 7 | Make scanner + CV generation deterministic — same input should give the same output every time, not a different answer per run | Not started |
-| 8 | Fix CV generation styles — correct padding/spacing when a line break occurs | Not started |
+| 8 | Fix CV generation styles — correct padding/spacing when a line break occurs | ✅ Done — added `whiteSpace: 'pre-wrap'` to all 4 CV templates' summary + bullet text renders (`src/app/app/cv-builder/page.tsx`), which were silently collapsing embedded line breaks from the AI output |
 | 9 | Job Case: confetti animation when a case is successfully created | ✅ Done — `src/lib/confetti.ts` (zero-dependency canvas confetti), fired in `src/app/app/job-case/new/page.tsx` on `step === 'done'` |
 | 10 | One saved CV across the platform (Account settings) instead of re-uploading on every page | In progress — see below |
 
