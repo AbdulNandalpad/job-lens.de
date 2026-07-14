@@ -35,7 +35,9 @@ Numbering is stable — refer to items by number in future chats so we can pick 
 - Added relevance ordering: skills and bullets now ordered by relevance to the target job when one is provided
 - Added a 1-page / 2-page length control to the CV Builder sidebar (Style panel, next to Tone) — previously the JSON mode had no length control at all, unlike the older plain-text mode
 - Feedback-edit mode (iterative "apply this change") now also carries the no-new-fabricated-metrics rule and holds the length target across edits
-- **Still open**: template/section visual design pass (spacing, hierarchy, template variety) hasn't been touched yet — this pass was prompt + length control only; the "better UI/design" half of item 1 is still open
+- When a job description is given, the prompt now instructs a full revamp (re-derived summary, re-ordered skills, rewritten bullets) instead of a light edit — still 100% grounded in the source CV
+- New "matchGaps" field in the CV schema + "Job Match" sidebar panel: for job requirements not evidenced in the source CV, shows what's missing, what the tailored CV did instead, and what the candidate could add to fully close the gap — each flagged with `***` per request
+- **Still open**: template/section visual design pass (spacing, hierarchy, template variety) hasn't been touched yet; the "better UI/design" half of item 1 (beyond the new gap panel) is still open
 
 
 
