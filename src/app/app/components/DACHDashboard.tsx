@@ -1,13 +1,14 @@
 'use client'
 
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { useLanguage } from '@/lib/i18n'
 import CareerIntelPanel from '@/components/CareerIntelPanel'
 import SvgIcon, { getIcon, type IconName } from '@/components/SvgIcon'
 import { createClient } from '@/lib/supabase'
 import { useDashWidgets } from '@/lib/useDashWidgets'
-import { MARKET } from '@/lib/constants'
+import { MARKET, LS, API } from '@/lib/constants'
+import { useSavedCv } from '@/lib/useSavedCv'
 
 // ── Design tokens ────────────────────────────────────────────
 const blue    = '#378ADD'
@@ -279,6 +280,64 @@ export default function DACHDashboard() {
   const [showCustomize,    setShowCustomize]    = useState(false)
   const { isVisible, widgets, toggle, resetDefaults } = useDashWidgets(MARKET.eu)
 
+  const { hasCv: hasSavedCv, loadingSavedCv, refetchSavedCv } = useSavedCv()
+  const [cvPromptDismissed, setCvPromptDismissed] = useState(true) // default true until we've checked localStorage, avoids a flash
+  const [cvConsentChecked, setCvConsentChecked] = useState(false)
+  const [cvUploading, setCvUploading] = useState(false)
+  const [cvError, setCvError] = useState('')
+  const cvPromptInputRef = useRef<HTMLInputElement>(null)
+
+  useEffect(() => {
+    setCvPromptDismissed(localStorage.getItem(LS.cvPromptDismissed) === '1')
+  }, [])
+
+  function dismissCvPrompt() {
+    localStorage.setItem(LS.cvPromptDismissed, '1')
+    setCvPromptDismissed(true)
+  }
+
+  async function handleCvPromptFile(file: File) {
+    setCvError('')
+    if (!cvConsentChecked) {
+      setCvError(t('Bitte bestätige zuerst die Einwilligung.', 'Please confirm the consent checkbox first.'))
+      if (cvPromptInputRef.current) cvPromptInputRef.current.value = ''
+      return
+    }
+    setCvUploading(true)
+    try {
+      let text = ''
+      if (file.name.endsWith('.txt') || file.type === 'text/plain') {
+        text = await file.text()
+      } else {
+        const form = new FormData()
+        form.append('file', file)
+        const res = await fetch('/api/extract-pdf', { method: 'POST', body: form })
+        const data = await res.json()
+        text = data.text ?? ''
+      }
+      if (!text || text.trim().length < 50) {
+        setCvError(t('Konnte den Lebenslauf nicht lesen. Bitte versuche eine andere Datei.', 'Could not read that CV. Please try a different file.'))
+        return
+      }
+      const saveRes = await fetch(API.userCv, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text, fileName: file.name, consent: true }),
+      })
+      if (!saveRes.ok) {
+        const err = await saveRes.json().catch(() => ({}))
+        setCvError(err.error || t('Speichern fehlgeschlagen.', 'Failed to save.'))
+        return
+      }
+      await refetchSavedCv()
+    } catch {
+      setCvError(t('Speichern fehlgeschlagen.', 'Failed to save.'))
+    } finally {
+      setCvUploading(false)
+      if (cvPromptInputRef.current) cvPromptInputRef.current.value = ''
+    }
+  }
+
   const t = (de: string, en: string) => lang === 'DE' ? de : en
 
   async function signOut() {
@@ -537,6 +596,44 @@ export default function DACHDashboard() {
 
       {/* ── ANALYTICS BODY ───────────────────────────── */}
       <div className="dash-page" style={{ maxWidth: 1100, margin: '0 auto', padding: '28px 20px 80px' }}>
+
+        {/* ── Saved CV prompt — shown once until dismissed or a CV is saved ── */}
+        {!loadingSavedCv && !hasSavedCv && !cvPromptDismissed && (
+          <div style={{ background: 'linear-gradient(135deg,rgba(55,138,221,.08),rgba(55,138,221,.03))', border: `1.5px solid rgba(55,138,221,.3)`, borderRadius: 16, padding: '18px 20px', marginBottom: 20, position: 'relative' }}>
+            <button onClick={dismissCvPrompt} aria-label="Dismiss"
+              style={{ position: 'absolute', top: 12, right: 12, width: 24, height: 24, borderRadius: '50%', border: 'none', background: 'rgba(55,138,221,.12)', color: blue, fontSize: 13, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              ×
+            </button>
+            <div style={{ display: 'flex', alignItems: 'flex-start', gap: 14, flexWrap: 'wrap' }}>
+              <div style={{ width: 40, height: 40, borderRadius: 10, background: `${blue}18`, border: `1px solid ${blue}30`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                <SvgIcon name="document" size={18} color={blue} />
+              </div>
+              <div style={{ flex: 1, minWidth: 240 }}>
+                <div style={{ fontFamily: "var(--font-outfit), system-ui, sans-serif", fontSize: 14, fontWeight: 700, color: txt1, marginBottom: 4 }}>
+                  {t('Lebenslauf einmal speichern, überall nutzen', 'Save your CV once, use it everywhere')}
+                </div>
+                <div style={{ fontSize: 12.5, color: txt2, lineHeight: 1.6, marginBottom: 12 }}>
+                  {t('Kein erneutes Hochladen mehr in Career Scan, CV Builder, Anschreiben und Job Case.', 'No more re-uploading in Career Scan, CV Builder, Cover Letter and Job Case.')}
+                </div>
+                <label style={{ display: 'flex', alignItems: 'flex-start', gap: 7, marginBottom: 10, cursor: 'pointer' }}>
+                  <input type="checkbox" checked={cvConsentChecked} onChange={e => setCvConsentChecked(e.target.checked)} style={{ marginTop: 2, flexShrink: 0 }} />
+                  <span style={{ fontSize: 11.5, color: txt3, lineHeight: 1.55 }}>
+                    {t('Ich stimme der verschlüsselten Speicherung meines Lebenslaufs zu. Jederzeit widerrufbar unter Konto.', 'I consent to my CV being stored encrypted. Withdrawable any time in Account settings.')}
+                  </span>
+                </label>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+                  <button onClick={() => cvPromptInputRef.current?.click()} disabled={cvUploading || !cvConsentChecked}
+                    style={{ padding: '9px 18px', borderRadius: 8, border: 'none', background: cvConsentChecked ? blue : border, color: cvConsentChecked ? '#fff' : txt3, fontSize: 12.5, fontWeight: 700, cursor: cvConsentChecked ? 'pointer' : 'not-allowed', fontFamily: "var(--font-outfit), system-ui, sans-serif" }}>
+                    {cvUploading ? t('Lädt hoch…', 'Uploading…') : t('Lebenslauf hochladen', 'Upload CV')}
+                  </button>
+                  <input ref={cvPromptInputRef} type="file" accept=".pdf,.txt,.doc,.docx" style={{ display: 'none' }}
+                    onChange={e => { const file = e.target.files?.[0]; if (file) handleCvPromptFile(file) }} />
+                  {cvError && <span style={{ fontSize: 11.5, color: '#ef4444' }}>{cvError}</span>}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* ── Start Here — 3 prominent action cards ── */}
         <div style={{ marginBottom: 20 }}>

@@ -28,13 +28,18 @@ export async function GET() {
     return NextResponse.json({ hasCv: false })
   }
 
-  return NextResponse.json({
-    hasCv: true,
-    cvText: decrypt(profile.cv_text),
-    fileName: profile.cv_file_name,
-    updatedAt: profile.cv_updated_at,
-    consentAt: profile.cv_consent_at,
-  })
+  try {
+    return NextResponse.json({
+      hasCv: true,
+      cvText: decrypt(profile.cv_text),
+      fileName: profile.cv_file_name,
+      updatedAt: profile.cv_updated_at,
+      consentAt: profile.cv_consent_at,
+    })
+  } catch (err) {
+    console.error('[user/cv GET] decryption failed:', err instanceof Error ? err.message : err)
+    return NextResponse.json({ hasCv: false })
+  }
 }
 
 export async function POST(req: NextRequest) {
@@ -54,19 +59,30 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Consent is required to save your CV' }, { status: 400 })
   }
 
+  let encrypted: string
+  try {
+    encrypted = encrypt(text)
+  } catch (err) {
+    console.error('[user/cv POST] encryption failed — is ENCRYPTION_KEY set?', err instanceof Error ? err.message : err)
+    return NextResponse.json({ error: 'Server is not configured to save CVs yet. Please try again later.' }, { status: 500 })
+  }
+
   const admin = createAdminSupabase()
   const now = new Date().toISOString()
   const { error } = await admin
     .from('profiles')
     .update({
-      cv_text: encrypt(text),
+      cv_text: encrypted,
       cv_file_name: fileName,
       cv_updated_at: now,
       cv_consent_at: now,
     })
     .eq('id', user.id)
 
-  if (error) return NextResponse.json({ error: 'Failed to save CV' }, { status: 500 })
+  if (error) {
+    console.error('[user/cv POST] db update failed:', error.message)
+    return NextResponse.json({ error: 'Failed to save CV' }, { status: 500 })
+  }
   return NextResponse.json({ ok: true, updatedAt: now })
 }
 

@@ -100,6 +100,7 @@ export const LS = {
   dashWidgetsEu: 'jl_dash_widgets_eu_v2',
   dashWidgetsIn: 'jl_dash_widgets_in_v2',
   cvConsent:     'jl_cv_consent',
+  cvPromptDismissed: 'jl_cv_prompt_dismissed',
   // Kira chat history — persists across sign-out for the same user
   aiMessages:    'jl_ai_messages',
 } as const
