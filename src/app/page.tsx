@@ -462,10 +462,13 @@ export default function HomePage() {
         .jl-home-greeting { display: inline; }
         .jl-home-nav-links { display: contents; }
         @media (max-width: 768px) {
-          .jl-home-logo-text { display: none !important; }
+          .jl-home-logo-text { display: inline !important; font-size: 14px !important; }
           .jl-home-dach-pill { display: none !important; }
           .jl-home-greeting { display: none !important; }
           .jl-home-nav-links { display: none !important; }
+        }
+        @media (max-width: 400px) {
+          .jl-home-logo-text { font-size: 13px !important; }
         }
 
         /* ── Mobile section spacing ── */
