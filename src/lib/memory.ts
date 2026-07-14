@@ -1,5 +1,6 @@
 import Anthropic from '@anthropic-ai/sdk'
 import { createAdminSupabase } from '@/lib/supabase-server'
+import { encrypt, decrypt, hmacFingerprint } from '@/lib/encryption'
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
 
@@ -88,8 +89,13 @@ export async function saveMemories(userId: string, facts: string[]): Promise<num
     const { error } = await admin
       .from('user_memories')
       .upsert(
-        { user_id: userId, memory_text: fact, embedding: JSON.stringify(vec) },
-        { onConflict: 'user_id,memory_text', ignoreDuplicates: true },
+        {
+          user_id:           userId,
+          memory_text:       encrypt(fact),
+          memory_text_hash:  hmacFingerprint(fact),
+          embedding:         JSON.stringify(vec),
+        },
+        { onConflict: 'user_id,memory_text_hash', ignoreDuplicates: true },
       )
     if (!error) saved++
     else console.error('[memory] upsert error:', error.message)
@@ -109,7 +115,7 @@ export async function retrieveMemories(userId: string, queryText: string, count 
     p_match_count:     count,
   })
   if (error) { console.error('[memory] match rpc error:', error.message); return [] }
-  return ((data as { memory_text: string }[]) ?? []).map(r => r.memory_text)
+  return ((data as { memory_text: string }[]) ?? []).map(r => decrypt(r.memory_text))
 }
 
 // Format retrieved memories for injection into a system prompt.

@@ -15,6 +15,7 @@ import { createServerSupabase, createAdminSupabase, checkAndDeductCredits } from
 import { JOB_CASE, MARKET } from '@/lib/constants'
 import { nanoid } from 'nanoid'
 import { reportError } from '@/lib/error-reporter'
+import { encrypt, encryptJson } from '@/lib/encryption'
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
 
@@ -190,9 +191,9 @@ export async function POST(req: NextRequest) {
       job_requirements:       requirements ?? [],
       job_quality_score:      body.qualityScore ?? 'clear',
       match_score:            matchResult.matchScore,
-      pitch_narrative:        matchResult.pitchNarrative,
-      requirement_evidence:   matchResult.requirementEvidence,
-      test_answers:           testResult.scoredAnswers,
+      pitch_narrative:        encrypt(matchResult.pitchNarrative),
+      requirement_evidence:   encryptJson(matchResult.requirementEvidence),
+      test_answers:           encryptJson(testResult.scoredAnswers),
       test_overall_score:     testResult.overallScore,
       video_storage_key:      videoStorageKey ?? null,
       video_duration_seconds: videoDurationSeconds ?? null,
@@ -217,7 +218,7 @@ export async function POST(req: NextRequest) {
       .map((e: { text: string; url: string }, i: number) => ({
         user_id:        user.id,
         skill_tag:      requirements[i]?.skill ?? '',
-        evidence_text:  e.text,
+        evidence_text:  encrypt(e.text),
         evidence_url:   e.url ?? '',
         source_case_id: jobCase.id,
       }))

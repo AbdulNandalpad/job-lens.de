@@ -9,6 +9,7 @@
  */
 import { NextRequest, NextResponse } from 'next/server'
 import { createAdminSupabase } from '@/lib/supabase-server'
+import { decrypt, decryptJson } from '@/lib/encryption'
 
 export async function GET(
   req: NextRequest,
@@ -79,7 +80,10 @@ export async function GET(
 
     return NextResponse.json({
       ...publicCase,
-      candidateName: candidate?.full_name ?? 'Candidate',
+      pitch_narrative:      decrypt(publicCase.pitch_narrative),
+      requirement_evidence: decryptJson(publicCase.requirement_evidence) ?? publicCase.requirement_evidence,
+      test_answers:         decryptJson(publicCase.test_answers) ?? publicCase.test_answers,
+      candidateName:        candidate?.full_name ?? 'Candidate',
       videoSignedUrl,
     })
   } catch (err) {

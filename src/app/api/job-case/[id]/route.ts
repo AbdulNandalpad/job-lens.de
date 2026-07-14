@@ -14,6 +14,7 @@
  */
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerSupabase, createAdminSupabase } from '@/lib/supabase-server'
+import { decrypt, decryptJson } from '@/lib/encryption'
 
 const BUCKET = 'job-case-videos'
 
@@ -116,7 +117,13 @@ export async function GET(
       .not('viewed_at', 'is', null)
       .order('viewed_at', { ascending: false })
 
-    return NextResponse.json({ ...jobCase, viewerDomains: views?.map(v => v.recruiter_domain) ?? [] })
+    return NextResponse.json({
+      ...jobCase,
+      pitch_narrative:      decrypt(jobCase.pitch_narrative),
+      requirement_evidence: decryptJson(jobCase.requirement_evidence) ?? jobCase.requirement_evidence,
+      test_answers:         decryptJson(jobCase.test_answers) ?? jobCase.test_answers,
+      viewerDomains:        views?.map(v => v.recruiter_domain) ?? [],
+    })
   } catch (err) {
     console.error('/api/job-case/[id] GET error:', err)
     return NextResponse.json({ error: 'Internal error' }, { status: 500 })

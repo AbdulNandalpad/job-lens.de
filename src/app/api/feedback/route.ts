@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerSupabase, createAdminSupabase, isUserRateLimited } from '@/lib/supabase-server'
+import { encrypt } from '@/lib/encryption'
 
 // POST /api/feedback { feature, rating, prompt?, output? }
 // Captures a thumbs up/down on an AI output for the future fine-tuning dataset.
@@ -24,7 +25,11 @@ export async function POST(req: NextRequest) {
 
   const admin = createAdminSupabase()
   const { error } = await admin.from('training_feedback').insert({
-    user_id: user.id, feature, prompt, output, rating,
+    user_id: user.id,
+    feature,
+    prompt: prompt ? encrypt(prompt) : null,
+    output: output ? encrypt(output) : null,
+    rating,
   })
   if (error) {
     console.error('[feedback] insert error:', error.message)
