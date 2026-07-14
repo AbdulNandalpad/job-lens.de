@@ -746,6 +746,7 @@ export default function CVBuilderPage() {
   const [langMismatch, setLangMismatch] = useState(false)
   const [template, setTemplate] = useState<Template>('executive')
   const [tone, setTone] = useState<Tone>('professional')
+  const [pages, setPages] = useState<'1' | '2'>('1')
   const [lang, setLang] = useState<Lang>('EN')
   const [cvData, setCvData] = useState<CVData | null>(null)
   const [rawCv, setRawCv] = useState('')
@@ -942,7 +943,7 @@ export default function CVBuilderPage() {
       const res = await fetch(API.tailorCv, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ cvText, job: effJob, template, tone, lang, confirmedSkills, returnJson: true }),
+        body: JSON.stringify({ cvText, job: effJob, template, tone, pages, lang, confirmedSkills, returnJson: true }),
       })
       if (res.status === 402) { const d = await res.json(); if (typeof d.credits === 'number') setCredits(d.credits); setLoading(false); alert('Not enough credits. Please top up on the Account page.'); return }
       const data = await res.json()
@@ -1007,7 +1008,7 @@ export default function CVBuilderPage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          cvText, job: effJob, template, tone, lang, returnJson: true,
+          cvText, job: effJob, template, tone, pages, lang, returnJson: true,
           feedback, currentCv: rawCv,
           market: MARKET.eu,
           skipCredit: !isChargeCall,
@@ -1719,6 +1720,19 @@ export default function CVBuilderPage() {
                           </div>
                           <div style={{ width: 13, height: 13, borderRadius: '50%', border: `2px solid ${tone === t.id ? currentAccent : 'rgba(255,255,255,0.2)'}`, background: tone === t.id ? currentAccent : 'transparent', flexShrink: 0 }} />
                         </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Length */}
+                  <div>
+                    <div style={{ fontSize: 10, fontWeight: 600, color: 'rgba(255,255,255,0.4)', letterSpacing: 0.5, textTransform: 'uppercase', marginBottom: 8 }}>{lang === 'DE' ? 'Länge' : 'Length'}</div>
+                    <div style={{ display: 'flex', gap: 6 }}>
+                      {(['1', '2'] as const).map(p => (
+                        <button key={p} onClick={() => setPages(p)}
+                          style={{ flex: 1, padding: '8px 0', borderRadius: 8, border: `1px solid ${pages === p ? currentAccent : 'rgba(255,255,255,0.1)'}`, background: pages === p ? currentAccent + '20' : 'rgba(255,255,255,0.04)', color: pages === p ? '#fff' : 'rgba(255,255,255,0.45)', fontSize: 12, fontWeight: pages === p ? 700 : 400, cursor: 'pointer', fontFamily: 'inherit', transition: 'all 0.15s' }}>
+                          {p === '1' ? (lang === 'DE' ? '1 Seite' : '1 page') : (lang === 'DE' ? '2 Seiten' : '2 pages')}
+                        </button>
                       ))}
                     </div>
                   </div>

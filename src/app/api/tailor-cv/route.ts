@@ -42,7 +42,7 @@ export async function POST(req: NextRequest) {
     if (returnJson) {
       // System prompt is always server-side — never accepted from client
       const serverSystemPrompt = feedback && currentCv
-        ? `You are an elite CV designer. The user has requested changes to their CV. Apply the feedback exactly and return updated JSON matching the same schema. Return ONLY valid JSON, no markdown.`
+        ? `You are an elite CV designer. The user has requested changes to their CV. Apply the feedback exactly and return updated JSON matching the same schema. Keep every stat, bullet and highlight grounded in facts already present in the CV — never invent a new metric or achievement while applying feedback. Maintain the ${pages === '2' ? '2-page' : '1-page'} length target unless the feedback explicitly asks to change it. Return ONLY valid JSON, no markdown.`
         : `You are an elite CV designer and career consultant. Extract, enhance and structure CV information into a rich JSON object for visual rendering.
 
 SOURCE TYPE HINTS — apply these parsing rules:
@@ -74,16 +74,20 @@ Schema:
 
 Rules:
 - CONTACT FIELDS: copy email, phone, location, linkedin EXACTLY from the source. Never invent them. Empty string if not found.
-- stats: 3-5 impressive metrics
-- skills: up to 12, percentage level 60-99
+- FACTUAL ACCURACY IS NON-NEGOTIABLE: every stat, metric, skill level and highlight must be traceable to something stated or clearly implied in the source CV. Never invent a number, percentage or outcome that isn't in the source — if the source has no quantified metrics, write fewer/no stats rather than fabricating any. This is a professional document the candidate will be judged on; a plausible-sounding but false claim is worse than no claim.
+- stats: 3-5 metrics, but ONLY ones grounded in the source CV (e.g. "5 yrs", "12 team members led", "€2M budget") — do not manufacture achievements
+- skills: up to 12, percentage level 60-99, reflecting the candidate's actual demonstrated proficiency in the source CV
 - languages: native=98, fluent=85, proficient=65, basic=45
 - experience: include EVERY role — do not skip or merge positions
-- experience bullets: 2-4 achievement-focused bullets per role, start with action verbs
+- experience bullets: 2-4 achievement-focused bullets per role, start with action verbs, keep each bullet grounded in what the source CV actually describes for that role
 - tools: 10-20 specific technologies/platforms mentioned in the CV
-- highlights: 4-6 punchy career highlights
+- highlights: 4-6 punchy career highlights, each traceable to the source CV
 - tone: ${tone || 'professional'}, output language: ${lang || 'EN'}
+- length target: ${pages === '2' ? 'this is a 2-page CV — include full detail for all roles' : 'this is a 1-page CV — be selective: prioritise the most relevant roles/bullets and trim or summarise older/less relevant experience so it fits one page'}
 ${job ? `- Tailor for this role: ${job.job_title} at ${job.employer_name}` : ''}
-${job?.job_description ? `- Job description context: ${job.job_description.slice(0, 6000)}` : ''}
+${job?.job_description ? `- Job description context: ${job.job_description.slice(0, 6000)}
+- ATS OPTIMISATION: identify the key skills, tools and phrases used in the job description above, and — only where the candidate genuinely has that skill per the source CV — mirror that exact terminology in the "skills", "tools" and experience "bullets" fields (e.g. if the source CV says "cloud infrastructure" and the job description says "AWS", only use "AWS" if the source actually mentions AWS specifically). Do not insert a keyword the candidate has no evidence of just because the job description mentions it.
+- RELEVANCE ORDERING: order "skills" and each role's "bullets" so the ones most relevant to this job description appear first.` : ''}
 ${confirmedSkills.length > 0 ? `- User confirmed they also have these skills (include them): ${confirmedSkills.join(', ')}` : ''}`
 
       const userContent = feedback && currentCv
