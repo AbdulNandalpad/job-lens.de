@@ -6,7 +6,7 @@ Numbering is stable — refer to items by number in future chats so we can pick 
 
 | # | Item | Status |
 |---|------|--------|
-| 1 | Tighten CV Builder — better UI/design and better prompts so the tailored CV output is the best possible match for the job | Not started |
+| 1 | Tighten CV Builder — better UI/design and better prompts so the tailored CV output is the best possible match for the job | In progress — see below |
 | 2 | Inject intent/context into AI prompts without inflating token usage, and ensure the right CV comes out the other end | Not started |
 | 3 | Add observability and guardrails (logging, tracing, rate/abuse limits, output validation) across AI routes | Not started |
 | 4 | Increase security and data encryption further | Ongoing — app-level AES-256-GCM encryption shipped for `user_memories`, `job_cases`, `proof_items`, `training_feedback`; key rollout + backfill still pending on production |
@@ -25,7 +25,17 @@ Numbering is stable — refer to items by number in future chats so we can pick 
 - Account page (`src/app/app/account/page.tsx`) — new "Saved CV" card: upload with mandatory consent checkbox, replace, remove
 - GDPR text updated: `datenschutz/page.tsx` §2f, `privacy/page.tsx` §2g
 - Wired into `career-scan/page.tsx` and `cv-builder/page.tsx` as a "Use my saved CV" quick action when no CV is in the current session
-- **Still open**: run migration 013 in Supabase; wire the same quick action into `cover-letter`, `job-case/new`, `smart-apply`, `auto-apply`, `ai` (Kira), and the India equivalents once confirmed working on DACH; consider an "update my saved CV" prompt after a fresh upload elsewhere so it doesn't silently go stale
+- **Still open**: wire the same quick action into `cover-letter`, `job-case/new`, `smart-apply`, `auto-apply`, `ai` (Kira), and the India equivalents; consider an "update my saved CV" prompt after a fresh upload elsewhere so it doesn't silently go stale
+- Migration 013 run in Supabase ✅, `ENCRYPTION_KEY` set on Vercel ✅ and confirmed working live ✅
+
+### Item 1 detail — CV Builder tightening
+
+- Fixed a real anti-hallucination gap in the structured-JSON prompt (`src/app/api/tailor-cv/route.ts`, MODE 1 — what CV Builder actually calls): the old prompt asked for "3-5 impressive metrics" with no requirement they come from the source CV. Now every stat/skill-level/highlight/bullet must be traceable to the source; if there's nothing to quantify, fewer stats rather than a fabricated one.
+- Added explicit ATS keyword-matching instruction to MODE 1 (mirror job-description terminology into skills/tools/bullets, but only where the candidate has genuine evidence of that skill — never insert an unearned keyword)
+- Added relevance ordering: skills and bullets now ordered by relevance to the target job when one is provided
+- Added a 1-page / 2-page length control to the CV Builder sidebar (Style panel, next to Tone) — previously the JSON mode had no length control at all, unlike the older plain-text mode
+- Feedback-edit mode (iterative "apply this change") now also carries the no-new-fabricated-metrics rule and holds the length target across edits
+- **Still open**: template/section visual design pass (spacing, hierarchy, template variety) hasn't been touched yet — this pass was prompt + length control only; the "better UI/design" half of item 1 is still open
 
 
 
