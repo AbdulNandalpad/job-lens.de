@@ -149,7 +149,10 @@ export default function HeroDACH({ lang, user }: Props) {
           /* Show ticker */
           .hero-mobile-ticker { display: block; }
           /* Single-column layout */
-          .hero-dach-layout { grid-template-columns: 1fr !important; padding: 44px 20px 0 !important; gap: 0 !important; }
+          .hero-dach-layout { grid-template-columns: 1fr !important; padding: 32px 20px 0 !important; gap: 0 !important; }
+          /* Content is much shorter without panels — don't stretch/center it across 88vh, that's what creates the big gap under the navbar */
+          .hero-dach-root { min-height: 0 !important; }
+          .hero-dach-center { flex: none !important; align-items: flex-start !important; }
         }
 
         @media(min-width:769px) and (max-width:960px){
@@ -175,9 +178,9 @@ export default function HeroDACH({ lang, user }: Props) {
         .ticker-track-a:hover, .ticker-track-b:hover { animation-play-state: paused; }
       `}</style>
 
-      <div style={{ background:'linear-gradient(145deg,#f8faff 0%,#eef4ff 50%,#f0f6ff 100%)', minHeight:'88vh', display:'flex', flexDirection:'column', alignItems:'stretch', overflow:'hidden', position:'relative' }}>
+      <div className="hero-dach-root" style={{ background:'linear-gradient(145deg,#f8faff 0%,#eef4ff 50%,#f0f6ff 100%)', minHeight:'88vh', display:'flex', flexDirection:'column', alignItems:'stretch', overflow:'hidden', position:'relative' }}>
         {/* inner wrapper provides vertical centering for the grid — ticker sits below */}
-        <div style={{ flex:1, display:'flex', alignItems:'center' }}>
+        <div className="hero-dach-center" style={{ flex:1, display:'flex', alignItems:'center' }}>
         {/* ambient glow — shifts color when hovering */}
         <div style={{
           position:'absolute', inset:0, pointerEvents:'none',
