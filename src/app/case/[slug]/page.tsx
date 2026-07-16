@@ -158,6 +158,16 @@ export default function PublicCasePage() {
 
   const expiresLabel = caseData ? fmt(caseData.expires_at) : ''
 
+  // At-a-glance stats — computed from data already on the page, so a
+  // recruiter skimming for a few seconds gets the headline numbers before
+  // reading a single requirement row.
+  const totalReqs    = caseData?.job_requirements?.length ?? 0
+  const verifiedReqs = caseData?.job_requirements?.filter(req => {
+    const ev = caseData.requirement_evidence?.find(e => e.requirementId === req.id)
+    return !!ev?.text && (ev.status ?? 'verified') === 'verified'
+  }).length ?? 0
+  const evidenceCount = caseData?.requirement_evidence?.filter(e => e.text?.trim()).length ?? 0
+
   return (
     <>
       <style>{`
@@ -306,6 +316,36 @@ export default function PublicCasePage() {
                   <ScoreRing value={caseData.match_score ?? 0} />
                   <div style={{ fontSize: 11, color: D.txt3, textAlign: 'center' }}>AI match score</div>
                 </div>
+              </div>
+
+              {/* At-a-glance stat strip — the CV-skim equivalent: everything a
+                  recruiter needs in the first few seconds, before reading detail */}
+              {totalReqs > 0 && (
+                <div style={{ display: 'grid', gridTemplateColumns: `repeat(${caseData.test_overall_score !== null ? 3 : 2}, 1fr)`, gap: 10, marginBottom: 24 }}>
+                  <div style={{ padding: '14px 16px', background: D.card, border: `1px solid ${D.border}`, borderRadius: 12, textAlign: 'center' as const }}>
+                    <div style={{ fontFamily: f.heading, fontSize: 22, fontWeight: 700, color: c.success }}>{verifiedReqs}/{totalReqs}</div>
+                    <div style={{ fontSize: 11, color: D.txt3, marginTop: 2 }}>Requirements verified</div>
+                  </div>
+                  <div style={{ padding: '14px 16px', background: D.card, border: `1px solid ${D.border}`, borderRadius: 12, textAlign: 'center' as const }}>
+                    <div style={{ fontFamily: f.heading, fontSize: 22, fontWeight: 700, color: c.accent }}>{evidenceCount}</div>
+                    <div style={{ fontSize: 11, color: D.txt3, marginTop: 2 }}>Evidence items provided</div>
+                  </div>
+                  {caseData.test_overall_score !== null && (
+                    <div style={{ padding: '14px 16px', background: D.card, border: `1px solid ${D.border}`, borderRadius: 12, textAlign: 'center' as const }}>
+                      <div style={{ fontFamily: f.heading, fontSize: 22, fontWeight: 700, color: caseData.test_overall_score >= 80 ? c.success : caseData.test_overall_score >= 60 ? c.accent : c.warning }}>{caseData.test_overall_score}</div>
+                      <div style={{ fontSize: 11, color: D.txt3, marginTop: 2 }}>Skill test score</div>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Trust / methodology note — a bare "AI score" reads as a black box to
+                  a skeptical recruiter; this states in one line what verification means */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 28, padding: '10px 14px', background: 'rgba(29,158,117,0.05)', border: '1px solid rgba(29,158,117,0.14)', borderRadius: 10 }}>
+                <span style={{ fontSize: 14, flexShrink: 0 }}>🛡️</span>
+                <span style={{ fontSize: 11.5, color: D.txt2, lineHeight: 1.55 }}>
+                  "Verified" means the candidate submitted specific, checkable evidence (with links where available) for that requirement — scored by AI against their own words, not self-rated.
+                </span>
               </div>
 
               {/* Video pitch */}
