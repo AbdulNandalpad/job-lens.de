@@ -33,6 +33,11 @@ export async function GET(req: NextRequest) {
       results_per_page: '20',
       what: q,
       where: city,
+      // Newest-first is the product priority, not Adzuna's default relevance
+      // ranking — without this, each page only reorders whichever 20 jobs
+      // relevance already picked, so pagination itself wasn't actually
+      // date-ordered. This makes the underlying search date-ordered too.
+      sort_by: 'date',
     })
     if (maxDaysOld) params.set('max_days_old', maxDaysOld)
 

@@ -62,7 +62,7 @@ function SmartJobSearchPage() {
   const [location, setLocation] = useState('Stuttgart, Germany')
   const [country, setCountry] = useState('de')
   const [daysOld, setDaysOld] = useState('')
-  const [sortBy, setSortBy] = useState<'match' | 'date'>('match')
+  const [sortBy, setSortBy] = useState<'match' | 'date'>('date')
 
   const [profile, setProfile] = useState<Profile | null>(null)
   const [jobs, setJobs] = useState<Job[]>([])

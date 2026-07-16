@@ -81,6 +81,12 @@ export async function GET(req: NextRequest) {
       }
     })
 
+    // Sort newest-first — BA's jobsuche-service API has no documented sort
+    // param (unlike Adzuna's), so this is done client-side; bad/missing
+    // dates sink to the end rather than breaking the sort.
+    const parseTs = (s: string) => { const t = new Date(s).getTime(); return Number.isFinite(t) ? t : 0 }
+    jobs.sort((a, b) => parseTs(b.job_posted_at_datetime_utc) - parseTs(a.job_posted_at_datetime_utc))
+
     return NextResponse.json({ jobs, total })
   } catch (err) {
     console.error('BA jobs fetch error:', err)
