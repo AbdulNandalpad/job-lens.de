@@ -4,9 +4,13 @@
  * Also refunds credits for cases with zero views after 14 days.
  * Also purges old IP rate limit records.
  *
- * Protected by CRON_SECRET header.
- * Schedule via Vercel Cron: 0 2 * * * (02:00 UTC daily)
+ * Scheduled via vercel.json's "crons" entry: 0 2 * * * (02:00 UTC daily).
+ * Vercel automatically sends `Authorization: Bearer $CRON_SECRET` on cron
+ * invocations when CRON_SECRET is set as an env var — that's the primary
+ * auth check. `x-cron-secret` is also accepted as a fallback for manual
+ * testing (e.g. curl) since Vercel's automatic header can't be set by hand.
  *
+
  * GDPR:
  * - All personal data fields nulled (same as manual DELETE)
  * - Video removed from Supabase Storage
@@ -23,9 +27,13 @@ import { JOB_CASE } from '@/lib/constants'
 const BUCKET = 'job-case-videos'
 
 export async function GET(req: NextRequest) {
-  // Verify cron secret with timing-safe comparison to prevent timing attacks
+  // Verify cron secret with timing-safe comparison to prevent timing attacks.
+  // Vercel Cron sends it as "Authorization: Bearer <secret>"; accept the
+  // legacy "x-cron-secret" header too for manual/testing invocations.
   const cronSecret = process.env.CRON_SECRET
-  const incoming   = req.headers.get('x-cron-secret')
+  const authHeader  = req.headers.get('authorization')
+  const bearerToken = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : null
+  const incoming    = bearerToken ?? req.headers.get('x-cron-secret')
   if (!cronSecret || !incoming) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }

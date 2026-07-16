@@ -198,9 +198,12 @@ export async function POST(req: NextRequest) {
       video_storage_key:      videoStorageKey ?? null,
       video_duration_seconds: videoDurationSeconds ?? null,
       status:                 'active',
-      consent_video:          true,
-      consent_test:           true,
-      consent_tracking:       true,
+      // Every case currently requires all three today (validated above), but
+      // persist the actual per-item values rather than hardcoding true — the
+      // schema exists specifically to support partial/granular consent.
+      consent_video:          !!consent.video,
+      consent_test:           !!consent.test,
+      consent_tracking:       !!consent.tracking,
       consent_timestamp:      new Date().toISOString(),
       consent_version:        '1.0',
       credits_refunded:       false,

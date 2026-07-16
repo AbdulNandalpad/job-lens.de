@@ -11,7 +11,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createHash, randomBytes } from 'crypto'
 import { createAdminSupabase } from '@/lib/supabase-server'
-import { sendMagicLink, sendViewNotification } from '@/lib/job-case-email'
+import { sendMagicLink } from '@/lib/job-case-email'
 
 const MAX_REQUESTS_PER_HOUR = 5
 
@@ -130,15 +130,10 @@ export async function POST(req: NextRequest) {
       magicToken:    rawToken,
     })
 
-    // Notify candidate (fire and forget — domain only, no recruiter email)
-    if (candidateProfile?.email) {
-      sendViewNotification({
-        candidateEmail:  candidateProfile.email,
-        candidateName:   candidateProfile.full_name ?? 'there',
-        jobTitle:        jobCase.job_title,
-        recruiterDomain: domain,
-      }).catch(err => console.error('View notification failed:', err))
-    }
+    // Candidate notification intentionally happens in /api/job-case/access/[token]
+    // instead, not here — this is only a link *request*, not a verified view. A
+    // notification here would fire even if the recruiter never opens the email,
+    // and would double up with the click-time notification for every real view.
 
     return NextResponse.json({ ok: true })
   } catch (err) {

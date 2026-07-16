@@ -550,7 +550,7 @@ export default function JobCaseNewPageIndia() {
           requirements: reqs, evidence,
           questions, answers, tabSwitches,
           videoStorageKey,
-          consent: { video: true, test: true, tracking: true },
+          consent,
           cvText,
           market: MARKET.in,
         }),

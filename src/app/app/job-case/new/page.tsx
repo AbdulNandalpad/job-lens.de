@@ -736,7 +736,7 @@ export default function JobCaseNewPage() {
           requirements: reqs, evidence,
           questions, answers, tabSwitches,
           videoStorageKey,
-          consent: { video: true, test: true, tracking: true },
+          consent,
           cvText,
         }),
       })

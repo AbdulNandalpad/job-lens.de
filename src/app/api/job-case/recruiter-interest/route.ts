@@ -7,12 +7,14 @@
  *
  * GDPR:
  * - recruiter_email stored only after explicit, logged consent (consent_given_at)
- * - email is forwarded to the candidate and stored in case_views for audit trail
+ * - email is encrypted at rest (AES-256-GCM, same scheme as job_cases' personal
+ *   fields) and forwarded to the candidate in this same request for audit trail
  * - deleted with the job case after 30 days
  */
 import { NextRequest, NextResponse } from 'next/server'
 import { createAdminSupabase } from '@/lib/supabase-server'
 import { sendInterestNotification } from '@/lib/job-case-email'
+import { encrypt } from '@/lib/encryption'
 
 export async function POST(req: NextRequest) {
   try {
@@ -83,9 +85,11 @@ export async function POST(req: NextRequest) {
 
     const now = new Date().toISOString()
 
-    // Store consent + email in case_views (audit trail)
+    // Store consent + email in case_views (audit trail). Email is encrypted at
+    // rest — it's only ever forwarded to the candidate in this same request,
+    // never read back for display, so no decrypt path is needed elsewhere.
     await admin.from('case_views').update({
-      recruiter_email:        recruiterEmail,
+      recruiter_email:        encrypt(recruiterEmail),
       interest_expressed_at:  now,
       consent_given_at:       now,
     }).eq('id', viewId)
