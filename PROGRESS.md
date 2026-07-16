@@ -7,16 +7,27 @@ Numbering is stable — refer to items by number in future chats so we can pick 
 | # | Item | Status |
 |---|------|--------|
 | 1 | Tighten CV Builder — better UI/design and better prompts so the tailored CV output is the best possible match for the job | In progress — see below |
-| 2 | Inject intent/context into AI prompts without inflating token usage, and ensure the right CV comes out the other end | Not started |
-| 3 | Add observability and guardrails (logging, tracing, rate/abuse limits, output validation) across AI routes | Not started |
-| 4 | Increase security and data encryption further | Ongoing — app-level AES-256-GCM encryption shipped for `user_memories`, `job_cases`, `proof_items`, `training_feedback`; key rollout + backfill still pending on production |
+| 2 | Inject intent/context into AI prompts without inflating token usage, and ensure the right CV comes out the other end | Partially done — token usage now logged (input/output) on tailor-cv + cover-letter; no prompt-size reduction work done yet |
+| 3 | Add observability and guardrails (logging, tracing, rate/abuse limits, output validation) across AI routes | Partially done — see item 7 detail below; output-validation guardrail only on tailor-cv so far, not yet extended to the other generation routes |
+| 4 | Increase security and data encryption further | Ongoing — app-level AES-256-GCM encryption shipped for `user_memories`, `job_cases`, `proof_items`, `training_feedback`, `profiles.cv_text`, `case_views.recruiter_email`; key live and confirmed working |
 | 5 | Give Kira more flexibility (broader tool use / less rigid conversation flow) | Not started |
 | 6 | Tighten job search with the right search parameters | Not started |
-| 7 | Make scanner + CV generation deterministic — same input should give the same output every time, not a different answer per run | Not started |
+| 7 | Make scanner + CV generation deterministic — same input should give the same output every time, not a different answer per run | ✅ Done — see below |
 | 8 | Fix CV generation styles — correct padding/spacing when a line break occurs | ✅ Done — added `whiteSpace: 'pre-wrap'` to all 4 CV templates' summary + bullet text renders (`src/app/app/cv-builder/page.tsx`), which were silently collapsing embedded line breaks from the AI output |
 | 9 | Job Case: confetti animation when a case is successfully created | ✅ Done — `src/lib/confetti.ts` (zero-dependency canvas confetti), fired in `src/app/app/job-case/new/page.tsx` on `step === 'done'` |
 | 10 | One saved CV across the platform (Account settings) instead of re-uploading on every page | In progress — see below |
 | 11 | Job Case: full audit against its documented GDPR design + make the recruiter-facing page a genuinely better CV replacement | In progress — see below |
+
+### Item 7 detail — determinism, full-rewrite enforcement, output validation
+
+Priority ordering per explicit instruction: AI trustworthiness first (no hallucination, genuine full rewrite not a 2-line patch, same input → same output), token discipline second.
+
+- `temperature: 0` added to every route producing a factual/structured artifact: `tailor-cv` (both JSON and plain-text modes), `cover-letter`, `analyse-profile`, `cv/skill-gap`, `extract-pdf`, `job-case/create` (both AI calls), `job-case/analyse`, `job-case/score-sample`, `zeugnis`, `visa`. `career-scan` + India variants already had this.
+- Deliberately NOT applied to `job-case/generate-test`, `job-case/interview-prep`, Kira chat, interview-coaching, salary-sim — these produce practice questions/conversation where variety across sessions is a feature, not a bug.
+- CV Builder feedback-edit prompt (both JSON and plain-text modes) now explicitly instructs a genuine rewrite when feedback is applied — "add X" means X gets woven through summary + bullets + skills, not appended to one field while the rest stays untouched.
+- `tailor-cv` JSON mode now validates the response (non-empty name + experience array) before returning success; a malformed/hollow generation triggers an automatic credit refund + clear error instead of shipping a broken CV.
+- Token usage (input/output) now logged via `console.error` on `tailor-cv` and `cover-letter` — visible in Vercel logs, first step toward full observability (#3).
+- **Still open**: extend the output-validation guardrail to the other generation routes (career-scan, cover-letter, zeugnis, visa, job-case/create); reduce prompt/context size where genuinely redundant (#2); a real observability/tracing system beyond console logging, and rate/abuse-limit review (#3 full scope).
 
 ### Item 11 detail — Job Case audit + recruiter page
 
