@@ -11,7 +11,7 @@ Numbering is stable — refer to items by number in future chats so we can pick 
 | 3 | Add observability and guardrails (logging, tracing, rate/abuse limits, output validation) across AI routes | Partially done — see item 7 detail below; output-validation guardrail only on tailor-cv so far, not yet extended to the other generation routes |
 | 4 | Increase security and data encryption further | Ongoing — app-level AES-256-GCM encryption shipped for `user_memories`, `job_cases`, `proof_items`, `training_feedback`, `profiles.cv_text`, `case_views.recruiter_email`; key live and confirmed working |
 | 5 | Give Kira more flexibility (broader tool use / less rigid conversation flow) | Not started |
-| 6 | Tighten job search with the right search parameters | Not started |
+| 6 | Tighten job search with the right search parameters — priority: sort by date posted | ✅ Done — see below |
 | 7 | Make scanner + CV generation deterministic — same input should give the same output every time, not a different answer per run | ✅ Done — see below |
 | 8 | Fix CV generation styles — correct padding/spacing when a line break occurs | ✅ Done — added `whiteSpace: 'pre-wrap'` to all 4 CV templates' summary + bullet text renders (`src/app/app/cv-builder/page.tsx`), which were silently collapsing embedded line breaks from the AI output |
 | 9 | Job Case: confetti animation when a case is successfully created | ✅ Done — `src/lib/confetti.ts` (zero-dependency canvas confetti), fired in `src/app/app/job-case/new/page.tsx` on `step === 'done'` |
@@ -28,6 +28,13 @@ Priority ordering per explicit instruction: AI trustworthiness first (no halluci
 - `tailor-cv` JSON mode now validates the response (non-empty name + experience array) before returning success; a malformed/hollow generation triggers an automatic credit refund + clear error instead of shipping a broken CV.
 - Token usage (input/output) now logged via `console.error` on `tailor-cv` and `cover-letter` — visible in Vercel logs, first step toward full observability (#3).
 - **Still open**: extend the output-validation guardrail to the other generation routes (career-scan, cover-letter, zeugnis, visa, job-case/create); reduce prompt/context size where genuinely redundant (#2); a real observability/tracing system beyond console logging, and rate/abuse-limit review (#3 full scope).
+
+### Item 6 detail — job search sort priority
+
+- `/api/jobs` (Adzuna) now sends `sort_by: 'date'` in the request itself — previously it fetched using Adzuna's default relevance ranking and only reordered the 20 already-selected results per page, so pagination wasn't reliably date-ordered. Kept the client-side sort as a defensive fallback.
+- `/api/ba-jobs` (Bundesagentur für Arbeit) — no documented sort param on that (unofficial) API, so added the same client-side newest-first sort instead.
+- `smart-apply/page.tsx`'s sort toggle defaulted to "match" instead of "date" — inconsistent with the main jobs page and India's jobs page. Aligned to default to date.
+- India's job search already calls the same `/api/jobs` route, so it picked up the fix automatically — no separate change needed.
 
 ### Item 11 detail — Job Case audit + recruiter page
 
