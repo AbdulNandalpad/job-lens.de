@@ -480,7 +480,7 @@ export default function DACHDashboard() {
           </svg>
         </div>
 
-        <div style={{ maxWidth: 1100, margin: '0 auto', position: 'relative' }}>
+        <div style={{ maxWidth: 1280, margin: '0 auto', position: 'relative' }}>
           {/* Top row: brand + controls */}
           <div className="hero-top" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
 
@@ -580,7 +580,7 @@ export default function DACHDashboard() {
       {/* ── CUSTOMIZE PANEL ──────────────────────────── */}
       {showCustomize && (
         <div style={{ background: 'rgba(55,138,221,.04)', borderBottom: `1px solid ${border}`, padding: '18px 28px' }}>
-          <div style={{ maxWidth: 1100, margin: '0 auto' }}>
+          <div style={{ maxWidth: 1280, margin: '0 auto' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
               <span style={{ fontFamily: "var(--font-outfit), system-ui, sans-serif", fontSize: 13, fontWeight: 700, color: txt1 }}>
                 {t('Widgets auswählen', 'Choose your widgets')}
@@ -607,7 +607,7 @@ export default function DACHDashboard() {
       )}
 
       {/* ── ANALYTICS BODY ───────────────────────────── */}
-      <div className="dash-page" style={{ maxWidth: 1100, margin: '0 auto', padding: '28px 20px 80px' }}>
+      <div className="dash-page" style={{ maxWidth: 1280, margin: '0 auto', padding: '28px 20px 80px' }}>
 
         {/* ── Saved CV — persistent status card once a CV is saved ── */}
         {!loadingSavedCv && hasSavedCv && (

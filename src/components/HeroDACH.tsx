@@ -195,7 +195,7 @@ export default function HeroDACH({ lang, user }: Props) {
 
         <div
           className="hero-dach-layout"
-          style={{ maxWidth:1180, margin:'0 auto', padding:'64px 32px', width:'100%', display:'grid', gridTemplateColumns:'44% 56%', gap:40, alignItems:'center', position:'relative', zIndex:1 }}
+          style={{ maxWidth:1360, margin:'0 auto', padding:'64px 32px', width:'100%', display:'grid', gridTemplateColumns:'44% 56%', gap:40, alignItems:'center', position:'relative', zIndex:1 }}
         >
           {/* ── Left: copy — animates on panel hover ── */}
           <div

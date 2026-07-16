@@ -374,7 +374,20 @@ export default function HomePage() {
   const stats = t.statsLabels.map((v, i) => ({ value: v, label: t.statsDescs[i] }))
 
   return (
-    <div style={{ minHeight: '100vh', background: c.bg, fontFamily: f.body, overflowX: 'hidden' }}>
+    <div style={{ minHeight: '100vh', background: c.bg, fontFamily: f.body, overflowX: 'hidden', position: 'relative' }}>
+      {/* Ambient edge decoration — fills the empty side margins on wide/ultrawide screens so they
+          read as designed negative space instead of dead flat color. Fixed so it stays put while
+          scrolling and doesn't affect document flow or layout of anything else. */}
+      <div aria-hidden style={{ position: 'fixed', inset: 0, pointerEvents: 'none', zIndex: 0, overflow: 'hidden' }}>
+        <div style={{ position: 'absolute', top: '6%', left: '-10%', width: 680, height: 680, borderRadius: '50%', background: 'radial-gradient(circle, rgba(55,138,221,0.22) 0%, transparent 72%)' }} />
+        <div style={{ position: 'absolute', top: '52%', right: '-12%', width: 760, height: 760, borderRadius: '50%', background: 'radial-gradient(circle, rgba(34,197,94,0.18) 0%, transparent 72%)' }} />
+        <div style={{ position: 'absolute', bottom: '0%', left: '-8%', width: 600, height: 600, borderRadius: '50%', background: 'radial-gradient(circle, rgba(139,92,246,0.16) 0%, transparent 72%)' }} />
+      </div>
+      {/* Everything else sits in its own positioned+z-indexed layer so it reliably
+          paints above the fixed decorative layer regardless of each section's own
+          position/z-index (position:fixed elements don't reliably stack behind
+          plain static content otherwise). */}
+      <div style={{ position: 'relative', zIndex: 1 }}>
       <style>{`
         @keyframes fadeUp { from { opacity:0; transform:translateY(22px); } to { opacity:1; transform:translateY(0); } }
         @keyframes fadeIn { from { opacity:0; } to { opacity:1; } }
@@ -568,7 +581,7 @@ export default function HomePage() {
 
       {/* ── Job Case spotlight ── */}
       <div style={{ background: 'linear-gradient(135deg, #f0fdf4 0%, #dcfce7 50%, #f0fdf4 100%)', borderTop: '1px solid rgba(34,197,94,0.2)', borderBottom: '1px solid rgba(34,197,94,0.2)', padding: '60px 24px' }}>
-        <div style={{ maxWidth: 1100, margin: '0 auto' }}>
+        <div style={{ maxWidth: 1280, margin: '0 auto' }}>
 
           {/* Top: hook + headline */}
           <div style={{ textAlign: 'center', marginBottom: 48 }}>
@@ -634,7 +647,7 @@ export default function HomePage() {
 
       {/* ── Market Facts Bar ── */}
       <div ref={trustRef} style={{ background: 'linear-gradient(90deg,#f0f6ff 0%,#eef4ff 50%,#f0f6ff 100%)', borderBottom: '1px solid rgba(55,138,221,0.15)' }}>
-        <div className="jl-trust-grid" style={{ maxWidth: 1100, margin: '0 auto', padding: '0 24px', display: 'grid', gridTemplateColumns: 'repeat(4,1fr)' }}>
+        <div className="jl-trust-grid" style={{ maxWidth: 1280, margin: '0 auto', padding: '0 24px', display: 'grid', gridTemplateColumns: 'repeat(4,1fr)' }}>
           {([
             { val: '75%', label: lang === 'DE' ? 'der Lebensläufe scheitern am ATS-Filter' : 'of CVs fail the ATS filter', color: '#E24B4A', src: 'Jobscan 2024' },
             { val: '6 Sek', label: lang === 'DE' ? 'Recruiter-Zeit pro Lebenslauf' : 'recruiter time per CV', color: '#f59e0b', src: 'TheLadders' },
@@ -652,7 +665,7 @@ export default function HomePage() {
       </div>
 
       {/* ── Features ── */}
-      <div className="jl-section" style={{ maxWidth: 1100, margin: '0 auto' }}>
+      <div className="jl-section" style={{ maxWidth: 1280, margin: '0 auto' }}>
         <div style={{ textAlign: 'center', marginBottom: 44 }}>
           <div style={{ fontFamily: f.heading, fontSize: 26, fontWeight: 700, color: c.primary, marginBottom: 10 }}>
             {t.featuresTitle}
@@ -1215,6 +1228,7 @@ export default function HomePage() {
             <Link href="/contact" style={{ fontSize: 11, color: '#54627a', textDecoration: 'none' }}>Contact</Link>
           </div>
         </div>
+      </div>
       </div>
     </div>
   )
