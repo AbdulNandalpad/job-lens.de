@@ -98,6 +98,7 @@ Return ONLY valid JSON (no markdown):
     const message = await anthropic.messages.create({
       model: 'claude-sonnet-4-6',
       max_tokens: 3000,
+      temperature: 0,   // deterministic — same profile should assess the same every time
       messages: [{ role: 'user', content: prompt }],
     })
     const raw = (message.content[0] as { text: string }).text.trim()

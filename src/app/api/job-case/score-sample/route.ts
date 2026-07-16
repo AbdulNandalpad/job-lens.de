@@ -26,6 +26,7 @@ export async function POST(req: NextRequest) {
     const msg = await anthropic.messages.create({
       model: 'claude-haiku-4-5-20251001',
       max_tokens: 300,
+      temperature: 0,   // deterministic — same answer should score the same every time
       messages: [{
         role: 'user',
         content: `You are scoring a practice answer for a job interview skill test. Be encouraging but honest.

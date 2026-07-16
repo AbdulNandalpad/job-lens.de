@@ -46,6 +46,7 @@ async function generateMatchAnalysis(opts: {
   const msg = await anthropic.messages.create({
     model: 'claude-sonnet-4-6',
     max_tokens: 1500,
+    temperature: 0,   // deterministic — same evidence should score the same every time
     messages: [{
       role: 'user',
       content: `You are evaluating a candidate's evidence against job requirements for a ${jobTitle} role.
@@ -100,6 +101,7 @@ async function scoreTestAnswers(opts: {
   const msg = await anthropic.messages.create({
     model: 'claude-haiku-4-5-20251001',
     max_tokens: 800,
+    temperature: 0,   // deterministic — same answers should score the same every time
     messages: [{
       role: 'user',
       content: `Score these ${questions.length} test answers. Return JSON only.

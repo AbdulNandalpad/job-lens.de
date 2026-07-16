@@ -29,6 +29,7 @@ export async function POST(req: NextRequest) {
     const msg = await anthropic.messages.create({
       model: 'claude-haiku-4-5-20251001',
       max_tokens: 512,
+      temperature: 0,   // deterministic — same CV/JD pair should return the same skill gap every time
       messages: [{
         role: 'user',
         content: `Extract technical skills, tools, technologies, frameworks, and domain knowledge from this job description. Then check which appear in the CV text.

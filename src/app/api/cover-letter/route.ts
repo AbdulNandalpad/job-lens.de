@@ -75,9 +75,11 @@ Write the cover letter:`
     const message = await anthropic.messages.create({
       model: 'claude-sonnet-4-6',
       max_tokens: 1500,
+      temperature: 0,   // deterministic — same CV + same job should produce the same letter every time
       system: `You are an expert cover letter writer. Write compelling, personalised cover letters that directly address the job description and showcase the applicant's most relevant experience. Never invent facts not present in the CV.${memBlock ? '\n' + memBlock : ''}`,
       messages: [{ role: 'user', content: basePrompt }],
     })
+    if (message.usage) console.error(`[cover-letter] tokens in=${message.usage.input_tokens} out=${message.usage.output_tokens}`)
 
     const coverLetter = (message.content[0] as { text: string }).text
 

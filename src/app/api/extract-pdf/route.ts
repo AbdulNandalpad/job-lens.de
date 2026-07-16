@@ -77,6 +77,7 @@ export async function POST(req: NextRequest) {
         // 4000 was truncating longer (2+ page) CVs mid-extraction, which then fed
         // a half-CV into every downstream feature (tailoring, career scan, etc).
         max_tokens: 8000,
+        temperature: 0, // deterministic — same file should extract the same text every time
         messages: [
           {
             role: 'user',

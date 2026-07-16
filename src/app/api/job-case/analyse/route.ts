@@ -193,6 +193,7 @@ quality_score rules:
     const msg = await anthropic.messages.create({
       model: 'claude-haiku-4-5-20251001',
       max_tokens: 1200,
+      temperature: 0,   // deterministic — same job posting should analyse the same every time
       messages: [{ role: 'user', content: prompt }],
     })
 

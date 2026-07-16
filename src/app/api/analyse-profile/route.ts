@@ -93,6 +93,7 @@ Return ONLY valid JSON, no markdown:
     const message = await anthropic.messages.create({
       model: 'claude-haiku-4-5-20251001',
       max_tokens: 800,
+      temperature: 0,   // deterministic — same CV should extract the same profile every time
       messages: [{ role: 'user', content: prompt }],
     })
 

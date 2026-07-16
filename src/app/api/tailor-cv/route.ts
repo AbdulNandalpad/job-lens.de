@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { after } from 'next/server'
 import Anthropic from '@anthropic-ai/sdk'
-import { createServerSupabase, checkAndDeductCredits, isUserRateLimited } from '@/lib/supabase-server'
+import { createServerSupabase, checkAndDeductCredits, isUserRateLimited, refundCredits } from '@/lib/supabase-server'
 import { CREDIT_COST, MARKET } from '@/lib/constants'
 import { retrieveMemories, formatMemoriesForPrompt, saveMemoriesFromInteraction } from '@/lib/memory'
 
@@ -42,7 +42,7 @@ export async function POST(req: NextRequest) {
     if (returnJson) {
       // System prompt is always server-side — never accepted from client
       const serverSystemPrompt = feedback && currentCv
-        ? `You are an elite CV designer. The user has requested changes to their CV. Apply the feedback exactly and return updated JSON matching the same schema. Keep every stat, bullet and highlight grounded in facts already present in the CV — never invent a new metric or achievement while applying feedback. Maintain the ${pages === '2' ? '2-page' : '1-page'} length target unless the feedback explicitly asks to change it. Return ONLY valid JSON, no markdown.`
+        ? `You are an elite CV designer. The user has requested changes to their CV. Apply the feedback as a genuine rewrite of every field it affects — if the feedback asks to emphasise a skill, weave it through the summary AND the relevant experience bullets AND the skills list as appropriate, don't just append it to one field and leave everything else untouched. A request like "add X" means the CV should read as if X was always part of the story, not a bolted-on afterthought. Keep every stat, bullet and highlight grounded in facts already present in the CV — never invent a new metric or achievement while applying feedback. Maintain the ${pages === '2' ? '2-page' : '1-page'} length target unless the feedback explicitly asks to change it. Return ONLY valid JSON, no markdown.`
         : `You are an elite CV designer and career consultant. Extract, enhance and structure CV information into a rich JSON object for visual rendering.
 
 SOURCE TYPE HINTS — apply these parsing rules:
@@ -125,11 +125,28 @@ Return ONLY the JSON object. No markdown, no backticks, no explanation.`
       const message = await anthropic.messages.create({
         model: 'claude-sonnet-4-6',
         max_tokens: 8000,
+        temperature: 0,   // deterministic — same CV + same job should tailor the same way every time
         system: serverSystemPrompt + memBlock,
         messages: [{ role: 'user', content: userContent }],
       })
+      if (message.usage) console.error(`[tailor-cv] tokens in=${message.usage.input_tokens} out=${message.usage.output_tokens}`)
 
       const cv = (message.content[0] as { text: string }).text
+
+      // Reliability guardrail: never ship a malformed or hollow CV after
+      // charging credits. Validate the JSON parses and has real content
+      // before returning success.
+      try {
+        const parsed = JSON.parse(cv.replace(/```json|```/g, '').trim())
+        const hasName = typeof parsed.name === 'string' && parsed.name.trim().length > 0
+        const hasExperience = Array.isArray(parsed.experience) && parsed.experience.length > 0
+        if (!hasName || !hasExperience) throw new Error('CV JSON missing required fields (name/experience)')
+      } catch (validationErr) {
+        console.error('[tailor-cv] output validation failed, refunding credits:', validationErr instanceof Error ? validationErr.message : validationErr)
+        await refundCredits(user.id, COST, 'tailor_cv_invalid_output')
+        return NextResponse.json({ error: 'Generation failed — please try again. Your credit has been refunded.' }, { status: 502 })
+      }
+
       after(() => saveMemoriesFromInteraction(user.id, saveCtx))
       return NextResponse.json({ cv, creditsRemaining: credits.remaining })
     }
@@ -157,14 +174,16 @@ Return ONLY the JSON object. No markdown, no backticks, no explanation.`
     const message = await anthropic.messages.create({
       model: 'claude-sonnet-4-6',
       max_tokens: 4000,
+      temperature: 0,   // deterministic — same CV + same job should tailor the same way every time
       system: `You are an expert CV writer and career consultant. Your job is to tailor CVs precisely to job descriptions.
 
 ${toneInstruction}
 ${langInstruction}
 ${pagesInstruction}
+- FULL REWRITE, NOT A LIGHT EDIT: rewrite the summary and every bullet to speak directly to this role — do not just tack a skill onto the existing text or tweak a couple of lines. If feedback is provided below, apply it as a genuine rewrite of the affected section(s), not a minimal patch.
 - Highlight relevant experience and skills that match the job description
 - Use keywords and phrases from the job description naturally throughout
-- Preserve all factual information — never invent roles, dates, or achievements
+- Preserve all factual information — never invent roles, dates, achievements, or metrics not present in the original CV
 - Return plain text only, no markdown, no backticks
 ${memBlock}`,
       messages: [{
@@ -182,6 +201,7 @@ ${cvText.slice(0, 25000)}${feedbackSection}
 Return the complete tailored CV in plain text format.`,
       }],
     })
+    if (message.usage) console.error(`[tailor-cv:plain] tokens in=${message.usage.input_tokens} out=${message.usage.output_tokens}`)
 
     const cv = (message.content[0] as { text: string }).text
     after(() => saveMemoriesFromInteraction(user.id, saveCtx))

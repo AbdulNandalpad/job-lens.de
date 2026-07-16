@@ -68,6 +68,7 @@ Return ONLY valid JSON in this exact structure (no markdown, no explanation outs
     const message = await anthropic.messages.create({
       model: 'claude-sonnet-4-6',
       max_tokens: 2000,
+      temperature: 0,   // deterministic — same Zeugnis should decode the same every time
       messages: [{ role: 'user', content: prompt }],
     })
 
