@@ -16,8 +16,19 @@ Numbering is stable — refer to items by number in future chats so we can pick 
 | 8 | Fix CV generation styles — correct padding/spacing when a line break occurs | ✅ Done — added `whiteSpace: 'pre-wrap'` to all 4 CV templates' summary + bullet text renders (`src/app/app/cv-builder/page.tsx`), which were silently collapsing embedded line breaks from the AI output |
 | 9 | Job Case: confetti animation when a case is successfully created | ✅ Done — `src/lib/confetti.ts` (zero-dependency canvas confetti), fired in `src/app/app/job-case/new/page.tsx` on `step === 'done'` |
 | 10 | One saved CV across the platform (Account settings) instead of re-uploading on every page | In progress — see below |
+| 11 | Job Case: full audit against its documented GDPR design + make the recruiter-facing page a genuinely better CV replacement | In progress — see below |
 
-### Item 10 detail — saved CV
+### Item 11 detail — Job Case audit + recruiter page
+
+Full audit of all 13 Job Case API routes + schema against the GDPR design documented in `004_job_cases.sql`'s comments. Found and fixed 4 real bugs:
+- `recruiter-interest` was completely broken — wrote to `case_views` columns (`recruiter_email`, `interest_expressed_at`, `consent_given_at`) and a `job_cases.status` value (`'interested'`) that never existed in the schema. Every call threw a Postgres error. Fixed by migration `014_job_case_recruiter_interest.sql` (adds the columns, extends the status CHECK) — **needs to be run in Supabase**. `recruiter_email` is now also encrypted at rest.
+- The 30-day auto-deletion cron (`/api/cron/cleanup-expired-cases`) existed but had no `vercel.json` registering it as scheduled — likely never actually ran. Added `vercel.json` with the documented `0 2 * * *` schedule; route now accepts Vercel's auto-injected `Authorization: Bearer $CRON_SECRET` header. **Needs `CRON_SECRET` confirmed set in Vercel env vars.**
+- Candidates could get duplicate/misleading "your case was viewed" emails (one on link *request*, one on link *click*) — removed the premature request-time send.
+- The schema's granular 3-part consent design (`consent_video`/`test`/`tracking`) was defeated by a hardcoded `{video:true,test:true,tracking:true}` in both DACH and India create-case calls, ignoring the real checkbox state. Now sends and persists the actual per-item values.
+
+Also shipped: an "at a glance" stat strip (requirements verified X/Y, evidence count, test score) + a one-line trust/methodology note on the recruiter-facing `/case/[slug]` page, so a recruiter skimming for a few seconds gets CV-equivalent headline numbers without reading every requirement row.
+
+**Still open** (deferred per user's own prioritization): matching/pitch prompt quality, a PDF/CV export fallback for ATS systems that require a traditional upload, and clearer on-site positioning of Job Case vs. CV Builder.
 
 - Migration `013_saved_cv.sql`: `profiles.cv_text` (encrypted), `cv_file_name`, `cv_updated_at`, `cv_consent_at`
 - `/api/user/cv` (GET/POST/DELETE) — encrypts with the same AES-256-GCM lib as migration 012; POST requires `consent: true`
