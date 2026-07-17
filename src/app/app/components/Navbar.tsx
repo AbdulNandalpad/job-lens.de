@@ -80,7 +80,7 @@ export default function Navbar() {
     { label: t.navbar.cvBuilder,   href: '/app/cv-builder' },
     { label: t.navbar.coverLetter, href: '/app/cover-letter' },
     { label: t.navbar.autoApply,   href: '/app/auto-apply' },
-    ...(isAdmin ? [{ label: 'Job Case', href: '/app/job-case' }] : []),
+    { label: 'Job Case', href: '/app/job-case' },
     { label: t.navbar.zeugnis,     href: '/app/zeugnis' },
     { label: t.navbar.account,     href: '/app/account' },
   ]
