@@ -405,7 +405,12 @@ function Spinner({ light = false }: { light?: boolean }) {
 
 export default function JobCaseNewPageIndia() {
   const router = useRouter()
-  const { inCredits } = useCredits()
+  // Use the aggregate credits total, not inCredits alone — India users' credits
+  // are almost always sitting in the common (free) pool since Razorpay top-ups
+  // aren't live yet, and common credits are spendable in any market. Gating on
+  // inCredits alone showed "insufficient credits" to users who actually had
+  // plenty to spend.
+  const { credits } = useCredits()
 
   const [step, setStep]               = useState<Step>('paste')
   const [cvFound, setCvFound]         = useState(false)
@@ -637,7 +642,7 @@ export default function JobCaseNewPageIndia() {
 
           {/* Sidebar */}
           <div className="jl-dsb" style={{ width: 260, flexShrink: 0, background: `linear-gradient(180deg, ${SB} 0%, #0e1a28 100%)`, padding: '28px 18px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 0, position: 'sticky', top: 52, height: 'calc(100vh - 52px)' }}>
-            <SidebarContent step={step} credits={inCredits} cvFound={cvFound} cvSource={cvSource} questions={questions} />
+            <SidebarContent step={step} credits={credits} cvFound={cvFound} cvSource={cvSource} questions={questions} />
           </div>
 
           {/* Main content */}

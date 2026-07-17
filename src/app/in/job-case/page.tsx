@@ -71,7 +71,8 @@ export default function MyJobCasesPageIndia() {
   const [loading, setLoading]   = useState(true)
   const [copied, setCopied]     = useState<string | null>(null)
   const [deleting, setDeleting] = useState<string | null>(null)
-  const { inCredits } = useCredits()
+  // Aggregate total, not inCredits alone — see job-case/new/page.tsx for why
+  const { credits } = useCredits()
 
   useEffect(() => {
     fetch(API.jobCaseList)
@@ -171,7 +172,7 @@ export default function MyJobCasesPageIndia() {
               {[
                 { value: loading ? '…' : String(activeCases),                    label: 'Active cases' },
                 { value: loading ? '…' : String(totalViews),                     label: 'Recruiter views' },
-                { value: inCredits === null ? '…' : String(inCredits),           label: 'Credits remaining' },
+                { value: credits === null ? '…' : String(credits),               label: 'Credits remaining' },
                 { value: `${JOB_CASE.expiryDays}d`,                              label: 'Auto-delete' },
               ].map(stat => (
                 <div key={stat.label} style={{ background: c.bgCard, border: `1px solid ${c.border}`, borderRadius: 10, padding: '14px 16px', boxShadow: sh.card }}>
