@@ -3,9 +3,9 @@
 import { useState, useRef, useEffect } from 'react'
 import { createPortal } from 'react-dom'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
+import { useRouter, usePathname } from 'next/navigation'
 import { theme } from '@/lib/theme'
-import { SS, LS, API, CREDIT_COST, LIVE_VOICE_MAX_SECONDS, KIRA_MAINTENANCE } from '@/lib/constants'
+import { SS, LS, API, CREDIT_COST, LIVE_VOICE_MAX_SECONDS, KIRA_MAINTENANCE, KIRA_OPEN_EVENT } from '@/lib/constants'
 import { useLanguage } from '@/lib/i18n'
 
 const { colors: c, fonts: f, gradients: g } = theme
@@ -298,6 +298,7 @@ function VoiceOrb({ state, large = false }: { state: VoiceState; large?: boolean
 export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
   const { lang }   = useLanguage()
   const router     = useRouter()
+  const pathname   = usePathname()
   const key    = market === 'in' ? 'in_EN' : `eu_${lang}`
   const accent = market === 'in' ? '#FF9933' : c.accent
 
@@ -343,6 +344,22 @@ export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
   const [realtimeSecsLeft, setRealtimeSecsLeft] = useState(LIVE_VOICE_MAX_SECONDS)
   const realtimeTimerRef  = useRef<ReturnType<typeof setInterval> | null>(null)
   const realtimeRetryRef    = useRef(0)   // reconnect attempt counter (reset on clean exit)
+
+  // ── Kira Home handoff — open maximized with a message or live voice ───────
+  const handoffSendRef  = useRef<(t: string) => void>(() => {})
+  const handoffVoiceRef = useRef<() => void>(() => {})
+  useEffect(() => { handoffSendRef.current = send; handoffVoiceRef.current = enterRealtimeMode })
+  useEffect(() => {
+    const h = (e: Event) => {
+      const d = (e as CustomEvent).detail as { text?: string; voice?: boolean } | undefined
+      setOpen(true)
+      setMaximized(true)
+      if (d?.voice) handoffVoiceRef.current()
+      else if (d?.text) handoffSendRef.current(d.text)
+    }
+    window.addEventListener(KIRA_OPEN_EVENT, h)
+    return () => window.removeEventListener(KIRA_OPEN_EVENT, h)
+  }, [])
   const realtimeRetryTRef   = useRef<ReturnType<typeof setTimeout> | null>(null)
   const realtimeStartRef    = useRef<number>(0)    // session start timestamp (ms)
   const realtimeJobsRef     = useRef<number>(0)    // number of job searches in this session
@@ -923,6 +940,9 @@ export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
   const showSuggestions = msgs.length <= 1 && !loading
 
   if (!mounted) return null
+  // Kira Home IS Kira — hide the corner bubble there. The panel can still open
+  // (maximized) when KiraHome hands off via KIRA_OPEN_EVENT.
+  const onKiraHome = pathname === '/app/kira' || pathname === '/in/kira'
 
   return createPortal(
     <>
@@ -1300,8 +1320,8 @@ export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
         </div>
       )}
 
-      {/* ── FAB — hidden while maximized ── */}
-      {!maximized && <button className="kira-fab" onClick={() => {
+      {/* ── FAB — hidden while maximized and on Kira Home ── */}
+      {!maximized && !onKiraHome && <button className="kira-fab" onClick={() => {
         const nowOpening = !open
         setOpen(o => !o)
         if (!nowOpening) {

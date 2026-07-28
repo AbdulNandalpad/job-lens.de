@@ -32,6 +32,11 @@ export const KIRA_MAINTENANCE = false
 // ── Auto Apply maintenance mode — set true to block for non-admins
 export const AUTO_APPLY_MAINTENANCE = true
 
+// ── Kira Home → AIWidget handoff ─────────────────────────────────────────────
+// Window CustomEvent name. Detail: { text?: string; voice?: boolean }.
+// KiraHome dispatches it; AIWidget opens maximized and takes over.
+export const KIRA_OPEN_EVENT = 'jl_kira_open'
+
 // ── Market identifiers ───────────────────────────────────────────────────────
 export const MARKET = {
   eu: 'eu',

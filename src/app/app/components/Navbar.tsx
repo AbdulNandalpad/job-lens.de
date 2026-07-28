@@ -151,6 +151,11 @@ export default function Navbar() {
         {/* Right side */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
 
+          <Link href="/app/kira" className="jl-clear-btn"
+            style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '5px 12px', borderRadius: 8, background: 'rgba(55,138,221,0.15)', border: '1px solid rgba(55,138,221,0.35)', textDecoration: 'none' }}>
+            <span style={{ fontSize: 12, color: '#fff', fontFamily: f.body, fontWeight: 600 }}>Kira <span style={{ opacity: 0.6, fontWeight: 400 }}>(beta)</span></span>
+          </Link>
+
           {/* DE/EN language dropdown */}
           <div className="jl-lang-toggle" style={{ position: 'relative' }}>
             <button
@@ -257,6 +262,10 @@ export default function Navbar() {
               {isActive(item.href) && <span style={{ fontSize: 10, background: '#378ADD', color: '#fff', padding: '2px 8px', borderRadius: 10, fontWeight: 700 }}>{t.navbar.current}</span>}
             </Link>
           ))}
+          <Link href="/app/kira" onClick={() => setMenuOpen(false)}
+            style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 12px', borderRadius: 8, textDecoration: 'none', fontSize: 14, marginBottom: 4, color: isActive('/app/kira') ? '#E6F1FB' : '#85B7EB', background: isActive('/app/kira') ? 'rgba(55,138,221,0.2)' : 'transparent', fontWeight: isActive('/app/kira') ? 600 : 400 }}>
+            Kira <span style={{ fontSize: 10, opacity: 0.6 }}>(beta)</span>
+          </Link>
           {/* Mobile lang toggle */}
           <div style={{ display: 'flex', gap: 6, margin: '8px 0', padding: '0 0 8px', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
             <button onClick={() => setLang('DE')} style={{ display: 'flex', alignItems: 'center', gap: 6, flex: 1, padding: '9px 12px', borderRadius: 8, border: `1px solid ${lang === 'DE' ? 'rgba(55,138,221,0.4)' : 'rgba(255,255,255,0.12)'}`, background: lang === 'DE' ? 'rgba(55,138,221,0.2)' : 'rgba(255,255,255,0.06)', color: lang === 'DE' ? '#fff' : 'rgba(255,255,255,0.5)', fontSize: 13, cursor: 'pointer', fontFamily: 'inherit', fontWeight: lang === 'DE' ? 700 : 400 }}>

@@ -30,11 +30,26 @@ export const theme = {
     bgSubtle: '#fafbfd',
     navy: '#185FA5',
   },
+  // Feature accent colors used by the marketing hero panels (HeroDACH/HeroIndia)
+  // and mirrored on Kira Home tiles. Keep in sync with the hero files.
+  featureAccents: {
+    careerScan:  '#378ADD',
+    jobSearch:   '#10b981',
+    cvBuilder:   '#8b5cf6',
+    coverLetter: '#f59e0b',
+    autoApply:   '#6366f1',
+    jobCase:     '#22c55e',
+  },
   gradients: {
     hero: `
       radial-gradient(ellipse at 20% 55%, rgba(55,138,221,0.18) 0%, transparent 55%),
       radial-gradient(ellipse at 75% 20%, rgba(29,158,117,0.1) 0%, transparent 50%),
       linear-gradient(160deg, #0d1e30 0%, #142a45 60%, #0f2038 100%)
+    `,
+    heroLight: `
+      radial-gradient(ellipse 55% 60% at 72% 18%, rgba(55,138,221,0.07) 0%, transparent 65%),
+      radial-gradient(ellipse 35% 45% at 18% 70%, rgba(139,92,246,0.05) 0%, transparent 60%),
+      linear-gradient(145deg, #f8faff 0%, #eef4ff 50%, #f0f6ff 100%)
     `,
     ctaBlock: `
       radial-gradient(ellipse at 15% 50%, rgba(55,138,221,0.15) 0%, transparent 55%),

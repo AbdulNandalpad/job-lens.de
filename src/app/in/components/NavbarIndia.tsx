@@ -157,6 +157,11 @@ export default function NavbarIndia() {
 
           {isLoggedIn ? (
             <>
+              <Link href="/in/kira" className="jl-clear-btn"
+                style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '5px 12px', borderRadius: 8, background: 'rgba(255,153,51,0.15)', border: '1px solid rgba(255,153,51,0.35)', textDecoration: 'none' }}>
+                <span style={{ fontSize: 12, color: '#fff', fontFamily: f.body, fontWeight: 600 }}>Kira <span style={{ opacity: 0.6, fontWeight: 400 }}>(beta)</span></span>
+              </Link>
+
               {/* New session button */}
               <div className="jl-clear-btn">
                 <button onClick={() => setConfirmClear(true)}
@@ -251,6 +256,10 @@ export default function NavbarIndia() {
                   {isActive(item.href) && <span style={{ fontSize: 10, background: '#FF9933', color: '#042C53', padding: '2px 8px', borderRadius: 10, fontWeight: 700 }}>Current</span>}
                 </Link>
               ))}
+              <Link href="/in/kira" onClick={() => setMenuOpen(false)}
+                style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 12px', borderRadius: 8, textDecoration: 'none', fontSize: 14, marginBottom: 4, color: isActive('/in/kira') ? '#E6F1FB' : '#85B7EB', background: isActive('/in/kira') ? 'rgba(255,153,51,0.2)' : 'transparent', fontWeight: isActive('/in/kira') ? 600 : 400 }}>
+                Kira <span style={{ fontSize: 10, opacity: 0.6 }}>(beta)</span>
+              </Link>
               <div style={{ display: 'flex', gap: 8, marginTop: 8, paddingTop: 8, borderTop: '1px solid rgba(255,255,255,0.08)' }}>
                 <button onClick={() => { setMenuOpen(false); setConfirmClear(true) }}
                   style={{ flex: 1, padding: '10px 0', borderRadius: 8, background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', color: 'rgba(255,255,255,0.5)', fontSize: 13, cursor: 'pointer', fontFamily: 'inherit' }}>

@@ -369,7 +369,10 @@ export async function POST(req: NextRequest) {
   const rawMarket = body.market
   const market: 'eu' | 'in' = rawMarket === MARKET.in ? MARKET.in : MARKET.eu
 
-  const mode: string     = body.mode === 'cv_discuss' ? 'cv_discuss' : ''
+  const rawMode: string  = typeof body.mode === 'string' ? body.mode : ''
+  const mode: string     = rawMode === 'cv_discuss' || Object.prototype.hasOwnProperty.call(MODE_PROMPTS, rawMode)
+    ? rawMode
+    : ''
   const isVoice: boolean = !!body.isVoice
 
   // Cap CV text server-side (client may send full file)
