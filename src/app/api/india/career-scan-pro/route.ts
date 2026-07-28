@@ -71,7 +71,7 @@ Return ONLY valid JSON matching this schema exactly:
 }
 
 function extractJson(raw: string): string {
-  let s = raw.replace(/```json\s*/g, '').replace(/```\s*/g, '').trim()
+  const s = raw.replace(/```json\s*/g, '').replace(/```\s*/g, '').trim()
   const start = s.indexOf('{')
   const end   = s.lastIndexOf('}')
   if (start === -1 || end === -1 || end <= start) throw new Error('No JSON found')

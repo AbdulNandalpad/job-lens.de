@@ -104,7 +104,6 @@ export default function SalarySimPage() {
       isFirstRef.current = false
 
       if (res.status === 402) {
-        const d = await res.json()
         setMsgs(prev => { const cp = [...prev]; cp[idx] = { role: 'assistant', content: lang === 'DE' ? `Nicht genügend Credits. Du benötigst ${CREDIT_COST.salarySim} Credit, um eine Sitzung zu starten.` : `Insufficient credits. You need ${CREDIT_COST.salarySim} credit to start a session.` }; return cp })
         setLoading(false); return
       }

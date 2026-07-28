@@ -6,7 +6,6 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { theme } from '@/lib/theme'
 import { SS, LS, API, CREDIT_COST, LIVE_VOICE_MAX_SECONDS, KIRA_MAINTENANCE } from '@/lib/constants'
-import SvgIcon from '@/components/SvgIcon'
 import { useLanguage } from '@/lib/i18n'
 
 const { colors: c, fonts: f, gradients: g } = theme
@@ -29,6 +28,9 @@ type VoiceState = 'idle' | 'listening' | 'processing' | 'speaking'
 const AGENT = 'Kira'
 
 // ── Kira mode cards ──────────────────────────────────────────────────────────
+// Built but never wired to the chat UI — no button currently calls selectMode()
+// below, so ModeIcon/KIRA_MODES/MODE_OPENINGS are all currently unreachable.
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function ModeIcon({ id, size = 16, color = 'currentColor' }: { id: string; size?: number; color?: string }) {
   if (id === 'job_search') return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
@@ -58,6 +60,7 @@ function ModeIcon({ id, size = 16, color = 'currentColor' }: { id: string; size?
   )
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const KIRA_MODES = [
   { id: 'job_search',      label: 'Find Jobs',       desc: 'Search live listings by role & location' },
   { id: 'market_insights', label: 'Market Insights', desc: 'Salaries, trends & in-demand skills'     },
@@ -306,6 +309,8 @@ export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
   const [loading,     setLoading]     = useState(false)
   const [cvName,      setCvName]      = useState('')
   const [cvUploading, setCvUploading] = useState(false)
+  // Fetched but not shown anywhere yet — no greeting/message currently uses the user's name.
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [userName,    setUserName]    = useState('')
   const [isAdmin,     setIsAdmin]     = useState(false)
 
@@ -824,6 +829,7 @@ export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
   }
 
   // ── Mode selection ───────────────────────────────────────────────────────
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   function selectMode(mode: typeof KIRA_MODES[number]) {
     if (!isAdmin) return
     setKiraMode(mode.id)
@@ -906,10 +912,14 @@ export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
     inputRef.current?.focus()
   }
 
-  const suggestions = SUGGESTIONS[key]   || SUGGESTIONS['eu_EN']
   const statusMap   = STATUS_LABELS[key] || STATUS_LABELS['eu_EN']
 
-  // Show suggestion chips after the opening greeting, or when msgs is empty
+  // suggestions/showSuggestions: computed but not rendered anywhere — no chip UI
+  // currently reads them. SUGGESTIONS data (3 example prompts per market/lang) is
+  // ready to use if a "quick suggestion" empty-state is added to the chat body.
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const suggestions = SUGGESTIONS[key]   || SUGGESTIONS['eu_EN']
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const showSuggestions = msgs.length <= 1 && !loading
 
   if (!mounted) return null

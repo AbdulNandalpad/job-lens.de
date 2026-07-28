@@ -215,7 +215,6 @@ export default function IndiaDashboard() {
   const [sectorsExpanded, setSectorsExpanded] = useState(false)
   const [salaryExpanded,  setSalaryExpanded]  = useState(false)
   const [aiExpanded,      setAiExpanded]      = useState(false)
-  const [hoveredCat,    setHoveredCat]    = useState<string|null>(null)
   const [showCustomize, setShowCustomize] = useState(false)
 
   const { isVisible, widgets, toggle, resetDefaults } = useDashWidgets(MARKET.in)
@@ -246,7 +245,6 @@ export default function IndiaDashboard() {
   const topCat    = market?.categories[0]
   const topCity   = market?.topCities[0]
   const topRole   = market?.trendingRoles[0]
-  const maxCat    = topCat?.count??1
 
   const allSectors    = market?.categories ?? []
   const visibleSectors  = sectorsExpanded ? allSectors : allSectors.slice(0,5)

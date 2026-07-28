@@ -103,6 +103,7 @@ function CVPdfTwoColumn({ cv, ac, photo }: { cv: CVData; ac: string; photo?: str
           {/* Photo */}
           {photo && (
             <View style={{ alignItems: 'center', marginBottom: 6 }}>
+              {/* eslint-disable-next-line jsx-a11y/alt-text -- @react-pdf/renderer's Image has no alt prop; this renders to a PDF, not the DOM */}
               <Image src={photo} style={{ width: 60, height: 60, borderRadius: 30 }} />
             </View>
           )}
@@ -271,6 +272,7 @@ function CVPdfSingleColumn({ cv, ac, photo }: { cv: CVData; ac: string; photo?: 
         {/* ── Header ── */}
         {photo && (
           <View style={{ flexDirection: 'row', alignItems: 'flex-start', marginBottom: 10 }}>
+            {/* eslint-disable-next-line jsx-a11y/alt-text -- @react-pdf/renderer's Image has no alt prop; this renders to a PDF, not the DOM */}
             <Image src={photo} style={{ width: 64, height: 64, borderRadius: 32, marginRight: 16, objectFit: 'cover' }} />
             <View style={{ flex: 1 }}>
               <Text style={s.name}>{cv.name}</Text>

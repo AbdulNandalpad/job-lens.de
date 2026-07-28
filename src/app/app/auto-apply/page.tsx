@@ -108,7 +108,6 @@ export default function AutoApplyPage() {
   const [mapping, setMapping] = useState<FieldMapping[]>([])
   const [log, setLog] = useState<LogEntry[]>([])
   const [liveShot, setLiveShot] = useState<string>('')
-  const [confirmShot, setConfirmShot] = useState<string>('')
   const [previewShot, setPreviewShot] = useState<string>('')
   const [error, setError] = useState<string>('')
   const [sessionId, setSessionId] = useState<string>('')
@@ -252,7 +251,6 @@ export default function AutoApplyPage() {
                 setPhase('confirming')
                 break
               case 'done':
-                setConfirmShot(ev.confirmB64)
                 setLiveShot(ev.confirmB64)
                 addLog({ type: 'done', message: ev.message })
                 setPhase('done')
@@ -277,7 +275,6 @@ export default function AutoApplyPage() {
     setPhase('executing')
     setLog([])
     setLiveShot('')
-    setConfirmShot('')
     setPreviewShot('')
     setFieldStatuses({})
     setSessionId('')
@@ -1006,7 +1003,7 @@ export default function AutoApplyPage() {
                       </button>
                       <button
                         className="aa-btn-outline"
-                        onClick={() => { setPhase('idle'); setAnalyzeResult(null); setMapping([]); setLog([]); setLiveShot(''); setConfirmShot('') }}
+                        onClick={() => { setPhase('idle'); setAnalyzeResult(null); setMapping([]); setLog([]); setLiveShot('') }}
                       >
                         {lang === 'DE' ? 'Weitere Bewerbung' : 'Apply another'}
                       </button>

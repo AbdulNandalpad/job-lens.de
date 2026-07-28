@@ -87,7 +87,7 @@ export default function ContactPage() {
               <div style={{ fontSize: 36, marginBottom: 14 }}>✅</div>
               <h2 style={{ fontFamily: f.heading, fontSize: 20, fontWeight: 700, color: c.primary, margin: '0 0 10px' }}>Message sent!</h2>
               <p style={{ fontSize: 14, color: c.textMuted, lineHeight: 1.7, margin: '0 0 20px' }}>
-                We've received your message and will get back to you at <strong>{email}</strong>.
+                We&apos;ve received your message and will get back to you at <strong>{email}</strong>.
               </p>
               <Link href="/" style={{ fontSize: 13, color: c.accent, textDecoration: 'none', fontWeight: 600 }}>← Back to Job-Lens</Link>
             </div>

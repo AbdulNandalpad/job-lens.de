@@ -6,7 +6,6 @@ import Navbar from '../components/Navbar'
 import { useLanguage } from '@/lib/i18n'
 import { SS, API } from '@/lib/constants'
 import SvgIcon, { type IconName } from '@/components/SvgIcon'
-import { createClient } from '@/lib/supabase'
 
 const blue  = '#378ADD'
 const navy  = '#042C53'
@@ -70,7 +69,6 @@ export default function DACHJobsPage() {
   const [loadingMore, setLoadingMore] = useState(false)
   const [searched, setSearched] = useState(false)
   const [selectedJobId, setSelectedJobId] = useState<string | null>(null)
-  const [isAdmin, setIsAdmin] = useState(false)
   const [page,      setPage]      = useState(1)
   const [hasMore,   setHasMore]   = useState(false)
   const [usedQuery, setUsedQuery] = useState('')
@@ -82,7 +80,7 @@ export default function DACHJobsPage() {
   const [expandedDescs, setExpandedDescs] = useState<Set<string>>(new Set())
   function toggleDesc(id: string, e: React.MouseEvent) {
     e.stopPropagation()
-    setExpandedDescs(prev => { const next = new Set(prev); next.has(id) ? next.delete(id) : next.add(id); return next })
+    setExpandedDescs(prev => { const next = new Set(prev); if (next.has(id)) next.delete(id); else next.add(id); return next })
   }
 
   async function scoreJobs(jobList: Job[], searchQuery: string) {
@@ -141,12 +139,6 @@ export default function DACHJobsPage() {
 
   const label = (de: string, en: string) => lang === 'DE' ? de : en
 
-
-  useEffect(() => {
-    createClient().auth.getUser().then(({ data }) => {
-      setIsAdmin(data.user?.email === 'sap.rashid@gmail.com')
-    })
-  }, [])
 
   useEffect(() => {
     if (autoSearched.current || typeof window === 'undefined') return
@@ -413,9 +405,9 @@ export default function DACHJobsPage() {
                   <SvgIcon name="search" size={16} color="#6b7c93" />
                   <span style={{ fontSize: 13, color: '#6b7c93' }}>
                     {label('Keine Ergebnisse für', 'No results for')}{' '}
-                    <span style={{ fontWeight: 700, color: '#374151' }}>"{query}"</span>
+                    <span style={{ fontWeight: 700, color: '#374151' }}>&quot;{query}&quot;</span>
                     {' — '}{label('zeige Ergebnisse für', 'showing results for')}{' '}
-                    <span style={{ fontWeight: 700, color: blue }}>"{usedQuery}"</span>
+                    <span style={{ fontWeight: 700, color: blue }}>&quot;{usedQuery}&quot;</span>
                   </span>
                 </div>
               )}

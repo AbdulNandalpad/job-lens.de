@@ -1,9 +1,9 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextResponse } from 'next/server'
 import { createServerSupabase, createAdminSupabase } from '@/lib/supabase-server'
 
 const ADMIN_EMAILS = (process.env.ADMIN_EMAILS || '').split(',').map(e => e.trim().toLowerCase()).filter(Boolean)
 
-async function requireAdmin(req: NextRequest) {
+async function requireAdmin() {
   if (ADMIN_EMAILS.length === 0) return null
   const supabase = await createServerSupabase()
   const { data: { user } } = await supabase.auth.getUser()
@@ -11,8 +11,8 @@ async function requireAdmin(req: NextRequest) {
   return user
 }
 
-export async function GET(req: NextRequest) {
-  if (!await requireAdmin(req)) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+export async function GET() {
+  if (!await requireAdmin()) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 
   const admin = createAdminSupabase()
 

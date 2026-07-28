@@ -4,6 +4,7 @@ import { redirect } from 'next/navigation'
 import DACHDashboard from './components/DACHDashboard'
 
 export default async function DACHHomePage() {
+  let hasUser = false
   try {
     const cookieStore = await cookies()
     const supabase = createServerClient(
@@ -12,9 +13,10 @@ export default async function DACHHomePage() {
       { cookies: { get: (name: string) => cookieStore.get(name)?.value } }
     )
     const { data: { user } } = await supabase.auth.getUser()
-    if (user) return <DACHDashboard />
+    hasUser = !!user
   } catch {
     // fall through
   }
+  if (hasUser) return <DACHDashboard />
   redirect('/')
 }

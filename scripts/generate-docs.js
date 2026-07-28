@@ -30,15 +30,6 @@ function heading2(text) {
   })
 }
 
-function heading3(text) {
-  return new Paragraph({
-    text,
-    heading: HeadingLevel.HEADING_3,
-    spacing: { before: 200, after: 60 },
-    run: { color: BLUE, bold: true, size: 22 },
-  })
-}
-
 function para(text, opts = {}) {
   return new Paragraph({
     children: [new TextRun({ text, size: 20, color: '374151', ...opts })],

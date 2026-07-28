@@ -138,9 +138,9 @@ export async function POST(req: NextRequest) {
 
     const body = await req.json()
     const {
-      jobText, jobTitle, companyName,
+      jobTitle, companyName,
       requirements, evidence,
-      questions, answers, tabSwitches,
+      questions, answers,
       consent, cvText,
       market,
     } = body

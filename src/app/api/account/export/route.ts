@@ -5,7 +5,7 @@
  */
 import { NextResponse } from 'next/server'
 import { createServerSupabase, createAdminSupabase } from '@/lib/supabase-server'
-import { decrypt, decryptJson } from '@/lib/encryption'
+import { decrypt } from '@/lib/encryption'
 
 export async function GET() {
   const supabase = await createServerSupabase()

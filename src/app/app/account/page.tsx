@@ -40,7 +40,6 @@ export default function AccountPage() {
   const [loading, setLoading] = useState(true)
   const [deleting, setDeleting] = useState(false)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
-  const [creditInput, setCreditInput] = useState<Record<string, number>>({})
   const [showDeleteKiraConfirm, setShowDeleteKiraConfirm] = useState(false)
   const [deletingKiraData, setDeletingKiraData] = useState(false)
   const [kiraDataDeleted, setKiraDataDeleted] = useState(false)
@@ -170,7 +169,7 @@ export default function AccountPage() {
                 <span style={{ fontSize: 18 }}>🎉</span>
                 <div>
                   <div style={{ fontSize: 14, fontWeight: 700, color: c.success }}>Payment received — credits on their way!</div>
-                  <div style={{ fontSize: 12, color: c.textMuted, marginTop: 2 }}>Credits are added within a few seconds. Refresh this page if the balance hasn't updated yet.</div>
+                  <div style={{ fontSize: 12, color: c.textMuted, marginTop: 2 }}>Credits are added within a few seconds. Refresh this page if the balance hasn&apos;t updated yet.</div>
                 </div>
               </div>
             )}

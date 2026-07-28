@@ -4,7 +4,7 @@ import { createServerSupabase, createAdminSupabase } from '@/lib/supabase-server
 const VALID_STATUSES = new Set(['saved', 'applied', 'interview', 'offer', 'rejected'])
 
 // GET — list all applications for current user
-export async function GET(_req: NextRequest) {
+export async function GET() {
   const supabase = await createServerSupabase()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })

@@ -4,15 +4,13 @@ import Link from 'next/link'
 import { useState, useEffect, useRef, type ReactNode } from 'react'
 import { createClient } from '@/lib/supabase'
 import { theme } from '@/lib/theme'
-import { useLanguage, DEFlag, GBFlag } from '@/lib/i18n'
+import { useLanguage } from '@/lib/i18n'
 import KiraDemoWidget from '@/components/KiraDemoWidget'
 import AutoApplyDemoWidget from '@/components/AutoApplyDemoWidget'
 import SvgIcon, { type IconName } from '@/components/SvgIcon'
 import HeroDACH from '@/components/HeroDACH'
 
 const { colors: c, gradients: g, fonts: f, shadow: sh } = theme
-
-type Lang = 'DE' | 'EN'
 
 const translations = {
   DE: {
@@ -285,7 +283,7 @@ export default function HomePage() {
   const [user, setUser] = useState<{ name: string } | null>(null)
   const [loading, setLoading] = useState(true)
   const [langOpen, setLangOpen] = useState(false)
-  const { lang, setLang, t: _ctxT } = useLanguage()
+  const { lang, setLang } = useLanguage()
 
   // Use local translations object for homepage-specific strings (matches existing structure)
   const t = translations[lang]
@@ -370,8 +368,6 @@ export default function HomePage() {
       <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" fill="currentColor" fillOpacity="0.15"/>
     </svg>,
   ]
-
-  const stats = t.statsLabels.map((v, i) => ({ value: v, label: t.statsDescs[i] }))
 
   return (
     <div style={{ minHeight: '100vh', background: c.bg, fontFamily: f.body, overflowX: 'hidden', position: 'relative' }}>

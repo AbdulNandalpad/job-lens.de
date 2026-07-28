@@ -14,8 +14,6 @@ import { createServerSupabase, createAdminSupabase } from '@/lib/supabase-server
 import { nanoid } from 'nanoid'
 
 const BUCKET = 'job-case-videos'
-// Signed upload URL valid for 10 minutes
-const UPLOAD_EXPIRY_SECONDS = 600
 
 export async function POST(req: NextRequest) {
   try {

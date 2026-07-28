@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextResponse } from 'next/server'
 import { createServerSupabase } from '@/lib/supabase-server'
 
 const CACHE_TTL = 24 * 60 * 60 * 1000 // 24h — World Bank updates annually
@@ -14,13 +14,19 @@ export interface WorldIndicator {
 
 let cache: { data: WorldIndicator[]; ts: number } | null = null
 
+// A single entry in the World Bank API's data array (json[1]).
+interface WorldBankEntry {
+  value: number | null
+  date: string
+}
+
 async function fetchIndicator(code: string): Promise<{ value: number | null; year: number | null; prev: number | null }> {
   try {
     const url = `https://api.worldbank.org/v2/country/IN/indicator/${code}?format=json&mrv=2&per_page=2`
     const res = await fetch(url, { next: { revalidate: 0 } })
     if (!res.ok) return { value: null, year: null, prev: null }
     const json = await res.json()
-    const entries = (json[1] || []).filter((e: any) => e.value !== null)
+    const entries: WorldBankEntry[] = (json[1] || []).filter((e: WorldBankEntry) => e.value !== null)
     const latest = entries[0]
     const prior  = entries[1]
     return {
@@ -40,7 +46,7 @@ function trend(current: number | null, prev: number | null): 'up' | 'down' | 'fl
   return 'flat'
 }
 
-export async function GET(req: NextRequest) {
+export async function GET() {
   const supabase = await createServerSupabase()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })

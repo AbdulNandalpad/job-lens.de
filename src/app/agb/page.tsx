@@ -57,8 +57,8 @@ export default function AgbPage() {
         <Section num="1" title="Geltungsbereich">
           <p style={{ margin: '0 0 12px' }}>
             Diese Allgemeinen Geschäftsbedingungen (AGB) gelten für alle Nutzerverträge zwischen dem Anbieter von Job-Lens AI
-            (nachfolgend „Anbieter": Munira Nandalpad, Brühlstr 15, 71034 Böblingen) und natürlichen Personen,
-            die die Plattform job-lens.de nutzen (nachfolgend „Nutzer").
+            (nachfolgend „Anbieter&quot;: Munira Nandalpad, Brühlstr 15, 71034 Böblingen) und natürlichen Personen,
+            die die Plattform job-lens.de nutzen (nachfolgend „Nutzer&quot;).
           </p>
           <p style={{ margin: 0 }}>
             Abweichende Bedingungen des Nutzers werden nicht anerkannt, es sei denn, der Anbieter stimmt ihrer Geltung ausdrücklich zu.

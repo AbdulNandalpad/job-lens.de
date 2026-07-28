@@ -6,7 +6,7 @@ import { useState, useEffect, useRef } from 'react'
 import { createClient } from '@/lib/supabase'
 import { theme } from '@/lib/theme'
 import { useLanguage, DEFlag, GBFlag } from '@/lib/i18n'
-import { SS, LS } from '@/lib/constants'
+import { SS } from '@/lib/constants'
 
 const { colors: c, gradients: g, fonts: f } = theme
 
@@ -14,13 +14,22 @@ export default function Navbar() {
   const pathname = usePathname()
   const router = useRouter()
   const [userName, setUserName] = useState('')
-  const [isAdmin, setIsAdmin] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
   const [confirmClear, setConfirmClear] = useState(false)
   const [langOpen, setLangOpen] = useState(false)
   const [userMenuOpen, setUserMenuOpen] = useState(false)
   const userMenuRef = useRef<HTMLDivElement>(null)
   const { lang, setLang, t } = useLanguage()
+
+  // Sign-out / new session: clear sessionStorage only (localStorage persists — Kira history, widget prefs)
+  function clearSessionData() {
+    Object.keys(sessionStorage).filter(k => k.startsWith('jl_')).forEach(k => sessionStorage.removeItem(k))
+  }
+  // User-switch: full wipe (different account — nothing should carry over)
+  function clearAllJLData() {
+    clearSessionData()
+    Object.keys(localStorage).filter(k => k.startsWith('jl_')).forEach(k => localStorage.removeItem(k))
+  }
 
   useEffect(() => {
     const supabase = createClient()
@@ -29,7 +38,6 @@ export default function Navbar() {
       if (!user) return
       const full = user.user_metadata?.full_name ?? user.email ?? ''
       setUserName(full.split(' ')[0] || 'User')
-      setIsAdmin(user.email === 'sap.rashid@gmail.com')
       // Clear stale data if a different user is now logged in
       const storedUid = sessionStorage.getItem(SS.uid)
       if (storedUid && storedUid !== user.id) {
@@ -37,6 +45,8 @@ export default function Navbar() {
       }
       sessionStorage.setItem(SS.uid, user.id)
     })
+    // clearAllJLData reads no props/state — safe to omit; only needs to run once on mount.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   // Close user menu on outside click
@@ -49,16 +59,6 @@ export default function Navbar() {
     document.addEventListener('mousedown', handleClick)
     return () => document.removeEventListener('mousedown', handleClick)
   }, [])
-
-  // Sign-out / new session: clear sessionStorage only (localStorage persists — Kira history, widget prefs)
-  function clearSessionData() {
-    Object.keys(sessionStorage).filter(k => k.startsWith('jl_')).forEach(k => sessionStorage.removeItem(k))
-  }
-  // User-switch: full wipe (different account — nothing should carry over)
-  function clearAllJLData() {
-    clearSessionData()
-    Object.keys(localStorage).filter(k => k.startsWith('jl_')).forEach(k => localStorage.removeItem(k))
-  }
 
   async function signOut() {
     clearSessionData()
@@ -92,7 +92,6 @@ export default function Navbar() {
   ]
 
   const isActive = (href: string) => pathname === href || pathname.startsWith(href + '/')
-  const isAccountArea = ['/app/account', '/app/tracker', '/app/interview'].some(p => pathname === p)
   const currentPage = [...navItems, ...accountSubItems].find(item => pathname === item.href)?.label || 'Job-Lens AI'
 
   return (

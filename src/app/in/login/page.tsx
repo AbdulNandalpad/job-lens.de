@@ -71,7 +71,7 @@ function IndiaLoginForm() {
             </div>
           </div>
           <h1 style={{ fontSize:22, fontWeight:700, color:'#fff', margin:'0 0 8px', lineHeight:1.3 }}>
-            Get hired in India's<br/>AI-first job market
+            Get hired in India&apos;s<br/>AI-first job market
           </h1>
           <p style={{ fontSize:13, color:'rgba(255,255,255,0.45)', margin:0, lineHeight:1.6 }}>
             ATS-optimised CVs · Career insights · Live job search

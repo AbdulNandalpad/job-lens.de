@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase'
-import { MARKET, API, CREDIT_COST, AI_CHAT_FREE_MESSAGES } from '@/lib/constants'
+import { API, CREDIT_COST, AI_CHAT_FREE_MESSAGES } from '@/lib/constants'
 import SvgIcon, { getIcon } from '@/components/SvgIcon'
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -247,6 +247,11 @@ export default function IndiaAccountPage() {
                     <div style={{ fontFamily: "'Outfit', sans-serif", fontSize: 36, fontWeight: 800, color: navy, lineHeight: 1 }}>{profile.totalUsed ?? 0}</div>
                     <div style={{ fontSize: 12, color: '#94a3b8', marginTop: 4 }}>last 30 actions</div>
                   </div>
+                </div>
+
+                {/* Progress bar */}
+                <div style={{ height: 6, background: '#e4eaf4', borderRadius: 3, marginBottom: 20 }}>
+                  <div style={{ height: '100%', width: `${creditsPercent}%`, background: creditsColor, borderRadius: 3, transition: 'width 0.4s' }} />
                 </div>
 
                 {/* Pool breakdown */}

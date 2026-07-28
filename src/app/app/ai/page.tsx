@@ -4,7 +4,7 @@ import { useState, useRef, useEffect } from 'react'
 import Navbar from '../components/Navbar'
 import { theme } from '@/lib/theme'
 import { useCredits } from '@/lib/useCredits'
-import { SS, LS, API, CREDIT_COST } from '@/lib/constants'
+import { SS, LS, API } from '@/lib/constants'
 import { useLanguage } from '@/lib/i18n'
 
 const { colors: c, gradients: g, fonts: f } = theme
@@ -201,6 +201,8 @@ export default function AIPage() {
             const event = JSON.parse(payload)
 
             if (event.text) {
+              // Local accumulator scoped to this stream — not React state, safe to mutate.
+              // eslint-disable-next-line react-hooks/immutability
               assembled += event.text
               setMessages(prev => {
                 const copy = [...prev]

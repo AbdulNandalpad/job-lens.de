@@ -24,7 +24,7 @@ export async function POST(req: NextRequest) {
   const confirmedSkills: string[] = Array.isArray(body.confirmedSkills)
     ? body.confirmedSkills.map((s: unknown) => String(s).slice(0, 60)).slice(0, 20)
     : []
-  const { job, template, tone, pages, lang, returnJson, market } = body
+  const { job, tone, pages, lang, returnJson, market } = body
   const resolvedMarket: 'eu' | 'in' = market === MARKET.in ? MARKET.in : MARKET.eu
 
   const credits = await checkAndDeductCredits(user.id, COST, 'tailor_cv', user.email ?? '', resolvedMarket)

@@ -2,7 +2,6 @@ import Link from 'next/link'
 
 const navy = '#042C53'
 const saffron = '#FF9933'
-const indiaGreen = '#138808'
 const textMuted = '#6b7c93'
 const border = '#edf1f6'
 
@@ -174,7 +173,7 @@ export default function PrivacyPage() {
             If you have a complaint about how we process your personal data, you may raise a grievance:
           </p>
           <ol style={{ margin: '0 0 12px', paddingLeft: 20, lineHeight: 2 }}>
-            <li>Email <a href="mailto:privacy@job-lens.de?subject=DPDP%20Grievance" style={{ color: saffron }}>privacy@job-lens.de</a> with subject line <strong>"DPDP Grievance"</strong>.</li>
+            <li>Email <a href="mailto:privacy@job-lens.de?subject=DPDP%20Grievance" style={{ color: saffron }}>privacy@job-lens.de</a> with subject line <strong>&quot;DPDP Grievance&quot;</strong>.</li>
             <li>We will acknowledge receipt within <strong>48 hours</strong>.</li>
             <li>We will resolve or respond to your grievance within <strong>30 days</strong>.</li>
             <li>If unresolved, you may escalate your complaint to the <strong>Data Protection Board of India</strong> once it is operational.</li>

@@ -157,6 +157,9 @@ export default function AutoApplyDemoWidget({
 
     run()
     return () => ctrl.abort()
+    // data is derived purely from `market` (static IN_DEMO/EU_DEMO), already a dep — no need
+    // to also list data.fields.length/data.url.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [restartKey, widgetMode, market])
 
   const fieldIcon = (type?: string) => {

@@ -6,7 +6,7 @@ import { MARKET } from '@/lib/constants'
 const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
 
 // GET — fetch career profile for current user
-export async function GET(_req: NextRequest) {
+export async function GET() {
   const supabase = await createServerSupabase()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -77,7 +77,7 @@ export async function POST(req: NextRequest) {
 }
 
 // DELETE — clear career profile (called from account page "Delete Kira's memory")
-export async function DELETE(_req: NextRequest) {
+export async function DELETE() {
   const supabase = await createServerSupabase()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })

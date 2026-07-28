@@ -59,12 +59,6 @@ const SBDivider = () => (
   <div style={{ height: 1, background: 'rgba(255,255,255,0.07)', margin: '16px 0' }} />
 )
 
-const SBBadge = ({ children, color = c.accent }: { children: React.ReactNode; color?: string }) => (
-  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '3px 9px', borderRadius: 20, background: `${color}18`, color, fontSize: 11, fontWeight: 600, border: `1px solid ${color}28` }}>
-    {children}
-  </span>
-)
-
 function CreditsChip({ credits, lang }: { credits: number | null; lang: string }) {
   if (credits === null) return null
   const low = credits < JOB_CASE.creditCost
@@ -584,9 +578,15 @@ export default function JobCaseNewPage() {
   const audioCtxRef     = useRef<AudioContext | null>(null)
   const silenceCheckRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
+  // testStarted/timeLeft/currentQ/setAnswers only feed the commented-out typed-test
+  // step below (replaced by the video interview) — kept so that block stays restorable.
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [testStarted, setTestStarted] = useState(false)
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [timeLeft, setTimeLeft]       = useState(JOB_CASE.testMinutes * 60)
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [currentQ, setCurrentQ]       = useState(0)
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [answers, setAnswers]         = useState(['', '', ''])
   const [tabSwitches, setTabSwitches] = useState(0)
   const [submitted, setSubmitted]     = useState(false)

@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextResponse } from 'next/server'
 import { createServerSupabase } from '@/lib/supabase-server'
 
 const CACHE_TTL = 6 * 60 * 60 * 1000 // 6 hours
@@ -15,6 +15,15 @@ export interface NewsArticle {
 export interface NewsInsights {
   articles: NewsArticle[]
   fetchedAt: string
+}
+
+// Shape of a single article as returned by NewsAPI's /v2/everything endpoint.
+interface NewsApiArticle {
+  title: string
+  description: string | null
+  url: string
+  source?: { name?: string }
+  publishedAt: string
 }
 
 let cache: { data: NewsArticle[]; ts: number } | null = null
@@ -35,16 +44,16 @@ async function fetchQuery(q: string, category: NewsArticle['category']): Promise
       next: { revalidate: 0 },
     })
     if (!res.ok) return []
-    const data = await res.json()
-    return ((data.articles as any[]) || [])
+    const data: { articles?: NewsApiArticle[] } = await res.json()
+    return (data.articles || [])
       .filter(a => a.title && a.title !== '[Removed]' && a.url && !a.url.includes('removed'))
       .slice(0, 5)
       .map(a => ({
-        title: a.title as string,
-        description: (a.description as string | null) ?? null,
-        url: a.url as string,
-        source: (a.source?.name as string) ?? 'News',
-        publishedAt: a.publishedAt as string,
+        title: a.title,
+        description: a.description ?? null,
+        url: a.url,
+        source: a.source?.name ?? 'News',
+        publishedAt: a.publishedAt,
         category,
       }))
   } catch {
@@ -52,7 +61,7 @@ async function fetchQuery(q: string, category: NewsArticle['category']): Promise
   }
 }
 
-export async function GET(req: NextRequest) {
+export async function GET() {
   const supabase = await createServerSupabase()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })

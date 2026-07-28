@@ -49,7 +49,7 @@ export async function GET() {
     : { data: [] }
 
   // Fetch auth users for email lookup (admin API)
-  let emailMap: Record<string, string> = {}
+  const emailMap: Record<string, string> = {}
   if (uniqueUserIds.length) {
     // listUsers returns up to 1000; sufficient for weekly unique users
     const { data: { users: authUsers } } = await admin.auth.admin.listUsers({ perPage: 1000 })

@@ -38,8 +38,8 @@ export async function GET() {
 
     // Fetch viewer domains + interest signals for all cases
     const allIds = rows.map(r => r.id)
-    let domainMap:    Record<string, string[]> = {}
-    let interestMap:  Record<string, { email: string; domain: string }> = {}
+    const domainMap:    Record<string, string[]> = {}
+    const interestMap:  Record<string, { email: string; domain: string }> = {}
 
     if (allIds.length > 0) {
       const { data: views } = await admin

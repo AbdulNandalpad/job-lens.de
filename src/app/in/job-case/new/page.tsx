@@ -141,7 +141,7 @@ function SidebarContent({ step, credits, cvFound, cvSource, questions }: {
       <SBHeading>AI analyses the job posting</SBHeading>
       <SBBody>Paste the full job description (or a URL) and AI will extract the 5–7 concrete requirements this role actually needs — not just the buzzwords.</SBBody>
       <SBDivider />
-      <SBLabel>You'll see before spending credits</SBLabel>
+      <SBLabel>You&apos;ll see before spending credits</SBLabel>
       <SBTip icon="✓">Job quality score — Clear / Vague / Poor</SBTip>
       <SBTip icon="✓">Your profile match % against requirements</SBTip>
       <SBTip icon="✓">The 3 AI-generated test questions</SBTip>
@@ -164,7 +164,7 @@ function SidebarContent({ step, credits, cvFound, cvSource, questions }: {
 
   if (step === 'review') return (
     <div>
-      <SBLabel>What you're reviewing</SBLabel>
+      <SBLabel>What you&apos;re reviewing</SBLabel>
       <SBHeading>Check the requirements</SBHeading>
       <SBBody>AI has extracted what this role actually requires. Check that the list looks complete — if something obvious is missing, you can add evidence manually on the next screen.</SBBody>
       <SBDivider />
@@ -198,7 +198,7 @@ function SidebarContent({ step, credits, cvFound, cvSource, questions }: {
     <div>
       <SBLabel>Tips for strong evidence</SBLabel>
       <SBHeading>Specific beats generic</SBHeading>
-      <SBBody>"Led the migration from X to Y, reducing load time by 40%" scores far higher than "experienced with X". AI scores specificity and measurable outcome.</SBBody>
+      <SBBody>&quot;Led the migration from X to Y, reducing load time by 40%&quot; scores far higher than &quot;experienced with X&quot;. AI scores specificity and measurable outcome.</SBBody>
       <SBDivider />
       <SBLabel>What AI looks for</SBLabel>
       <SBTip icon="📌">A real example, not a general claim</SBTip>
@@ -206,7 +206,7 @@ function SidebarContent({ step, credits, cvFound, cvSource, questions }: {
       <SBTip icon="🔗">A URL to a project, repo, or reference if you have one</SBTip>
       <SBDivider />
       <SBLabel>Skip is OK</SBLabel>
-      <SBBody>Leaving a requirement blank marks it as "missing" on the recruiter view — honest is better than vague filler.</SBBody>
+      <SBBody>Leaving a requirement blank marks it as &quot;missing&quot; on the recruiter view — honest is better than vague filler.</SBBody>
       {cvFound && (<><SBDivider /><SBTip icon="✨">AI has pre-filled suggestions from your Career Scan CV where it found relevant evidence.</SBTip></>)}
     </div>
   )
@@ -236,10 +236,10 @@ function SidebarContent({ step, credits, cvFound, cvSource, questions }: {
       <SBBody>This is the part that replaces the cover letter. Recruiters watch 30–60 seconds on average — make the first 20 seconds count.</SBBody>
       <SBDivider />
       <SBLabel>What to say</SBLabel>
-      <SBTip icon="🎯">Start with: "I'm [name], applying for [role] at [company]."</SBTip>
+      <SBTip icon="🎯">Start with: &quot;I&apos;m [name], applying for [role] at [company].&quot;</SBTip>
       <SBTip icon="💪">Name your strongest requirement match from the table.</SBTip>
       <SBTip icon="🔍">Mention one specific thing about the company that excited you.</SBTip>
-      <SBTip icon="✅">Close with why you'd be ready to start.</SBTip>
+      <SBTip icon="✅">Close with why you&apos;d be ready to start.</SBTip>
       <SBDivider />
       <SBLabel>Technical</SBLabel>
       <SBTip icon="💡">Look at the camera lens, not your face on screen.</SBTip>
@@ -265,11 +265,11 @@ function SidebarContent({ step, credits, cvFound, cvSource, questions }: {
 
   return (
     <div>
-      <SBLabel>What's next</SBLabel>
+      <SBLabel>What&apos;s next</SBLabel>
       <SBHeading>Share your Job Case</SBHeading>
-      <SBBody>Paste the link in the "Additional information" or cover letter field of your application. Recruiters open it directly — no account needed.</SBBody>
+      <SBBody>Paste the link in the &quot;Additional information&quot; or cover letter field of your application. Recruiters open it directly — no account needed.</SBBody>
       <SBDivider />
-      <SBTip icon="📧">You'll get an email when someone views it, showing their company domain.</SBTip>
+      <SBTip icon="📧">You&apos;ll get an email when someone views it, showing their company domain.</SBTip>
       <SBTip icon="♻️">If no recruiter views after {JOB_CASE.refundCheckDays} days, your {JOB_CASE.creditCost} credits are auto-refunded.</SBTip>
       <SBTip icon="🗑">Auto-deleted after {JOB_CASE.expiryDays} days — no action needed.</SBTip>
     </div>
@@ -730,7 +730,7 @@ export default function JobCaseNewPageIndia() {
                     </div>
 
                     <div style={{ marginBottom: 14, padding: '10px 12px', background: c.bg, border: `1px solid ${c.border}`, borderRadius: 8, fontSize: 12, color: c.textMuted, lineHeight: 1.6 }}>
-                      <strong style={{ color: c.text }}>CV match</strong> — how well your uploaded CV covers the requirements below, scored by AI against each skill. A higher % means your existing experience is a strong fit. It does <em>not</em> affect the recruiter view — it's a signal for you to decide whether to proceed.
+                      <strong style={{ color: c.text }}>CV match</strong> — how well your uploaded CV covers the requirements below, scored by AI against each skill. A higher % means your existing experience is a strong fit. It does <em>not</em> affect the recruiter view — it&apos;s a signal for you to decide whether to proceed.
                       {matchScore === null && <span style={{ color: c.warning }}> Upload a CV on the previous step to see your actual score.</span>}
                     </div>
 
@@ -753,7 +753,7 @@ export default function JobCaseNewPageIndia() {
                       ))}
                     </div>
                     <div style={{ marginTop: 16, padding: '11px 14px', background: 'rgba(255,153,51,0.06)', border: `1px solid rgba(255,153,51,0.2)`, borderRadius: 8, fontSize: 13, color: c.textMuted, lineHeight: 1.6 }}>
-                      Building this Job Case costs <strong style={{ color: c.primary }}>{JOB_CASE.creditCost} credits</strong>. You'll preview the 3 skill test questions before any credits are deducted.
+                      Building this Job Case costs <strong style={{ color: c.primary }}>{JOB_CASE.creditCost} credits</strong>. You&apos;ll preview the 3 skill test questions before any credits are deducted.
                     </div>
                   </Card>
                   <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
@@ -970,7 +970,7 @@ export default function JobCaseNewPageIndia() {
                   <div style={{ textAlign: 'center', marginBottom: 24 }}>
                     <div style={{ width: 52, height: 52, borderRadius: '50%', background: 'rgba(29,158,117,0.1)', border: `1.5px solid rgba(29,158,117,0.3)`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22, margin: '0 auto 16px' }}>✓</div>
                     <h2 style={{ fontFamily: f.heading, fontSize: 22, fontWeight: 700, color: c.primary, margin: '0 0 8px' }}>Your Job Case is live</h2>
-                    <p style={{ fontSize: 13, color: c.textMuted, margin: 0, lineHeight: 1.6 }}>Paste this link in your application's cover letter or additional info field.</p>
+                    <p style={{ fontSize: 13, color: c.textMuted, margin: 0, lineHeight: 1.6 }}>Paste this link in your application&apos;s cover letter or additional info field.</p>
                   </div>
                   <Card>
                     <div style={{ fontSize: 10, fontWeight: 700, color: c.textMuted, marginBottom: 8, letterSpacing: 0.8, textTransform: 'uppercase' }}>Your link</div>
@@ -989,7 +989,7 @@ export default function JobCaseNewPageIndia() {
                       <button className="jc-btn-ghost" onClick={() => router.push('/in/job-case')}>My Job Cases</button>
                     </div>
                     <div style={{ marginTop: 16, padding: '10px 14px', background: c.bg, borderRadius: 8, border: `1px solid ${c.border}`, fontSize: 12, color: c.textMuted, lineHeight: 1.6 }}>
-                      Auto-deletes in {JOB_CASE.expiryDays} days · You'll be notified when a recruiter views this
+                      Auto-deletes in {JOB_CASE.expiryDays} days · You&apos;ll be notified when a recruiter views this
                     </div>
                   </Card>
                 </div>

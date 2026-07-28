@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextResponse } from 'next/server'
 import { createServerSupabase } from '@/lib/supabase-server'
 
 const APP_ID = process.env.ADZUNA_APP_ID!
@@ -48,7 +48,7 @@ async function fetchTopJobs(what: string): Promise<{ title: string; count: numbe
   }
 }
 
-export async function GET(req: NextRequest) {
+export async function GET() {
   const supabase = await createServerSupabase()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })

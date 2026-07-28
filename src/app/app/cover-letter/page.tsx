@@ -36,14 +36,12 @@ export default function CoverLetterPage() {
   const [cvText, setCvText] = useState('')
   const [cvFileName, setCvFileName] = useState('')
   const [fileLoading, setFileLoading] = useState(false)
-  const [job, setJob] = useState<{ job_title: string; employer_name: string; job_city?: string; job_description?: string } | null>(null)
+  const [job, setJob] = useState<{ job_title: string; employer_name: string; job_city?: string; job_description?: string; job_apply_link?: string } | null>(null)
   const [tone, setTone] = useState<Tone>('confident')
   const [length, setLength] = useState<Length>('medium')
   const [letterLang, setLetterLang] = useState<Lang>('EN')
   const [letter, setLetter] = useState('')
   const [loading, setLoading] = useState(false)
-  const [personalization, setPersonalization] = useState('')
-  const [optional, setOptional] = useState('')
   const [downloading, setDownloading] = useState<'pdf' | 'docx' | null>(null)
   const [feedback, setFeedback] = useState('')
   const [applyingFeedback, setApplyingFeedback] = useState(false)
@@ -52,7 +50,7 @@ export default function CoverLetterPage() {
   const FREE_CHANGES = 3
   const [freeChangesLeft, setFreeChangesLeft] = useState(FREE_CHANGES + 1) // +1 covers initial generate
   const [crossWarnPending, setCrossWarnPending] = useState<(() => void) | null>(null)
-  const [openSections, setOpenSections] = useState<Record<string, boolean>>({ contact: false, style: false, format: false, summary: false })
+  const [openSections, setOpenSections] = useState<Record<string, boolean>>({ contact: false, style: false, format: false })
   const [contactName,  setContactName]  = useState('')
   const [contactEmail, setContactEmail] = useState('')
   const [contactPhone, setContactPhone] = useState('')
@@ -143,9 +141,6 @@ export default function CoverLetterPage() {
       const cl = data.coverLetter || data.letter || data.result || ''
       setLetter(cl)
       sessionStorage.setItem(SS.clLetter, cl)
-      setPersonalization(data.personalization || (job ? `${job.employer_name} . ${job.job_city || 'location'} . role context . DE/EN bilingual` : 'Company context applied'))
-      setOptional(data.optional || 'Mention specific product line. Add referral name if available. Include LinkedIn profile URL.')
-      setOpenSections(prev => ({ ...prev, summary: true }))
     } catch { setLetter('Failed to generate. Please try again.') }
     finally { setLoading(false) }
   }
@@ -252,7 +247,7 @@ export default function CoverLetterPage() {
       })
 
       // Footer
-      const pageCount = (doc as any).internal.getNumberOfPages()
+      const pageCount = (doc as unknown as { internal: { getNumberOfPages: () => number } }).internal.getNumberOfPages()
       for (let p = 1; p <= pageCount; p++) {
         doc.setPage(p)
         doc.setFillColor(248, 250, 252)
@@ -284,7 +279,7 @@ export default function CoverLetterPage() {
       const grey = '6b7c93'
       const dark = '1a2332'
 
-      const children: any[] = []
+      const children: InstanceType<typeof Paragraph>[] = []
 
       // Title
       children.push(new Paragraph({
@@ -424,8 +419,8 @@ export default function CoverLetterPage() {
               <div style={{ marginTop: 12, padding: '8px 10px', background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 8 }}>
                 <div style={{ fontSize: 9, color: accentColor, fontWeight: 700, letterSpacing: 0.8, textTransform: 'uppercase', marginBottom: 3 }}>{t.coverLetter.sidebar.tailoringFor}</div>
                 <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.8)', lineHeight: 1.4 }}>{jobLabel}</div>
-                {(job as any)?.job_apply_link && (
-                  <a href={(job as any).job_apply_link} target="_blank" rel="noopener noreferrer"
+                {job?.job_apply_link && (
+                  <a href={job.job_apply_link} target="_blank" rel="noopener noreferrer"
                     style={{ display: 'inline-flex', alignItems: 'center', gap: 3, marginTop: 6, fontSize: 10, color: accentColor, textDecoration: 'none', opacity: 0.85 }}>
                     ↗ {letterLang === 'DE' ? 'Vollständige Stellenanzeige öffnen' : 'Open full job posting'}
                   </a>
@@ -437,7 +432,7 @@ export default function CoverLetterPage() {
             {!cvText ? (
               <div onClick={() => fileInputRef.current?.click()}
                 onDragOver={e => e.preventDefault()}
-                onDrop={e => { e.preventDefault(); e.dataTransfer.files?.[0] && handleCvFile(e.dataTransfer.files[0]) }}
+                onDrop={e => { e.preventDefault(); if (e.dataTransfer.files?.[0]) handleCvFile(e.dataTransfer.files[0]) }}
                 style={{ marginTop: 12, padding: '16px 12px', border: '1.5px dashed rgba(255,255,255,0.18)', borderRadius: 9, cursor: 'pointer', textAlign: 'center' }}>
                 {fileLoading ? (
                   <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>

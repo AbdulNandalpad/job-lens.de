@@ -610,7 +610,7 @@ export default function IndiaCVBuilderPage() {
   const [cvText,        setCvText]        = useState('')
   const [cvFileName,    setCvFileName]    = useState('')
   const [fileLoading,   setFileLoading]   = useState(false)
-  const [job,           setJob]           = useState<{ job_title: string; employer_name: string; job_description?: string } | null>(null)
+  const [job,           setJob]           = useState<{ job_title: string; employer_name: string; job_description?: string; job_apply_link?: string } | null>(null)
   const [jobLabel,      setJobLabel]      = useState('')
   const [template,      setTemplate]      = useState<Template>('clean')
   const [tone,          setTone]          = useState<Tone>('professional')
@@ -692,7 +692,7 @@ export default function IndiaCVBuilderPage() {
   }, [])
 
   async function fetchFullJd() {
-    const url = (job as any)?.job_apply_link
+    const url = job?.job_apply_link
     if (!url) return
     setFetchingJd(true)
     try {
@@ -885,7 +885,7 @@ ${atsSuggestions?.section_gaps?.length ? `- ATS SECTION GAPS to address: ${atsSu
       const teal = '00A58A', navyH = '0d2137', greyH = '6b7c93'
       const sectionTitle = (text: string) => new Paragraph({ children: [new TextRun({ text: text.toUpperCase(), bold: true, size: 18, color: navyH, font: 'Calibri' })], spacing: { before: 240, after: 80 }, border: { bottom: { style: BorderStyle.SINGLE, size: 6, color: 'dde4ee' } } })
       const bullet = (text: string) => new Paragraph({ children: [new TextRun({ text: '+ ', color: teal, bold: true, size: 18, font: 'Calibri' }), new TextRun({ text, size: 18, color: '374151', font: 'Calibri' })], spacing: { before: 40, after: 40 }, indent: { left: 200 } })
-      const children: any[] = []
+      const children: InstanceType<typeof Paragraph>[] = []
       children.push(new Paragraph({ children: [new TextRun({ text: cvData.name, bold: true, size: 48, color: navyH, font: 'Calibri' })], spacing: { after: 60 } }))
       children.push(new Paragraph({ children: [new TextRun({ text: cvData.title, bold: true, size: 22, color: teal, font: 'Calibri' })], spacing: { after: 60 } }))
       const contact = [cvData.email, cvData.phone, cvData.location, cvData.linkedin].filter(Boolean)
@@ -1097,7 +1097,7 @@ ${atsSuggestions?.section_gaps?.length ? `- ATS SECTION GAPS to address: ${atsSu
               <div style={{ marginTop: 8 }}>
                 {(() => {
                   const jdLen = (jobDesc || job?.job_description || '').length
-                  const hasUrl = !!(job as any)?.job_apply_link
+                  const hasUrl = !!job?.job_apply_link
                   const quality = jdLen < 300 ? 'short' : jdLen < 800 ? 'partial' : 'full'
                   const dot = quality === 'full' ? '#4ade80' : quality === 'partial' ? '#fbbf24' : '#f87171'
                   const label = quality === 'full'
@@ -1119,7 +1119,7 @@ ${atsSuggestions?.section_gaps?.length ? `- ATS SECTION GAPS to address: ${atsSu
                           </button>
                         )}
                         {hasUrl && (
-                          <a href={(job as any).job_apply_link} target="_blank" rel="noopener noreferrer"
+                          <a href={job?.job_apply_link} target="_blank" rel="noopener noreferrer"
                             style={{ fontSize: 10, color: 'rgba(255,255,255,0.35)', textDecoration: 'none', whiteSpace: 'nowrap' }}
                             title="Open job posting">
                             ↗ Posting
@@ -1132,8 +1132,8 @@ ${atsSuggestions?.section_gaps?.length ? `- ATS SECTION GAPS to address: ${atsSu
                 {jdFetchError && (
                   <div style={{ fontSize: 11, color: '#fca5a5', background: 'rgba(248,113,113,0.08)', border: '1px solid rgba(248,113,113,0.18)', borderRadius: 8, padding: '8px 10px', marginBottom: 6, lineHeight: 1.5 }}>
                     {jdFetchError}{' '}
-                    {(job as any)?.job_apply_link && (
-                      <a href={(job as any).job_apply_link} target="_blank" rel="noopener noreferrer"
+                    {job?.job_apply_link && (
+                      <a href={job.job_apply_link} target="_blank" rel="noopener noreferrer"
                         style={{ color: accent, fontWeight: 700, textDecoration: 'underline' }}>
                         Open job posting →
                       </a>
@@ -1162,7 +1162,7 @@ ${atsSuggestions?.section_gaps?.length ? `- ATS SECTION GAPS to address: ${atsSu
 
             <input ref={fileInputRef} type="file" accept=".pdf,.doc,.docx,.txt" style={{ display: 'none' }} onChange={e => e.target.files?.[0] && handleCvFile(e.target.files[0])} />
             {!cvText ? (
-              <div onClick={() => fileInputRef.current?.click()} onDragOver={e => e.preventDefault()} onDrop={e => { e.preventDefault(); e.dataTransfer.files?.[0] && handleCvFile(e.dataTransfer.files[0]) }}
+              <div onClick={() => fileInputRef.current?.click()} onDragOver={e => e.preventDefault()} onDrop={e => { e.preventDefault(); if (e.dataTransfer.files?.[0]) handleCvFile(e.dataTransfer.files[0]) }}
                 style={{ marginTop: 12, padding: '16px 12px', border: '1.5px dashed rgba(255,255,255,0.18)', borderRadius: 9, cursor: 'pointer', textAlign: 'center' }}>
                 {fileLoading
                   ? <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}><div style={{ width: 10, height: 10, borderRadius: '50%', border: '2px solid rgba(255,255,255,0.15)', borderTopColor: accent, animation: 'spin 0.7s linear infinite' }} />Reading...</div>
@@ -1328,7 +1328,7 @@ ${atsSuggestions?.section_gaps?.length ? `- ATS SECTION GAPS to address: ${atsSu
           {/* Toolbar */}
           <div style={{ padding: '12px 20px', borderBottom: '1px solid rgba(255,255,255,0.08)', background: '#152233', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0, gap: 10, flexWrap: 'wrap' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-              <span style={{ fontSize: 12, fontWeight: 600, color: cvData ? accent : 'rgba(255,255,255,0.25)' }}>{cvData ? 'CV Ready' : 'Preview'}</span>
+              <span style={{ fontSize: 12, fontWeight: 600, color: cvData ? accent : 'rgba(255,255,255,0.25)' }}>{skillGapLoading ? 'Checking job match…' : cvData ? 'CV Ready' : 'Preview'}</span>
               {cvData && <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.2)', padding: '2px 8px', background: 'rgba(255,255,255,0.04)', borderRadius: 20, border: '1px solid rgba(255,255,255,0.06)' }}>{curTpl.label} | {lang}</span>}
             </div>
             {cvData && (
@@ -1468,7 +1468,7 @@ ${atsSuggestions?.section_gaps?.length ? `- ATS SECTION GAPS to address: ${atsSu
 
                 {previewTab === 'original' && originalFileUrl && (
                   <div style={{ marginTop: 14, padding: '10px 14px', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 10, fontSize: 11, color: 'rgba(255,255,255,0.35)', textAlign: 'center' as const }}>
-                    ← Switch to "Generated CV" to request changes or download
+                    ← Switch to &quot;Generated CV&quot; to request changes or download
                   </div>
                 )}
 

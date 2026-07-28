@@ -67,7 +67,7 @@ export default function IndiaJobsPage() {
   const [jdFallback, setJdFallback] = useState<{ job: Job; manualJd: string } | null>(null)
   function toggleDesc(id: string, e: React.MouseEvent) {
     e.stopPropagation()
-    setExpandedDescs(prev => { const next = new Set(prev); next.has(id) ? next.delete(id) : next.add(id); return next })
+    setExpandedDescs(prev => { const next = new Set(prev); if (next.has(id)) next.delete(id); else next.add(id); return next })
   }
 
   async function scoreJobs(jobList: Job[], searchQuery: string) {
@@ -303,8 +303,8 @@ export default function IndiaJobsPage() {
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px', borderRadius: 10, background: `${orange}0d`, border: `1px solid ${orange}35`, marginBottom: 4 }}>
                   <SvgIcon name="search" size={16} color="#6b7c93" />
                   <span style={{ fontSize: 13, color: '#6b7c93' }}>
-                    No results for <span style={{ fontWeight: 700, color: '#374151' }}>"{query}"</span>
-                    {' — '}showing results for <span style={{ fontWeight: 700, color: orange }}>"{usedQuery}"</span>
+                    No results for <span style={{ fontWeight: 700, color: '#374151' }}>&quot;{query}&quot;</span>
+                    {' — '}showing results for <span style={{ fontWeight: 700, color: orange }}>&quot;{usedQuery}&quot;</span>
                   </span>
                 </div>
               )}

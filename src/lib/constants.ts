@@ -122,6 +122,7 @@ export const API = {
   jobsRank:         '/api/jobs/rank',
   userProfile:          '/api/user/profile',
   userCv:               '/api/user/cv',
+  userKiraContext:      '/api/user/kira-context',
   indiaCareerScanPro:   '/api/india/career-scan-pro',
   aiChat:               '/api/ai/chat',
   aiTts:                '/api/ai/tts',

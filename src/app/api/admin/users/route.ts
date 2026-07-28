@@ -3,7 +3,7 @@ import { createServerSupabase, createAdminSupabase } from '@/lib/supabase-server
 
 const ADMIN_EMAILS = (process.env.ADMIN_EMAILS || '').split(',').map(e => e.trim().toLowerCase()).filter(Boolean)
 
-async function requireAdmin(req: NextRequest) {
+async function requireAdmin() {
   if (ADMIN_EMAILS.length === 0) {
     console.error('[admin] ADMIN_EMAILS not configured — all admin endpoints are locked')
     return null
@@ -15,8 +15,8 @@ async function requireAdmin(req: NextRequest) {
 }
 
 // GET /api/admin/users — list all users with profile data
-export async function GET(req: NextRequest) {
-  if (!await requireAdmin(req)) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+export async function GET() {
+  if (!await requireAdmin()) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 
   const admin = createAdminSupabase()
 
@@ -71,7 +71,7 @@ export async function GET(req: NextRequest) {
 
 // PATCH /api/admin/users — block/unblock a user, or adjust free credits
 export async function PATCH(req: NextRequest) {
-  const adminUser = await requireAdmin(req)
+  const adminUser = await requireAdmin()
   if (!adminUser) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 
   const { id, status, credits } = await req.json()

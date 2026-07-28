@@ -15,7 +15,7 @@ export default function SkillGapModal({ matching, missing, accent, onConfirm, on
   const [checked, setChecked] = useState<Set<string>>(new Set())
 
   const toggle = (skill: string) =>
-    setChecked(prev => { const n = new Set(prev); n.has(skill) ? n.delete(skill) : n.add(skill); return n })
+    setChecked(prev => { const n = new Set(prev); if (n.has(skill)) n.delete(skill); else n.add(skill); return n })
 
   // Detect a fundamentally different career direction
   const isDifferentDirection = missing.length >= 6 && matching.length <= 2
@@ -104,12 +104,12 @@ export default function SkillGapModal({ matching, missing, accent, onConfirm, on
               ))}
             </div>
             <div style={{ marginTop: 12, fontSize: 11, color: 'rgba(255,255,255,0.3)', lineHeight: 1.6 }}>
-              Tick only skills you genuinely have — they'll be included in your CV as-is.
+              Tick only skills you genuinely have — they&apos;ll be included in your CV as-is.
             </div>
           </div>
         ) : (
           <div style={{ marginBottom: 24, padding: '13px 15px', background: 'rgba(29,158,117,0.1)', border: '1px solid rgba(29,158,117,0.2)', borderRadius: 10, fontSize: 12, color: 'rgba(255,255,255,0.6)', lineHeight: 1.6 }}>
-            Your CV already covers all the key skills in this job description. You're well matched.
+            Your CV already covers all the key skills in this job description. You&apos;re well matched.
           </div>
         )}
 

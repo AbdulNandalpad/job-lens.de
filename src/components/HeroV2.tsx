@@ -3,7 +3,7 @@ import React from 'react'
 import { theme } from '@/lib/theme'
 import SvgIcon from '@/components/SvgIcon'
 
-const { colors: c, fonts: f } = theme
+const { fonts: f } = theme
 
 interface HeroV2Props {
   market: 'eu' | 'in'

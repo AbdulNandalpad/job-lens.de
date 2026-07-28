@@ -5,7 +5,6 @@ import AutoApplyDemoWidget from '@/components/AutoApplyDemoWidget'
 
 const saffron = '#FF9933'
 const white = '#FFFFFF'
-const navy = '#042C53'
 
 const bullets = [
   { icon: '🔗', text: 'Paste any Naukri, LinkedIn, or company portal URL' },

@@ -33,7 +33,6 @@ export async function POST(req: NextRequest) {
     // Magic-byte validation — reject files whose content doesn't match the declared type
     const isPdf  = buffer[0] === 0x25 && buffer[1] === 0x50 && buffer[2] === 0x44 && buffer[3] === 0x46 // %PDF
     const isZip  = buffer[0] === 0x50 && buffer[1] === 0x4B && buffer[2] === 0x03 && buffer[3] === 0x04 // PK (DOCX/ZIP)
-    const isText = !isPdf && !isZip // plain text has no fixed magic bytes
 
     if ((name.endsWith('.pdf')) && !isPdf) {
       return NextResponse.json({ error: 'File does not appear to be a valid PDF.' }, { status: 422 })

@@ -143,6 +143,8 @@ export default function KiraDemoWidget({
 
     run()
     return () => ctrl.abort()
+    // script is derived purely from scriptKey (static SCRIPTS lookup), already a dep.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [restartKey, scriptKey])
 
   useEffect(() => {

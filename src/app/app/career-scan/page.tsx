@@ -84,6 +84,51 @@ function MobileSection({ title, icon, defaultOpen = false, children }: {
   )
 }
 
+function UploadBox({ label, sublabel, fileName, inputRef, onFile, onClear, accept, uploadedLabel, clickToUploadLabel }: {
+  label: string; sublabel: string; fileName: string
+  inputRef: { current: HTMLInputElement | null }
+  onFile: (f: File) => void; onClear: () => void; accept: string
+  uploadedLabel: string; clickToUploadLabel: string
+}) {
+  return (
+    <div>
+      <div style={{ fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.6)', letterSpacing: 0.8, textTransform: 'uppercase' as const, marginBottom: 6 }}>
+        {label}
+      </div>
+      <div style={{ position: 'relative' }}>
+        <div
+          onClick={() => !fileName && inputRef.current?.click()}
+          style={{
+            border: `1.5px ${fileName ? `solid ${c.success}` : 'dashed rgba(255,255,255,0.25)'}`,
+            borderRadius: 10, padding: '12px 14px',
+            cursor: fileName ? 'default' : 'pointer',
+            background: fileName ? 'rgba(29,158,117,0.12)' : 'rgba(255,255,255,0.05)',
+            transition: 'all 0.2s',
+            display: 'flex', alignItems: 'center', gap: 10,
+          }}
+        >
+          <input ref={inputRef} type="file" accept={accept} style={{ display: 'none' }}
+            onChange={e => { const f = e.target.files?.[0]; if (f) onFile(f) }} />
+          <div style={{ width: 20, height: 20, borderRadius: 4, background: fileName ? 'rgba(29,158,117,0.3)' : 'rgba(255,255,255,0.15)', flexShrink: 0 }} />
+          <div>
+            <div style={{ fontSize: 12, fontWeight: 600, color: fileName ? c.success : '#fff', marginBottom: 2 }}>
+              {fileName || sublabel}
+            </div>
+            <div style={{ fontSize: 11, color: fileName ? c.success : 'rgba(255,255,255,0.5)' }}>
+              {fileName ? uploadedLabel : clickToUploadLabel}
+            </div>
+          </div>
+        </div>
+        {fileName && (
+          <button onClick={onClear} style={{ position: 'absolute', top: 8, right: 8, width: 20, height: 20, borderRadius: '50%', background: c.danger, color: '#fff', border: 'none', cursor: 'pointer', fontSize: 10, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            &times;
+          </button>
+        )}
+      </div>
+    </div>
+  )
+}
+
 export default function CareerScanPage() {
   const router = useRouter()
   const { lang, t } = useLanguage()
@@ -96,7 +141,6 @@ export default function CareerScanPage() {
   const [phase, setPhase] = useState<'upload' | 'loading' | 'results' | 'error'>('upload')
   const [step, setStep] = useState(0)
   const [result, setResult] = useState<ScanResult | null>(null)
-  const [drag, setDrag] = useState(false)
   const [mobOpen, setMobOpen] = useState(false)
   const [mode, setMode] = useState<Mode>('insights')
   const [toastMsg, setToastMsg] = useState('')
@@ -121,7 +165,7 @@ export default function CareerScanPage() {
       if (cvText) sessionStorage.setItem(SS.cvText, cvText)
       if (role)   sessionStorage.setItem(SS.targetRole, role)
     }
-  }, [phase, result])
+  }, [phase, result, cvText, role])
 
   useEffect(() => {
     const savedPhase = sessionStorage.getItem(SS.scanPhase)
@@ -171,7 +215,7 @@ export default function CareerScanPage() {
 
   async function runScan() {
     if (!cvText.trim()) { alert('Please upload your CV or paste your CV text first.'); return }
-    setPhase('loading'); setMobOpen(false); setStep(0); setMode('insights'); setShowJobSearchBanner(false)
+    setPhase('loading'); setMobOpen(false); setStep(0); setMode('insights'); setShowJobSearchBanner(false); setToastMsg('')
     const loadingSteps = t.careerScan.loadingSteps
     const timer = setInterval(() => setStep(p => Math.min(p + 1, loadingSteps.length - 1)), 1800)
     try {
@@ -211,8 +255,6 @@ export default function CareerScanPage() {
     router.push(`/app/jobs${params}`)
   }
 
-  function showToast(msg: string) { setToastMsg(msg); setTimeout(() => setToastMsg(''), 2500) }
-
   const scoreColor = (s: number) => s >= 80 ? c.success : s >= 60 ? '#F59E0B' : c.danger
   const fmt = (n: number) => new Intl.NumberFormat('de-DE').format(Math.round(n))
 
@@ -229,47 +271,6 @@ export default function CareerScanPage() {
     </div>
   )
 
-  function UploadBox({ label, sublabel, fileName, inputRef, onFile, onClear, accept }: {
-    label: string; sublabel: string; fileName: string
-    inputRef: { current: HTMLInputElement | null }
-    onFile: (f: File) => void; onClear: () => void; accept: string
-  }) {
-    return (
-      <div>
-        {secLabel(label)}
-        <div style={{ position: 'relative' }}>
-          <div
-            onClick={() => !fileName && inputRef.current?.click()}
-            style={{
-              border: `1.5px ${fileName ? `solid ${c.success}` : 'dashed rgba(255,255,255,0.25)'}`,
-              borderRadius: 10, padding: '12px 14px',
-              cursor: fileName ? 'default' : 'pointer',
-              background: fileName ? 'rgba(29,158,117,0.12)' : 'rgba(255,255,255,0.05)',
-              transition: 'all 0.2s',
-              display: 'flex', alignItems: 'center', gap: 10,
-            }}
-          >
-            <input ref={inputRef} type="file" accept={accept} style={{ display: 'none' }}
-              onChange={e => { const f = e.target.files?.[0]; if (f) onFile(f) }} />
-            <div style={{ width: 20, height: 20, borderRadius: 4, background: fileName ? 'rgba(29,158,117,0.3)' : 'rgba(255,255,255,0.15)', flexShrink: 0 }} />
-            <div>
-              <div style={{ fontSize: 12, fontWeight: 600, color: fileName ? c.success : '#fff', marginBottom: 2 }}>
-                {fileName || sublabel}
-              </div>
-              <div style={{ fontSize: 11, color: fileName ? c.success : 'rgba(255,255,255,0.5)' }}>
-                {fileName ? t.careerScan.sidebar.uploaded : t.careerScan.sidebar.clickToUpload}
-              </div>
-            </div>
-          </div>
-          {fileName && (
-            <button onClick={onClear} style={{ position: 'absolute', top: 8, right: 8, width: 20, height: 20, borderRadius: '50%', background: c.danger, color: '#fff', border: 'none', cursor: 'pointer', fontSize: 10, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              &times;
-            </button>
-          )}
-        </div>
-      </div>
-    )
-  }
 
   const extracting = fileLoading
   const hasEnoughCredits = credits === null || credits >= SCAN_COST
@@ -298,7 +299,7 @@ export default function CareerScanPage() {
         </button>
       )}
 
-      <UploadBox label={cs.sidebar.cvLabel} sublabel={cs.sidebar.cvSub} fileName={fileName} inputRef={fileInputRef} onFile={handleFile} onClear={clearCvFile} accept=".pdf,.txt,.doc,.docx" />
+      <UploadBox label={cs.sidebar.cvLabel} sublabel={cs.sidebar.cvSub} fileName={fileName} inputRef={fileInputRef} onFile={handleFile} onClear={clearCvFile} accept=".pdf,.txt,.doc,.docx" uploadedLabel={t.careerScan.sidebar.uploaded} clickToUploadLabel={t.careerScan.sidebar.clickToUpload} />
 
       <div style={{ height: 1, background: 'rgba(255,255,255,0.1)' }} />
 
@@ -819,7 +820,7 @@ export default function CareerScanPage() {
               <div style={{ textAlign: 'center', padding: '80px 20px' }}>
                 <div style={{ width: 60, height: 60, borderRadius: '50%', background: c.errorLight, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 28, margin: '0 auto 16px', color: c.error, fontWeight: 700 }}>!</div>
                 <div style={{ fontSize: 15, fontWeight: 600, color: c.error, marginBottom: 8 }}>{cs.errorTitle}</div>
-                <div style={{ fontSize: 13, color: c.textMuted, marginBottom: 20 }}>{cs.errorSub}</div>
+                <div style={{ fontSize: 13, color: c.textMuted, marginBottom: 20 }}>{toastMsg || cs.errorSub}</div>
                 <button onClick={() => { setPhase('upload'); setFileName(''); setCvText('') }} style={{ padding: '10px 24px', borderRadius: 10, background: g.primaryBtn, color: c.primaryLight, border: 'none', cursor: 'pointer', fontSize: 14, fontWeight: 600, fontFamily: f.heading }}>
                   {cs.tryAgain}
                 </button>

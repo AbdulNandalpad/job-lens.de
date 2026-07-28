@@ -81,13 +81,15 @@ export default function AdminPage() {
       if (!session) { router.replace('/login'); return }
       loadUsers()
     })
+    // router is stable and loadUsers reads no reactive state — mount-only by design.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   useEffect(() => {
     if (tab === 'purchases' && purchases.length === 0 && !purchasesLoading) {
       loadPurchases()
     }
-  }, [tab])
+  }, [tab, purchases.length, purchasesLoading])
 
   async function loadUsers() {
     setLoading(true)
@@ -128,7 +130,7 @@ export default function AdminPage() {
       // Success — clear local edit state so input shows the fresh server value
       setCreditEdits(prev => { const next = { ...prev }; delete next[id]; return next })
       await loadUsers()
-    } catch (e) {
+    } catch {
       alert('Save failed: network error')
     }
     setUpdating(null)

@@ -19,6 +19,16 @@ export default function NavbarIndia() {
   const [userMenuOpen, setUserMenuOpen] = useState(false)
   const userMenuRef = useRef<HTMLDivElement>(null)
 
+  // Sign-out / new session: clear sessionStorage only (localStorage persists — Kira history, widget prefs)
+  function clearSessionData() {
+    Object.keys(sessionStorage).filter(k => k.startsWith('jl_')).forEach(k => sessionStorage.removeItem(k))
+  }
+  // User-switch: full wipe (different account — nothing should carry over)
+  function clearAllJLData() {
+    clearSessionData()
+    Object.keys(localStorage).filter(k => k.startsWith('jl_')).forEach(k => localStorage.removeItem(k))
+  }
+
   useEffect(() => {
     const supabase = createClient()
     supabase.auth.getUser().then(({ data }) => {
@@ -36,6 +46,8 @@ export default function NavbarIndia() {
         setIsLoggedIn(false)
       }
     })
+    // clearAllJLData reads no props/state — safe to omit; only needs to run once on mount.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   // Close user menu on outside click
@@ -48,16 +60,6 @@ export default function NavbarIndia() {
     document.addEventListener('mousedown', handleClick)
     return () => document.removeEventListener('mousedown', handleClick)
   }, [])
-
-  // Sign-out / new session: clear sessionStorage only (localStorage persists — Kira history, widget prefs)
-  function clearSessionData() {
-    Object.keys(sessionStorage).filter(k => k.startsWith('jl_')).forEach(k => sessionStorage.removeItem(k))
-  }
-  // User-switch: full wipe (different account — nothing should carry over)
-  function clearAllJLData() {
-    clearSessionData()
-    Object.keys(localStorage).filter(k => k.startsWith('jl_')).forEach(k => localStorage.removeItem(k))
-  }
 
   async function signOut() {
     clearSessionData()
@@ -94,7 +96,6 @@ export default function NavbarIndia() {
   if (pathname === '/in' || pathname === '/in/login') return null
 
   const isActive = (href: string) => pathname === href
-  const isAccountArea = ['/in/account', '/in/tracker', '/in/interview'].some(p => pathname === p)
   const currentPage = [...navItems, ...accountSubItems].find(item => isActive(item.href))?.label || 'Job-Lens India'
 
   return (

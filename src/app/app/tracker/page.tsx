@@ -94,7 +94,6 @@ export default function TrackerPage() {
   const interviews = apps.filter(a => a.status === 'interview').length
   const offers     = apps.filter(a => a.status === 'offer').length
   const interviewRate = total > 0 ? Math.round((interviews / total) * 100) : 0
-  const offerRate     = total > 0 ? Math.round((offers / total) * 100) : 0
 
   const inputStyle: React.CSSProperties = {
     width: '100%', padding: '9px 12px', borderRadius: 8,
@@ -189,7 +188,6 @@ export default function TrackerPage() {
           {(['all', ...ALL_STATUSES] as const).map(tab => {
             const count = tab === 'all' ? apps.length : apps.filter(a => a.status === tab).length
             const active = activeTab === tab
-            const cfg = tab !== 'all' ? STATUS_CONFIG[tab] : null
             return (
               <button key={tab} onClick={() => setActiveTab(tab)}
                 style={{ padding: '6px 14px', borderRadius: 20, border: `1px solid ${active ? c.accent : c.borderLight}`, background: active ? c.accent : c.bgCard, color: active ? '#fff' : c.textMuted, fontSize: 12, fontWeight: active ? 700 : 400, cursor: 'pointer', fontFamily: f.body }}>

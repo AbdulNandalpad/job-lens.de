@@ -103,7 +103,7 @@ export default function PublicCasePage() {
         }
       })
       .catch(() => null)
-  }, [slug]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [slug])  
 
   useEffect(() => {
     if (!granted || !slug) return
@@ -230,7 +230,7 @@ export default function PublicCasePage() {
                 Access this Job Case
               </h1>
               <p style={{ fontSize: 14, color: D.txt2, lineHeight: 1.7, margin: '0 0 28px' }}>
-                Enter your work email. We'll send you a secure link — click it to view the candidate's verified profile.
+                Enter your work email. We&apos;ll send you a secure link — click it to view the candidate&apos;s verified profile.
               </p>
 
               <form onSubmit={requestAccess} style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
@@ -266,7 +266,7 @@ export default function PublicCasePage() {
                 Check your inbox
               </h1>
               <p style={{ fontSize: 14, color: D.txt2, lineHeight: 1.7, margin: '0 0 8px' }}>
-                We've sent a secure access link to <strong style={{ color: D.txt1 }}>{email}</strong>.
+                We&apos;ve sent a secure access link to <strong style={{ color: D.txt1 }}>{email}</strong>.
               </p>
               <p style={{ fontSize: 13, color: D.txt3, lineHeight: 1.7, margin: '0 0 28px' }}>
                 Click the link in that email to open this Job Case. The link expires in 24 hours and can only be used once.
@@ -344,7 +344,7 @@ export default function PublicCasePage() {
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 28, padding: '10px 14px', background: 'rgba(29,158,117,0.05)', border: '1px solid rgba(29,158,117,0.14)', borderRadius: 10 }}>
                 <span style={{ fontSize: 14, flexShrink: 0 }}>🛡️</span>
                 <span style={{ fontSize: 11.5, color: D.txt2, lineHeight: 1.55 }}>
-                  "Verified" means the candidate submitted specific, checkable evidence (with links where available) for that requirement — scored by AI against their own words, not self-rated.
+                  &quot;Verified&quot; means the candidate submitted specific, checkable evidence (with links where available) for that requirement — scored by AI against their own words, not self-rated.
                 </span>
               </div>
 
@@ -368,7 +368,7 @@ export default function PublicCasePage() {
               {/* Pitch narrative */}
               {caseData.pitch_narrative && (
                 <div style={{ padding: '18px 20px', background: 'rgba(55,138,221,0.05)', border: '1px solid rgba(55,138,221,0.14)', borderRadius: 12, marginBottom: 28, lineHeight: 1.8, fontSize: 14, color: 'rgba(255,255,255,0.65)', fontStyle: 'italic' }}>
-                  "{caseData.pitch_narrative}"
+                  &quot;{caseData.pitch_narrative}&quot;
                 </div>
               )}
 
@@ -442,7 +442,7 @@ export default function PublicCasePage() {
                         Candidate notified
                       </div>
                       <p style={{ fontSize: 13, color: D.txt2, margin: 0, lineHeight: 1.7 }}>
-                        We've sent your email to the candidate. Expect a reply directly to your inbox.
+                        We&apos;ve sent your email to the candidate. Expect a reply directly to your inbox.
                       </p>
                     </div>
                   ) : (
@@ -451,7 +451,7 @@ export default function PublicCasePage() {
                         Interested in this candidate?
                       </h3>
                       <p style={{ fontSize: 13, color: D.txt2, lineHeight: 1.7, margin: '0 0 18px' }}>
-                        Share your email with them and we'll notify them immediately. They'll reply to you directly — no platform middleman.
+                        Share your email with them and we&apos;ll notify them immediately. They&apos;ll reply to you directly — no platform middleman.
                       </p>
                       <form onSubmit={expressInterest} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                         <input

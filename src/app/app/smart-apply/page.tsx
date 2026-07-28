@@ -7,7 +7,6 @@ import Navbar from '../components/Navbar'
 import { useLanguage } from '@/lib/i18n'
 import { SS, API } from '@/lib/constants'
 import SvgIcon, { type IconName } from '@/components/SvgIcon'
-import { createClient } from '@/lib/supabase'
 
 interface Job {
   job_id: string
@@ -42,6 +41,31 @@ type RightTab = 'description' | 'cv' | 'cl'
 
 const JOB_TYPE_OPTIONS: JobTypeOption[] = ['Full-time', 'Contract', 'Hybrid', 'Remote']
 
+function UploadBox({ label, sublabel, fileName, inputRef, onFile, onClear, accept }: {
+  label: string; sublabel: string; fileName: string
+  inputRef: React.RefObject<HTMLInputElement | null>
+  onFile: (f: File) => void; onClear: () => void; accept: string
+}) {
+  return (
+    <div>
+      <div style={{ fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.6)', letterSpacing: 0.8, textTransform: 'uppercase' as const, marginBottom: 6 }}>{label}</div>
+      <div style={{ position: 'relative' }}>
+        <div onClick={() => !fileName && inputRef.current?.click()} style={{ border: `1.5px ${fileName ? 'solid #4ade80' : 'dashed rgba(255,255,255,0.25)'}`, borderRadius: 10, padding: '11px 14px', cursor: fileName ? 'default' : 'pointer', background: fileName ? 'rgba(74,222,128,0.1)' : 'rgba(255,255,255,0.05)', transition: 'all 0.15s', display: 'flex', alignItems: 'center', gap: 10 }}>
+          <input ref={inputRef} type="file" accept={accept} style={{ display: 'none' }} onChange={e => { const f = e.target.files?.[0]; if (f) onFile(f) }} />
+          <div style={{ width: 20, height: 20, borderRadius: 4, background: fileName ? 'rgba(74,222,128,0.3)' : 'rgba(255,255,255,0.15)', flexShrink: 0 }} />
+          <div>
+            <div style={{ fontSize: 12, fontWeight: 600, color: fileName ? '#4ade80' : '#fff', marginBottom: 1 }}>{fileName || sublabel}</div>
+            <div style={{ fontSize: 11, color: fileName ? '#4ade80' : 'rgba(255,255,255,0.5)' }}>{fileName ? 'Ready - click x to remove' : 'Click to upload'}</div>
+          </div>
+        </div>
+        {fileName && (
+          <button onClick={onClear} style={{ position: 'absolute', top: 8, right: 8, width: 20, height: 20, borderRadius: '50%', background: '#E24B4A', color: '#fff', border: 'none', cursor: 'pointer', fontSize: 10, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>x</button>
+        )}
+      </div>
+    </div>
+  )
+}
+
 function SmartJobSearchPage() {
   const router = useRouter()
   const { t } = useLanguage()
@@ -70,7 +94,6 @@ function SmartJobSearchPage() {
   const [analysing, setAnalysing] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
-  const [isAdmin, setIsAdmin] = useState(false)
   const [usedQuery, setUsedQuery] = useState('')
 
   const [activeRight, setActiveRight] = useState<RightTab>('description')
@@ -81,12 +104,6 @@ function SmartJobSearchPage() {
 
   const hasProfile = !!(linkedinText || cvText)
   const autoSearchDone = useRef(false)
-
-  useEffect(() => {
-    createClient().auth.getUser().then(({ data }) => {
-      setIsAdmin(data.user?.email === 'sap.rashid@gmail.com')
-    })
-  }, [])
 
   useEffect(() => {
     const fromCareerScan = searchParams.get('from') === 'career-scan'
@@ -129,6 +146,8 @@ function SmartJobSearchPage() {
       autoSearchDone.current = true
       handleFindJobs()
     }
+    // autoSearchDone ref guards against double-firing regardless of handleFindJobs identity.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [carriedOver, cvText])
 
   useEffect(() => {
@@ -137,6 +156,8 @@ function SmartJobSearchPage() {
 
   useEffect(() => {
     if (!experience && EXPERIENCE_OPTIONS.length > 3) setExperience(EXPERIENCE_OPTIONS[3])
+    // EXPERIENCE_OPTIONS is a static constant — this only ever runs once to seed a default.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [EXPERIENCE_OPTIONS])
 
   function clearLinkedinFile() { setLinkedinFileName(''); setLinkedinText(''); if (linkedinRef.current) linkedinRef.current.value = '' }
@@ -175,7 +196,7 @@ function SmartJobSearchPage() {
   }
 
   function toggleLogged(jobId: string) {
-    setLoggedJobs(prev => { const next = new Set(prev); next.has(jobId) ? next.delete(jobId) : next.add(jobId); return next })
+    setLoggedJobs(prev => { const next = new Set(prev); if (next.has(jobId)) next.delete(jobId); else next.add(jobId); return next })
   }
 
   function resetAll() {
@@ -357,31 +378,6 @@ function SmartJobSearchPage() {
   const inp: React.CSSProperties = { width: '100%', padding: '9px 12px', borderRadius: 8, border: '1px solid rgba(255,255,255,0.2)', fontSize: 13, fontFamily: "'DM Sans', sans-serif", color: '#fff', background: 'rgba(255,255,255,0.1)', outline: 'none', boxSizing: 'border-box' }
   const secLabel = (text: string) => <div style={{ fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.6)', letterSpacing: 0.8, textTransform: 'uppercase' as const, marginBottom: 6 }}>{text}</div>
 
-  function UploadBox({ label, sublabel, fileName, inputRef, onFile, onClear, accept }: {
-    label: string; sublabel: string; fileName: string
-    inputRef: React.RefObject<HTMLInputElement | null>
-    onFile: (f: File) => void; onClear: () => void; accept: string
-  }) {
-    return (
-      <div>
-        {secLabel(label)}
-        <div style={{ position: 'relative' }}>
-          <div onClick={() => !fileName && inputRef.current?.click()} style={{ border: `1.5px ${fileName ? 'solid #4ade80' : 'dashed rgba(255,255,255,0.25)'}`, borderRadius: 10, padding: '11px 14px', cursor: fileName ? 'default' : 'pointer', background: fileName ? 'rgba(74,222,128,0.1)' : 'rgba(255,255,255,0.05)', transition: 'all 0.15s', display: 'flex', alignItems: 'center', gap: 10 }}>
-            <input ref={inputRef} type="file" accept={accept} style={{ display: 'none' }} onChange={e => { const f = e.target.files?.[0]; if (f) onFile(f) }} />
-            <div style={{ width: 20, height: 20, borderRadius: 4, background: fileName ? 'rgba(74,222,128,0.3)' : 'rgba(255,255,255,0.15)', flexShrink: 0 }} />
-            <div>
-              <div style={{ fontSize: 12, fontWeight: 600, color: fileName ? '#4ade80' : '#fff', marginBottom: 1 }}>{fileName || sublabel}</div>
-              <div style={{ fontSize: 11, color: fileName ? '#4ade80' : 'rgba(255,255,255,0.5)' }}>{fileName ? 'Ready - click x to remove' : 'Click to upload'}</div>
-            </div>
-          </div>
-          {fileName && (
-            <button onClick={onClear} style={{ position: 'absolute', top: 8, right: 8, width: 20, height: 20, borderRadius: '50%', background: '#E24B4A', color: '#fff', border: 'none', cursor: 'pointer', fontSize: 10, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>x</button>
-          )}
-        </div>
-      </div>
-    )
-  }
-
   function MatchChips({ chips }: { chips: { label: string; positive: boolean }[] }) {
     if (!chips || chips.length === 0) return null
     return (
@@ -400,8 +396,6 @@ function SmartJobSearchPage() {
     const isLogged = loggedJobs.has(job.job_id)
     const salary = formatSalary(job)
     const borderColor = getMatchBorderColor(job.matchChips)
-    const matchCount = job.matchChips?.filter(c => c.positive).length || 0
-
     return (
       <div style={{ background: '#fff', border: `1.5px solid ${isSelected ? '#378ADD' : '#edf1f6'}`, borderLeft: `4px solid ${isSelected ? '#378ADD' : borderColor}`, borderRadius: 12, overflow: 'hidden', boxShadow: isSelected ? '0 4px 20px rgba(55,138,221,0.15)' : '0 1px 4px rgba(0,0,0,0.04)', transition: 'all 0.15s' }}>
         <div onClick={() => selectJob(job)} style={{ padding: '14px 16px', cursor: 'pointer' }}>
@@ -446,6 +440,11 @@ function SmartJobSearchPage() {
     )
   }
 
+  // Defined inside the parent (captures ~10+ values: t, jobs, cvText, selectedJob, etc.) so it's
+  // recreated every render — a real lint finding, but low-impact here since RightPanel holds no
+  // hooks/state of its own (only potential cost is focus/transition resets, not data loss).
+  // Hoisting it cleanly would mean prop-drilling all of those; left as documented debt rather
+  // than risk mis-wiring this revenue path blind.
   function RightPanel() {
     if (!selectedJob) {
       const tips = [
@@ -872,6 +871,7 @@ function SmartJobSearchPage() {
                   ).map(job => <JobCard key={job.job_id} job={job} />)}
                 </div>
                 <div style={{ position: 'sticky', top: 20 }}>
+                  {/* eslint-disable-next-line react-hooks/static-components -- see RightPanel definition above */}
                   <RightPanel />
                 </div>
               </div>

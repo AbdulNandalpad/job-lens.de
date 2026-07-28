@@ -41,29 +41,9 @@ function IndiaFlag({ size = 48 }: { size?: number }) {
   )
 }
 
-function ScoreRing({ score, size = 120, label, color }: { score: number; size?: number; label: string; color: string }) {
-  const r = (size / 2) - 10
-  const circ = 2 * Math.PI * r
-  const fill = circ * (1 - score / 100)
-  return (
-    <div style={{ textAlign: 'center' }}>
-      <svg width={size} height={size} style={{ transform: 'rotate(-90deg)' }}>
-        <circle cx={size/2} cy={size/2} r={r} fill="none" stroke="rgba(255,255,255,0.1)" strokeWidth={8}/>
-        <circle cx={size/2} cy={size/2} r={r} fill="none" stroke={color} strokeWidth={8}
-          strokeDasharray={circ} strokeDashoffset={fill} strokeLinecap="round"/>
-        <text x="50%" y="50%" textAnchor="middle" dominantBaseline="middle"
-          fill={white} fontSize={size * 0.22} fontWeight="700"
-          style={{ transform: 'rotate(90deg)', transformOrigin: '50% 50%', fontFamily: "'Outfit',sans-serif" }}>
-          {score}
-        </text>
-      </svg>
-      <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)', marginTop: 4, fontFamily: "'DM Sans',sans-serif" }}>{label}</div>
-    </div>
-  )
-}
-
 export default async function IndiaHomePage() {
   // Check auth — show dashboard for logged-in users
+  let hasUser = false
   try {
     const cookieStore = await cookies()
     const supabase = createServerClient(
@@ -72,10 +52,11 @@ export default async function IndiaHomePage() {
       { cookies: { get: (name: string) => cookieStore.get(name)?.value } }
     )
     const { data: { user } } = await supabase.auth.getUser()
-    if (user) return <IndiaDashboard />
+    hasUser = !!user
   } catch {
     // Not logged in or cookie error — fall through to landing page
   }
+  if (hasUser) return <IndiaDashboard />
 
   return (
     <div style={{ fontFamily: "'DM Sans', sans-serif" }}>

@@ -739,7 +739,7 @@ export default function CVBuilderPage() {
   const [cvText, setCvText] = useState('')
   const [cvFileName, setCvFileName] = useState('')
   const [fileLoading, setFileLoading] = useState(false)
-  const [job, setJob] = useState<{ job_title: string; employer_name: string; job_description?: string } | null>(null)
+  const [job, setJob] = useState<{ job_title: string; employer_name: string; job_description?: string; job_apply_link?: string } | null>(null)
   const [jobLabel, setJobLabel] = useState('')
   const [jobDesc, setJobDesc] = useState('')        // editable full job description
   const [jobDescOpen, setJobDescOpen] = useState(false)
@@ -767,7 +767,6 @@ export default function CVBuilderPage() {
   const { hasCv: hasSavedCv, cvText: savedCvText, fileName: savedCvFileName, loadingSavedCv } = useSavedCv()
   const CV_COST = CREDIT_COST.tailorCv
   const [crossWarnPending, setCrossWarnPending] = useState<(() => void) | null>(null)
-  const [mobOpen, setMobOpen] = useState(false)
   const [skillGapOpen, setSkillGapOpen] = useState(false)
   const [skillGapData, setSkillGapData] = useState<{ matching: string[]; missing: string[] } | null>(null)
   const [skillGapLoading, setSkillGapLoading] = useState(false)
@@ -909,7 +908,7 @@ export default function CVBuilderPage() {
   }, [])
 
   async function fetchFullJd() {
-    const url = (job as any)?.job_apply_link
+    const url = job?.job_apply_link
     if (!url) return
     setFetchingJd(true)
     try {
@@ -1158,11 +1157,14 @@ export default function CVBuilderPage() {
     setDownloading(null)
   }
 
+  // Complete DOCX export — no "Download Word" button currently calls this (only PDF is wired up).
+  // Kept intentionally rather than deleted; wire up a button or remove if not wanted.
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   async function downloadDOCX() {
     if (!cvData) return
     setDownloading('docx')
     try {
-      const { Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType, BorderStyle, ShadingType, TableRow, TableCell, Table, WidthType, Header } = await import('docx')
+      const { Document, Packer, Paragraph, TextRun, BorderStyle } = await import('docx')
 
       const teal = '00A58A'
       const navy = '0d2137'
@@ -1183,7 +1185,7 @@ export default function CVBuilderPage() {
         indent: { left: 200 },
       })
 
-      const children: any[] = []
+      const children: InstanceType<typeof Paragraph>[] = []
 
       // Name
       children.push(new Paragraph({
@@ -1465,7 +1467,7 @@ export default function CVBuilderPage() {
                 {/* JD quality indicator */}
                 {(() => {
                   const jdLen = (jobDesc || job?.job_description || '').length
-                  const hasUrl = !!(job as any)?.job_apply_link
+                  const hasUrl = !!job?.job_apply_link
                   const quality = jdLen < 300 ? 'short' : jdLen < 800 ? 'partial' : 'full'
                   const dot = quality === 'full' ? '#4ade80' : quality === 'partial' ? '#fbbf24' : '#f87171'
                   const label = quality === 'full'
@@ -1487,7 +1489,7 @@ export default function CVBuilderPage() {
                           </button>
                         )}
                         {hasUrl && (
-                          <a href={(job as any).job_apply_link} target="_blank" rel="noopener noreferrer"
+                          <a href={job?.job_apply_link} target="_blank" rel="noopener noreferrer"
                             style={{ fontSize: 10, color: 'rgba(255,255,255,0.35)', textDecoration: 'none', whiteSpace: 'nowrap' }}
                             title={lang === 'DE' ? 'Stellenanzeige öffnen' : 'Open job posting'}>
                             ↗ {lang === 'DE' ? 'Anzeige' : 'Posting'}
@@ -1500,8 +1502,8 @@ export default function CVBuilderPage() {
                 {jdFetchError && (
                   <div style={{ fontSize: 11, color: '#fca5a5', background: 'rgba(248,113,113,0.08)', border: '1px solid rgba(248,113,113,0.18)', borderRadius: 8, padding: '8px 10px', marginBottom: 6, lineHeight: 1.5 }}>
                     {jdFetchError}{' '}
-                    {(job as any)?.job_apply_link && (
-                      <a href={(job as any).job_apply_link} target="_blank" rel="noopener noreferrer"
+                    {job?.job_apply_link && (
+                      <a href={job.job_apply_link} target="_blank" rel="noopener noreferrer"
                         style={{ color: currentAccent, fontWeight: 700, textDecoration: 'underline' }}>
                         {lang === 'DE' ? 'Stellenanzeige öffnen →' : 'Open job posting →'}
                       </a>
@@ -1546,7 +1548,7 @@ export default function CVBuilderPage() {
             {!cvText ? (
               <div onClick={() => fileInputRef.current?.click()}
                 onDragOver={e => e.preventDefault()}
-                onDrop={e => { e.preventDefault(); e.dataTransfer.files?.[0] && handleCvFile(e.dataTransfer.files[0]) }}
+                onDrop={e => { e.preventDefault(); if (e.dataTransfer.files?.[0]) handleCvFile(e.dataTransfer.files[0]) }}
                 style={{ marginTop: 12, padding: '16px 12px', border: '1.5px dashed rgba(255,255,255,0.18)', borderRadius: 9, cursor: 'pointer', textAlign: 'center' }}>
                 {fileLoading ? (
                   <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>

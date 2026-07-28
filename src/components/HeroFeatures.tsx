@@ -48,12 +48,13 @@ const IN_CHAT = {
   k2: 'Missing: Kubernetes, React, System Design. Adding now…',
 }
 
+// loginHref is passed by callers (e.g. HeroIn.tsx) but not yet rendered here — no login CTA in this section yet.
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 export default function HeroFeatures({ market, autoApplyHref, kiraHref, loginHref, lang = 'EN' }: HeroFeaturesProps) {
   const isIn  = market === 'in'
   const accent     = isIn ? '#FF9933' : '#378ADD'
   const accentDim  = isIn ? 'rgba(255,153,51,0.15)' : 'rgba(55,138,221,0.15)'
   const accentBord = isIn ? 'rgba(255,153,51,0.3)'  : 'rgba(55,138,221,0.3)'
-  const green      = isIn ? '#138808' : '#22c55e'
 
   const fields = isIn ? IN_FIELDS : EU_FIELDS
   const chat   = isIn ? IN_CHAT   : EU_CHAT

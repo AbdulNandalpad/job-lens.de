@@ -87,6 +87,9 @@ export default function InAutoApplyPage() {
   const [liveShot, setLiveShot] = useState('')
   const [previewShot, setPreviewShot] = useState('')
   const [sessionId, setSessionId] = useState('')
+  // Populated live from the SSE stream but not rendered here yet — the DACH page
+  // (src/app/app/auto-apply/page.tsx) has the field-by-field status panel this feeds.
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [fieldStatuses, setFieldStatuses] = useState<Record<string, boolean | null>>({})
   const [error, setError] = useState('')
   const [requiresLogin, setRequiresLogin] = useState(false)

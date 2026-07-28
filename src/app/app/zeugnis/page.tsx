@@ -399,7 +399,7 @@ export default function ZeugnisPage() {
                         <div key={i} className="zt-phrase-row" style={{ padding: '14px 0' }}>
                           <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
                             <div style={{ flex: 1, minWidth: 200 }}>
-                              <div style={{ fontSize: 13, fontStyle: 'italic', color: '#374151', marginBottom: 4 }}>"{p.original}"</div>
+                              <div style={{ fontSize: 13, fontStyle: 'italic', color: '#374151', marginBottom: 4 }}>&quot;{p.original}&quot;</div>
                               <div style={{ fontSize: 12, color: '#6b7c93', lineHeight: 1.55 }}>{p.decoded}</div>
                               {p.tip && <div style={{ fontSize: 11, color: blue, marginTop: 4, display: 'flex', alignItems: 'center', gap: 4 }}><SvgIcon name="bulb" size={11} color={blue} /> {p.tip}</div>}
                             </div>

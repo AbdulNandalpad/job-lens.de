@@ -27,7 +27,7 @@ export default function IndiaCoverLetterPage() {
   const [cvText, setCvText]     = useState('')
   const [cvFileName, setCvFileName] = useState('')
   const [fileLoading, setFileLoading] = useState(false)
-  const [job, setJob] = useState<{ job_title: string; employer_name: string; job_city?: string; job_description?: string } | null>(null)
+  const [job, setJob] = useState<{ job_title: string; employer_name: string; job_city?: string; job_description?: string; job_apply_link?: string } | null>(null)
   const [tone, setTone]         = useState<Tone>('confident')
   const [length, setLength]     = useState<Length>('medium')
   const [lang, setLang]         = useState<Lang>('EN')
@@ -178,7 +178,7 @@ export default function IndiaCoverLetterPage() {
     if (!letter) return; setDownloading('docx')
     try {
       const { Document, Packer, Paragraph, TextRun, AlignmentType } = await import('docx')
-      const children: any[] = [
+      const children: InstanceType<typeof Paragraph>[] = [
         new Paragraph({ children: [new TextRun({ text: 'Cover Letter', bold: true, size: 36, color: '042C53', font: 'Calibri' })], spacing: { after: 80 } }),
         ...(job ? [new Paragraph({ children: [new TextRun({ text: `${job.employer_name} - ${job.job_title}`, size: 20, color: '6b7c93', font: 'Calibri', italics: true })], spacing: { after: 200 } })] : []),
         ...letter.split('\n').map((para, i) => {
@@ -243,8 +243,8 @@ export default function IndiaCoverLetterPage() {
               <div style={{ marginTop: 12, padding: '8px 10px', background: 'rgba(255,255,255,0.08)', borderRadius: 8 }}>
                 <div style={{ fontSize: 9, color: accent, fontWeight: 700, letterSpacing: 0.8, textTransform: 'uppercase', marginBottom: 3 }}>For</div>
                 <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.8)', lineHeight: 1.4 }}>{jobLabel}</div>
-                {(job as any)?.job_apply_link && (
-                  <a href={(job as any).job_apply_link} target="_blank" rel="noopener noreferrer"
+                {job?.job_apply_link && (
+                  <a href={job.job_apply_link} target="_blank" rel="noopener noreferrer"
                     style={{ display: 'inline-flex', alignItems: 'center', gap: 3, marginTop: 6, fontSize: 10, color: accent, textDecoration: 'none', opacity: 0.85 }}>
                     ↗ Open full job posting
                   </a>
@@ -255,7 +255,7 @@ export default function IndiaCoverLetterPage() {
               onChange={e => e.target.files?.[0] && handleCvFile(e.target.files[0])} />
             {!cvText ? (
               <div onClick={() => fileInputRef.current?.click()} onDragOver={e => e.preventDefault()}
-                onDrop={e => { e.preventDefault(); e.dataTransfer.files?.[0] && handleCvFile(e.dataTransfer.files[0]) }}
+                onDrop={e => { e.preventDefault(); if (e.dataTransfer.files?.[0]) handleCvFile(e.dataTransfer.files[0]) }}
                 style={{ marginTop: 12, padding: '16px 12px', border: '1.5px dashed rgba(255,255,255,0.18)', borderRadius: 9, cursor: 'pointer', textAlign: 'center' }}>
                 {fileLoading
                   ? <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
