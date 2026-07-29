@@ -35,7 +35,16 @@ export async function POST(req: NextRequest) {
     const ts       = Date.now()
     const wsToken  = createHmac('sha256', railwaySecret).update(`${user.id}:${ts}`).digest('hex')
 
-    return NextResponse.json({ ok: true, remaining, wsToken, ts, uid: user.id })
+    // Admins additionally get a signed capability token that unlocks Kira's
+    // voice task tools (career scan / tailor CV / cover letter) on Railway.
+    // Signed server-side so the client cannot forge admin status.
+    const adminEmails = (process.env.ADMIN_EMAILS || '').split(',').map(e => e.trim().toLowerCase()).filter(Boolean)
+    const isAdmin  = adminEmails.includes((user.email || '').toLowerCase())
+    const admToken = isAdmin
+      ? createHmac('sha256', railwaySecret).update(`adm:${user.id}:${ts}`).digest('hex')
+      : ''
+
+    return NextResponse.json({ ok: true, remaining, wsToken, ts, uid: user.id, admToken })
   } catch (err) {
     console.error('[ai/voice-session]', err)
     return NextResponse.json({ error: 'Internal error' }, { status: 500 })

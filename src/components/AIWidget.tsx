@@ -724,10 +724,11 @@ export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
     wsToken: string = '',
     ts: number = 0,
     uid: string = '',
+    admToken: string = '',
   ) {
     const MAX_RETRIES = 3
     const ws = new WebSocket(
-      `${wsBase}?token=${encodeURIComponent(wsToken)}&ts=${ts}&uid=${encodeURIComponent(uid)}&market=${market}&mode=${encodeURIComponent(kiraMode)}`
+      `${wsBase}?token=${encodeURIComponent(wsToken)}&ts=${ts}&uid=${encodeURIComponent(uid)}&market=${market}&mode=${encodeURIComponent(kiraMode)}${admToken ? `&adm=${encodeURIComponent(admToken)}` : ''}`
     )
     realtimeWsRef.current = ws
 
@@ -813,7 +814,7 @@ export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
         realtimeNextTimeRef.current = 0
         setRealtimeState('connecting')
         realtimeRetryTRef.current = setTimeout(() => {
-          if (realtimeModeRef.current) connectRealtimeWs(wsBase, kiraCtx, cvText, wsToken, ts, uid)
+          if (realtimeModeRef.current) connectRealtimeWs(wsBase, kiraCtx, cvText, wsToken, ts, uid, admToken)
         }, delay)
       } else {
         const reason = cleanClose ? 'session ended' : `after ${MAX_RETRIES} attempts`
@@ -845,7 +846,7 @@ export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
     realtimeNextTimeRef.current = 0
     if (rtCtx.state === 'suspended') await rtCtx.resume()
 
-    let wsToken = '', ts = 0, uid = ''
+    let wsToken = '', ts = 0, uid = '', admToken = ''
     setRealtimeConnecting(true)
     try {
       const res = await fetch(API.aiVoiceSession, {
@@ -862,9 +863,10 @@ export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
       }
       if (!res.ok) throw new Error('voice-session failed')
       const sessionData = await res.json().catch(() => ({}))
-      wsToken = sessionData.wsToken ?? ''
-      ts      = sessionData.ts      ?? 0
-      uid     = sessionData.uid     ?? ''
+      wsToken  = sessionData.wsToken  ?? ''
+      ts       = sessionData.ts       ?? 0
+      uid      = sessionData.uid      ?? ''
+      admToken = sessionData.admToken ?? ''
     } catch {
       setRealtimeConnecting(false)
       setMsgs(prev => [...prev, { role: 'assistant', content: lang === 'DE'
@@ -889,7 +891,7 @@ export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
     setRealtimeState('connecting')
     setRealtimeSecsLeft(LIVE_VOICE_MAX_SECONDS)
 
-    connectRealtimeWs(wsBase, kiraCtx, cvText, wsToken, ts, uid)
+    connectRealtimeWs(wsBase, kiraCtx, cvText, wsToken, ts, uid, admToken)
   }
 
   function exitRealtimeMode(exitReason = 'user') {
