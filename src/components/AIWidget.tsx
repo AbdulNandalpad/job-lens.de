@@ -18,6 +18,16 @@ interface Job {
 }
 interface FeatureAction { feature: string; label: string; href: string; reason: string }
 interface JobsSearch { q: string; location: string }
+interface KiraTaskJob {
+  job_title: string; employer_name?: string; job_city?: string
+  job_description?: string; job_apply_link?: string
+}
+interface KiraTaskRequest {
+  requestId: string
+  tool: 'run_career_scan' | 'tailor_cv' | 'write_cover_letter' | string
+  args?: { target_role?: string }
+  job?: KiraTaskJob | null
+}
 interface Msg {
   role: 'user' | 'assistant'; content: string
   status?: string; jobs?: Job[]; jobsTotal?: number
@@ -476,6 +486,88 @@ export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
     router.push(market === 'in' ? '/in/cv-builder' : '/app/cv-builder')
   }
 
+  // ── Voice task execution (kira.task from Railway) ────────────────────────
+  async function executeKiraTask(task: KiraTaskRequest) {
+    const reply = (output: string) => {
+      const ws = realtimeWsRef.current
+      if (ws && ws.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify({ type: 'kira.task_result', requestId: task.requestId, output }))
+      }
+    }
+    const cv = cvRef.current || sessionStorage.getItem(SS.cvText) || ''
+    if (!cv) {
+      reply('No CV is uploaded yet — ask the user to upload their CV first using the clip icon in the chat header.')
+      return
+    }
+
+    const labels: Record<string, string> = { run_career_scan: 'Career Scan', tailor_cv: 'CV tailoring', write_cover_letter: 'Cover letter' }
+    setMsgs(prev => [...prev, { role: 'assistant', content: `⚙ Running ${labels[task.tool] || task.tool}...` }])
+    const clLang = market !== 'in' && lang === 'DE' ? 'DE' : 'EN'
+
+    try {
+      if (task.tool === 'run_career_scan') {
+        const endpoint = market === 'in' ? API.indiaCareerScanPro : API.careerScan
+        const res = await fetch(endpoint, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ cvText: cv, role: task.args?.target_role || '', market: 'Germany', lang }),
+        })
+        const data = await res.json()
+        if (res.status === 402) { reply(`Not enough credits — the Career Scan costs ${CREDIT_COST.careerScan} credits. Suggest topping up on the Account page.`); return }
+        if (!res.ok || typeof data.score !== 'number') { reply('The Career Scan failed — apologise and suggest trying again in a moment.'); return }
+        sessionStorage.setItem(market === 'in' ? SS.inCareerScanResult : SS.scanResult, JSON.stringify(data))
+        const strength = (data.strengths || [])[0] || ''
+        const gap      = (data.gaps || [])[0] || ''
+        setMsgs(prev => [...prev, { role: 'assistant', content: `Career Scan: ${data.score}/100 — ${data.headline}${strength ? `\n✓ ${strength}` : ''}${gap ? `\n↑ ${gap}` : ''}` }])
+        reply(`Career Scan done. Score ${data.score} out of 100. ${data.headline} ${strength ? `Top strength: ${strength}.` : ''} ${gap ? `Biggest gap: ${gap}.` : ''} The full result is showing in the chat.`)
+        return
+      }
+
+      const job = task.job
+      if (!job?.job_title) {
+        reply('The job is unclear — ask the user which job title and company this is for.')
+        return
+      }
+      sessionStorage.setItem(SS.cvbJob, JSON.stringify(job))
+      const jobLabel = `${job.job_title}${job.employer_name ? ` at ${job.employer_name}` : ''}`
+
+      if (task.tool === 'tailor_cv') {
+        const res = await fetch(API.tailorCv, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ cvText: cv, job, returnJson: true, tone: 'professional', pages: '1', lang: clLang, market }),
+        })
+        const data = await res.json()
+        if (res.status === 402) { reply(`Not enough credits — tailoring the CV costs ${CREDIT_COST.tailorCv} credit.`); return }
+        if (!res.ok || !data.cv) { reply('The CV tailoring failed — apologise and suggest trying again.'); return }
+        sessionStorage.setItem(SS.cvbTailored, String(data.cv))
+        try { sessionStorage.setItem(SS.cvbData, JSON.stringify(JSON.parse(String(data.cv).replace(/```json|```/g, '').trim()))) } catch { /* raw only — CV Builder re-parses */ }
+        setMsgs(prev => [...prev, { role: 'assistant', content: '', action: { feature: 'cv_builder', label: 'Open your tailored CV', href: market === 'in' ? '/in/cv-builder' : '/app/cv-builder', reason: `Tailored for ${jobLabel}` } }])
+        reply(`Done — the CV is tailored for ${jobLabel} and ready in the CV Builder. There's a button in the chat to open it.`)
+        return
+      }
+
+      if (task.tool === 'write_cover_letter') {
+        const res = await fetch(API.coverLetter, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ cvText: cv, job, tone: 'confident', length: 'medium', lang: clLang, market }),
+        })
+        const data = await res.json()
+        if (res.status === 402) { reply(`Not enough credits — a cover letter costs ${CREDIT_COST.coverLetter} credit.`); return }
+        if (!res.ok || !data.coverLetter) { reply('The cover letter generation failed — apologise and suggest trying again.'); return }
+        sessionStorage.setItem(SS.clLetter, String(data.coverLetter))
+        setMsgs(prev => [...prev, { role: 'assistant', content: '', action: { feature: 'cover_letter', label: 'Open your cover letter', href: market === 'in' ? '/in/cover-letter' : '/app/cover-letter', reason: `Written for ${jobLabel}` } }])
+        reply(`Done — the cover letter for ${jobLabel} is ready. There's a button in the chat to open it.`)
+        return
+      }
+
+      reply('That task is not supported by this app version.')
+    } catch {
+      reply('The task hit a connection error — apologise and suggest trying again.')
+    }
+  }
+
   // ── Interview coaching unlock ─────────────────────────────────────────
   async function unlockCoaching() {
     setCoachUnlocking(true)
@@ -590,6 +682,12 @@ export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
         if (textBlock?.text) {
           setMsgs(prev => [...prev, { role: 'assistant', content: textBlock.text }])
         }
+        break
+      }
+      case 'kira.task': {
+        // Railway asks the browser to run a real Job-Lens task with the user's
+        // own session — server-side credit deduction identical to manual use.
+        executeKiraTask(evt as KiraTaskRequest)
         break
       }
       case 'kira.jobs': {

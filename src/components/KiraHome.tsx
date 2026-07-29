@@ -294,6 +294,9 @@ export default function KiraHome({ market }: { market: 'eu' | 'in' }) {
           box-shadow: 0 14px 34px -10px var(--tc);
         }
         .kh-tile:active { transform: translateY(-1px); }
+        .kh-orbbtn { transition: transform .25s ease; }
+        .kh-orbbtn:hover { transform: scale(1.03); }
+        .kh-orbbtn:active { transform: scale(.99); }
         .kh-hero-input { color: ${c.text}; }
         .kh-hero-input::placeholder { color: ${c.textFaint}; }
         @media (max-width: 640px) {
@@ -308,9 +311,26 @@ export default function KiraHome({ market }: { market: 'eu' | 'in' }) {
         <div className="kh-fly"><KiraOrb state="idle" breathe /></div>
       )}
       <div className={`kh-pad${leaving ? ' kh-fade' : ''}`} style={{ maxWidth: 780, margin: '0 auto', width: '100%', flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '32px 16px 40px' }}>
-        <div className="kh-rise kh-orbwrap" style={{ display: 'flex', justifyContent: 'center', visibility: leaving ? 'hidden' as const : 'visible' as const }}>
-          <KiraOrb state="idle" breathe large />
-        </div>
+        {hasVoice ? (
+          <button className="kh-rise kh-orbwrap kh-orbbtn" onClick={() => openKira({ voice: true })}
+            aria-label={isDE ? 'Mit Kira sprechen' : 'Talk to Kira'}
+            style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit', visibility: leaving ? 'hidden' as const : 'visible' as const }}>
+            <KiraOrb state="idle" breathe large />
+            <span style={{ marginTop: -6, padding: '7px 18px', borderRadius: 20, background: g.button, color: '#fff', fontSize: 13, fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: 7, boxShadow: theme.shadow.glow }}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="9" y="2" width="6" height="12" rx="3" /><path d="M5 10a7 7 0 0 0 14 0" /><line x1="12" y1="19" x2="12" y2="22" />
+              </svg>
+              {isDE ? 'Mit Kira sprechen' : 'Talk to Kira'}
+            </span>
+            <span style={{ marginTop: 7, fontSize: 11.5, color: c.textFaint }}>
+              {isDE ? `Live-Voice · ${CREDIT_COST.liveVoice} Credits / 5 Min` : `Live voice · ${CREDIT_COST.liveVoice} credits / 5 min`}
+            </span>
+          </button>
+        ) : (
+          <div className="kh-rise kh-orbwrap" style={{ display: 'flex', justifyContent: 'center', visibility: leaving ? 'hidden' as const : 'visible' as const }}>
+            <KiraOrb state="idle" breathe large />
+          </div>
+        )}
 
         {!ready ? (
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, color: c.textMuted, fontSize: 13, marginTop: 8 }}>
@@ -371,6 +391,9 @@ export default function KiraHome({ market }: { market: 'eu' | 'in' }) {
               </div>
             )}
 
+            <div className="kh-rise" style={{ animationDelay: '.32s', fontSize: 12, color: c.textFaint, marginBottom: 10, textAlign: 'center' as const }}>
+              {isDE ? 'Lieber selbst machen? Wähl ein Tool:' : 'Prefer to do it yourself? Pick a tool:'}
+            </div>
             <div className="kh-grid">
               {KIRA_TILES.map((tile, i) => {
                 const tc = tile.id === 'career_scan' && market === 'in' ? accent : (TILE_COLOR[tile.id] ?? c.accent)
