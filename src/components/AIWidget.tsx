@@ -1276,7 +1276,12 @@ export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
               }
             </button>
 
-            <button className="kira-close" onClick={() => { setOpen(false); setMaximized(false) }}
+            <button className="kira-close" onClick={() => {
+              // Closing the panel must also end a live voice session — otherwise
+              // the mic and Kira's audio keep running invisibly in the background.
+              if (realtimeModeRef.current) exitRealtimeMode('widget_closed')
+              setOpen(false); setMaximized(false)
+            }}
               style={{ width: 24, height: 24, borderRadius: 6, border: 'none', background: 'rgba(255,255,255,.08)', cursor: 'pointer', color: 'rgba(255,255,255,.6)', fontSize: 14, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
               ✕
             </button>
