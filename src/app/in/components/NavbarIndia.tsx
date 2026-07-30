@@ -92,8 +92,9 @@ export default function NavbarIndia() {
     { label: 'Interview Prep', href: '/in/interview' },
   ]
 
-  // Don't render on landing page or login — those have their own headers
-  if (pathname === '/in' || pathname === '/in/login') return null
+  // Don't render on the logged-out landing page or login — those have their
+  // own headers. Logged-in users see Kira Home on /in and need the navbar.
+  if ((pathname === '/in' && !isLoggedIn) || pathname === '/in/login') return null
 
   const isActive = (href: string) => pathname === href
   const currentPage = [...navItems, ...accountSubItems].find(item => isActive(item.href))?.label || 'Job-Lens India'
