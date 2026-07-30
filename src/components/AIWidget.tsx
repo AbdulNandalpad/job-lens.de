@@ -1114,8 +1114,10 @@ export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
 
   if (!mounted) return null
   // Kira Home IS Kira — hide the corner bubble there. The panel can still open
-  // (maximized) when KiraHome hands off via KIRA_OPEN_EVENT.
-  const onKiraHome = pathname === '/app/kira' || pathname === '/in/kira'
+  // (maximized) when KiraHome hands off via KIRA_OPEN_EVENT. Since 2026-07-30
+  // the /app and /in roots ARE Kira Home for logged-in users (the /in root
+  // shows the marketing page when logged out — its Kira demo section covers that).
+  const onKiraHome = pathname === '/app' || pathname === '/in' || pathname === '/app/kira' || pathname === '/in/kira'
 
   // JD paste fallback card — shown in both the voice overlay and the chat view
   // when a voice task needs the full job description and the site blocked us.

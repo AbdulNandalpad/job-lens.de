@@ -1,7 +1,11 @@
 import Link from 'next/link'
 import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
-import IndiaDashboard from './components/IndiaDashboard'
+import KiraHome from '@/components/KiraHome'
+// Kira Home replaced the classic dashboard as the post-login landing (2026-07-30).
+// The dashboard is kept intact and could be used later — to restore it:
+//   import IndiaDashboard from './components/IndiaDashboard'
+//   if (hasUser) return <IndiaDashboard />
 import KiraDemoWidget from '@/components/KiraDemoWidget'
 import SvgIcon, { type IconName } from '@/components/SvgIcon'
 import AutoApplySpotlightIn from './components/AutoApplySpotlightIn'
@@ -56,7 +60,7 @@ export default async function IndiaHomePage() {
   } catch {
     // Not logged in or cookie error — fall through to landing page
   }
-  if (hasUser) return <IndiaDashboard />
+  if (hasUser) return <KiraHome market="in" />
 
   return (
     <div style={{ fontFamily: "'DM Sans', sans-serif" }}>
