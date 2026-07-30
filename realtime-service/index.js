@@ -55,7 +55,8 @@ function verifyAdminToken(adm, ts, uid) {
   }
 }
 
-const TASK_ABILITY_HINT_ON = `\n- You can RUN real Job-Lens tasks by voice: run_career_scan (2 credits), tailor_cv (1 credit), write_cover_letter (1 credit). ALWAYS state the credit cost and get a clear yes from the user before calling one of these. Results appear in the chat panel.`
+const TASK_ABILITY_HINT_ON = `\n- You can RUN real Job-Lens tasks by voice: run_career_scan (2 credits), tailor_cv (1 credit), write_cover_letter (1 credit). ALWAYS state the credit cost and get a clear yes from the user before calling one of these. Results appear in the chat panel.
+- If you receive a "[system: ...]" note reporting a finished task or a pasted job description, relay that outcome to the user naturally in one or two sentences — do not read the note verbatim.`
 
 const CV_EDIT_RULE_ON  = `CV EDITING: When the user wants their CV rewritten or tailored for a job, confirm the 1-credit cost, then use the tailor_cv tool — the finished CV opens in the CV Builder for review and download. Never dictate a full rewritten CV aloud; the tool does the writing.`
 const CV_EDIT_RULE_OFF = `CV EDITING: You can suggest CV improvements verbally — specific changes, rewordings, what to add or remove. But you cannot edit or rewrite the CV yourself. If the user wants to actually update their CV, tell them to use the CV Builder (it's in the main menu). Say something like "I can't edit it directly, but head to CV Builder and I'll walk you through what to change." Never attempt to produce a new version of the CV in voice.`

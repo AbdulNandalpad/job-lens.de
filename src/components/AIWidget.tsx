@@ -335,6 +335,11 @@ export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
   const [coachUnlocked,    setCoachUnlocked]    = useState(false)
   const [coachUnlocking,   setCoachUnlocking]   = useState(false)
 
+  // ── Voice task JD-paste fallback state ───────────────────────────────────
+  const [pendingJdTask, setPendingJdTask] = useState<KiraTaskRequest | null>(null)
+  const [jdPaste,       setJdPaste]       = useState('')
+  const [jdRunning,     setJdRunning]     = useState(false)
+
   // ── Refs ─────────────────────────────────────────────────────────────────
   const bottomRef        = useRef<HTMLDivElement>(null)
   const inputRef         = useRef<HTMLTextAreaElement>(null)
@@ -502,7 +507,6 @@ export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
 
     const labels: Record<string, string> = { run_career_scan: 'Career Scan', tailor_cv: 'CV tailoring', write_cover_letter: 'Cover letter' }
     setMsgs(prev => [...prev, { role: 'assistant', content: `⚙ Running ${labels[task.tool] || task.tool}...` }])
-    const clLang = market !== 'in' && lang === 'DE' ? 'DE' : 'EN'
 
     try {
       if (task.tool === 'run_career_scan') {
@@ -523,49 +527,118 @@ export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
         return
       }
 
-      const job = task.job
+      let job = task.job
       if (!job?.job_title) {
         reply('The job is unclear — ask the user which job title and company this is for.')
         return
       }
-      sessionStorage.setItem(SS.cvbJob, JSON.stringify(job))
-      const jobLabel = `${job.job_title}${job.employer_name ? ` at ${job.employer_name}` : ''}`
 
-      if (task.tool === 'tailor_cv') {
+      // Job-board APIs (Adzuna/BA) only deliver a short snippet of the job
+      // description, and tailoring against a snippet produces generic output.
+      // Try fetching the full posting from the apply link; most job sites
+      // block automated reading, so on failure fall back to the same manual
+      // pattern the rest of the app uses — a paste box for the user.
+      let fullJd = (job.job_description || '').length >= 600
+      if (!fullJd && job.job_apply_link?.startsWith('https://')) {
+        try {
+          const jdRes  = await fetch(API.fetchJd, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ url: job.job_apply_link }),
+          })
+          const jdData = await jdRes.json()
+          if (jdRes.ok && typeof jdData.text === 'string' && jdData.text.length > (job.job_description || '').length) {
+            job = { ...job, job_description: jdData.text }
+            fullJd = true
+          }
+        } catch { /* site blocked — paste fallback below */ }
+      }
+
+      if (!fullJd) {
+        setPendingJdTask({ ...task, job })
+        setJdPaste('')
+        reply("The job site blocks automatic reading of the posting. A paste box has appeared in the chat with a link to the job — ask the user to open the posting, copy the full job description, and paste it into the box. The task continues automatically once they submit it; they can also skip and you'll work from the short summary.")
+        return
+      }
+
+      await runJobTask(task.tool, job, true, reply)
+    } catch {
+      reply('The task hit a connection error — apologise and suggest trying again.')
+    }
+  }
+
+  // Inject a [system:] note into the live voice conversation so Kira reacts —
+  // same pattern Railway uses for the 30s silence nudge. Returns false when no
+  // voice session is active (caller then falls back to a plain chat message).
+  function kiraVoiceNote(text: string) {
+    const ws = realtimeWsRef.current
+    if (ws && ws.readyState === WebSocket.OPEN) {
+      ws.send(JSON.stringify({ type: 'conversation.item.create', item: { type: 'message', role: 'user', content: [{ type: 'input_text', text: `[system: ${text}]` }] } }))
+      ws.send(JSON.stringify({ type: 'response.create' }))
+      return true
+    }
+    return false
+  }
+
+  async function runJobTask(tool: string, job: KiraTaskJob, fullJd: boolean, announce: (out: string) => void) {
+    const cv = cvRef.current || sessionStorage.getItem(SS.cvText) || ''
+    const clLang = market !== 'in' && lang === 'DE' ? 'DE' : 'EN'
+    const jdNote = fullJd ? '' : ' One note: this is based on the short job summary the user chose to continue with.'
+    sessionStorage.setItem(SS.cvbJob, JSON.stringify(job))
+    const jobLabel = `${job.job_title}${job.employer_name ? ` at ${job.employer_name}` : ''}`
+
+    try {
+      if (tool === 'tailor_cv') {
         const res = await fetch(API.tailorCv, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ cvText: cv, job, returnJson: true, tone: 'professional', pages: '1', lang: clLang, market }),
         })
         const data = await res.json()
-        if (res.status === 402) { reply(`Not enough credits — tailoring the CV costs ${CREDIT_COST.tailorCv} credit.`); return }
-        if (!res.ok || !data.cv) { reply('The CV tailoring failed — apologise and suggest trying again.'); return }
+        if (res.status === 402) { announce(`Not enough credits — tailoring the CV costs ${CREDIT_COST.tailorCv} credit.`); return }
+        if (!res.ok || !data.cv) { announce('The CV tailoring failed — apologise and suggest trying again.'); return }
         sessionStorage.setItem(SS.cvbTailored, String(data.cv))
         try { sessionStorage.setItem(SS.cvbData, JSON.stringify(JSON.parse(String(data.cv).replace(/```json|```/g, '').trim()))) } catch { /* raw only — CV Builder re-parses */ }
         setMsgs(prev => [...prev, { role: 'assistant', content: '', action: { feature: 'cv_builder', label: 'Open your tailored CV', href: market === 'in' ? '/in/cv-builder' : '/app/cv-builder', reason: `Tailored for ${jobLabel}` } }])
-        reply(`Done — the CV is tailored for ${jobLabel} and ready in the CV Builder. There's a button in the chat to open it.`)
+        announce(`The CV tailoring finished — it's tailored for ${jobLabel} against the full job description and ready in the CV Builder. There's a button in the chat to open it.${jdNote}`)
         return
       }
 
-      if (task.tool === 'write_cover_letter') {
+      if (tool === 'write_cover_letter') {
         const res = await fetch(API.coverLetter, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ cvText: cv, job, tone: 'confident', length: 'medium', lang: clLang, market }),
         })
         const data = await res.json()
-        if (res.status === 402) { reply(`Not enough credits — a cover letter costs ${CREDIT_COST.coverLetter} credit.`); return }
-        if (!res.ok || !data.coverLetter) { reply('The cover letter generation failed — apologise and suggest trying again.'); return }
+        if (res.status === 402) { announce(`Not enough credits — a cover letter costs ${CREDIT_COST.coverLetter} credit.`); return }
+        if (!res.ok || !data.coverLetter) { announce('The cover letter generation failed — apologise and suggest trying again.'); return }
         sessionStorage.setItem(SS.clLetter, String(data.coverLetter))
         setMsgs(prev => [...prev, { role: 'assistant', content: '', action: { feature: 'cover_letter', label: 'Open your cover letter', href: market === 'in' ? '/in/cover-letter' : '/app/cover-letter', reason: `Written for ${jobLabel}` } }])
-        reply(`Done — the cover letter for ${jobLabel} is ready. There's a button in the chat to open it.`)
+        announce(`The cover letter for ${jobLabel} is ready. There's a button in the chat to open it.${jdNote}`)
         return
       }
 
-      reply('That task is not supported by this app version.')
+      announce('That task is not supported by this app version.')
     } catch {
-      reply('The task hit a connection error — apologise and suggest trying again.')
+      announce('The task hit a connection error — apologise and suggest trying again.')
     }
+  }
+
+  async function submitPastedJd(skip: boolean) {
+    const t = pendingJdTask
+    if (!t?.job || jdRunning) return
+    const pasted = jdPaste.trim()
+    if (!skip && pasted.length < 80) return
+    setJdRunning(true)
+    const job = skip ? t.job : { ...t.job, job_description: pasted.slice(0, 12000) }
+    const announce = (out: string) => {
+      if (!kiraVoiceNote(out)) setMsgs(prev => [...prev, { role: 'assistant', content: out }])
+    }
+    await runJobTask(t.tool, job, !skip, announce)
+    setPendingJdTask(null)
+    setJdPaste('')
+    setJdRunning(false)
   }
 
   // ── Interview coaching unlock ─────────────────────────────────────────
@@ -1044,6 +1117,38 @@ export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
   // (maximized) when KiraHome hands off via KIRA_OPEN_EVENT.
   const onKiraHome = pathname === '/app/kira' || pathname === '/in/kira'
 
+  // JD paste fallback card — shown in both the voice overlay and the chat view
+  // when a voice task needs the full job description and the site blocked us.
+  const jdPasteCard = pendingJdTask ? (
+    <div style={{ margin: '10px 0', padding: '12px 14px', borderRadius: 12, background: `${accent}12`, border: `1px solid ${accent}33`, display: 'flex', flexDirection: 'column', gap: 8, width: '100%', boxSizing: 'border-box' as const }}>
+      <div style={{ fontSize: 12, fontWeight: 700, color: '#fff', fontFamily: f.heading }}>
+        Paste the job description — {pendingJdTask.job?.job_title}{pendingJdTask.job?.employer_name ? ` · ${pendingJdTask.job.employer_name}` : ''}
+      </div>
+      <div style={{ fontSize: 11, color: 'rgba(255,255,255,.55)', lineHeight: 1.5 }}>
+        The job site blocks automatic reading. Open the posting, copy the full description, and paste it here — Kira continues automatically.
+      </div>
+      {pendingJdTask.job?.job_apply_link && (
+        <a href={pendingJdTask.job.job_apply_link} target="_blank" rel="noopener noreferrer"
+          style={{ fontSize: 11, color: accent, fontWeight: 600, textDecoration: 'none' }}>
+          Open the job posting ↗
+        </a>
+      )}
+      <textarea value={jdPaste} onChange={e => setJdPaste(e.target.value)} rows={4}
+        placeholder="Paste the full job description here..."
+        style={{ width: '100%', boxSizing: 'border-box', resize: 'vertical', borderRadius: 8, border: '1px solid rgba(255,255,255,.15)', background: 'rgba(255,255,255,.06)', color: '#fff', fontFamily: f.body, fontSize: 12, lineHeight: 1.5, padding: '8px 10px', outline: 'none' }} />
+      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' as const }}>
+        <button onClick={() => submitPastedJd(false)} disabled={jdRunning || jdPaste.trim().length < 80}
+          style={{ padding: '7px 14px', borderRadius: 8, border: 'none', background: accent, color: '#fff', fontSize: 12, fontWeight: 700, cursor: jdRunning || jdPaste.trim().length < 80 ? 'not-allowed' : 'pointer', fontFamily: f.body, opacity: jdRunning || jdPaste.trim().length < 80 ? 0.5 : 1 }}>
+          {jdRunning ? 'Working…' : 'Use this description'}
+        </button>
+        <button onClick={() => submitPastedJd(true)} disabled={jdRunning}
+          style={{ padding: '7px 14px', borderRadius: 8, border: '1px solid rgba(255,255,255,.15)', background: 'none', color: 'rgba(255,255,255,.5)', fontSize: 12, cursor: jdRunning ? 'not-allowed' : 'pointer', fontFamily: f.body }}>
+          Skip — use summary
+        </button>
+      </div>
+    </div>
+  ) : null
+
   return createPortal(
     <>
       <style>{`
@@ -1213,6 +1318,7 @@ export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
                  realtimeState === 'processing' ? 'Thinking…' :
                  realtimeState === 'speaking'   ? 'Speaking…' : ''}
               </div>
+              {jdPasteCard}
               {msgs.filter(m => m.role === 'user').length > 0 && (
                 <div style={{ fontSize: 11, color: 'rgba(255,255,255,.2)', fontFamily: f.body, textAlign: 'center' }}>
                   {msgs.filter(m => m.role === 'user').length} exchanges · end to see transcript
@@ -1388,6 +1494,8 @@ export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
               )}
 
 
+
+              {jdPasteCard}
 
               <div ref={bottomRef}/>
             </div>
