@@ -297,6 +297,9 @@ export default function KiraHome({ market }: { market: 'eu' | 'in' }) {
         .kh-orbbtn { transition: transform .25s ease; }
         .kh-orbbtn:hover { transform: scale(1.03); }
         .kh-orbbtn:active { transform: scale(.99); }
+        .kh-cta { transition: transform .22s ease, box-shadow .22s ease; }
+        .kh-cta:hover { transform: translateY(-2px); box-shadow: 0 12px 30px ${c.ai}55; }
+        .kh-cta:active { transform: translateY(0); }
         .kh-hero-input { color: ${c.text}; }
         .kh-hero-input::placeholder { color: ${c.textFaint}; }
         @media (max-width: 640px) {
@@ -314,17 +317,8 @@ export default function KiraHome({ market }: { market: 'eu' | 'in' }) {
         {hasVoice ? (
           <button className="kh-rise kh-orbwrap kh-orbbtn" onClick={() => openKira({ voice: true })}
             aria-label={isDE ? 'Mit Kira sprechen' : 'Talk to Kira'}
-            style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit', visibility: leaving ? 'hidden' as const : 'visible' as const }}>
+            style={{ display: 'flex', justifyContent: 'center', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit', visibility: leaving ? 'hidden' as const : 'visible' as const }}>
             <KiraOrb state="idle" breathe large />
-            <span style={{ marginTop: -6, padding: '7px 18px', borderRadius: 20, background: g.button, color: '#fff', fontSize: 13, fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: 7, boxShadow: theme.shadow.glow }}>
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                <rect x="9" y="2" width="6" height="12" rx="3" /><path d="M5 10a7 7 0 0 0 14 0" /><line x1="12" y1="19" x2="12" y2="22" />
-              </svg>
-              {isDE ? 'Mit Kira sprechen' : 'Talk to Kira'}
-            </span>
-            <span style={{ marginTop: 7, fontSize: 11.5, color: c.textFaint }}>
-              {isDE ? `Live-Voice · ${CREDIT_COST.liveVoice} Credits / 5 Min` : `Live voice · ${CREDIT_COST.liveVoice} credits / 5 min`}
-            </span>
           </button>
         ) : (
           <div className="kh-rise kh-orbwrap" style={{ display: 'flex', justifyContent: 'center', visibility: leaving ? 'hidden' as const : 'visible' as const }}>
@@ -359,6 +353,21 @@ export default function KiraHome({ market }: { market: 'eu' | 'in' }) {
             </div>
             <input ref={fileInputRef} type="file" accept=".pdf,.doc,.docx,.txt" style={{ display: 'none' }}
               onChange={e => { const file = e.target.files?.[0]; if (file) handleFile(file) }} />
+
+            {hasVoice && (
+              <div className="kh-rise" style={{ animationDelay: '.32s', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 7, marginBottom: 28 }}>
+                <button className="kh-cta" onClick={() => openKira({ voice: true })}
+                  style={{ padding: '12px 28px', borderRadius: 999, border: 'none', background: theme.gradients.featureBorder, color: '#fff', fontSize: 14.5, fontWeight: 700, fontFamily: f.heading, display: 'inline-flex', alignItems: 'center', gap: 9, cursor: 'pointer', boxShadow: theme.shadow.glow }}>
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                    <rect x="9" y="2" width="6" height="12" rx="3" /><path d="M5 10a7 7 0 0 0 14 0" /><line x1="12" y1="19" x2="12" y2="22" />
+                  </svg>
+                  {isDE ? 'Mit Kira sprechen' : 'Talk to Kira'}
+                </button>
+                <span style={{ fontSize: 11.5, color: c.textFaint }}>
+                  {isDE ? `Live-Voice · ${CREDIT_COST.liveVoice} Credits / 5 Min` : `Live voice · ${CREDIT_COST.liveVoice} credits / 5 min`}
+                </span>
+              </div>
+            )}
 
             {checkingCv && (
               <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 20 }}>
