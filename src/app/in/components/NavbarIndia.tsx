@@ -84,10 +84,10 @@ export default function NavbarIndia() {
     { label: 'Auto Apply',   href: '/in/auto-apply' },
     { label: 'Job Case',     href: '/in/job-case' },
     { label: 'Work Visa DE',  href: '/in/visa' },
-    { label: 'Account',       href: '/in/account' },
   ]
 
   const accountSubItems = [
+    { label: 'Account',        href: '/in/account' },
     { label: 'Tracker',        href: '/in/tracker' },
     { label: 'Interview Prep', href: '/in/interview' },
   ]

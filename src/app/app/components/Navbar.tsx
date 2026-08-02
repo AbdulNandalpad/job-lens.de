@@ -82,11 +82,11 @@ export default function Navbar() {
     { label: t.navbar.autoApply,   href: '/app/auto-apply' },
     { label: 'Job Case', href: '/app/job-case' },
     { label: t.navbar.zeugnis,     href: '/app/zeugnis' },
-    { label: t.navbar.account,     href: '/app/account' },
   ]
 
-  // Tracker + Interview live under Account dropdown only
+  // Account, Tracker + Interview live under the avatar dropdown (and mobile menu) only
   const accountSubItems = [
+    { label: t.navbar.account,   href: '/app/account' },
     { label: t.navbar.tracker,   href: '/app/tracker' },
     { label: t.navbar.interview, href: '/app/interview' },
   ]
