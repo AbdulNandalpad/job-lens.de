@@ -5,6 +5,7 @@ import { usePathname, useRouter } from 'next/navigation'
 import { useState, useEffect, useRef } from 'react'
 import { createClient } from '@/lib/supabase'
 import { theme } from '@/lib/theme'
+import { useCredits } from '@/lib/useCredits'
 import { SS } from '@/lib/constants'
 
 const { colors: c, gradients: g, fonts: f } = theme
@@ -18,6 +19,7 @@ export default function NavbarIndia() {
   const [confirmClear, setConfirmClear] = useState(false)
   const [userMenuOpen, setUserMenuOpen] = useState(false)
   const userMenuRef = useRef<HTMLDivElement>(null)
+  const { credits } = useCredits()
 
   // Sign-out / new session: clear sessionStorage only (localStorage persists — Kira history, widget prefs)
   function clearSessionData() {
@@ -162,6 +164,14 @@ export default function NavbarIndia() {
                 style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '5px 12px', borderRadius: 8, background: 'rgba(255,153,51,0.15)', border: '1px solid rgba(255,153,51,0.35)', textDecoration: 'none' }}>
                 <span style={{ fontSize: 12, color: '#fff', fontFamily: f.body, fontWeight: 600 }}>Kira <span style={{ opacity: 0.6, fontWeight: 400 }}>(beta)</span></span>
               </Link>
+
+              {credits !== null && (
+                <Link href="/in/account" className="jl-clear-btn" title="Credits — click to top up"
+                  style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '5px 12px', borderRadius: 8, background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.18)', textDecoration: 'none' }}>
+                  <span style={{ width: 7, height: 7, borderRadius: '50%', background: '#4ade80', display: 'inline-block', flexShrink: 0 }} />
+                  <span style={{ fontSize: 12, color: '#fff', fontFamily: f.body, fontWeight: 600 }}>{credits} credits</span>
+                </Link>
+              )}
 
               {/* New session button */}
               <div className="jl-clear-btn">
