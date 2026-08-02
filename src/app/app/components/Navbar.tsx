@@ -6,7 +6,6 @@ import { useState, useEffect, useRef } from 'react'
 import { createClient } from '@/lib/supabase'
 import { theme } from '@/lib/theme'
 import { useLanguage, DEFlag, GBFlag } from '@/lib/i18n'
-import { useCredits } from '@/lib/useCredits'
 import { SS } from '@/lib/constants'
 
 const { colors: c, gradients: g, fonts: f } = theme
@@ -21,7 +20,6 @@ export default function Navbar() {
   const [userMenuOpen, setUserMenuOpen] = useState(false)
   const userMenuRef = useRef<HTMLDivElement>(null)
   const { lang, setLang, t } = useLanguage()
-  const { credits } = useCredits()
 
   // Sign-out / new session: clear sessionStorage only (localStorage persists — Kira history, widget prefs)
   function clearSessionData() {
@@ -153,18 +151,6 @@ export default function Navbar() {
         {/* Right side */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
 
-          <Link href="/app/kira" className="jl-clear-btn"
-            style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '5px 12px', borderRadius: 8, background: 'rgba(55,138,221,0.15)', border: '1px solid rgba(55,138,221,0.35)', textDecoration: 'none' }}>
-            <span style={{ fontSize: 12, color: '#fff', fontFamily: f.body, fontWeight: 600 }}>Kira <span style={{ opacity: 0.6, fontWeight: 400 }}>(beta)</span></span>
-          </Link>
-
-          {credits !== null && (
-            <Link href="/app/account" className="jl-clear-btn" title={lang === 'DE' ? 'Credits — zum Aufladen klicken' : 'Credits — click to top up'}
-              style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '5px 12px', borderRadius: 8, background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.18)', textDecoration: 'none' }}>
-              <span style={{ width: 7, height: 7, borderRadius: '50%', background: '#4ade80', display: 'inline-block', flexShrink: 0 }} />
-              <span style={{ fontSize: 12, color: '#fff', fontFamily: f.body, fontWeight: 600 }}>{credits} Credits</span>
-            </Link>
-          )}
 
           {/* DE/EN language dropdown */}
           <div className="jl-lang-toggle" style={{ position: 'relative' }}>
@@ -272,10 +258,6 @@ export default function Navbar() {
               {isActive(item.href) && <span style={{ fontSize: 10, background: '#378ADD', color: '#fff', padding: '2px 8px', borderRadius: 10, fontWeight: 700 }}>{t.navbar.current}</span>}
             </Link>
           ))}
-          <Link href="/app/kira" onClick={() => setMenuOpen(false)}
-            style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 12px', borderRadius: 8, textDecoration: 'none', fontSize: 14, marginBottom: 4, color: isActive('/app/kira') ? '#E6F1FB' : '#85B7EB', background: isActive('/app/kira') ? 'rgba(55,138,221,0.2)' : 'transparent', fontWeight: isActive('/app/kira') ? 600 : 400 }}>
-            Kira <span style={{ fontSize: 10, opacity: 0.6 }}>(beta)</span>
-          </Link>
           {/* Mobile lang toggle */}
           <div style={{ display: 'flex', gap: 6, margin: '8px 0', padding: '0 0 8px', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
             <button onClick={() => setLang('DE')} style={{ display: 'flex', alignItems: 'center', gap: 6, flex: 1, padding: '9px 12px', borderRadius: 8, border: `1px solid ${lang === 'DE' ? 'rgba(55,138,221,0.4)' : 'rgba(255,255,255,0.12)'}`, background: lang === 'DE' ? 'rgba(55,138,221,0.2)' : 'rgba(255,255,255,0.06)', color: lang === 'DE' ? '#fff' : 'rgba(255,255,255,0.5)', fontSize: 13, cursor: 'pointer', fontFamily: 'inherit', fontWeight: lang === 'DE' ? 700 : 400 }}>
