@@ -363,14 +363,21 @@ export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
   // ── Kira Home handoff — open maximized with a message or live voice ───────
   const handoffSendRef  = useRef<(t: string) => void>(() => {})
   const handoffVoiceRef = useRef<() => void>(() => {})
-  useEffect(() => { handoffSendRef.current = send; handoffVoiceRef.current = enterRealtimeMode })
+  const handoffExitRef  = useRef<(reason?: string) => void>(() => {})
+  useEffect(() => { handoffSendRef.current = send; handoffVoiceRef.current = enterRealtimeMode; handoffExitRef.current = exitRealtimeMode })
   useEffect(() => {
     const h = (e: Event) => {
       const d = (e as CustomEvent).detail as { text?: string; voice?: boolean } | undefined
       setOpen(true)
       setMaximized(true)
-      if (d?.voice) handoffVoiceRef.current()
-      else if (d?.text) handoffSendRef.current(d.text)
+      if (d?.voice) {
+        handoffVoiceRef.current()   // no-ops if a voice session is already live
+      } else if (d?.text) {
+        // A text handoff while a voice session is live would run a hidden chat
+        // stream behind the voice overlay — end the session first, then send.
+        if (realtimeModeRef.current) handoffExitRef.current('user')
+        handoffSendRef.current(d.text)
+      }
     }
     window.addEventListener(KIRA_OPEN_EVENT, h)
     return () => window.removeEventListener(KIRA_OPEN_EVENT, h)

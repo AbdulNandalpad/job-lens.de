@@ -32,6 +32,14 @@ export const KIRA_MAINTENANCE = false
 // ── Auto Apply maintenance mode — set true to block for non-admins
 export const AUTO_APPLY_MAINTENANCE = true
 
+// ── Features in revision — hidden from navbars, marketing heroes, and Kira
+// Home tiles while being reworked. Pages stay reachable by direct URL (Auto
+// Apply is additionally blocked server-side via AUTO_APPLY_MAINTENANCE).
+export const IN_REVISION = {
+  autoApply: true,
+  jobCase:   true,
+} as const
+
 // ── Kira Home → AIWidget handoff ─────────────────────────────────────────────
 // Window CustomEvent name. Detail: { text?: string; voice?: boolean }.
 // KiraHome dispatches it; AIWidget opens maximized and takes over.

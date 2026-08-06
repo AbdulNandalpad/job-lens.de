@@ -7,6 +7,7 @@ import KiraHome from '@/components/KiraHome'
 //   import IndiaDashboard from './components/IndiaDashboard'
 //   if (hasUser) return <IndiaDashboard />
 import KiraDemoWidget from '@/components/KiraDemoWidget'
+import { IN_REVISION } from '@/lib/constants'
 import SvgIcon, { type IconName } from '@/components/SvgIcon'
 import AutoApplySpotlightIn from './components/AutoApplySpotlightIn'
 import HeroIndia from '@/components/HeroIndia'
@@ -315,7 +316,6 @@ export default async function IndiaHomePage() {
               { title: 'Salary Simulator',    desc: 'Practice negotiating in LPA with an AI HR manager.',          icon: 4, color: indiaGreen,  bg: '#E1F5EE', href: '/in/salary-sim' },
               { title: 'Career Card',         desc: 'Share your ATS score as a card on LinkedIn.',                 icon: 5, color: '#6D28D9',   bg: '#F0EEFF', href: '/in/profile-analysis' },
               { title: 'Application Tracker', desc: 'Track every application from Saved to Offer.',                icon: 6, color: '#D97706',   bg: '#FFF8EC', href: '/in/tracker' },
-              { title: 'Auto Apply',          desc: 'AI fills the entire application form automatically.',         icon: 7, color: '#6D28D9',   bg: '#F0EEFF', href: '/in/jobs', badge: 'Beta' },
             ] as { title: string; desc: string; icon: number; color: string; bg: string; href: string; badge?: string }[]).map((feat) => (
               <Link key={feat.title} href={feat.href} className="in-feat-card">
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -343,8 +343,8 @@ export default async function IndiaHomePage() {
         </div>
       </section>
 
-      {/* AUTO APPLY SPOTLIGHT */}
-      <AutoApplySpotlightIn />
+      {/* AUTO APPLY SPOTLIGHT — hidden while the feature is in revision */}
+      {!IN_REVISION.autoApply && <AutoApplySpotlightIn />}
 
       {/* KIRA SECTION */}
       <section id="kira-demo" style={{ background: white, padding: '72px 24px 80px' }}>

@@ -15,7 +15,7 @@ import { useSavedCv } from '@/lib/useSavedCv'
 import { useLanguage } from '@/lib/i18n'
 import KiraOrb from '@/components/KiraOrb'
 import { KIRA_TILES, type KiraTile } from '@/lib/kiraModes'
-import { CREDIT_COST, SS, API, KIRA_MAINTENANCE, KIRA_OPEN_EVENT } from '@/lib/constants'
+import { CREDIT_COST, SS, API, KIRA_MAINTENANCE, KIRA_OPEN_EVENT, IN_REVISION } from '@/lib/constants'
 
 const { colors: c, fonts: f, gradients: g } = theme
 
@@ -522,7 +522,10 @@ export default function KiraHome({ market }: { market: 'eu' | 'in' }) {
                 <span style={{ fontSize: 11.5, fontWeight: 700, letterSpacing: 1.6, textTransform: 'uppercase' as const, color: c.textFaint }}>
                   {isDE ? 'Direkt zum Tool' : 'Jump to a tool'}
                 </span>
-                {KIRA_TILES.map(tile => {
+                {KIRA_TILES.filter(tile =>
+                  !(IN_REVISION.autoApply && tile.id === 'auto_apply') &&
+                  !(IN_REVISION.jobCase && tile.id === 'job_case')
+                ).map(tile => {
                   const tc = tile.id === 'career_scan' && market === 'in' ? accent : (TILE_COLOR[tile.id] ?? c.accent)
                   return (
                     <button key={tile.id} className="kh-pill" onClick={() => handleTileClick(tile)}

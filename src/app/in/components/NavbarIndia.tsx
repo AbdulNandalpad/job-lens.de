@@ -5,7 +5,7 @@ import { usePathname, useRouter } from 'next/navigation'
 import { useState, useEffect, useRef } from 'react'
 import { createClient } from '@/lib/supabase'
 import { theme } from '@/lib/theme'
-import { SS } from '@/lib/constants'
+import { SS, IN_REVISION } from '@/lib/constants'
 
 const { colors: c, gradients: g, fonts: f } = theme
 
@@ -81,8 +81,8 @@ export default function NavbarIndia() {
     { label: 'Job Search',   href: '/in/jobs' },
     { label: 'CV Builder',   href: '/in/cv-builder' },
     { label: 'Cover Letter', href: '/in/cover-letter' },
-    { label: 'Auto Apply',   href: '/in/auto-apply' },
-    { label: 'Job Case',     href: '/in/job-case' },
+    ...(IN_REVISION.autoApply ? [] : [{ label: 'Auto Apply', href: '/in/auto-apply' }]),
+    ...(IN_REVISION.jobCase   ? [] : [{ label: 'Job Case', href: '/in/job-case' }]),
     { label: 'Work Visa DE',  href: '/in/visa' },
   ]
 

@@ -2,6 +2,7 @@
 import { useState, useCallback, useEffect } from 'react'
 import Link from 'next/link'
 import { theme } from '@/lib/theme'
+import { IN_REVISION } from '@/lib/constants'
 
 const { colors: c, fonts: f } = theme
 // alias for use inside JSX where `f` is shadowed by the `feat` variable
@@ -97,7 +98,10 @@ const features = [
       EN: { tag: 'Kira AI', h1: 'Your personal AI career coach — always on', sub: 'Kira answers questions about your application, helps you prep for interviews and gives honest, instant feedback.', cta: 'Ask Kira →' },
     },
   },
-]
+].filter(f =>
+  !(IN_REVISION.autoApply && f.href === '/app/auto-apply') &&
+  !(IN_REVISION.jobCase && f.href === '/app/job-case')
+)
 
 export default function HeroDACH({ lang, user }: Props) {
   const isDE = lang === 'DE'

@@ -745,6 +745,11 @@ export default function CVBuilderPage() {
   const [jobDescOpen, setJobDescOpen] = useState(false)
   const [fetchingJd, setFetchingJd] = useState(false)
   const [jdFetchError, setJdFetchError] = useState<string | null>(null)
+  // Manual job entry — for users who arrive directly with a JD in hand
+  // (from a friend, a message, an email) instead of via Job Search
+  const [manualTitle,   setManualTitle]   = useState('')
+  const [manualCompany, setManualCompany] = useState('')
+  const [manualJd,      setManualJd]      = useState('')
   const [langMismatch, setLangMismatch] = useState(false)
   const [template, setTemplate] = useState<Template>('executive')
   const [tone, setTone] = useState<Tone>('professional')
@@ -1534,6 +1539,42 @@ export default function CVBuilderPage() {
                     </div>
                   </>
                 )}
+              </div>
+            )}
+
+            {/* No job attached — let the user paste one directly (JD from a friend, an email, a message) */}
+            {!jobLabel && (
+              <div style={{ marginTop: 12, padding: '10px', background: 'rgba(255,255,255,0.06)', border: '1px dashed rgba(255,255,255,0.20)', borderRadius: 8 }}>
+                <div style={{ fontSize: 9, color: currentAccent, fontWeight: 700, letterSpacing: 0.8, textTransform: 'uppercase', marginBottom: 5 }}>
+                  {lang === 'DE' ? 'Stelle anhängen' : 'Attach a job'}
+                </div>
+                <div style={{ fontSize: 10.5, color: 'rgba(255,255,255,0.45)', lineHeight: 1.5, marginBottom: 8 }}>
+                  {lang === 'DE'
+                    ? 'Anzeige per E-Mail oder WhatsApp bekommen? Füge sie hier ein — der Lebenslauf wird exakt darauf zugeschnitten.'
+                    : 'Got a job posting from a friend or a message? Add it here and the CV gets tailored exactly to it.'}
+                </div>
+                <input value={manualTitle} onChange={e => setManualTitle(e.target.value)}
+                  placeholder={lang === 'DE' ? 'Jobtitel *' : 'Job title *'}
+                  style={{ width: '100%', boxSizing: 'border-box', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 7, color: '#E6F1FB', fontSize: 12, padding: '7px 10px', outline: 'none', fontFamily: "'DM Sans', sans-serif" }} />
+                <input value={manualCompany} onChange={e => setManualCompany(e.target.value)}
+                  placeholder={lang === 'DE' ? 'Unternehmen (optional)' : 'Company (optional)'}
+                  style={{ width: '100%', boxSizing: 'border-box', marginTop: 6, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 7, color: '#E6F1FB', fontSize: 12, padding: '7px 10px', outline: 'none', fontFamily: "'DM Sans', sans-serif" }} />
+                <textarea value={manualJd} onChange={e => setManualJd(e.target.value)} rows={5}
+                  placeholder={lang === 'DE' ? 'Stellenbeschreibung hier einfügen…' : 'Paste the job description here…'}
+                  style={{ width: '100%', boxSizing: 'border-box', marginTop: 6, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 7, color: '#E6F1FB', fontSize: 12, padding: '8px 10px', resize: 'vertical', outline: 'none', fontFamily: "'DM Sans', sans-serif", lineHeight: 1.5 }} />
+                <button disabled={!manualTitle.trim()}
+                  onClick={() => {
+                    const title = manualTitle.trim()
+                    if (!title) return
+                    const j = { job_title: title, employer_name: manualCompany.trim(), job_description: manualJd.trim() }
+                    setJob(j)
+                    setJobLabel(j.employer_name ? `${title} — ${j.employer_name}` : title)
+                    setJobDesc(j.job_description || '')
+                    sessionStorage.setItem(SS.cvbJob, JSON.stringify(j))
+                  }}
+                  style={{ width: '100%', marginTop: 8, padding: '8px 0', borderRadius: 7, border: 'none', background: manualTitle.trim() ? currentAccent : 'rgba(255,255,255,0.12)', color: '#fff', fontSize: 12, fontWeight: 700, cursor: manualTitle.trim() ? 'pointer' : 'default', fontFamily: 'inherit' }}>
+                  {lang === 'DE' ? 'Stelle anhängen' : 'Attach job'}
+                </button>
               </div>
             )}
             <input ref={fileInputRef} type="file" accept=".pdf,.doc,.docx,.txt" style={{ display: 'none' }}

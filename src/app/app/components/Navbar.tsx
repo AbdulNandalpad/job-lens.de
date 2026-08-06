@@ -6,7 +6,7 @@ import { useState, useEffect, useRef } from 'react'
 import { createClient } from '@/lib/supabase'
 import { theme } from '@/lib/theme'
 import { useLanguage, DEFlag, GBFlag } from '@/lib/i18n'
-import { SS } from '@/lib/constants'
+import { SS, IN_REVISION } from '@/lib/constants'
 
 const { colors: c, gradients: g, fonts: f } = theme
 
@@ -79,8 +79,8 @@ export default function Navbar() {
     { label: t.navbar.careerScan,  href: '/app/career-scan' },
     { label: t.navbar.cvBuilder,   href: '/app/cv-builder' },
     { label: t.navbar.coverLetter, href: '/app/cover-letter' },
-    { label: t.navbar.autoApply,   href: '/app/auto-apply' },
-    { label: 'Job Case', href: '/app/job-case' },
+    ...(IN_REVISION.autoApply ? [] : [{ label: t.navbar.autoApply, href: '/app/auto-apply' }]),
+    ...(IN_REVISION.jobCase   ? [] : [{ label: 'Job Case', href: '/app/job-case' }]),
     { label: t.navbar.zeugnis,     href: '/app/zeugnis' },
   ]
 

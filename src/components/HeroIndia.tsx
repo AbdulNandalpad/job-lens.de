@@ -2,6 +2,7 @@
 import { useState, useCallback } from 'react'
 import Link from 'next/link'
 import { theme } from '@/lib/theme'
+import { IN_REVISION } from '@/lib/constants'
 
 const { fonts: f } = theme
 const saffron = '#FF9933'
@@ -88,7 +89,10 @@ const features = [
     sub: 'Skills, impact and a short pitch video visible at a glance on any device. Recruiters spend 6 seconds on a CV. Job Case makes those 6 seconds count.',
     cta: 'Create Job Case →',
   },
-]
+].filter(f =>
+  !(IN_REVISION.autoApply && f.href === '/in/auto-apply') &&
+  !(IN_REVISION.jobCase && f.href === '/in/job-case')
+)
 
 export default function HeroIndia({ user }: Props) {
   const go = (path: string) => user ? path : `/login?next=${encodeURIComponent(path)}`
