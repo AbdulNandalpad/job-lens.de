@@ -68,6 +68,7 @@ export async function middleware(request: NextRequest) {
     path.startsWith('/login') ||
     path.startsWith('/in/login') ||
     path.startsWith('/auth') ||
+    path.startsWith('/guides') ||     // public SEO visa guides
     path.startsWith('/impressum') ||
     path.startsWith('/privacy') ||
     path.startsWith('/datenschutz') ||

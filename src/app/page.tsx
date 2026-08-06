@@ -1211,6 +1211,7 @@ export default function HomePage() {
             )}
             <Link href="/app/career-scan" style={{ fontSize: 12, color: '#54627a', textDecoration: 'none' }}>{t.footerCareerScan}</Link>
             <Link href="/app/jobs" style={{ fontSize: 12, color: '#54627a', textDecoration: 'none' }}>{t.footerJobSearch}</Link>
+            <Link href="/guides" style={{ fontSize: 12, color: '#54627a', textDecoration: 'none' }}>Visa Guides</Link>
           </div>
           <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
             <Link href="/impressum" style={{ fontSize: 11, color: '#54627a', textDecoration: 'none' }}>Impressum</Link>

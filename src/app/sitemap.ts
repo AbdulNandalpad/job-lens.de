@@ -1,8 +1,20 @@
 import { MetadataRoute } from 'next'
+import { GUIDE_SLUGS } from '@/lib/guideSlugs'
+import { VISA_GUIDES } from '@/lib/visaGuides'
 
 export default function sitemap(): MetadataRoute.Sitemap {
   const base = 'https://job-lens.de'
   const now = new Date()
+
+  const guidePages: MetadataRoute.Sitemap = [
+    { url: `${base}/guides`, priority: 0.9, changeFrequency: 'weekly' as const, lastModified: now },
+    ...Object.entries(GUIDE_SLUGS).map(([slug, id]) => ({
+      url: `${base}/guides/${slug}`,
+      priority: 0.9,
+      changeFrequency: 'monthly' as const,
+      lastModified: new Date(VISA_GUIDES[id].verifiedAsOf),
+    })),
+  ]
 
   const dachPages = [
     { url: `${base}/`,                       priority: 1.0,  changeFrequency: 'daily'   as const },
@@ -45,5 +57,5 @@ export default function sitemap(): MetadataRoute.Sitemap {
     { url: `${base}/in/login`,               priority: 0.6,  changeFrequency: 'monthly' as const },
   ]
 
-  return [...dachPages, ...indiaPages].map(p => ({ ...p, lastModified: now }))
+  return [...dachPages.map(p => ({ ...p, lastModified: now })), ...indiaPages.map(p => ({ ...p, lastModified: now })), ...guidePages]
 }
