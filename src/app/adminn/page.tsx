@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { createBrowserClient } from '@supabase/ssr'
 import { theme } from '@/lib/theme'
 import SvgIcon from '@/components/SvgIcon'
+import { API } from '@/lib/constants'
 
 const { colors: c, fonts: f } = theme
 
@@ -42,6 +43,22 @@ type Tab = 'users' | 'purchases'
 // grid columns: User | Provider | Country | Free | IN | EU | Spent | Status | Actions
 const COLS = '2fr 100px 52px 60px 60px 60px 60px 80px 110px'
 
+const ACTION_LABELS: Record<string, string> = {
+  career_scan: 'Career Scan (DACH)',
+  india_ats_scan: 'ATS Score (India)',
+  india_career_scan_pro: 'Career Analysis Pro (India)',
+  tailor_cv: 'CV Tailoring',
+  cover_letter: 'Cover Letter',
+  auto_apply: 'Auto Apply',
+  visa_check: 'Work Visa Check',
+  interview_prep: 'Interview Prep',
+  salary_sim: 'Salary Simulator',
+  ai_chat: 'Kira Chat',
+  live_voice: 'Kira Live Voice',
+  job_case: 'Job Case',
+}
+const actionLabel = (a: string) => ACTION_LABELS[a] || a
+
 const MarketBadge = ({ market }: { market: string | null }) => {
   if (!market) return <span style={{ fontSize: 11, color: '#999' }}>—</span>
   const isIN = market.toLowerCase() === 'in'
@@ -66,6 +83,15 @@ export default function AdminPage() {
     unique_users: number
     recent: { user_email: string; user_name: string; mode: string; market: string; duration_s: number; exit_reason: string; created_at: string; rating?: number }[]
     top_users: { user_id: string; email: string; name: string; sessions: number; last_at: string }[]
+  } | null>(null)
+  const [funnel, setFunnel] = useState<{
+    total_signups: number
+    never_used_pct: number; never_used_count: number
+    single_action_pct: number; single_action_count: number
+    returned_pct: number; returned_count: number
+    single_action_breakdown: { action: string; count: number }[]
+    first_action_breakdown: { action: string; count: number }[]
+    feature_reach: { action: string; users: number }[]
   } | null>(null)
   const [error, setError] = useState('')
   const [search, setSearch] = useState('')
@@ -99,8 +125,9 @@ export default function AdminPage() {
     if (data.error) { setError(data.error); setLoading(false); return }
     setUsers(data.users || [])
     setLoading(false)
-    // Load Kira stats in background — non-blocking
+    // Load Kira stats + funnel in background — non-blocking
     fetch('/api/admin/kira-stats').then(r => r.ok ? r.json() : null).then(d => { if (d && !d.error) setKiraStats(d) }).catch(() => {})
+    fetch(API.adminFunnel).then(r => r.ok ? r.json() : null).then(d => { if (d && !d.error) setFunnel(d) }).catch(() => {})
   }
 
   async function loadPurchases() {
@@ -161,6 +188,10 @@ export default function AdminPage() {
         .adm-prow  { display:grid; grid-template-columns:2fr 1fr 80px 90px 120px; padding:12px 16px; border-bottom:1px solid ${c.border}; align-items:center; min-width:600px; }
         .adm-card  { display:none; }
 
+        /* Funnel: 3 headline tiles + two breakdown lists side by side */
+        .funnel-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin-bottom:12px; }
+        .funnel-lists { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+
         /* Kira stats: 8 tiles (7 metrics + unique users) */
         .kira-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:10px; }
         /* Kira users table */
@@ -182,6 +213,8 @@ export default function AdminPage() {
           .adm-stats { grid-template-columns:repeat(2,1fr)!important; gap:8px!important; }
           .adm-phead, .adm-prow { display:none!important; }
           .kira-grid { grid-template-columns:repeat(2,1fr)!important; gap:8px!important; }
+          .funnel-grid { grid-template-columns:1fr!important; }
+          .funnel-lists { grid-template-columns:1fr!important; }
         }
         @media(max-width:480px){
           .adm-stats { grid-template-columns:1fr 1fr!important; }
@@ -223,6 +256,59 @@ export default function AdminPage() {
                 </div>
               ))}
             </div>
+
+            {/* Signup → feature funnel — all time */}
+            {funnel && (
+              <div style={{ marginBottom: 24 }}>
+                <div style={{ fontSize: 11, fontWeight: 700, color: c.textMuted, letterSpacing: 1, textTransform: 'uppercase', marginBottom: 10 }}>
+                  Signup → Feature Funnel — all time ({funnel.total_signups} signups)
+                </div>
+
+                <div className="funnel-grid">
+                  {[
+                    { label: 'Never used a feature', value: `${funnel.never_used_pct}%`, sub: `${funnel.never_used_count} users`, color: c.danger },
+                    { label: 'Tried one thing, gone', value: `${funnel.single_action_pct}%`, sub: `${funnel.single_action_count} users`, color: c.warning },
+                    { label: 'Came back (2+ actions)', value: `${funnel.returned_pct}%`, sub: `${funnel.returned_count} users`, color: c.success },
+                  ].map(stat => (
+                    <div key={stat.label} style={{ background: c.bgCard, border: `1px solid ${c.border}`, borderRadius: 10, padding: '14px 16px' }}>
+                      <div style={{ fontSize: 11, color: c.textMuted, marginBottom: 4 }}>{stat.label}</div>
+                      <div style={{ fontFamily: f.heading, fontSize: 24, fontWeight: 700, color: stat.color }}>{stat.value}</div>
+                      <div style={{ fontSize: 11, color: c.textFaint, marginTop: 2 }}>{stat.sub}</div>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="funnel-lists">
+                  <div style={{ background: c.bgCard, border: `1px solid ${c.border}`, borderRadius: 12, overflow: 'hidden' }}>
+                    <div style={{ fontSize: 11, fontWeight: 700, color: c.textMuted, letterSpacing: 1, textTransform: 'uppercase', padding: '12px 14px 10px', borderBottom: `1px solid ${c.border}` }}>
+                      What they stopped after
+                    </div>
+                    {funnel.single_action_breakdown.length === 0 ? (
+                      <div style={{ padding: '14px', fontSize: 12, color: c.textMuted }}>No single-action drop-offs.</div>
+                    ) : funnel.single_action_breakdown.map((row, i) => (
+                      <div key={row.action} style={{ display: 'flex', justifyContent: 'space-between', padding: '9px 14px', fontSize: 12, background: i % 2 === 0 ? 'transparent' : `${c.bgSubtle}50` }}>
+                        <span style={{ color: c.text }}>{actionLabel(row.action)}</span>
+                        <span style={{ fontWeight: 700, color: c.warning }}>{row.count}</span>
+                      </div>
+                    ))}
+                  </div>
+
+                  <div style={{ background: c.bgCard, border: `1px solid ${c.border}`, borderRadius: 12, overflow: 'hidden' }}>
+                    <div style={{ fontSize: 11, fontWeight: 700, color: c.textMuted, letterSpacing: 1, textTransform: 'uppercase', padding: '12px 14px 10px', borderBottom: `1px solid ${c.border}` }}>
+                      Feature reach — distinct users, all time
+                    </div>
+                    {funnel.feature_reach.length === 0 ? (
+                      <div style={{ padding: '14px', fontSize: 12, color: c.textMuted }}>No usage yet.</div>
+                    ) : funnel.feature_reach.map((row, i) => (
+                      <div key={row.action} style={{ display: 'flex', justifyContent: 'space-between', padding: '9px 14px', fontSize: 12, background: i % 2 === 0 ? 'transparent' : `${c.bgSubtle}50` }}>
+                        <span style={{ color: c.text }}>{actionLabel(row.action)}</span>
+                        <span style={{ fontWeight: 700, color: c.accent }}>{row.users}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
 
             {/* Kira voice observability */}
             {kiraStats && (

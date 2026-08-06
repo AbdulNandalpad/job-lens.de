@@ -157,6 +157,7 @@ export const API = {
   feedback:             '/api/feedback',
   kiraRating:           '/api/ai/kira-rating',
   accountDelete:        '/api/account/delete',
+  adminFunnel:          '/api/admin/funnel',
 } as const
 
 // ── Razorpay credit packs (India) ────────────────────────────────────────────
