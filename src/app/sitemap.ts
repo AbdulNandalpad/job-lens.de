@@ -13,6 +13,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
 
   const guidePages: MetadataRoute.Sitemap = [
     { url: `${base}/guides`, priority: 0.9, changeFrequency: 'weekly' as const, lastModified: now },
+    { url: `${base}/guides/chancenkarte-calculator`, priority: 0.9, changeFrequency: 'monthly' as const, lastModified: now },
     ...Object.entries(GUIDE_SLUGS).map(([slug, id]) => ({
       url: `${base}/guides/${slug}`,
       priority: 0.9,

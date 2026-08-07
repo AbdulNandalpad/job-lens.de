@@ -56,7 +56,19 @@ export default function GuidesHubPage() {
           the German government&apos;s official skilled-migration portal. No consultancy fees. No outdated numbers.
         </p>
 
-        <div className="gd-grid" style={{ marginTop: 28 }}>
+        <Link href="/guides/chancenkarte-calculator" className="gd-related"
+          style={{ display: 'flex', flexDirection: 'column', gap: 8, background: `${c.accent}0a`, border: `1.5px solid ${c.accent}55`, borderRadius: 14, padding: '20px 20px', textDecoration: 'none', transition: 'border-color .15s', marginTop: 28 }}>
+          <div style={{ fontSize: 11, fontWeight: 700, color: c.accent, letterSpacing: 1, textTransform: 'uppercase' }}>Free tool</div>
+          <div style={{ fontFamily: "'Outfit', sans-serif", fontSize: 17, fontWeight: 700, color: c.text, lineHeight: 1.3 }}>
+            Chancenkarte Points Calculator
+          </div>
+          <div style={{ fontSize: 12.5, color: c.textMuted, lineHeight: 1.6 }}>
+            9 questions, instant score against the official 2026 criteria — do you reach the 6 points for Germany&apos;s Opportunity Card?
+          </div>
+          <div style={{ fontSize: 12, fontWeight: 700, color: c.accent }}>Calculate my points →</div>
+        </Link>
+
+        <div className="gd-grid" style={{ marginTop: 14 }}>
           {entries.map(([slug, id]) => {
             const guide = VISA_GUIDES[id]
             const seo = GUIDE_SEO[id]

@@ -127,6 +127,17 @@ export default async function GuidePage({ params }: { params: Promise<{ slug: st
           ))}
         </div>
 
+        {guide.id === 'chancenkarte' && (
+          <Link href="/guides/chancenkarte-calculator" className="gd-related"
+            style={{ display: 'flex', flexDirection: 'column', gap: 6, background: `${c.accent}0a`, border: `1.5px solid ${c.accent}55`, borderRadius: 14, padding: '18px 20px', textDecoration: 'none', transition: 'border-color .15s', marginBottom: 8, marginTop: 8 }}>
+            <div style={{ fontSize: 11, fontWeight: 700, color: c.accent, letterSpacing: 1, textTransform: 'uppercase' }}>Free tool</div>
+            <div style={{ fontFamily: "'Outfit', sans-serif", fontSize: 16, fontWeight: 700, color: c.text }}>
+              Calculate your points now — do you reach 6?
+            </div>
+            <div style={{ fontSize: 12.5, color: c.textMuted }}>9 questions, instant score, no signup.</div>
+          </Link>
+        )}
+
         <CtaBand compact />
 
         {/* Steps */}
