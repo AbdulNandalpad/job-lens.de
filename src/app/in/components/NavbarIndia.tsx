@@ -125,13 +125,8 @@ export default function NavbarIndia() {
 
         {/* Logo */}
         <Link href="/in" style={{ display: 'flex', alignItems: 'center', gap: 10, textDecoration: 'none', flexShrink: 0 }}>
-          <svg width="26" height="26" viewBox="0 0 44 44">
-            <circle cx="20" cy="20" r="13" fill="none" stroke="#378ADD" strokeWidth="2.5"/>
-            <circle cx="20" cy="20" r="8" fill="none" stroke="#85B7EB" strokeWidth="1.2"/>
-            <circle cx="20" cy="20" r="3" fill="#378ADD"/>
-            <line x1="7" y1="20" x2="33" y2="20" stroke="#378ADD" strokeWidth="0.8" strokeDasharray="2,2" opacity="0.5"/>
-            <line x1="28" y1="28" x2="36" y2="36" stroke="#378ADD" strokeWidth="3" strokeLinecap="round"/>
-          </svg>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/logo-icon.svg" alt="Job-Lens India" width={26} height={26} style={{ display: 'block' }} />
           <span className="jl-logo-text" style={{ fontFamily: "'Outfit', sans-serif", fontSize: 16, fontWeight: 700, color: '#E6F1FB' }}>
             Job-Lens <span style={{ color: '#ff9933' }}>&nbsp;India</span>
           </span>

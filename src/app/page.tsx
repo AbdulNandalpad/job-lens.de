@@ -345,11 +345,8 @@ export default function LandingV2() {
       <header style={{ position: 'sticky', top: 0, zIndex: 100, background: 'rgba(255,255,255,0.85)', backdropFilter: 'blur(14px)', borderBottom: `1px solid ${c.border}` }}>
         <div className="v2-wrap" style={{ height: 62, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <Link href="/" style={{ display: 'flex', alignItems: 'center', gap: 10, textDecoration: 'none' }}>
-            <svg width="27" height="27" viewBox="0 0 44 44">
-              <circle cx="20" cy="20" r="13" fill="none" stroke={c.accent} strokeWidth="2.5" />
-              <circle cx="20" cy="20" r="3" fill={c.accent} />
-              <line x1="28" y1="28" x2="36" y2="36" stroke={c.accent} strokeWidth="3" strokeLinecap="round" />
-            </svg>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/logo-icon.svg" alt="Job-Lens AI" width={30} height={30} style={{ display: 'block' }} />
             <span style={{ fontFamily: "'Outfit', sans-serif", fontSize: 17, fontWeight: 800, color: c.primary }}>
               Job-Lens <span style={{ color: c.accent }}>AI</span>
             </span>

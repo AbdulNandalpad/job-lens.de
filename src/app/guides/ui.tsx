@@ -43,11 +43,8 @@ export function PublicHeader() {
   return (
     <div style={{ background: c.primary, padding: '0 20px', height: 52, display: 'flex', alignItems: 'center', justifyContent: 'space-between', position: 'sticky', top: 0, zIndex: 100 }}>
       <Link href="/" style={{ display: 'flex', alignItems: 'center', gap: 10, textDecoration: 'none' }}>
-        <svg width="24" height="24" viewBox="0 0 44 44">
-          <circle cx="20" cy="20" r="13" fill="none" stroke="#378ADD" strokeWidth="2.5" />
-          <circle cx="20" cy="20" r="3" fill="#378ADD" />
-          <line x1="28" y1="28" x2="36" y2="36" stroke="#378ADD" strokeWidth="3" strokeLinecap="round" />
-        </svg>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src="/logo-icon.svg" alt="Job-Lens AI" width={26} height={26} style={{ display: 'block' }} />
         <span style={{ fontFamily: "'Outfit', sans-serif", fontSize: 15, fontWeight: 700, color: '#E6F1FB' }}>
           Job-Lens <span style={{ color: '#378ADD' }}>AI</span>
         </span>
