@@ -3,7 +3,7 @@ import Link from 'next/link'
 import { VISA_GUIDES } from '@/lib/visaGuides'
 import { GUIDE_SLUGS, GUIDE_SEO } from '@/lib/guideSlugs'
 import { theme } from '@/lib/theme'
-import { GuideStyles, PublicHeader, PublicFooter, CtaBand, formatVerifiedDate, safeJsonLd } from './ui'
+import { GuideStyles, PublicHeader, PublicFooter, CtaBand, formatVerifiedDate, safeJsonLd, GUIDE_ACCENTS, GermanFlag, TricolorBar } from './ui'
 
 const { colors: c } = theme
 const BASE = 'https://job-lens.de'
@@ -44,12 +44,16 @@ export default function GuidesHubPage() {
       <PublicHeader />
 
       <div className="gd-wrap" style={{ paddingTop: 44, paddingBottom: 20 }}>
-        <div style={{ fontSize: 12, fontWeight: 700, color: c.accent, letterSpacing: 1.5, textTransform: 'uppercase', marginBottom: 10 }}>
-          Free guides · Verified against official sources
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
+          <GermanFlag />
+          <span style={{ fontSize: 12, fontWeight: 700, color: c.accent, letterSpacing: 1.5, textTransform: 'uppercase' }}>
+            Free guides · Verified against official sources
+          </span>
         </div>
-        <h1 className="gd-h1" style={{ fontFamily: "'Outfit', sans-serif", fontSize: 34, fontWeight: 800, lineHeight: 1.2, margin: '0 0 14px', color: c.text }}>
+        <h1 className="gd-h1" style={{ fontFamily: "'Outfit', sans-serif", fontSize: 34, fontWeight: 800, lineHeight: 1.2, margin: '0 0 12px', color: c.text }}>
           Every route to working in Germany,<br />explained step by step.
         </h1>
+        <div style={{ marginBottom: 16 }}><TricolorBar /></div>
         <p style={{ fontSize: 15, color: c.textMuted, lineHeight: 1.7, maxWidth: 620, margin: '0 0 8px' }}>
           Five official visa routes lead to a job in Germany. These guides cover the current {new Date().getFullYear()} requirements, salary thresholds and the exact application steps — every figure verified against{' '}
           <a href="https://www.make-it-in-germany.com/en/" target="_blank" rel="noopener noreferrer" style={{ color: c.accent, fontWeight: 600 }}>make-it-in-germany.com</a>,
@@ -72,14 +76,20 @@ export default function GuidesHubPage() {
           {entries.map(([slug, id]) => {
             const guide = VISA_GUIDES[id]
             const seo = GUIDE_SEO[id]
+            const accent = GUIDE_ACCENTS[id]
             return (
               <Link key={slug} href={`/guides/${slug}`} className="gd-related"
-                style={{ display: 'flex', flexDirection: 'column', gap: 8, background: c.bgCard, border: `1px solid ${c.borderLight}`, borderRadius: 14, padding: '20px 20px', textDecoration: 'none', transition: 'border-color .15s' }}>
-                <div style={{ fontFamily: "'Outfit', sans-serif", fontSize: 16, fontWeight: 700, color: c.text, lineHeight: 1.3 }}>
-                  {guide.officialName.en}
+                style={{ display: 'flex', flexDirection: 'column', gap: 8, background: `linear-gradient(175deg, ${c.bgCard} 60%, ${accent.color}0a 100%)`, border: `1px solid ${c.borderLight}`, borderTop: `3px solid ${accent.color}`, borderRadius: 14, padding: '18px 20px 20px', textDecoration: 'none', transition: 'border-color .15s' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <span style={{ width: 34, height: 34, borderRadius: 10, background: `${accent.color}14`, border: `1px solid ${accent.color}35`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, flexShrink: 0 }}>
+                    {accent.emoji}
+                  </span>
+                  <span style={{ fontFamily: "'Outfit', sans-serif", fontSize: 16, fontWeight: 700, color: c.text, lineHeight: 1.3 }}>
+                    {guide.officialName.en}
+                  </span>
                 </div>
                 <div style={{ fontSize: 12.5, color: c.textMuted, lineHeight: 1.6, flex: 1 }}>{seo.hubBlurb}</div>
-                <div style={{ fontSize: 12, fontWeight: 700, color: c.accent }}>Read the guide →</div>
+                <div style={{ fontSize: 12, fontWeight: 700, color: accent.color }}>Read the guide →</div>
               </Link>
             )
           })}

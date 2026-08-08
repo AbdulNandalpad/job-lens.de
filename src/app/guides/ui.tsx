@@ -1,10 +1,44 @@
 // Shared chrome for the public /guides pages — slim marketing-style header,
-// legal footer, and JSON-LD escaping. Server components only, no client JS.
+// legal footer, JSON-LD escaping, and per-route accents. Server components
+// only, no client JS.
 
 import Link from 'next/link'
 import { theme } from '@/lib/theme'
+import type { VisaOptionId } from '@/lib/visaGuides'
 
 const { colors: c, gradients: g } = theme
+
+// One accent per visa route so the five guides read as distinct doors.
+export const GUIDE_ACCENTS: Record<VisaOptionId, { color: string; emoji: string }> = {
+  blue_card:            { color: '#2563C8', emoji: '💳' },
+  fachkraft_academic:   { color: '#6D28D9', emoji: '🎓' },
+  fachkraft_vocational: { color: '#1D9E75', emoji: '🔧' },
+  chancenkarte:         { color: '#C98A00', emoji: '⭐' },
+  anerkennungsvisum:    { color: '#E24B4A', emoji: '📜' },
+}
+
+// Small rounded German flag — the identity touch on guide pages.
+export function GermanFlag({ width = 27 }: { width?: number }) {
+  const h = Math.round(width * 0.6)
+  return (
+    <svg width={width} height={h} viewBox="0 0 30 18" style={{ borderRadius: 3, flexShrink: 0, boxShadow: '0 1px 4px rgba(0,0,0,0.18)' }} aria-label="Germany">
+      <rect width="30" height="6" y="0" fill="#1a1a1a" />
+      <rect width="30" height="6" y="6" fill="#DD0000" />
+      <rect width="30" height="6" y="12" fill="#FFCC00" />
+    </svg>
+  )
+}
+
+// Tricolor underline — a slim black-red-gold bar for headings.
+export function TricolorBar({ width = 120 }: { width?: number }) {
+  return (
+    <span style={{ display: 'inline-flex', width, height: 5, borderRadius: 3, overflow: 'hidden' }}>
+      <span style={{ flex: 1, background: '#1a1a1a' }} />
+      <span style={{ flex: 1, background: '#DD0000' }} />
+      <span style={{ flex: 1, background: '#FFCC00' }} />
+    </span>
+  )
+}
 
 // Escape JSON-LD so page content can never break out of the script tag
 export function safeJsonLd(data: unknown): string {

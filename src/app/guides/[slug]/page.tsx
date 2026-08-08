@@ -4,7 +4,7 @@ import { notFound } from 'next/navigation'
 import { VISA_GUIDES, type GuideCallout } from '@/lib/visaGuides'
 import { GUIDE_SLUGS, GUIDE_SEO } from '@/lib/guideSlugs'
 import { theme } from '@/lib/theme'
-import { GuideStyles, PublicHeader, PublicFooter, CtaBand, formatVerifiedDate, safeJsonLd } from '../ui'
+import { GuideStyles, PublicHeader, PublicFooter, CtaBand, formatVerifiedDate, safeJsonLd, GUIDE_ACCENTS, GermanFlag, TricolorBar } from '../ui'
 
 const { colors: c } = theme
 const BASE = 'https://job-lens.de'
@@ -44,6 +44,7 @@ export default async function GuidePage({ params }: { params: Promise<{ slug: st
   if (!id) notFound()
 
   const guide = VISA_GUIDES[id]
+  const accent = GUIDE_ACCENTS[id]
   const seo = GUIDE_SEO[id]
   const url = `${BASE}/guides/${slug}`
 
@@ -93,14 +94,23 @@ export default async function GuidePage({ params }: { params: Promise<{ slug: st
 
       <div className="gd-wrap" style={{ paddingTop: 36 }}>
         {/* Breadcrumb */}
-        <div style={{ fontSize: 12, color: c.textFaint, marginBottom: 16 }}>
-          <Link href="/guides" style={{ color: c.accent, textDecoration: 'none', fontWeight: 600 }}>Visa Guides</Link>
-          {' / '}{guide.officialName.en}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 12, color: c.textFaint, marginBottom: 16 }}>
+          <GermanFlag width={22} />
+          <span>
+            <Link href="/guides" style={{ color: c.accent, textDecoration: 'none', fontWeight: 600 }}>Visa Guides</Link>
+            {' / '}{guide.officialName.en}
+          </span>
         </div>
 
-        <h1 className="gd-h1" style={{ fontFamily: "'Outfit', sans-serif", fontSize: 32, fontWeight: 800, lineHeight: 1.25, margin: '0 0 10px', color: c.text }}>
-          {seo.title.replace(' | Job-Lens AI', '')}
-        </h1>
+        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 14 }}>
+          <span style={{ width: 44, height: 44, borderRadius: 12, background: `${accent.color}14`, border: `1.5px solid ${accent.color}40`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 21, flexShrink: 0, marginTop: 4 }}>
+            {accent.emoji}
+          </span>
+          <h1 className="gd-h1" style={{ fontFamily: "'Outfit', sans-serif", fontSize: 32, fontWeight: 800, lineHeight: 1.25, margin: '0 0 10px', color: c.text }}>
+            {seo.title.replace(' | Job-Lens AI', '')}
+          </h1>
+        </div>
+        <div style={{ margin: '2px 0 12px' }}><TricolorBar width={100} /></div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', fontSize: 12, color: c.textMuted, marginBottom: 18 }}>
           <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, background: c.successLight, color: c.success, fontWeight: 700, padding: '3px 10px', borderRadius: 12, border: `1px solid ${c.successBorder}` }}>
             ✓ Verified {formatVerifiedDate(guide.verifiedAsOf)}
@@ -147,7 +157,7 @@ export default async function GuidePage({ params }: { params: Promise<{ slug: st
         {guide.steps.map(step => (
           <div key={step.n} id={`step-${step.n}`} style={{ background: c.bgCard, border: `1px solid ${c.borderLight}`, borderRadius: 14, padding: '20px 22px', marginBottom: 12 }}>
             <div style={{ display: 'flex', gap: 14, alignItems: 'flex-start' }}>
-              <div style={{ width: 32, height: 32, borderRadius: '50%', background: c.primaryLight, color: c.navy, fontFamily: "'Outfit', sans-serif", fontWeight: 800, fontSize: 15, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              <div style={{ width: 32, height: 32, borderRadius: '50%', background: `${accent.color}16`, border: `1.5px solid ${accent.color}45`, color: accent.color, fontFamily: "'Outfit', sans-serif", fontWeight: 800, fontSize: 15, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                 {step.n}
               </div>
               <div style={{ flex: 1, minWidth: 0 }}>

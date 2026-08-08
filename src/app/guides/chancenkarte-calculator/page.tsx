@@ -2,7 +2,7 @@ import type { Metadata } from 'next'
 import Link from 'next/link'
 import { VISA_GUIDES } from '@/lib/visaGuides'
 import { theme } from '@/lib/theme'
-import { GuideStyles, PublicHeader, PublicFooter, formatVerifiedDate, safeJsonLd } from '../ui'
+import { GuideStyles, PublicHeader, PublicFooter, formatVerifiedDate, safeJsonLd, GermanFlag, TricolorBar } from '../ui'
 import Calculator from './calculator'
 
 const { colors: c } = theme
@@ -61,12 +61,16 @@ export default function ChancenkarteCalculatorPage() {
           {' / '}Chancenkarte Points Calculator
         </nav>
 
-        <div style={{ fontSize: 12, fontWeight: 700, color: c.accent, letterSpacing: 1.5, textTransform: 'uppercase', marginBottom: 10 }}>
-          Free · No signup · Official 2026 criteria
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
+          <GermanFlag width={22} />
+          <span style={{ fontSize: 12, fontWeight: 700, color: c.accent, letterSpacing: 1.5, textTransform: 'uppercase' }}>
+            Free · No signup · Official 2026 criteria
+          </span>
         </div>
-        <h1 className="gd-h1" style={{ fontFamily: "'Outfit', sans-serif", fontSize: 32, fontWeight: 800, lineHeight: 1.25, margin: '0 0 12px', color: c.text }}>
+        <h1 className="gd-h1" style={{ fontFamily: "'Outfit', sans-serif", fontSize: 32, fontWeight: 800, lineHeight: 1.25, margin: '0 0 10px', color: c.text }}>
           Chancenkarte Points Calculator 2026
         </h1>
+        <div style={{ marginBottom: 14 }}><TricolorBar width={100} /></div>
         <p style={{ fontSize: 15, color: c.textMuted, lineHeight: 1.7, maxWidth: 640, margin: '0 0 6px' }}>
           Germany&apos;s Opportunity Card lets you move to Germany for up to a year to look for a job — no job offer needed. If your qualification isn&apos;t yet fully recognised in Germany, you need <strong style={{ color: c.text }}>6 points</strong> in the official points system. Answer the 9 questions below and see your score instantly.
         </p>
