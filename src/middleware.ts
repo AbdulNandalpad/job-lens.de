@@ -50,8 +50,11 @@ export async function middleware(request: NextRequest) {
       url.pathname = '/in'
       return NextResponse.redirect(url)
     }
-    if (user) {
-      // Logged-in non-India user at root → go straight to DACH dashboard
+    if (user && !isAdmin) {
+      // Logged-in user at root → go straight into the app. Admins are exempt
+      // so they can review the marketing homepage while logged in (which is
+      // the only way to see it from an India IP) — the header's "Go to App"
+      // button takes them in when they want it.
       const url = request.nextUrl.clone()
       url.pathname = '/app'
       return NextResponse.redirect(url)
