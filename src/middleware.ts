@@ -82,8 +82,7 @@ export async function middleware(request: NextRequest) {
     path.endsWith('.html') ||
     path.startsWith('/case/') ||    // public recruiter view — gated by magic link, not auth
     path.startsWith('/contact') ||  // contact form — no auth required
-    path.startsWith('/go/') ||      // geo-aware deep links from public guide pages
-    path === '/v2'                  // India landing preview — remove after swap into /in
+    path.startsWith('/go/')         // geo-aware deep links from public guide pages
 
   if (!user && !isPublic) {
     const url = request.nextUrl.clone()

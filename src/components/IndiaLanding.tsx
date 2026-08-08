@@ -1,9 +1,9 @@
 'use client'
 
-// India Landing v2 — preview at /v2, not linked anywhere. Warm-skin sibling of
-// the DACH landing (same skeleton, saffron temperature), ATS-first messaging —
-// India's #1 hook — with the Germany path as the aspiration layer.
-// Approved → replaces the logged-out landing in src/app/in/page.tsx.
+// India landing — warm-skin sibling of the DACH landing (same skeleton,
+// saffron temperature), ATS-first messaging with the Germany path as the
+// aspiration layer. Rendered for logged-out visitors by src/app/in/page.tsx.
+// The previous dark landing is on standby in src/app/in/_landing-v1.tsx.
 
 import Link from 'next/link'
 import { useState, useEffect } from 'react'
@@ -197,7 +197,7 @@ function HeroDemo() {
   )
 }
 
-export default function IndiaLandingV2() {
+export default function IndiaLanding() {
   const [user, setUser] = useState<{ name: string } | null>(null)
   const t = T
 
