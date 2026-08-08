@@ -150,11 +150,12 @@ export async function GET(request: Request) {
         }
       }
 
-      // Never land on /in directly — it's a server component that races the
-      // freshly-set session cookie and may show the marketing page instead of
-      // the dashboard. Send India users to a middleware-protected page instead.
-      const rawDest   = next || (market === 'in' ? '/in/career-scan' : '/app')
-      const destination = rawDest === '/in' ? '/in/career-scan' : rawDest
+      // Never land on /in directly — it's a server component that can race the
+      // freshly-set session cookie and show the marketing page instead. Send
+      // India users to /in/kira: the same Kira Home, but client-rendered and
+      // middleware-protected, so it's immune to that race.
+      const rawDest   = next || (market === 'in' ? '/in/kira' : '/app')
+      const destination = rawDest === '/in' ? '/in/kira' : rawDest
       return NextResponse.redirect(`${origin}${destination}`)
     }
   }

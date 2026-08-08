@@ -13,7 +13,7 @@ const border  = 'rgba(255,255,255,0.1)'
 function IndiaLoginForm() {
   const supabase = createClient()
   const searchParams = useSearchParams()
-  const next = searchParams.get('next') || '/in/career-scan'
+  const next = searchParams.get('next') || '/in/kira'
 
   const signInWithGoogle = async () => {
     // Store destination in a cookie before the OAuth round-trip.
