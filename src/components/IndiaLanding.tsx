@@ -227,8 +227,10 @@ export default function IndiaLanding() {
         .v2-ghost:hover { border-color: ${saffron} !important; color: ${saffronDeep} !important; }
         .v2-tool { transition: transform .18s ease, border-color .18s ease; }
         .v2-tool:hover { transform: translateY(-3px); border-color: ${saffron}88; }
-        .v2-nav-link { color: ${c.textMuted}; text-decoration: none; font-size: 14px; }
+        .v2-nav-link { color: ${c.textMuted}; text-decoration: none; font-size: 14px; white-space: nowrap; }
         .v2-nav-link:hover { color: ${saffronDeep}; }
+        .v2-nav-links { display: flex; gap: 26px; align-items: center; }
+        .v2-header-row { flex-wrap: nowrap; }
         @keyframes v2-rise { from { opacity: 0; transform: translateY(18px) } to { opacity: 1; transform: translateY(0) } }
         .v2-rise { opacity: 0; animation: v2-rise .7s cubic-bezier(.22,1,.36,1) forwards; }
         .v2-chat-item { animation: v2-rise .35s ease forwards; opacity: 0; }
@@ -257,20 +259,21 @@ export default function IndiaLanding() {
           .v2-hero-inner { padding-top: 40px !important; padding-bottom: 40px !important; }
           .v2-demo-panel { height: 510px; }
           .v2-signin { display: none !important; }
+          .v2-cta { padding: 8px 14px !important; font-size: 12.5px !important; }
         }
       `}</style>
 
       {/* ── Header ── */}
       <header style={{ position: 'sticky', top: 0, zIndex: 100, background: 'rgba(255,253,249,0.88)', backdropFilter: 'blur(14px)', borderBottom: '1px solid #f6ede1' }}>
-        <div className="v2-wrap" style={{ height: 62, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <Link href="/in" style={{ display: 'flex', alignItems: 'center', gap: 10, textDecoration: 'none' }}>
+        <div className="v2-wrap v2-header-row" style={{ height: 62, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <Link href="/in" style={{ display: 'flex', alignItems: 'center', gap: 10, textDecoration: 'none', flexShrink: 0 }}>
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src="/logo-icon.svg" alt="Job-Lens India" width={30} height={30} style={{ display: 'block' }} />
-            <span style={{ fontFamily: "'Outfit', sans-serif", fontSize: 17, fontWeight: 800, color: navy }}>
+            <span style={{ fontFamily: "'Outfit', sans-serif", fontSize: 17, fontWeight: 800, color: navy, whiteSpace: 'nowrap' }}>
               Job-Lens <span style={{ color: saffron }}>India</span>
             </span>
           </Link>
-          <nav className="v2-nav-links" style={{ display: 'flex', gap: 26, alignItems: 'center' }}>
+          <nav className="v2-nav-links">
             <a href="#how" className="v2-nav-link">{t.navHow}</a>
             <a href="#ats" className="v2-nav-link">{t.navAts}</a>
             <Link href="/guides" className="v2-nav-link">{t.navGuides}</Link>
@@ -280,7 +283,7 @@ export default function IndiaLanding() {
               {user ? t.navApp : t.navSignIn}
             </Link>
             <Link href={go('/in')} className="v2-cta"
-              style={{ background: ctaGrad, color: '#fff', padding: '9px 20px', borderRadius: 10, fontFamily: "'Outfit', sans-serif", fontWeight: 700, fontSize: 13.5, textDecoration: 'none' }}>
+              style={{ background: ctaGrad, color: '#fff', padding: '9px 20px', borderRadius: 10, fontFamily: "'Outfit', sans-serif", fontWeight: 700, fontSize: 13.5, textDecoration: 'none', whiteSpace: 'nowrap', flexShrink: 0 }}>
               {t.navCta}
             </Link>
           </div>
