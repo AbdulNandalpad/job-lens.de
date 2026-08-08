@@ -90,11 +90,11 @@ export function CtaBand({ compact = false }: { compact?: boolean }) {
         Job-Lens AI scores your profile against every route — Blue Card, skilled-worker visas, Chancenkarte and recognition visa — and shows what you&apos;re missing. Free to start.
       </div>
       <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-        <Link href="/login?next=/app/visa" className="gd-cta"
+        <Link href="/go/visa" className="gd-cta"
           style={{ display: 'inline-block', background: g.button, color: '#fff', padding: '11px 22px', borderRadius: 9, fontFamily: "'Outfit', sans-serif", fontWeight: 700, fontSize: 14, textDecoration: 'none', transition: 'transform .15s' }}>
           Check my eligibility →
         </Link>
-        <Link href="/login?next=/app/jobs" className="gd-cta"
+        <Link href="/go/jobs" className="gd-cta"
           style={{ display: 'inline-block', background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.2)', color: '#fff', padding: '11px 22px', borderRadius: 9, fontFamily: "'Outfit', sans-serif", fontWeight: 600, fontSize: 14, textDecoration: 'none', transition: 'transform .15s' }}>
           Browse jobs in Germany
         </Link>

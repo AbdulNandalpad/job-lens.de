@@ -206,7 +206,7 @@ export default function Calculator() {
         )}
 
         <div style={{ marginTop: 16, display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-          <Link href="/login?next=/app/visa" className="gd-cta"
+          <Link href="/go/visa" className="gd-cta"
             style={{ display: 'inline-block', background: g.button, color: '#fff', padding: '11px 22px', borderRadius: 9, fontFamily: "'Outfit', sans-serif", fontWeight: 700, fontSize: 14, textDecoration: 'none', transition: 'transform .15s' }}>
             Get my full AI eligibility report →
           </Link>
