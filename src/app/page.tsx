@@ -40,8 +40,8 @@ const T = {
     outputTitle: 'Echte Ergebnisse — nicht nur Scores.',
     outputSub: 'Das hältst du nach 10 Minuten in der Hand:',
     outputs: [
-      { title: 'Ehrlicher CV-Check', desc: 'ATS-Score, Stärken, Lücken und konkrete Fixes — in 30 Sekunden.', cost: '2 Credits' },
-      { title: 'Maßgeschneiderter Lebenslauf', desc: 'Auf die konkrete Stelle umgeschrieben — Keywords, Reihenfolge, Wirkung. ATS-sicher.', cost: '1 Credit' },
+      { title: 'Ehrlicher CV-Check', desc: 'Score, Stärken, Lücken und konkrete Fixes — so wie ein Recruiter deinen Lebenslauf liest. In 30 Sekunden.', cost: '2 Credits' },
+      { title: 'Maßgeschneiderter Lebenslauf', desc: 'Auf die konkrete Stelle umgeschrieben — Keywords, Reihenfolge, Wirkung. Nach deutschen Bewerbungsstandards.', cost: '1 Credit' },
       { title: 'Persönliches Anschreiben', desc: 'Kein Template. Frisch geschrieben für genau diese Stelle und dein Profil.', cost: '1 Credit' },
     ],
     outputNote: 'Eine komplette Bewerbung kostet dich ca. 3–4 Credits. Die ersten 5 sind geschenkt.',
@@ -114,8 +114,8 @@ const T = {
     outputTitle: 'Real output — not just scores.',
     outputSub: 'What you actually hold after 10 minutes:',
     outputs: [
-      { title: 'Honest CV check', desc: 'ATS score, strengths, gaps and concrete fixes — in 30 seconds.', cost: '2 credits' },
-      { title: 'Tailored CV', desc: 'Rewritten for the specific role — keywords, ordering, impact. ATS-safe.', cost: '1 credit' },
+      { title: 'Honest CV check', desc: 'Score, strengths, gaps and concrete fixes — the way a recruiter reads your CV. In 30 seconds.', cost: '2 credits' },
+      { title: 'Tailored CV', desc: 'Rewritten for the specific role — keywords, ordering, impact. Built to German hiring standards.', cost: '1 credit' },
       { title: 'Personal cover letter', desc: 'No template. Written fresh for exactly this role and your profile.', cost: '1 credit' },
     ],
     outputNote: 'A complete application costs about 3–4 credits. Your first 5 are free.',

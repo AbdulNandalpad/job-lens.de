@@ -42,8 +42,10 @@ export async function middleware(request: NextRequest) {
 
   // IP-based and auth-based root routing
   if (path === '/') {
-    if (country === 'IN') {
-      // India IP → always show India site
+    if (country === 'IN' && !isAdmin) {
+      // India IP → always show India site. Admins are exempt so they can
+      // review the DACH site while travelling (log in first — an anonymous
+      // visitor can't be identified as admin).
       const url = request.nextUrl.clone()
       url.pathname = '/in'
       return NextResponse.redirect(url)
@@ -77,7 +79,8 @@ export async function middleware(request: NextRequest) {
     path.endsWith('.html') ||
     path.startsWith('/case/') ||    // public recruiter view — gated by magic link, not auth
     path.startsWith('/contact') ||  // contact form — no auth required
-    path.startsWith('/go/')         // geo-aware deep links from public guide pages
+    path.startsWith('/go/') ||      // geo-aware deep links from public guide pages
+    path === '/v2'                  // India landing preview — remove after swap into /in
 
   if (!user && !isPublic) {
     const url = request.nextUrl.clone()

@@ -46,6 +46,11 @@ export const theme = {
       radial-gradient(ellipse at 75% 20%, rgba(29,158,117,0.1) 0%, transparent 50%),
       linear-gradient(160deg, #0d1e30 0%, #142a45 60%, #0f2038 100%)
     `,
+    heroWarm: `
+      radial-gradient(ellipse 55% 60% at 72% 18%, rgba(255,153,51,0.10) 0%, transparent 65%),
+      radial-gradient(ellipse 35% 45% at 18% 70%, rgba(19,136,8,0.06) 0%, transparent 60%),
+      linear-gradient(145deg, #fffdf9 0%, #fff3e6 50%, #fff8f0 100%)
+    `,
     heroLight: `
       radial-gradient(ellipse 55% 60% at 72% 18%, rgba(55,138,221,0.07) 0%, transparent 65%),
       radial-gradient(ellipse 35% 45% at 18% 70%, rgba(139,92,246,0.05) 0%, transparent 60%),

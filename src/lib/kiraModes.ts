@@ -17,7 +17,7 @@ export const KIRA_TILES: KiraTile[] = [
   {
     id: 'career_scan', href: { eu: '/app/career-scan', in: '/in/career-scan' },
     label: { eu_DE: 'Career Scan', eu_EN: 'Career Scan', in_EN: 'ATS Score' },
-    desc:  { eu_DE: 'ATS-Score & KI-Feedback', eu_EN: 'ATS score & AI feedback', in_EN: 'Beat the AI filter' },
+    desc:  { eu_DE: 'Ehrlicher CV-Score & Feedback', eu_EN: 'Honest CV score & feedback', in_EN: 'Beat the AI filter' },
   },
   {
     id: 'job_search', href: { eu: '/app/jobs', in: '/in/jobs' },
