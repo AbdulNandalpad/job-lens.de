@@ -4,13 +4,19 @@ import { createServerSupabase } from '@/lib/supabase-server'
 // Bundesagentur für Arbeit — Jobbörse API
 // Official German employment agency job board. Covers Mittelstand companies
 // that post exclusively here and don't appear on Adzuna/Indeed.
-// Public frontend API — no private key required.
+//
+// v6 endpoint + `X-API-Key: jobboerse-jobsuche` (public frontend key).
+// The previous v4 endpoint with `X-Auth-Key: jobboerse-jobsuche-ui` started
+// returning 403 (verified 2026-08-08) — if BA rotates keys again, test with:
+//   curl -H "X-API-Key: jobboerse-jobsuche" "https://rest.arbeitsagentur.de/jobboerse/jobsuche-service/pc/v6/jobs?was=test&size=1&page=1"
 
-const BA_BASE = 'https://rest.arbeitsagentur.de/jobboerse/jobsuche-service/pc/v4/jobs'
+const BA_BASE = 'https://rest.arbeitsagentur.de/jobboerse/jobsuche-service/pc/v6/jobs'
 const BA_HEADERS = {
-  'X-Auth-Key': 'jobboerse-jobsuche-ui',
+  'X-API-Key': 'jobboerse-jobsuche',
   'Accept': 'application/json',
 }
+
+interface BaLocation { adresse?: { ort?: string; plz?: string } }
 
 export async function GET(req: NextRequest) {
   const supabase = await createServerSupabase()
@@ -29,10 +35,10 @@ export async function GET(req: NextRequest) {
 
   try {
     const params = new URLSearchParams({
-      was:           q,
-      angebotsart:   '1',          // 1 = Arbeitsstelle (jobs only, not training)
-      page:          String(page - 1), // BA uses 0-based pages
-      size:          String(size),
+      was:         q,
+      angebotsart: '1',            // 1 = Arbeitsstelle (jobs only, not training)
+      page:        String(page),   // v6 pages are 1-based
+      size:        String(size),
     })
     if (wo.trim()) params.set('wo', wo)
 
@@ -44,36 +50,38 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: 'BA API error' }, { status: res.status })
     }
 
-    const stellenangebote: Record<string, unknown>[] = data.stellenangebote || []
+    // v6 returns `stellenangebote` on some parameter combinations and
+    // `ergebnisliste` on others — accept both, with both field namings.
+    const raw: Record<string, unknown>[] = data.stellenangebote || data.ergebnisliste || []
     const total: number = data.maxErgebnisse ?? 0
 
-    const jobs = stellenangebote.map(j => {
-      const hashId   = String(j.hashId || j.refnr || '')
-      const arbeitsort = j.arbeitsort as Record<string, unknown> | undefined
-      const city     = String(arbeitsort?.ort || '')
-      const plz      = String(arbeitsort?.plz || '')
+    const jobs = raw.map(j => {
+      const refnr = String(j.refnr || j.referenznummer || j.hashId || '')
 
-      // Employment type from arbeitszeitModelle array
-      const modelle  = (j.arbeitszeitModelle as string[] | undefined) ?? []
-      const empType  = modelle.includes('VOLLZEIT') ? 'Full-time'
-                     : modelle.includes('TEILZEIT') ? 'Part-time'
-                     : modelle.length > 0 ? modelle[0] : ''
+      const arbeitsort = j.arbeitsort as { ort?: string; plz?: string } | undefined
+      const lokationen = (j.stellenlokationen as BaLocation[] | undefined) ?? []
+      const city = String(arbeitsort?.ort || lokationen[0]?.adresse?.ort || '')
+      const plz  = String(arbeitsort?.plz || lokationen[0]?.adresse?.plz || '')
 
-      // Apply link — use externalUrl if present, otherwise BA detail page
-      const applyLink = j.externeUrl
-        ? String(j.externeUrl)
-        : `https://www.arbeitsagentur.de/jobsuche/jobdetail/${hashId}`
+      const empType = j.arbeitszeitVollzeit === true ? 'Full-time'
+                    : j.arbeitszeitVollzeit === false ? 'Part-time'
+                    : ''
+
+      const externalUrl = j.externeUrl || j.externeURL
+      const applyLink = externalUrl
+        ? String(externalUrl)
+        : `https://www.arbeitsagentur.de/jobsuche/jobdetail/${encodeURIComponent(refnr)}`
 
       return {
-        job_id:                    `ba_${hashId}`,
-        job_title:                 String(j.titel || ''),
-        employer_name:             String(j.arbeitgeber || ''),
+        job_id:                    `ba_${refnr}`,
+        job_title:                 String(j.titel || j.stellenangebotsTitel || ''),
+        employer_name:             String(j.arbeitgeber || j.firma || ''),
         job_city:                  city || plz,
         job_country:               'DE',
         job_employment_type:       empType,
-        job_description:           String(j.beruf || ''),   // short profession tag
+        job_description:           String(j.beruf || j.hauptberuf || ''),   // short profession tag
         job_apply_link:            applyLink,
-        job_posted_at_datetime_utc: String(j.aktuelleVeroeffentlichungsdatum || j.eintrittsdatum || ''),
+        job_posted_at_datetime_utc: String(j.aktuelleVeroeffentlichungsdatum || j.datumErsteVeroeffentlichung || j.eintrittsdatum || ''),
         job_min_salary:            null,
         job_max_salary:            null,
         job_salary_currency:       'EUR',

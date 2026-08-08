@@ -206,16 +206,18 @@ async function searchJobsBA(role, location) {
     })
     if (!res.ok) { console.error('[realtime] BA API error:', res.status); return { jobs: [], total: 0 } }
     const data = await res.json()
-    const raw  = (data.stellenangebote || []).slice(0, 5)
+    // v6 returns `stellenangebote` (old naming) or `ergebnisliste` (new naming)
+    // depending on parameter combination — accept both shapes.
+    const raw  = (data.stellenangebote || data.ergebnisliste || []).slice(0, 5)
     const jobs = raw.map(j => ({
-      title:       String(j.titel || ''),
-      company:     String(j.arbeitgeber || ''),
-      location:    String(j.arbeitsort?.ort || location || ''),
+      title:       String(j.titel || j.stellenangebotsTitel || ''),
+      company:     String(j.arbeitgeber || j.firma || ''),
+      location:    String(j.arbeitsort?.ort || j.stellenlokationen?.[0]?.adresse?.ort || location || ''),
       salary_min:  null,
       salary_max:  null,
-      apply_url:   j.externeUrl || `https://www.arbeitsagentur.de/jobsuche/jobdetail/${j.refnr}`,
-      posted:      String(j.aktuelleVeroeffentlichungsdatum || ''),
-      description: String(j.kurzbeschreibung || ''),
+      apply_url:   j.externeUrl || j.externeURL || `https://www.arbeitsagentur.de/jobsuche/jobdetail/${encodeURIComponent(j.refnr || j.referenznummer || '')}`,
+      posted:      String(j.aktuelleVeroeffentlichungsdatum || j.datumErsteVeroeffentlichung || ''),
+      description: String(j.kurzbeschreibung || j.hauptberuf || ''),
       source:      'BA',
     }))
     return { jobs, total: data.maxErgebnisse || jobs.length }
