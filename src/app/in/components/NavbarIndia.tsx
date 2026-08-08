@@ -46,6 +46,19 @@ export default function NavbarIndia() {
         setIsLoggedIn(false)
       }
     })
+    // Stay in sync with sign-in/sign-out — a one-time check left the navbar
+    // showing a stale logged-in state over the logged-out landing page.
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (session?.user) {
+        const full = session.user.user_metadata?.full_name ?? session.user.email ?? ''
+        setUserName(full.split(' ')[0] || 'User')
+        setIsLoggedIn(true)
+      } else {
+        setIsLoggedIn(false)
+        setUserName('')
+      }
+    })
+    return () => subscription.unsubscribe()
     // clearAllJLData reads no props/state — safe to omit; only needs to run once on mount.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
