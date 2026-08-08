@@ -694,7 +694,7 @@ export default function WorkVisaDE({ market }: { market: 'eu' | 'in' }) {
                     <div style={{ fontSize: 14, fontWeight: 700, color: navy, fontFamily: "'Outfit',sans-serif", marginBottom: 4, display: 'flex', alignItems: 'center', gap: 7 }}><SvgIcon name="search" size={14} color={navy} /> {isDE ? 'Bereit, einen Job in Deutschland zu finden?' : 'Ready to find a job in Germany?'}</div>
                     <div style={{ fontSize: 12, color: '#6b7c93' }}>{isDE ? 'Durchsuche aktuelle DACH-Stellenangebote direkt auf Job-Lens — ohne externe Portale.' : 'Search live job listings directly on Job-Lens — no third-party portals needed.'}</div>
                   </div>
-                  <button onClick={() => router.push(market === 'in' ? '/in/jobs' : '/app/jobs')}
+                  <button onClick={() => router.push(market === 'in' ? '/in/jobs?country=de' : '/app/jobs')}
                     style={{ padding: '10px 22px', borderRadius: 9, border: 'none', background: accent, color: '#fff', fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: "'Outfit',sans-serif", whiteSpace: 'nowrap' as const, flexShrink: 0 }}>
                     {isDE ? 'Jobs suchen →' : 'Search jobs →'}
                   </button>

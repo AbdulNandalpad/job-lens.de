@@ -25,6 +25,9 @@ interface Job {
 }
 
 const CITIES = ['', 'Bangalore', 'Mumbai', 'Delhi', 'Hyderabad', 'Pune', 'Chennai', 'Kolkata', 'Noida', 'Gurgaon']
+// Germany toggle — the visa path audience searches German jobs from the India
+// site (their credits, their pricing; the market lock stays intact).
+const CITIES_DE = ['', 'Berlin', 'München', 'Hamburg', 'Frankfurt', 'Köln', 'Stuttgart', 'Düsseldorf', 'Leipzig']
 
 function parseJobDate(s: string): number {
   const t = new Date(s).getTime()
@@ -49,6 +52,7 @@ export default function IndiaJobsPage() {
   const router = useRouter()
   const [query, setQuery] = useState('')
   const [city, setCity] = useState('')
+  const [country, setCountry] = useState<'in' | 'de'>('in')
   const [sortBy,  setSortBy]  = useState<'date' | 'relevance'>('date')
   const [scores,  setScores]  = useState<Record<string, number>>({})
   const [scoring, setScoring] = useState(false)
@@ -90,10 +94,10 @@ export default function IndiaJobsPage() {
     setScoring(false)
   }
 
-  async function fetchWithFallback(q: string): Promise<{ jobs: Job[]; usedQuery: string }> {
+  async function fetchWithFallback(q: string, ctry: 'in' | 'de' = country): Promise<{ jobs: Job[]; usedQuery: string }> {
     let current = q.trim()
     while (current.length > 0) {
-      const params = new URLSearchParams({ q: current, country: 'in', page: '1' })
+      const params = new URLSearchParams({ q: current, country: ctry, page: '1' })
       const res  = await fetch(`/api/jobs?${params}`)
       const data = await res.json()
       const jobs = data.jobs || []
@@ -117,26 +121,28 @@ export default function IndiaJobsPage() {
     const params = new URLSearchParams(window.location.search)
     const q = params.get('q')
     const loc = params.get('location')
+    const ctry: 'in' | 'de' = params.get('country') === 'de' ? 'de' : 'in'
+    if (ctry === 'de') setCountry('de')
     if (q) {
       autoSearched.current = true
       setQuery(q)
       if (loc) setCity(loc)
       setLoading(true); setSearched(true); setPage(1)
-      fetchWithFallback(q)
+      fetchWithFallback(q, ctry)
         .then(({ jobs, usedQuery: uq }) => { setJobs(jobs); setUsedQuery(uq); setHasMore(jobs.length === 20); if (jobs.length) scoreJobs(jobs, q) })
         .catch(() => { setJobs([]); setUsedQuery(q); setHasMore(false) })
         .finally(() => setLoading(false))
     }
   }, [])
 
-  async function search() {
+  async function search(ctryOverride?: 'in' | 'de') {
     if (!query.trim()) return
     setLoading(true)
     setSearched(true)
     setSelectedJobId(null)
     setPage(1)
     try {
-      const { jobs: results, usedQuery: uq } = await fetchWithFallback(query)
+      const { jobs: results, usedQuery: uq } = await fetchWithFallback(query, ctryOverride ?? country)
       setJobs(results); setUsedQuery(uq); setHasMore(results.length === 20)
       if (results.length) scoreJobs(results, query)
     } catch { setJobs([]); setUsedQuery(query); setHasMore(false) }
@@ -147,7 +153,7 @@ export default function IndiaJobsPage() {
     const nextPage = page + 1
     setLoadingMore(true)
     try {
-      const params = new URLSearchParams({ q: usedQuery, country: 'in', page: String(nextPage) })
+      const params = new URLSearchParams({ q: usedQuery, country, page: String(nextPage) })
       if (city) params.set('location', city)
       const res = await fetch(`/api/jobs?${params}`)
       const data = await res.json()
@@ -247,9 +253,29 @@ export default function IndiaJobsPage() {
       <div style={{ background: '#f0f4f8', minHeight: 'calc(100vh - 52px)', padding: '28px 16px' }}>
         <div style={{ maxWidth: 900, margin: '0 auto' }}>
 
-          <div style={{ marginBottom: 24, paddingLeft: 14, borderLeft: `3px solid ${orange}` }}>
-            <h1 style={{ fontFamily: "'Outfit',sans-serif", fontSize: 22, fontWeight: 700, color: navy, margin: 0 }}>Job Search India</h1>
-            <p style={{ fontSize: 13, color: '#6b7c93', margin: '4px 0 0' }}>Live job listings from Indian employers via Adzuna</p>
+          <div style={{ marginBottom: 24, paddingLeft: 14, borderLeft: `3px solid ${orange}`, display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 14, flexWrap: 'wrap' }}>
+            <div>
+              <h1 style={{ fontFamily: "'Outfit',sans-serif", fontSize: 22, fontWeight: 700, color: navy, margin: 0 }}>
+                {country === 'de' ? 'Jobs in Germany' : 'Job Search India'}
+              </h1>
+              <p style={{ fontSize: 13, color: '#6b7c93', margin: '4px 0 0' }}>
+                {country === 'de' ? 'Live listings from German employers — your path after the visa check' : 'Live job listings from Indian employers via Adzuna'}
+              </p>
+            </div>
+            <div style={{ display: 'inline-flex', background: '#fff', border: '1px solid #edf1f6', borderRadius: 20, padding: 3, gap: 2, flexShrink: 0 }}>
+              {([['in', '🇮🇳 India'], ['de', '🇩🇪 Germany']] as ['in' | 'de', string][]).map(([cn, label]) => (
+                <button key={cn}
+                  onClick={() => {
+                    if (cn === country) return
+                    setCountry(cn)
+                    setCity('')
+                    if (searched && query.trim()) search(cn)
+                  }}
+                  style={{ fontSize: 12, fontWeight: 700, padding: '6px 14px', borderRadius: 16, border: 'none', cursor: 'pointer', fontFamily: 'inherit', transition: 'all .2s', background: country === cn ? `linear-gradient(135deg, ${orange}, #e67300)` : 'transparent', color: country === cn ? '#fff' : '#6b7c93' }}>
+                  {label}
+                </button>
+              ))}
+            </div>
           </div>
 
           {/* Search bar */}
@@ -262,7 +288,7 @@ export default function IndiaJobsPage() {
                 placeholder="Job title or skill (e.g. React Developer)"
                 style={{ flex: 1, minWidth: 200, padding: '10px 14px', borderRadius: 8, border: '1px solid #dce4ef', fontSize: 13, fontFamily: "'DM Sans',sans-serif", outline: 'none', color: '#1a2332' }}
               />
-              <button onClick={search} disabled={loading}
+              <button onClick={() => search()} disabled={loading}
                 style={{ padding: '10px 24px', borderRadius: 8, background: loading ? '#ccc' : `linear-gradient(135deg, ${orange}, #e67300)`, color: '#fff', fontWeight: 700, fontSize: 13, border: 'none', cursor: loading ? 'not-allowed' : 'pointer' }}>
                 {loading ? 'Searching...' : 'Search'}
               </button>
@@ -274,7 +300,7 @@ export default function IndiaJobsPage() {
                   onChange={e => setCity(e.target.value)}
                   style={{ padding: '10px 14px', borderRadius: 8, border: '1px solid #dce4ef', fontSize: 13, color: '#374151', fontFamily: "'DM Sans',sans-serif", outline: 'none', cursor: 'pointer', width: '100%' }}
                 >
-                  {CITIES.map(c => <option key={c} value={c}>{c || 'All Cities'}</option>)}
+                  {(country === 'de' ? CITIES_DE : CITIES).map(c => <option key={c} value={c}>{c || 'All Cities'}</option>)}
                 </select>
               </div>
             )}
@@ -287,7 +313,7 @@ export default function IndiaJobsPage() {
           </div>
 
           {loading && (
-            <div style={{ textAlign: 'center', padding: 48, color: '#9aafbc' }}>Searching jobs in India...</div>
+            <div style={{ textAlign: 'center', padding: 48, color: '#9aafbc' }}>{country === 'de' ? 'Searching jobs in Germany...' : 'Searching jobs in India...'}</div>
           )}
 
           {!loading && searched && jobs.length === 0 && (
