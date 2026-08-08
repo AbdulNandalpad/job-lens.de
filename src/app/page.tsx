@@ -227,7 +227,7 @@ function HeroDemo({ lang }: { lang: string }) {
   }, [lang])
 
   return (
-    <div style={{ background: '#fff', border: `1px solid ${c.borderLight}`, borderRadius: 18, boxShadow: '0 18px 50px rgba(4,44,83,0.13)', padding: '16px 16px 14px', height: 400, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+    <div className="v2-demo-panel" style={{ background: '#fff', border: `1px solid ${c.borderLight}`, borderRadius: 18, boxShadow: '0 18px 50px rgba(4,44,83,0.13)', padding: '16px 16px 14px', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 9, paddingBottom: 11, borderBottom: `1px solid ${c.border}`, marginBottom: 11, flexShrink: 0 }}>
         <div className="v2-orb-mini" style={{ width: 26, height: 26, borderRadius: '50%', background: `linear-gradient(135deg, ${c.ai}, ${c.accent})`, flexShrink: 0 }} />
         <span style={{ fontFamily: "'Outfit', sans-serif", fontSize: 13.5, fontWeight: 700, color: c.text }}>Kira</span>
@@ -339,6 +339,16 @@ export default function LandingV2() {
           .v2-h1 { font-size: 38px !important; }
           .v2-nav-links { display: none; }
         }
+        .v2-demo-panel { height: 400px; }
+        @media (max-width: 640px) {
+          .v2-wrap { padding: 0 16px; }
+          .v2-h1 { font-size: 30px !important; letter-spacing: -1px !important; }
+          .v2-hero-inner { padding-top: 40px !important; padding-bottom: 40px !important; }
+          .v2-demo-panel { height: 500px; }
+          .v2-signin { display: none !important; }
+          .v2-tools-grid { grid-template-columns: 1fr; }
+          .v2-lang-btn { padding: 6px 9px !important; }
+        }
       `}</style>
 
       {/* ── Header ── */}
@@ -357,11 +367,11 @@ export default function LandingV2() {
             <Link href="/guides" className="v2-nav-link">{t.navGuides}</Link>
           </nav>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            <button onClick={() => setLang(lang === 'DE' ? 'EN' : 'DE')}
+            <button onClick={() => setLang(lang === 'DE' ? 'EN' : 'DE')} className="v2-lang-btn"
               style={{ border: `1px solid ${c.borderLight}`, background: '#fff', color: c.textMuted, borderRadius: 8, padding: '6px 12px', fontSize: 12.5, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>
               {lang === 'DE' ? 'EN' : 'DE'}
             </button>
-            <Link href={user ? '/app' : '/login'} className="v2-nav-link" style={{ fontWeight: 600 }}>
+            <Link href={user ? '/app' : '/login'} className="v2-nav-link v2-signin" style={{ fontWeight: 600 }}>
               {user ? t.navApp : t.navSignIn}
             </Link>
             <Link href={go('/app')} className="v2-cta"
@@ -374,7 +384,7 @@ export default function LandingV2() {
 
       {/* ── Hero ── */}
       <section style={{ background: g.heroLight, overflow: 'hidden' }}>
-        <div className="v2-wrap" style={{ paddingTop: 72, paddingBottom: 60 }}>
+        <div className="v2-wrap v2-hero-inner" style={{ paddingTop: 72, paddingBottom: 60 }}>
           <div className="v2-hero-grid">
             <div className="v2-hero-copy">
               <div className="v2-rise" style={{ fontSize: 12.5, fontWeight: 700, color: c.accent, letterSpacing: 1.5, textTransform: 'uppercase', marginBottom: 18 }}>

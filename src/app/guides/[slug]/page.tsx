@@ -5,6 +5,7 @@ import { VISA_GUIDES, type GuideCallout } from '@/lib/visaGuides'
 import { GUIDE_SLUGS, GUIDE_SEO } from '@/lib/guideSlugs'
 import { theme } from '@/lib/theme'
 import { GuideStyles, PublicHeader, PublicFooter, CtaBand, formatVerifiedDate, safeJsonLd, GUIDE_ACCENTS, GermanFlag, TricolorBar } from '../ui'
+import TiltCard from '../TiltCard'
 
 const { colors: c } = theme
 const BASE = 'https://job-lens.de'
@@ -237,13 +238,19 @@ export default async function GuidePage({ params }: { params: Promise<{ slug: st
           Other routes to Germany
         </h2>
         <div className="gd-grid" style={{ marginBottom: 10 }}>
-          {related.map(([s, rid]) => (
-            <Link key={s} href={`/guides/${s}`} className="gd-related"
-              style={{ display: 'block', background: c.bgCard, border: `1px solid ${c.borderLight}`, borderRadius: 12, padding: '14px 16px', textDecoration: 'none', transition: 'border-color .15s' }}>
-              <div style={{ fontFamily: "'Outfit', sans-serif", fontSize: 14, fontWeight: 700, color: c.text, marginBottom: 4 }}>{VISA_GUIDES[rid].officialName.en}</div>
-              <div style={{ fontSize: 12, color: c.textMuted, lineHeight: 1.5 }}>{GUIDE_SEO[rid].hubBlurb}</div>
-            </Link>
-          ))}
+          {related.map(([s, rid]) => {
+            const ra = GUIDE_ACCENTS[rid]
+            return (
+              <TiltCard key={s} href={`/guides/${s}`} accent={ra.color}
+                style={{ display: 'block', background: `linear-gradient(175deg, ${c.bgCard} 60%, ${ra.color}0a 100%)`, border: `1px solid ${c.borderLight}`, borderTop: `3px solid ${ra.color}`, borderRadius: 12, padding: '14px 16px', textDecoration: 'none' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+                  <span style={{ fontSize: 14 }}>{ra.emoji}</span>
+                  <span style={{ fontFamily: "'Outfit', sans-serif", fontSize: 14, fontWeight: 700, color: c.text }}>{VISA_GUIDES[rid].officialName.en}</span>
+                </div>
+                <div style={{ fontSize: 12, color: c.textMuted, lineHeight: 1.5 }}>{GUIDE_SEO[rid].hubBlurb}</div>
+              </TiltCard>
+            )
+          })}
         </div>
       </div>
 

@@ -1,9 +1,9 @@
 import type { Metadata } from 'next'
-import Link from 'next/link'
 import { VISA_GUIDES } from '@/lib/visaGuides'
 import { GUIDE_SLUGS, GUIDE_SEO } from '@/lib/guideSlugs'
 import { theme } from '@/lib/theme'
 import { GuideStyles, PublicHeader, PublicFooter, CtaBand, formatVerifiedDate, safeJsonLd, GUIDE_ACCENTS, GermanFlag, TricolorBar } from './ui'
+import TiltCard from './TiltCard'
 
 const { colors: c } = theme
 const BASE = 'https://job-lens.de'
@@ -38,8 +38,11 @@ export default function GuidesHubPage() {
   }
 
   return (
-    <div className="gd-body">
+    <div className="gd-body gd-stage">
       <GuideStyles />
+      <div className="gd-orb gd-orb-1" aria-hidden />
+      <div className="gd-orb gd-orb-2" aria-hidden />
+      <div className="gd-orb gd-orb-3" aria-hidden />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: safeJsonLd(jsonLd) }} />
       <PublicHeader />
 
@@ -60,8 +63,8 @@ export default function GuidesHubPage() {
           the German government&apos;s official skilled-migration portal. No consultancy fees. No outdated numbers.
         </p>
 
-        <Link href="/guides/chancenkarte-calculator" className="gd-related"
-          style={{ display: 'flex', flexDirection: 'column', gap: 8, background: `${c.accent}0a`, border: `1.5px solid ${c.accent}55`, borderRadius: 14, padding: '20px 20px', textDecoration: 'none', transition: 'border-color .15s', marginTop: 28 }}>
+        <TiltCard href="/guides/chancenkarte-calculator" accent={c.accent} className="gd-pop"
+          style={{ display: 'flex', flexDirection: 'column', gap: 8, background: `${c.accent}0a`, border: `1.5px solid ${c.accent}55`, borderRadius: 14, padding: '20px 20px', textDecoration: 'none', marginTop: 28, animationDelay: '.05s' }}>
           <div style={{ fontSize: 11, fontWeight: 700, color: c.accent, letterSpacing: 1, textTransform: 'uppercase' }}>Free tool</div>
           <div style={{ fontFamily: "'Outfit', sans-serif", fontSize: 17, fontWeight: 700, color: c.text, lineHeight: 1.3 }}>
             Chancenkarte Points Calculator
@@ -70,16 +73,16 @@ export default function GuidesHubPage() {
             9 questions, instant score against the official 2026 criteria — do you reach the 6 points for Germany&apos;s Opportunity Card?
           </div>
           <div style={{ fontSize: 12, fontWeight: 700, color: c.accent }}>Calculate my points →</div>
-        </Link>
+        </TiltCard>
 
         <div className="gd-grid" style={{ marginTop: 14 }}>
-          {entries.map(([slug, id]) => {
+          {entries.map(([slug, id], i) => {
             const guide = VISA_GUIDES[id]
             const seo = GUIDE_SEO[id]
             const accent = GUIDE_ACCENTS[id]
             return (
-              <Link key={slug} href={`/guides/${slug}`} className="gd-related"
-                style={{ display: 'flex', flexDirection: 'column', gap: 8, background: `linear-gradient(175deg, ${c.bgCard} 60%, ${accent.color}0a 100%)`, border: `1px solid ${c.borderLight}`, borderTop: `3px solid ${accent.color}`, borderRadius: 14, padding: '18px 20px 20px', textDecoration: 'none', transition: 'border-color .15s' }}>
+              <TiltCard key={slug} href={`/guides/${slug}`} accent={accent.color} className="gd-pop"
+                style={{ display: 'flex', flexDirection: 'column', gap: 8, background: `linear-gradient(175deg, ${c.bgCard} 60%, ${accent.color}0a 100%)`, border: `1px solid ${c.borderLight}`, borderTop: `3px solid ${accent.color}`, borderRadius: 14, padding: '18px 20px 20px', textDecoration: 'none', animationDelay: `${0.15 + i * 0.08}s` }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                   <span style={{ width: 34, height: 34, borderRadius: 10, background: `${accent.color}14`, border: `1px solid ${accent.color}35`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, flexShrink: 0 }}>
                     {accent.emoji}
@@ -90,7 +93,7 @@ export default function GuidesHubPage() {
                 </div>
                 <div style={{ fontSize: 12.5, color: c.textMuted, lineHeight: 1.6, flex: 1 }}>{seo.hubBlurb}</div>
                 <div style={{ fontSize: 12, fontWeight: 700, color: accent.color }}>Read the guide →</div>
-              </Link>
+              </TiltCard>
             )
           })}
         </div>

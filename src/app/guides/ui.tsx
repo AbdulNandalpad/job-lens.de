@@ -65,9 +65,37 @@ export function GuideStyles() {
       .gd-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 14px; }
       .gd-cta:hover { transform: translateY(-1px); }
       .gd-related:hover { border-color: ${c.accent}; }
+
+      /* Interactive tiles — 3D tilt (TiltCard.tsx), cursor glow, shine sweep */
+      .gd-tilt { position: relative; overflow: hidden; transform-style: preserve-3d; will-change: transform; transition: transform .3s cubic-bezier(.22,1,.36,1), box-shadow .35s ease, border-color .25s ease; }
+      .gd-tilt-glow { position: absolute; inset: 0; pointer-events: none; opacity: 0; transition: opacity .35s ease; background: radial-gradient(260px circle at var(--mx, 50%) var(--my, 50%), var(--tg, rgba(55,138,221,0.15)), transparent 65%); }
+      .gd-tilt:hover .gd-tilt-glow { opacity: 1; }
+      .gd-tilt::after { content: ''; position: absolute; top: -20%; left: -80%; width: 45%; height: 140%; background: linear-gradient(105deg, transparent, rgba(255,255,255,0.5), transparent); transform: skewX(-20deg); pointer-events: none; transition: left .01s; opacity: 0; }
+      .gd-tilt:hover::after { left: 140%; opacity: 1; transition: left .65s ease, opacity .1s; }
+
+      /* Staggered entrance */
+      @keyframes gd-pop { from { opacity: 0; transform: translateY(18px) scale(.98) } to { opacity: 1; transform: translateY(0) scale(1) } }
+      .gd-pop { opacity: 0; animation: gd-pop .65s cubic-bezier(.22,1,.36,1) forwards; }
+
+      /* Ambient aurora — slow drifting blurred orbs behind the hub hero */
+      .gd-stage { position: relative; overflow: hidden; }
+      .gd-stage > * { position: relative; z-index: 1; }
+      @keyframes gd-drift1 { 0%,100% { transform: translate(0,0) scale(1) } 50% { transform: translate(60px,40px) scale(1.15) } }
+      @keyframes gd-drift2 { 0%,100% { transform: translate(0,0) scale(1) } 50% { transform: translate(-50px,-30px) scale(1.1) } }
+      .gd-orb { position: absolute; border-radius: 50%; filter: blur(70px); pointer-events: none; z-index: 0 !important; }
+      .gd-orb-1 { width: 380px; height: 380px; top: -120px; right: -80px; background: rgba(55,138,221,0.16); animation: gd-drift1 14s ease-in-out infinite; }
+      .gd-orb-2 { width: 320px; height: 320px; bottom: -100px; left: -90px; background: rgba(109,40,217,0.10); animation: gd-drift2 17s ease-in-out infinite; }
+      .gd-orb-3 { width: 260px; height: 260px; top: 30%; left: 42%; background: rgba(255,204,0,0.08); animation: gd-drift1 20s ease-in-out infinite; }
+
       @media (max-width: 640px) {
         .gd-h1 { font-size: 26px !important; }
         .gd-figures td, .gd-figures th { font-size: 12px !important; }
+        .gd-orb { display: none; }   /* heavy blur — skip on phones */
+        .gd-wrap { padding: 0 16px; }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .gd-tilt, .gd-pop, .gd-orb { animation: none !important; transition: none !important; }
+        .gd-pop { opacity: 1 !important; }
       }
     `}</style>
   )
