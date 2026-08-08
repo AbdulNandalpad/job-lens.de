@@ -104,9 +104,14 @@ export default async function IndiaHomePage() {
             Job-Lens <span style={{ color: saffron }}>India</span>
           </span>
         </div>
-        <Link href="/in/login" style={{ padding: '7px 20px', borderRadius: 8, background: 'rgba(255,153,51,0.12)', border: '1px solid rgba(255,153,51,0.35)', color: saffron, fontWeight: 700, fontSize: 13, textDecoration: 'none', fontFamily: "'Outfit', sans-serif", transition: 'all .15s' }}>
-          Sign In
-        </Link>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+          <Link href="/guides" style={{ fontSize: 13, color: 'rgba(255,255,255,0.75)', textDecoration: 'none', fontFamily: "'Outfit', sans-serif" }}>
+            Visa Guides
+          </Link>
+          <Link href="/in/login" style={{ padding: '7px 20px', borderRadius: 8, background: 'rgba(255,153,51,0.12)', border: '1px solid rgba(255,153,51,0.35)', color: saffron, fontWeight: 700, fontSize: 13, textDecoration: 'none', fontFamily: "'Outfit', sans-serif", transition: 'all .15s' }}>
+            Sign In
+          </Link>
+        </div>
       </div>
 
       {/* Hero */}
@@ -290,6 +295,33 @@ export default async function IndiaHomePage() {
             }}>
               Get Started Free
             </Link>
+          </div>
+        </div>
+      </section>
+
+      {/* FREE GERMANY TOOLS — public guides + calculator */}
+      <section style={{ background: '#f8fafc', padding: '40px 24px 8px' }}>
+        <div style={{ maxWidth: 1000, margin: '0 auto' }}>
+          <div style={{ background: white, border: `1.5px solid ${saffron}55`, borderRadius: 16, padding: '24px 26px', display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 18, justifyContent: 'space-between', boxShadow: '0 4px 20px rgba(255,153,51,0.08)' }}>
+            <div style={{ flex: '1 1 340px' }}>
+              <div style={{ fontSize: 11, fontWeight: 700, color: saffron, letterSpacing: 1.5, textTransform: 'uppercase', marginBottom: 6 }}>
+                Free · No signup · Official sources
+              </div>
+              <div style={{ fontFamily: "'Outfit',sans-serif", fontSize: 20, fontWeight: 800, color: navy, marginBottom: 6, lineHeight: 1.3 }}>
+                Planning the move to Germany?
+              </div>
+              <div style={{ fontSize: 13, color: '#6b7c93', lineHeight: 1.65 }}>
+                Step-by-step guides to every German work visa — Blue Card, Chancenkarte and more — plus a points calculator with the official 2026 criteria. Skip the consultancy fees.
+              </div>
+            </div>
+            <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+              <Link href="/guides/chancenkarte-calculator" style={{ display: 'inline-block', padding: '12px 22px', borderRadius: 10, background: `linear-gradient(135deg, ${saffron}, #e67300)`, color: white, fontWeight: 700, fontSize: 14, textDecoration: 'none', fontFamily: "'Outfit',sans-serif", boxShadow: '0 4px 16px rgba(255,153,51,0.3)' }}>
+                Calculate my Chancenkarte points →
+              </Link>
+              <Link href="/guides" style={{ display: 'inline-block', padding: '12px 22px', borderRadius: 10, background: white, border: '1.5px solid #dce4ef', color: navy, fontWeight: 700, fontSize: 14, textDecoration: 'none', fontFamily: "'Outfit',sans-serif" }}>
+                All visa guides
+              </Link>
+            </div>
           </div>
         </div>
       </section>
