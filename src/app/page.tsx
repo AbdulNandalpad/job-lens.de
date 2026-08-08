@@ -11,6 +11,7 @@ import { theme } from '@/lib/theme'
 import { useLanguage } from '@/lib/i18n'
 import KiraDemoWidget from '@/components/KiraDemoWidget'
 import KiraOrb from '@/components/KiraOrb'
+import { MicIcon, KeyboardIcon } from '@/components/Icons'
 
 const { colors: c, gradients: g } = theme
 
@@ -234,11 +235,11 @@ function HeroDemo({ lang }: { lang: string }) {
         <span style={{ fontSize: 9.5, fontWeight: 800, color: c.accent, background: `${c.accent}12`, padding: '2px 8px', borderRadius: 9, letterSpacing: 0.5 }}>LIVE</span>
         <span style={{ flex: 1 }} />
         <span style={{ display: 'inline-flex', background: c.bg, borderRadius: 16, padding: 3, gap: 2 }}>
-          <span style={{ fontSize: 10.5, fontWeight: 700, padding: '4px 11px', borderRadius: 13, transition: 'all .3s', background: mode === 'type' ? '#fff' : 'transparent', color: mode === 'type' ? c.accent : c.textFaint, boxShadow: mode === 'type' ? '0 1px 4px rgba(4,44,83,0.12)' : 'none' }}>
-            ⌨ {lang === 'DE' ? 'Tippen' : 'Type'}
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 10.5, fontWeight: 700, padding: '4px 11px', borderRadius: 13, transition: 'all .3s', background: mode === 'type' ? '#fff' : 'transparent', color: mode === 'type' ? c.accent : c.textFaint, boxShadow: mode === 'type' ? '0 1px 4px rgba(4,44,83,0.12)' : 'none' }}>
+            <KeyboardIcon size={11} color={mode === 'type' ? c.accent : c.textFaint} /> {lang === 'DE' ? 'Tippen' : 'Type'}
           </span>
-          <span style={{ fontSize: 10.5, fontWeight: 700, padding: '4px 11px', borderRadius: 13, transition: 'all .3s', background: mode === 'voice' ? '#fff' : 'transparent', color: mode === 'voice' ? c.ai : c.textFaint, boxShadow: mode === 'voice' ? '0 1px 4px rgba(4,44,83,0.12)' : 'none' }}>
-            🎤 {lang === 'DE' ? 'Sprechen' : 'Talk'}
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 10.5, fontWeight: 700, padding: '4px 11px', borderRadius: 13, transition: 'all .3s', background: mode === 'voice' ? '#fff' : 'transparent', color: mode === 'voice' ? c.ai : c.textFaint, boxShadow: mode === 'voice' ? '0 1px 4px rgba(4,44,83,0.12)' : 'none' }}>
+            <MicIcon size={11} color={mode === 'voice' ? c.ai : c.textFaint} /> {lang === 'DE' ? 'Sprechen' : 'Talk'}
           </span>
         </span>
       </div>

@@ -4,7 +4,7 @@ import { notFound } from 'next/navigation'
 import { VISA_GUIDES, type GuideCallout } from '@/lib/visaGuides'
 import { GUIDE_SLUGS, GUIDE_SEO } from '@/lib/guideSlugs'
 import { theme } from '@/lib/theme'
-import { GuideStyles, PublicHeader, PublicFooter, CtaBand, formatVerifiedDate, safeJsonLd, GUIDE_ACCENTS, GermanFlag, TricolorBar } from '../ui'
+import { GuideStyles, PublicHeader, PublicFooter, CtaBand, formatVerifiedDate, safeJsonLd, GUIDE_ACCENTS, GuideIcon, GermanFlag, TricolorBar } from '../ui'
 import TiltCard from '../TiltCard'
 
 const { colors: c } = theme
@@ -104,8 +104,8 @@ export default async function GuidePage({ params }: { params: Promise<{ slug: st
         </div>
 
         <div style={{ display: 'flex', alignItems: 'flex-start', gap: 14 }}>
-          <span style={{ width: 44, height: 44, borderRadius: 12, background: `${accent.color}14`, border: `1.5px solid ${accent.color}40`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 21, flexShrink: 0, marginTop: 4 }}>
-            {accent.emoji}
+          <span style={{ width: 44, height: 44, borderRadius: 12, background: `${accent.color}14`, border: `1.5px solid ${accent.color}40`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: 4 }}>
+            <GuideIcon id={id} size={22} color={accent.color} />
           </span>
           <h1 className="gd-h1" style={{ fontFamily: "'Outfit', sans-serif", fontSize: 32, fontWeight: 800, lineHeight: 1.25, margin: '0 0 10px', color: c.text }}>
             {seo.title.replace(' | Job-Lens AI', '')}
@@ -244,7 +244,7 @@ export default async function GuidePage({ params }: { params: Promise<{ slug: st
               <TiltCard key={s} href={`/guides/${s}`} accent={ra.color}
                 style={{ display: 'block', background: `linear-gradient(175deg, ${c.bgCard} 60%, ${ra.color}0a 100%)`, border: `1px solid ${c.borderLight}`, borderTop: `3px solid ${ra.color}`, borderRadius: 12, padding: '14px 16px', textDecoration: 'none' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-                  <span style={{ fontSize: 14 }}>{ra.emoji}</span>
+                  <GuideIcon id={rid} size={14} color={ra.color} />
                   <span style={{ fontFamily: "'Outfit', sans-serif", fontSize: 14, fontWeight: 700, color: c.text }}>{VISA_GUIDES[rid].officialName.en}</span>
                 </div>
                 <div style={{ fontSize: 12, color: c.textMuted, lineHeight: 1.5 }}>{GUIDE_SEO[rid].hubBlurb}</div>

@@ -5,28 +5,37 @@
 import Link from 'next/link'
 import { theme } from '@/lib/theme'
 import type { VisaOptionId } from '@/lib/visaGuides'
+import { GermanFlag } from '@/components/Flags'
 
 const { colors: c, gradients: g } = theme
 
+export { GermanFlag }
+
 // One accent per visa route so the five guides read as distinct doors.
-export const GUIDE_ACCENTS: Record<VisaOptionId, { color: string; emoji: string }> = {
-  blue_card:            { color: '#2563C8', emoji: '💳' },
-  fachkraft_academic:   { color: '#6D28D9', emoji: '🎓' },
-  fachkraft_vocational: { color: '#1D9E75', emoji: '🔧' },
-  chancenkarte:         { color: '#C98A00', emoji: '⭐' },
-  anerkennungsvisum:    { color: '#E24B4A', emoji: '📜' },
+export const GUIDE_ACCENTS: Record<VisaOptionId, { color: string }> = {
+  blue_card:            { color: '#2563C8' },
+  fachkraft_academic:   { color: '#6D28D9' },
+  fachkraft_vocational: { color: '#1D9E75' },
+  chancenkarte:         { color: '#C98A00' },
+  anerkennungsvisum:    { color: '#E24B4A' },
 }
 
-// Small rounded German flag — the identity touch on guide pages.
-export function GermanFlag({ width = 27 }: { width?: number }) {
-  const h = Math.round(width * 0.6)
-  return (
-    <svg width={width} height={h} viewBox="0 0 30 18" style={{ borderRadius: 3, flexShrink: 0, boxShadow: '0 1px 4px rgba(0,0,0,0.18)' }} aria-label="Germany">
-      <rect width="30" height="6" y="0" fill="#1a1a1a" />
-      <rect width="30" height="6" y="6" fill="#DD0000" />
-      <rect width="30" height="6" y="12" fill="#FFCC00" />
-    </svg>
-  )
+// Outline SVG icon per visa route — replaces emoji (inconsistent rendering
+// across OS/browsers, and never used as UI icons in this codebase).
+export function GuideIcon({ id, size = 16, color = 'currentColor' }: { id: VisaOptionId; size?: number; color?: string }) {
+  const props = { width: size, height: size, viewBox: '0 0 24 24', fill: 'none', stroke: color, strokeWidth: 1.8, strokeLinecap: 'round' as const, strokeLinejoin: 'round' as const }
+  switch (id) {
+    case 'blue_card':
+      return <svg {...props}><rect x="2" y="5" width="20" height="14" rx="2.5" /><line x1="2" y1="10" x2="22" y2="10" /><line x1="6" y1="15" x2="10" y2="15" /></svg>
+    case 'fachkraft_academic':
+      return <svg {...props}><path d="M2 9l10-5 10 5-10 5-10-5z" /><path d="M6 11.5V17c0 1.5 2.7 3 6 3s6-1.5 6-3v-5.5" /><line x1="22" y1="9" x2="22" y2="15" /></svg>
+    case 'fachkraft_vocational':
+      return <svg {...props}><path d="M14.7 6.3a4 4 0 0 0-5.4 5.4L2 19l3 3 7.3-7.3a4 4 0 0 0 5.4-5.4l-2.5 2.5-2-2 2.5-2.5z" /></svg>
+    case 'chancenkarte':
+      return <svg {...props}><polygon points="12 2.5 15 9 22 10 17 14.8 18.2 21.5 12 18.2 5.8 21.5 7 14.8 2 10 9 9" /></svg>
+    case 'anerkennungsvisum':
+      return <svg {...props}><path d="M7 3h10a1 1 0 0 1 1 1v16l-4-2-2 2-2-2-4 2V4a1 1 0 0 1 1-1z" /><line x1="9" y1="8" x2="15" y2="8" /><line x1="9" y1="12" x2="15" y2="12" /></svg>
+  }
 }
 
 // Tricolor underline — a slim black-red-gold bar for headings.

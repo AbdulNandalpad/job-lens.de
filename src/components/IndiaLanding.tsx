@@ -12,6 +12,7 @@ import { theme } from '@/lib/theme'
 import KiraDemoWidget from '@/components/KiraDemoWidget'
 import KiraOrb from '@/components/KiraOrb'
 import { RAZORPAY_PACKS } from '@/lib/constants'
+import { MicIcon, KeyboardIcon } from '@/components/Icons'
 
 const { colors: c, gradients: g } = theme
 const saffron = '#FF9933'
@@ -28,9 +29,9 @@ const T = {
   navApp: 'Go to App',
   navCta: 'Talk to Kira',
   eyebrow: 'AI career copilot · India + Germany',
-  h1a: '90% of CVs die in the ATS.',
-  h1b: 'Yours won’t.',
-  sub: 'Kira scores your CV the way the bots do, fixes the gaps, finds matching jobs in India and Germany — and hands you the finished application.',
+  h1a: 'Search, tailor and apply',
+  h1b: 'just by talking.',
+  sub: 'Meet Kira. She checks your ATS score, fixes the gaps, finds matching jobs in India and Germany — and hands you the finished application.',
   cta1: 'Talk to Kira',
   cta2: 'What is ATS?',
   trust: ['5 free credits', 'No card needed', 'Packs from ₹149'],
@@ -138,11 +139,11 @@ function HeroDemo() {
         <span style={{ fontSize: 9.5, fontWeight: 800, color: saffronDeep, background: `${saffron}18`, padding: '2px 8px', borderRadius: 9, letterSpacing: 0.5 }}>LIVE</span>
         <span style={{ flex: 1 }} />
         <span style={{ display: 'inline-flex', background: '#faf4ea', borderRadius: 16, padding: 3, gap: 2 }}>
-          <span style={{ fontSize: 10.5, fontWeight: 700, padding: '4px 11px', borderRadius: 13, transition: 'all .3s', background: mode === 'type' ? '#fff' : 'transparent', color: mode === 'type' ? saffronDeep : c.textFaint, boxShadow: mode === 'type' ? '0 1px 4px rgba(4,44,83,0.12)' : 'none' }}>
-            ⌨ Type
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 10.5, fontWeight: 700, padding: '4px 11px', borderRadius: 13, transition: 'all .3s', background: mode === 'type' ? '#fff' : 'transparent', color: mode === 'type' ? saffronDeep : c.textFaint, boxShadow: mode === 'type' ? '0 1px 4px rgba(4,44,83,0.12)' : 'none' }}>
+            <KeyboardIcon size={11} color={mode === 'type' ? saffronDeep : c.textFaint} /> Type
           </span>
-          <span style={{ fontSize: 10.5, fontWeight: 700, padding: '4px 11px', borderRadius: 13, transition: 'all .3s', background: mode === 'voice' ? '#fff' : 'transparent', color: mode === 'voice' ? c.ai : c.textFaint, boxShadow: mode === 'voice' ? '0 1px 4px rgba(4,44,83,0.12)' : 'none' }}>
-            🎤 Talk
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 10.5, fontWeight: 700, padding: '4px 11px', borderRadius: 13, transition: 'all .3s', background: mode === 'voice' ? '#fff' : 'transparent', color: mode === 'voice' ? c.ai : c.textFaint, boxShadow: mode === 'voice' ? '0 1px 4px rgba(4,44,83,0.12)' : 'none' }}>
+            <MicIcon size={11} color={mode === 'voice' ? c.ai : c.textFaint} /> Talk
           </span>
         </span>
       </div>

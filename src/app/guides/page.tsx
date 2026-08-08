@@ -2,7 +2,7 @@ import type { Metadata } from 'next'
 import { VISA_GUIDES } from '@/lib/visaGuides'
 import { GUIDE_SLUGS, GUIDE_SEO } from '@/lib/guideSlugs'
 import { theme } from '@/lib/theme'
-import { GuideStyles, PublicHeader, PublicFooter, CtaBand, formatVerifiedDate, safeJsonLd, GUIDE_ACCENTS, GermanFlag, TricolorBar } from './ui'
+import { GuideStyles, PublicHeader, PublicFooter, CtaBand, formatVerifiedDate, safeJsonLd, GUIDE_ACCENTS, GuideIcon, GermanFlag, TricolorBar } from './ui'
 import TiltCard from './TiltCard'
 
 const { colors: c } = theme
@@ -84,8 +84,8 @@ export default function GuidesHubPage() {
               <TiltCard key={slug} href={`/guides/${slug}`} accent={accent.color} className="gd-pop"
                 style={{ display: 'flex', flexDirection: 'column', gap: 8, background: `linear-gradient(175deg, ${c.bgCard} 60%, ${accent.color}0a 100%)`, border: `1px solid ${c.borderLight}`, borderTop: `3px solid ${accent.color}`, borderRadius: 14, padding: '18px 20px 20px', textDecoration: 'none', animationDelay: `${0.15 + i * 0.08}s` }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                  <span style={{ width: 34, height: 34, borderRadius: 10, background: `${accent.color}14`, border: `1px solid ${accent.color}35`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, flexShrink: 0 }}>
-                    {accent.emoji}
+                  <span style={{ width: 34, height: 34, borderRadius: 10, background: `${accent.color}14`, border: `1px solid ${accent.color}35`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                    <GuideIcon id={id} size={17} color={accent.color} />
                   </span>
                   <span style={{ fontFamily: "'Outfit', sans-serif", fontSize: 16, fontWeight: 700, color: c.text, lineHeight: 1.3 }}>
                     {guide.officialName.en}

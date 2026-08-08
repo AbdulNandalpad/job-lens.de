@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { SS, API } from '@/lib/constants'
 import SvgIcon from '@/components/SvgIcon'
 import { createClient } from '@/lib/supabase'
+import { GermanFlag, IndiaFlag } from '@/components/Flags'
 
 const orange = '#ff9933'
 const navy = '#042C53'
@@ -263,7 +264,7 @@ export default function IndiaJobsPage() {
               </p>
             </div>
             <div style={{ display: 'inline-flex', background: '#fff', border: '1px solid #edf1f6', borderRadius: 20, padding: 3, gap: 2, flexShrink: 0 }}>
-              {([['in', '🇮🇳 India'], ['de', '🇩🇪 Germany']] as ['in' | 'de', string][]).map(([cn, label]) => (
+              {([['in', 'India', IndiaFlag], ['de', 'Germany', GermanFlag]] as [('in' | 'de'), string, typeof IndiaFlag][]).map(([cn, label, Flag]) => (
                 <button key={cn}
                   onClick={() => {
                     if (cn === country) return
@@ -271,8 +272,8 @@ export default function IndiaJobsPage() {
                     setCity('')
                     if (searched && query.trim()) search(cn)
                   }}
-                  style={{ fontSize: 12, fontWeight: 700, padding: '6px 14px', borderRadius: 16, border: 'none', cursor: 'pointer', fontFamily: 'inherit', transition: 'all .2s', background: country === cn ? `linear-gradient(135deg, ${orange}, #e67300)` : 'transparent', color: country === cn ? '#fff' : '#6b7c93' }}>
-                  {label}
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12, fontWeight: 700, padding: '6px 14px', borderRadius: 16, border: 'none', cursor: 'pointer', fontFamily: 'inherit', transition: 'all .2s', background: country === cn ? `linear-gradient(135deg, ${orange}, #e67300)` : 'transparent', color: country === cn ? '#fff' : '#6b7c93' }}>
+                  <Flag width={16} />{label}
                 </button>
               ))}
             </div>
