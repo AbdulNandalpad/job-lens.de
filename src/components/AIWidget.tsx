@@ -7,6 +7,7 @@ import { useRouter, usePathname } from 'next/navigation'
 import { theme } from '@/lib/theme'
 import { SS, LS, API, CREDIT_COST, LIVE_VOICE_MAX_SECONDS, KIRA_MAINTENANCE, KIRA_OPEN_EVENT } from '@/lib/constants'
 import { useLanguage } from '@/lib/i18n'
+import { useSavedCv } from '@/lib/useSavedCv'
 
 const { colors: c, fonts: f, gradients: g } = theme
 
@@ -17,6 +18,9 @@ interface Job {
   match_score?: number | null; matching_skills?: string[]; missing_skills?: string[]
 }
 interface FeatureAction { feature: string; label: string; href: string; reason: string }
+// Suggested features that need a CV to do anything useful — gate the action
+// button on cvName instead of silently navigating to a page with nothing to work from.
+const CV_REQUIRED_FEATURES = new Set(['career_scan', 'cv_builder', 'cover_letter'])
 interface JobsSearch { q: string; location: string }
 interface KiraTaskJob {
   job_title: string; employer_name?: string; job_city?: string
@@ -309,6 +313,10 @@ export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
   const { lang }   = useLanguage()
   const router     = useRouter()
   const pathname   = usePathname()
+  // Fallback CV source: the account's persisted CV (same one KiraHome checks
+  // via hasCv). Without this, Kira Home could say "your CV is on file" while
+  // this widget — sourced only from sessionStorage — insisted no CV existed.
+  const { hasCv: hasSavedCv, cvText: savedCvText } = useSavedCv()
   const key    = market === 'in' ? 'in_EN' : `eu_${lang}`
   const accent = market === 'in' ? '#FF9933' : c.accent
 
@@ -400,14 +408,27 @@ export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
   // Re-read interview context whenever the panel opens
   useEffect(() => { if (open) refreshInterviewCtx() }, [open])
 
+  // Fall back to the account's saved CV once it loads, if this session never
+  // uploaded one directly. Keeps "is a CV on file" consistent with KiraHome.
+  useEffect(() => {
+    if (!cvRef.current && hasSavedCv && savedCvText) {
+      cvRef.current = savedCvText
+      setCvName('CV on file')
+    }
+  }, [hasSavedCv, savedCvText])
+
   // ── Init: CV, saved messages, user name ─────────────────────────────────
   useEffect(() => {
     setMounted(true)
     refreshInterviewCtx()
 
     const cv = sessionStorage.getItem(SS.cvText) || ''
-    cvRef.current = cv
-    if (cv) setCvName('CV ready')
+    if (cv) {
+      cvRef.current = cv
+      setCvName('CV ready')
+    }
+    // else: leave cvRef empty for now — the saved-CV effect below fills it
+    // in once useSavedCv() resolves (it loads asynchronously on every mount).
 
     try {
       const saved = localStorage.getItem(LS.aiMessages)
@@ -495,6 +516,8 @@ export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
       job_description: job.description,
       job_apply_link:  job.apply_url,
     }))
+    if (realtimeModeRef.current) exitRealtimeMode('widget_closed')
+    setOpen(false); setMaximized(false)
     router.push(market === 'in' ? '/in/cv-builder' : '/app/cv-builder')
   }
 
@@ -1469,6 +1492,10 @@ export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
                         if (loc && market === 'in') p.set('location', loc)
                         return (
                           <Link href={p.toString() ? `${base}?${p}` : base}
+                            onClick={() => {
+                              if (realtimeModeRef.current) exitRealtimeMode('widget_closed')
+                              setOpen(false); setMaximized(false)
+                            }}
                             style={{ display: 'block', marginTop: 2, padding: '7px 12px', borderRadius: 8, border: `1px solid ${accent}44`, color: accent, textDecoration: 'none', fontSize: 11, fontWeight: 600, textAlign: 'center', fontFamily: f.heading }}>
                             Browse all {q ? `"${q}"` : ''} jobs →
                           </Link>
@@ -1481,10 +1508,27 @@ export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
                   {m.action && (
                     <div style={{ marginTop: 6, marginLeft: 28 }}>
                       <div style={{ fontSize: 11, color: 'rgba(255,255,255,.4)', marginBottom: 5 }}>{m.action.reason}</div>
-                      <Link href={m.action.href}
-                        style={{ display: 'inline-block', padding: '7px 14px', borderRadius: 8, background: `linear-gradient(135deg,${accent},${accent}99)`, color: '#fff', textDecoration: 'none', fontSize: 12, fontWeight: 600, fontFamily: f.heading }}>
-                        {m.action.label} →
-                      </Link>
+                      {CV_REQUIRED_FEATURES.has(m.action.feature) && !cvName ? (
+                        <button onClick={() => fileInputRef.current?.click()} disabled={cvUploading}
+                          style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '7px 14px', borderRadius: 8, border: `1px dashed ${accent}88`, background: 'rgba(255,255,255,.05)', color: '#fff', fontSize: 12, fontWeight: 600, fontFamily: f.heading, cursor: cvUploading ? 'wait' : 'pointer' }}>
+                          {cvUploading
+                            ? (lang === 'DE' ? 'Lese Lebenslauf…' : 'Reading CV…')
+                            : (lang === 'DE' ? 'Lebenslauf hochladen, um fortzufahren ↑' : 'Upload your CV to continue ↑')}
+                        </button>
+                      ) : (
+                        <Link href={m.action.href}
+                          onClick={() => {
+                            // Without this, the fixed-position maximized panel stays open
+                            // on top of the page we just navigated to — the destination
+                            // renders, but it's fully hidden behind Kira, looking like
+                            // nothing happened.
+                            if (realtimeModeRef.current) exitRealtimeMode('widget_closed')
+                            setOpen(false); setMaximized(false)
+                          }}
+                          style={{ display: 'inline-block', padding: '7px 14px', borderRadius: 8, background: `linear-gradient(135deg,${accent},${accent}99)`, color: '#fff', textDecoration: 'none', fontSize: 12, fontWeight: 600, fontFamily: f.heading }}>
+                          {m.action.label} →
+                        </Link>
+                      )}
                     </div>
                   )}
                 </div>
