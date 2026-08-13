@@ -1085,7 +1085,7 @@ ${atsSuggestions?.section_gaps?.length ? `- ATS SECTION GAPS to address: ${atsSu
       <div style={{ display: 'flex', height: 'calc(100vh - 52px)' }}>
 
         {/* ── LEFT PANEL ── */}
-        <div className="jl-dsb" style={{ width: 288, flexShrink: 0, background: 'linear-gradient(180deg, #152233 0%, #0e1a28 100%)', borderRight: '1px solid rgba(255,255,255,0.08)', flexDirection: 'column' }}>
+        <div className="jl-dsb" style={{ width: 288, flexShrink: 0, background: 'linear-gradient(180deg, #152233 0%, #0e1a28 100%)', borderRight: '1px solid rgba(255,255,255,0.08)', flexDirection: 'column', overflowY: 'auto' }}>
           <div style={{ padding: '20px 20px 16px', borderBottom: '1px solid rgba(255,255,255,0.08)', flexShrink: 0 }}>
             <button onClick={() => router.push('/in/career-scan')} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.4)', fontSize: 11, cursor: 'pointer', fontFamily: 'inherit', padding: 0, marginBottom: 14, display: 'flex', alignItems: 'center', gap: 4 }}>{'<'}- Back to ATS Score</button>
             <div style={{ fontSize: 18, fontWeight: 700, color: '#fff', fontFamily: "'Outfit', sans-serif" }}>CV Studio</div>
@@ -1238,7 +1238,7 @@ ${atsSuggestions?.section_gaps?.length ? `- ATS SECTION GAPS to address: ${atsSu
             <input ref={photoInputRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={e => e.target.files?.[0] && handlePhotoFile(e.target.files[0])} />
           </div>
 
-          <div style={{ flex: 1, overflowY: 'auto' }}>
+          <div style={{ flex: 1, overflowY: 'auto', minHeight: 0 }}>
             {/* Template accordion */}
             <div style={{ borderBottom: '1px solid rgba(255,255,255,0.07)' }}>
               <button onClick={() => toggleSection('template')} style={{ width: '100%', padding: '13px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit' }}>

@@ -1647,8 +1647,10 @@ export default function CVBuilderPage() {
             </div>
           )}
 
-          {/* Accordion sections - scrollable */}
-          <div style={{ flex: 1, overflowY: 'auto' }}>
+          {/* Accordion sections - scrollable. minHeight guards against this flex
+              item's automatic min-size resolving to 0 and getting crushed by the
+              fixed-height siblings above/below inside the height-capped sidebar. */}
+          <div style={{ flex: 1, overflowY: 'auto', minHeight: 260 }}>
 
             {/* SECTION: Template */}
             <div style={{ borderBottom: '1px solid rgba(255,255,255,0.07)' }}>
