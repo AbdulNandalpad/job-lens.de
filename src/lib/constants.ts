@@ -122,6 +122,7 @@ export const LS = {
 // All internal API routes. Never hardcode strings in fetch() calls.
 export const API = {
   extractPdf:       '/api/extract-pdf',
+  cvPdf:            '/api/cv/pdf',
   careerScan:       '/api/career-scan',
   indiaCareerScan:  '/api/india/career-scan',
   tailorCv:         '/api/tailor-cv',

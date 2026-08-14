@@ -824,60 +824,26 @@ ${atsSuggestions?.section_gaps?.length ? `- ATS SECTION GAPS to address: ${atsSu
   }
 
   async function downloadPDF() {
-    if (!cvData || !previewRef.current) return
+    if (!cvData) return
     setDownloading('pdf')
     try {
-      const [{ default: html2canvas }, { default: jsPDF }] = await Promise.all([
-        import('html2canvas'),
-        import('jspdf'),
-      ])
-
-      // Render into offscreen container — absolute avoids mobile viewport-relative positioning bugs
-      const offscreen = document.createElement('div')
-      offscreen.style.cssText = 'position:absolute;left:-9999px;top:0;width:740px;min-width:740px;max-width:740px;background:#fff;'
-      const clone = previewRef.current.cloneNode(true) as HTMLElement
-      // Strip visual chrome; pin to 740px so content can't escape and get clipped
-      clone.style.cssText = 'width:740px;max-width:740px;box-sizing:border-box;overflow:visible;border-radius:0;box-shadow:none;'
-      const tplRoot = clone.firstElementChild as HTMLElement | null
-      if (tplRoot) {
-        tplRoot.style.width = '740px'
-        tplRoot.style.maxWidth = '740px'
-        tplRoot.style.boxSizing = 'border-box'
-      }
-      offscreen.appendChild(clone)
-      document.body.appendChild(offscreen)
-
-      // Allow fonts and images to settle (longer on mobile)
-      await new Promise(r => setTimeout(r, 300))
-
-      const canvas = await html2canvas(offscreen, {
-        scale: 2,
-        useCORS: true,
-        backgroundColor: '#ffffff',
-        logging: false,
-        width: 740,
-        height: offscreen.scrollHeight,
-        windowWidth: 740,
+      const ac = templates.find(t => t.id === template)?.ac || accent
+      const res = await fetch(API.cvPdf, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ cv: cvData, ac, template, photo: photoUrl || undefined }),
       })
-
-      document.body.removeChild(offscreen)
-
-      const imgData = canvas.toDataURL('image/jpeg', 0.95)
-      const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' })
-      const A4_W = 210
-      const A4_H = 297
-      const imgH = (canvas.height * A4_W) / canvas.width
-
-      // Tile all generated content at natural aspect ratio
-      pdf.addImage(imgData, 'JPEG', 0, 0, A4_W, imgH)
-      let position = -A4_H
-      while (imgH + position > 0) {
-        pdf.addPage()
-        pdf.addImage(imgData, 'JPEG', 0, position, A4_W, imgH)
-        position -= A4_H
-      }
+      if (!res.ok) throw new Error(`PDF request failed (${res.status})`)
+      const blob = await res.blob()
       const name = (cvData.name || 'JobLens').replace(/[^a-zA-Z0-9]/g, '_')
-      pdf.save(`CV_${name}.pdf`)
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `CV_${name}.pdf`
+      document.body.appendChild(a)
+      a.click()
+      document.body.removeChild(a)
+      URL.revokeObjectURL(url)
     } catch (err) { console.error('PDF error:', err); alert('PDF generation failed.') }
     setDownloading(null)
   }
