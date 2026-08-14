@@ -3,6 +3,7 @@ import { createHash } from 'crypto'
 import { createAdminSupabase } from '@/lib/supabase-server'
 import { sendAdminAlert } from '@/lib/job-case-email'
 import { Resend } from 'resend'
+import { MARKET } from '@/lib/constants'
 
 const resend   = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null
 const FROM     = process.env.RESEND_FROM_EMAIL ?? 'noreply@job-lens.de'
@@ -50,7 +51,7 @@ export async function POST(req: NextRequest) {
     const safeMessage = escHtml(message.trim().slice(0, 2000))
     const safeName    = escHtml(name.trim().slice(0, 100))
     const safeEmail   = escHtml(email.trim().slice(0, 200))
-    const safeMarket  = market === 'in' ? 'India' : 'DACH'
+    const safeMarket  = market === MARKET.in ? 'India' : 'DACH'
 
     const html = `
 <div style="font-family:system-ui,sans-serif;max-width:560px;margin:0 auto;padding:28px 24px;color:#1a2332">

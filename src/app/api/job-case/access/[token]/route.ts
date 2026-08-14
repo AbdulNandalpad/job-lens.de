@@ -40,9 +40,21 @@ export async function GET(
 
     // Already used
     if (view.token_used_at) {
-      // Redirect to case anyway — recruiter may have refreshed
+      // Redirect to case anyway — recruiter may have refreshed. Re-issue the
+      // jl_cv cookie too: a corporate link-scanner prefetch can consume the
+      // token before the recruiter's own browser ever gets the cookie.
       const { data: jc } = await admin.from('job_cases').select('slug').eq('id', view.job_case_id).single()
-      if (jc) return NextResponse.redirect(new URL(`/case/${jc.slug}?access=granted`, req.url))
+      if (jc) {
+        const res = NextResponse.redirect(new URL(`/case/${jc.slug}?access=granted`, req.url))
+        res.cookies.set('jl_cv', view.id, {
+          httpOnly: true,
+          secure:   process.env.NODE_ENV === 'production',
+          sameSite: 'lax',
+          maxAge:   86400, // 24 h — same as token expiry
+          path:     '/',
+        })
+        return res
+      }
       return NextResponse.redirect(new URL('/case/invalid-link', req.url))
     }
 

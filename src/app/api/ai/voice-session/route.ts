@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createHmac } from 'crypto'
-import { createServerSupabase, checkAndDeductCredits } from '@/lib/supabase-server'
+import { createServerSupabase, checkAndDeductCredits, refundCredits } from '@/lib/supabase-server'
 import { CREDIT_COST, MARKET } from '@/lib/constants'
 
 // Deducts credits up-front for one live-voice session, then issues a
@@ -25,26 +25,33 @@ export async function POST(req: NextRequest) {
 
     if (!ok) return NextResponse.json({ error: 'Not enough credits', credits: remaining }, { status: 402 })
 
-    // Issue a 5-minute HMAC token so the client can open the Railway WebSocket
-    // without needing the permanent RAILWAY_SECRET in the browser bundle.
-    const railwaySecret = process.env.RAILWAY_SECRET
-    if (!railwaySecret) {
-      console.error('[ai/voice-session] RAILWAY_SECRET not set')
+    try {
+      // Issue a 5-minute HMAC token so the client can open the Railway WebSocket
+      // without needing the permanent RAILWAY_SECRET in the browser bundle.
+      const railwaySecret = process.env.RAILWAY_SECRET
+      if (!railwaySecret) {
+        console.error('[ai/voice-session] RAILWAY_SECRET not set')
+        await refundCredits(user.id, CREDIT_COST.liveVoice, 'live_voice_error')
+        return NextResponse.json({ error: 'Internal error' }, { status: 500 })
+      }
+      const ts       = Date.now()
+      const wsToken  = createHmac('sha256', railwaySecret).update(`${user.id}:${ts}`).digest('hex')
+
+      // Admins additionally get a signed capability token that unlocks Kira's
+      // voice task tools (career scan / tailor CV / cover letter) on Railway.
+      // Signed server-side so the client cannot forge admin status.
+      const adminEmails = (process.env.ADMIN_EMAILS || '').split(',').map(e => e.trim().toLowerCase()).filter(Boolean)
+      const isAdmin  = adminEmails.includes((user.email || '').toLowerCase())
+      const admToken = isAdmin
+        ? createHmac('sha256', railwaySecret).update(`adm:${user.id}:${ts}`).digest('hex')
+        : ''
+
+      return NextResponse.json({ ok: true, remaining, wsToken, ts, uid: user.id, admToken })
+    } catch (err) {
+      console.error('[ai/voice-session]', err)
+      await refundCredits(user.id, CREDIT_COST.liveVoice, 'live_voice_error')
       return NextResponse.json({ error: 'Internal error' }, { status: 500 })
     }
-    const ts       = Date.now()
-    const wsToken  = createHmac('sha256', railwaySecret).update(`${user.id}:${ts}`).digest('hex')
-
-    // Admins additionally get a signed capability token that unlocks Kira's
-    // voice task tools (career scan / tailor CV / cover letter) on Railway.
-    // Signed server-side so the client cannot forge admin status.
-    const adminEmails = (process.env.ADMIN_EMAILS || '').split(',').map(e => e.trim().toLowerCase()).filter(Boolean)
-    const isAdmin  = adminEmails.includes((user.email || '').toLowerCase())
-    const admToken = isAdmin
-      ? createHmac('sha256', railwaySecret).update(`adm:${user.id}:${ts}`).digest('hex')
-      : ''
-
-    return NextResponse.json({ ok: true, remaining, wsToken, ts, uid: user.id, admToken })
   } catch (err) {
     console.error('[ai/voice-session]', err)
     return NextResponse.json({ error: 'Internal error' }, { status: 500 })

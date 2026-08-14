@@ -17,7 +17,6 @@ const purple = '#8b5cf6'
 interface VisaOption {
   id: string
   title: string
-  emoji: string
   eligibility: 'eligible' | 'partial' | 'not_eligible'
   matchScore: number
   headline: string
@@ -197,7 +196,7 @@ function downloadVisaReport(result: VisaResult, form: FormData, accentHex: strin
     const guide = Object.prototype.hasOwnProperty.call(VISA_GUIDES, opt.id) ? VISA_GUIDES[opt.id as VisaOptionId] : undefined
     return `
     <div class="visa-card ${opt.eligibility}">
-      <div class="visa-head">${opt.emoji} ${opt.title} <span class="score">${opt.matchScore}%</span></div>
+      <div class="visa-head"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:4px"><rect x="3" y="3" width="18" height="18" rx="2"></rect><circle cx="12" cy="10" r="3"></circle><path d="M7 21v-2a5 5 0 0 1 10 0v2"></path></svg>${opt.title} <span class="score">${opt.matchScore}%</span></div>
       <div class="visa-timeline">⏱ ${opt.timeline}</div>
       <p>${opt.headline}</p>
       ${opt.metRequirements.length ? `<div class="req-block"><strong>✓ Met:</strong> ${opt.metRequirements.map(r => `<span>${r}</span>`).join('')}</div>` : ''}

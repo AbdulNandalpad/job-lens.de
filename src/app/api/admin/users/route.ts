@@ -99,18 +99,25 @@ export async function PATCH(req: NextRequest) {
     patch.credits = Math.floor(n)
   }
 
-  // Upsert: provide all required profile fields so new rows are valid
-  const { error } = await admin.from('profiles').upsert(
-    {
-      id,
-      email: authUser.email ?? '',
-      credits: 0,
-      eu_credits: 0,
-      in_credits: 0,
-      ...patch,           // override with the field(s) being set
-    },
-    { onConflict: 'id' }  // update existing row, insert if missing
-  )
+  // Check row existence first — an update must only touch the field(s) being
+  // set, never zero out credit pools the patch doesn't mention. Defaults are
+  // for the insert-new-row case only.
+  const { data: existingProfile } = await admin
+    .from('profiles')
+    .select('id')
+    .eq('id', id)
+    .maybeSingle()
+
+  const { error } = existingProfile
+    ? await admin.from('profiles').update(patch).eq('id', id)
+    : await admin.from('profiles').insert({
+        id,
+        email: authUser.email ?? '',
+        credits: 0,
+        eu_credits: 0,
+        in_credits: 0,
+        ...patch,           // override with the field(s) being set
+      })
 
   if (error) {
     console.error('Admin PATCH: upsert failed', error.message)
