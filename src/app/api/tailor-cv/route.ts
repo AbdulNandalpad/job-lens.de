@@ -8,6 +8,16 @@ import { retrieveMemories, formatMemoriesForPrompt, saveMemoriesFromInteraction 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
 const COST = CREDIT_COST.tailorCv
 
+function extractJson(raw: string): string {
+  // Strip markdown fences
+  const s = raw.replace(/```json\s*/g, '').replace(/```\s*/g, '').trim()
+  // Find outermost JSON object — tolerates a stray preamble/postamble around it
+  const start = s.indexOf('{')
+  const end = s.lastIndexOf('}')
+  if (start === -1 || end === -1 || end <= start) throw new Error('No JSON object found in response')
+  return s.slice(start, end + 1)
+}
+
 export async function POST(req: NextRequest) {
   const supabase = await createServerSupabase()
   const { data: { user } } = await supabase.auth.getUser()
@@ -42,7 +52,7 @@ export async function POST(req: NextRequest) {
     if (returnJson) {
       // System prompt is always server-side — never accepted from client
       const serverSystemPrompt = feedback && currentCv
-        ? `You are an elite CV designer. The user has requested changes to their CV. Apply the feedback as a genuine rewrite of every field it affects — if the feedback asks to emphasise a skill, weave it through the summary AND the relevant experience bullets AND the skills list as appropriate, don't just append it to one field and leave everything else untouched. A request like "add X" means the CV should read as if X was always part of the story, not a bolted-on afterthought. Keep every stat, bullet and highlight grounded in facts already present in the CV — never invent a new metric or achievement while applying feedback. Maintain the ${pages === '2' ? '2-page' : '1-page'} length target unless the feedback explicitly asks to change it.${job?.job_description ? ' If the feedback references the job description (e.g. "check the job description", "match it better"), use the job description provided below as the source of truth — mirror its genuine requirements in skills/bullets/summary, same grounding rules as a fresh tailoring pass: only claim what the source CV actually supports.' : ''} Return ONLY valid JSON, no markdown.`
+        ? `You are an elite CV designer. The user has requested changes to their CV. Apply the feedback as a genuine rewrite of every field it affects — if the feedback asks to emphasise a skill, weave it through the summary AND the relevant experience bullets AND the skills list as appropriate, don't just append it to one field and leave everything else untouched. A request like "add X" means the CV should read as if X was always part of the story, not a bolted-on afterthought. Keep every stat, bullet and highlight grounded in facts already present in the CV — never invent a new metric or achievement while applying feedback. Maintain the ${pages === '2' ? '2-page' : '1-page'} length target unless the feedback explicitly asks to change it.${job?.job_description ? ' If the feedback references the job description (e.g. "check the job description", "match it better"), use the job description provided below as the source of truth — mirror its genuine requirements in skills/bullets/summary, same grounding rules as a fresh tailoring pass: only claim what the source CV actually supports.' : ''} If the feedback asks to remove or de-emphasise a personal/legal-status statement (citizenship, work-permit status, openness to a specific market, relocation availability) that is irrelevant to the target job, apply that cut — don't just leave it in because the current CV had it. Return ONLY valid JSON, no markdown, no explanation before or after the JSON.`
         : `You are an elite CV designer and career consultant. Extract, enhance and structure CV information into a rich JSON object for visual rendering.
 
 SOURCE TYPE HINTS — apply these parsing rules:
@@ -143,16 +153,22 @@ Return ONLY the JSON object. No markdown, no backticks, no explanation.`
       const wasTruncated = message.stop_reason === 'max_tokens'
       if (wasTruncated) console.error(`[tailor-cv] output truncated at max_tokens, out=${message.usage?.output_tokens}`)
 
-      const cv = (message.content[0] as { text: string }).text
+      const rawCv = (message.content[0] as { text: string }).text
 
       // Reliability guardrail: never ship a malformed or hollow CV after
       // charging credits. Validate the JSON parses and has real content
-      // before returning success.
+      // before returning success. Also return the EXTRACTED json (not the
+      // raw model text) — the client does its own lightweight fence-strip
+      // parse and needs the same stray-preamble tolerance this check has,
+      // or a response that passes validation here can still fail client-side.
+      let cv = rawCv
       try {
-        const parsed = JSON.parse(cv.replace(/```json|```/g, '').trim())
+        const cleaned = extractJson(rawCv)
+        const parsed = JSON.parse(cleaned)
         const hasName = typeof parsed.name === 'string' && parsed.name.trim().length > 0
         const hasExperience = Array.isArray(parsed.experience) && parsed.experience.length > 0
         if (!hasName || !hasExperience) throw new Error('CV JSON missing required fields (name/experience)')
+        cv = cleaned
       } catch (validationErr) {
         console.error('[tailor-cv] output validation failed, refunding credits:', validationErr instanceof Error ? validationErr.message : validationErr, wasTruncated ? '(truncated at max_tokens)' : '')
         await refundCredits(user.id, COST, 'tailor_cv_invalid_output')
