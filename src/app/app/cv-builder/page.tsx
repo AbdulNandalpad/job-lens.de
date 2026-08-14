@@ -768,6 +768,7 @@ export default function CVBuilderPage() {
   const [previewTab, setPreviewTab] = useState<'original' | 'generated'>('generated')
   const [originalFileUrl, setOriginalFileUrl] = useState<string | null>(null)
   const [originalFileIsPdf, setOriginalFileIsPdf] = useState(true)
+  const [usingSavedCv, setUsingSavedCv] = useState(false)   // true when the CV came from "Use my saved CV", not a fresh upload — no original file bytes exist to preview
   const { credits, setCredits, needsCrossMarket, crossMarketAmount } = useCredits()
   const { hasCv: hasSavedCv, cvText: savedCvText, fileName: savedCvFileName, loadingSavedCv } = useSavedCv()
   const CV_COST = CREDIT_COST.tailorCv
@@ -795,6 +796,7 @@ export default function CVBuilderPage() {
     setFeedbackSuccess(false)
     if (originalFileUrl) URL.revokeObjectURL(originalFileUrl)
     setOriginalFileUrl(null)
+    setUsingSavedCv(false)
     setPreviewTab('generated')
     if (fileInputRef.current) fileInputRef.current.value = ''
     sessionStorage.removeItem(SS.cvbTailored)
@@ -811,6 +813,7 @@ export default function CVBuilderPage() {
     if (originalFileUrl) URL.revokeObjectURL(originalFileUrl)
     setOriginalFileUrl(URL.createObjectURL(file))
     setOriginalFileIsPdf(file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf'))
+    setUsingSavedCv(false)
     if (file.name.endsWith('.txt') || file.type === 'text/plain') {
       const r = new FileReader()
       r.onload = e => {
@@ -850,6 +853,7 @@ export default function CVBuilderPage() {
     const blob = new Blob([savedCvText], { type: 'text/plain' })
     setOriginalFileUrl(URL.createObjectURL(blob))
     setOriginalFileIsPdf(false)
+    setUsingSavedCv(true)
   }
 
   function toggleSection(id: string) {
@@ -1950,10 +1954,14 @@ export default function CVBuilderPage() {
                     <div style={{ padding: '48px 32px', textAlign: 'center' as const }}>
                       <div style={{ marginBottom: 12, display: 'flex', justifyContent: 'center' }}><SvgIcon name="pencil" size={36} color="#adb5bd" /></div>
                       <div style={{ fontSize: 13, fontWeight: 600, color: '#495057', marginBottom: 8, fontFamily: "'Outfit', sans-serif" }}>
-                        {lang === 'DE' ? 'DOCX hochgeladen' : 'DOCX uploaded'}
+                        {usingSavedCv
+                          ? (lang === 'DE' ? 'Gespeicherter Lebenslauf ausgewählt' : 'Saved CV selected')
+                          : (lang === 'DE' ? 'DOCX hochgeladen' : 'DOCX uploaded')}
                       </div>
                       <div style={{ fontSize: 12, color: '#868e96' }}>
-                        {lang === 'DE' ? 'Browser kann DOCX nicht anzeigen. Vorlage wählen und Lebenslauf erstellen.' : 'Browser cannot preview DOCX files. Select a template and generate your new CV.'}
+                        {usingSavedCv
+                          ? (lang === 'DE' ? 'Keine Vorschau des Originaldokuments verfügbar. Vorlage wählen und Lebenslauf erstellen.' : 'No preview of the original document available. Select a template and generate your new CV.')
+                          : (lang === 'DE' ? 'Browser kann DOCX nicht anzeigen. Vorlage wählen und Lebenslauf erstellen.' : 'Browser cannot preview DOCX files. Select a template and generate your new CV.')}
                       </div>
                     </div>
                   )}
@@ -2011,12 +2019,16 @@ export default function CVBuilderPage() {
                           {lang === 'DE' ? 'Vorschau nicht verfügbar' : 'Preview not available'}
                         </div>
                         <div style={{ fontSize: 12, color: '#868e96', marginBottom: 20 }}>
-                          {lang === 'DE' ? 'DOCX-Dateien können nicht direkt im Browser angezeigt werden.' : 'DOCX files cannot be previewed directly in the browser.'}
+                          {usingSavedCv
+                            ? (lang === 'DE' ? 'Für den gespeicherten Lebenslauf liegt nur der Text vor, keine Originaldatei.' : 'Only the extracted text is stored for your saved CV — the original file isn’t available.')
+                            : (lang === 'DE' ? 'DOCX-Dateien können nicht direkt im Browser angezeigt werden.' : 'DOCX files cannot be previewed directly in the browser.')}
                         </div>
-                        <a href={originalFileUrl} download={cvFileName}
-                          style={{ padding: '8px 20px', borderRadius: 8, background: '#378ADD', color: '#fff', fontSize: 12, fontWeight: 700, textDecoration: 'none', fontFamily: "'Outfit', sans-serif" }}>
-                          {lang === 'DE' ? 'Original herunterladen' : 'Download original'}
-                        </a>
+                        {!usingSavedCv && (
+                          <a href={originalFileUrl} download={cvFileName}
+                            style={{ padding: '8px 20px', borderRadius: 8, background: '#378ADD', color: '#fff', fontSize: 12, fontWeight: 700, textDecoration: 'none', fontFamily: "'Outfit', sans-serif" }}>
+                            {lang === 'DE' ? 'Original herunterladen' : 'Download original'}
+                          </a>
+                        )}
                       </div>
                     )}
                   </div>
