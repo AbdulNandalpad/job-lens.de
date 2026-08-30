@@ -95,10 +95,14 @@ function CVPdfTwoColumn({ cv, ac, photo }: { cv: CVData; ac: string; photo?: str
 
   return (
     <Document>
-      <Page size="A4" style={{ fontFamily: 'Helvetica', backgroundColor: '#ffffff', flexDirection: 'row', minHeight: '100%' }}>
+      <Page size="A4" style={{ fontFamily: 'Helvetica', backgroundColor: '#ffffff' }}>
 
-        {/* ── Left sidebar ── */}
-        <View style={{ width: 185, backgroundColor: sidebarBg, padding: 28, flexDirection: 'column', gap: 20 }}>
+        {/* ── Left sidebar ──
+            `fixed` + absolute positioning makes this repeat on every page react-pdf
+            generates when the right column overflows. As a normal flex-row child it
+            only rendered once on page 1, leaving a blank white strip down the left
+            side of page 2+. */}
+        <View fixed style={{ position: 'absolute', top: 0, left: 0, height: '100%', width: 185, backgroundColor: sidebarBg, padding: 28, flexDirection: 'column', gap: 20 }}>
 
           {/* Photo */}
           {photo && (
@@ -158,8 +162,10 @@ function CVPdfTwoColumn({ cv, ac, photo }: { cv: CVData; ac: string; photo?: str
 
         </View>
 
-        {/* ── Right main content ── */}
-        <View style={{ flex: 1, padding: 28, flexDirection: 'column' }}>
+        {/* ── Right main content ──
+            marginLeft clears the fixed sidebar's width instead of flex:1 sitting
+            next to it in a row, since the sidebar is now absolutely positioned. */}
+        <View style={{ marginLeft: 185, padding: 28, flexDirection: 'column' }}>
 
           {/* Summary */}
           {cv.summary && (
@@ -192,16 +198,22 @@ function CVPdfTwoColumn({ cv, ac, photo }: { cv: CVData; ac: string; photo?: str
                 <View style={{ flex: 1, height: 0.5, backgroundColor: '#d1dae6', marginLeft: 8 }} />
               </View>
               {cv.experience.map((exp, i) => (
-                <View key={i} style={{ marginBottom: 12 }} wrap={false}>
-                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 1 }}>
-                    <Text style={{ fontSize: 10.5, fontFamily: 'Helvetica-Bold', color: navy }}>{exp.role}</Text>
-                    <Text style={{ fontSize: 8.5, fontFamily: 'Helvetica-Bold', color: ac }}>{exp.period}</Text>
+                <View key={i} style={{ marginBottom: 12 }}>
+                  {/* wrap={false} scoped to the header only, not the whole block:
+                      keeps role+period+meta from being orphaned from its first bullet,
+                      without forcing a long bullet list onto the next page as one atomic
+                      unit (which left a large blank gap on the page before it). */}
+                  <View wrap={false}>
+                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 1 }}>
+                      <Text style={{ fontSize: 10.5, fontFamily: 'Helvetica-Bold', color: navy }}>{exp.role}</Text>
+                      <Text style={{ fontSize: 8.5, fontFamily: 'Helvetica-Bold', color: ac }}>{exp.period}</Text>
+                    </View>
+                    <Text style={{ fontSize: 8.5, fontFamily: 'Helvetica-Oblique', color: grey, marginBottom: 4 }}>
+                      {[exp.company, exp.location, exp.type].filter(Boolean).join('  ·  ')}
+                    </Text>
                   </View>
-                  <Text style={{ fontSize: 8.5, fontFamily: 'Helvetica-Oblique', color: grey, marginBottom: 4 }}>
-                    {[exp.company, exp.location, exp.type].filter(Boolean).join('  ·  ')}
-                  </Text>
                   {exp.bullets.map((b, j) => (
-                    <View key={j} style={{ flexDirection: 'row', marginBottom: 2 }}>
+                    <View key={j} wrap={false} style={{ flexDirection: 'row', marginBottom: 2 }}>
                       <Text style={{ fontSize: 9, color: ac, width: 10 }}>•</Text>
                       <Text style={{ flex: 1, fontSize: 9, color: '#374151', lineHeight: 1.5 }}>{b}</Text>
                     </View>
@@ -343,16 +355,20 @@ function CVPdfSingleColumn({ cv, ac, photo }: { cv: CVData; ac: string; photo?: 
           <>
             <SecHeader title="Professional Experience" />
             {cv.experience.map((exp, i) => (
-              <View key={i} style={s.expBlock} wrap={false}>
-                <View style={s.expHead}>
-                  <Text style={s.expRole}>{exp.role}</Text>
-                  <Text style={[s.expPeriod, { color: ac }]}>{exp.period}</Text>
+              <View key={i} style={s.expBlock}>
+                {/* wrap={false} scoped to the header only — see two-column template
+                    for why the whole block must not be atomic. */}
+                <View wrap={false}>
+                  <View style={s.expHead}>
+                    <Text style={s.expRole}>{exp.role}</Text>
+                    <Text style={[s.expPeriod, { color: ac }]}>{exp.period}</Text>
+                  </View>
+                  <Text style={s.expMeta}>
+                    {[exp.company, exp.location, exp.type].filter(Boolean).join('  ·  ')}
+                  </Text>
                 </View>
-                <Text style={s.expMeta}>
-                  {[exp.company, exp.location, exp.type].filter(Boolean).join('  ·  ')}
-                </Text>
                 {exp.bullets.map((b, j) => (
-                  <View key={j} style={s.bullet}>
+                  <View key={j} wrap={false} style={s.bullet}>
                     <Text style={[s.bulletDot, { color: ac }]}>•</Text>
                     <Text style={s.bulletTxt}>{b}</Text>
                   </View>
