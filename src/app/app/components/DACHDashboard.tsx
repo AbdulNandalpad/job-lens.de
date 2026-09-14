@@ -636,7 +636,7 @@ export default function DACHDashboard() {
                 style={{ padding: '7px 14px', borderRadius: 8, border: `1px solid ${border}`, background: 'transparent', color: '#ef4444', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: "var(--font-dm-sans), system-ui, sans-serif" }}>
                 {cvDeleting ? t('Löscht…', 'Deleting…') : t('Entfernen', 'Remove')}
               </button>
-              <input ref={cvPromptInputRef} type="file" accept=".pdf,.txt,.doc,.docx" style={{ display: 'none' }}
+              <input ref={cvPromptInputRef} type="file" accept=".pdf,.docx,.txt" style={{ display: 'none' }}
                 onChange={e => { const file = e.target.files?.[0]; if (file) handleCvPromptFile(file) }} />
             </div>
           </div>
@@ -671,7 +671,7 @@ export default function DACHDashboard() {
                     style={{ padding: '9px 18px', borderRadius: 8, border: 'none', background: cvConsentChecked ? blue : border, color: cvConsentChecked ? '#fff' : txt3, fontSize: 12.5, fontWeight: 700, cursor: cvConsentChecked ? 'pointer' : 'not-allowed', fontFamily: "var(--font-outfit), system-ui, sans-serif" }}>
                     {cvUploading ? t('Lädt hoch…', 'Uploading…') : t('Lebenslauf hochladen', 'Upload CV')}
                   </button>
-                  <input ref={cvPromptInputRef} type="file" accept=".pdf,.txt,.doc,.docx" style={{ display: 'none' }}
+                  <input ref={cvPromptInputRef} type="file" accept=".pdf,.docx,.txt" style={{ display: 'none' }}
                     onChange={e => { const file = e.target.files?.[0]; if (file) handleCvPromptFile(file) }} />
                   {cvError && <span style={{ fontSize: 11.5, color: '#ef4444' }}>{cvError}</span>}
                 </div>

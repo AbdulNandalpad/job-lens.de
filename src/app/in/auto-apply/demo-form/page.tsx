@@ -130,8 +130,8 @@ export default function InAutoApplyDemoForm() {
 
             <div style={{ marginBottom: 28 }}>
               <label htmlFor="resume" style={label}>Resume *</label>
-              <input id="resume" type="file" accept=".pdf,.doc,.docx" className="df-input" style={{ ...field, padding: '8px 14px', cursor: 'pointer' }} required />
-              <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 4 }}>PDF or DOC · max 5 MB</div>
+              <input id="resume" type="file" accept=".pdf,.docx,.txt" className="df-input" style={{ ...field, padding: '8px 14px', cursor: 'pointer' }} required />
+              <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 4 }}>PDF, DOCX or TXT · max 5 MB</div>
             </div>
 
             <div style={{ borderTop: '1px solid #f1f5f9', paddingTop: 24, display: 'flex', alignItems: 'center', gap: 12 }}>

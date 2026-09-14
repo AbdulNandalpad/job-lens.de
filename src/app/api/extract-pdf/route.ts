@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import mammoth from 'mammoth'
 import { createServerSupabase, isUserRateLimited } from '@/lib/supabase-server'
 
+export const maxDuration = 60
+
 const MAX_FILE_BYTES = 10 * 1024 * 1024 // 10 MB
 
 export async function POST(req: NextRequest) {
@@ -33,9 +35,13 @@ export async function POST(req: NextRequest) {
     // Magic-byte validation — reject files whose content doesn't match the declared type
     const isPdf  = buffer[0] === 0x25 && buffer[1] === 0x50 && buffer[2] === 0x44 && buffer[3] === 0x46 // %PDF
     const isZip  = buffer[0] === 0x50 && buffer[1] === 0x4B && buffer[2] === 0x03 && buffer[3] === 0x04 // PK (DOCX/ZIP)
+    const isOle  = buffer[0] === 0xD0 && buffer[1] === 0xCF && buffer[2] === 0x11 && buffer[3] === 0xE0 // legacy binary .doc (OLE2)
 
     if ((name.endsWith('.pdf')) && !isPdf) {
       return NextResponse.json({ error: 'File does not appear to be a valid PDF.' }, { status: 422 })
+    }
+    if (isOle) {
+      return NextResponse.json({ error: "Legacy .doc files aren't supported — please save as .docx or PDF and upload again." }, { status: 415 })
     }
     if ((name.endsWith('.docx') || name.endsWith('.doc')) && !isZip) {
       return NextResponse.json({ error: 'File does not appear to be a valid Word document.' }, { status: 422 })

@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useLayoutEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 import Navbar from '../components/Navbar'
 import { useCredits } from '@/lib/useCredits'
 import { useSavedCv } from '@/lib/useSavedCv'
@@ -764,6 +765,7 @@ export default function CVBuilderPage() {
   const [feedbackCount, setFeedbackCount] = useState(0)   // how many feedback calls made total (resets every 4)
   const [feedbackError, setFeedbackError] = useState<string | null>(null)
   const [feedbackSuccess, setFeedbackSuccess] = useState(false)
+  const [generateError, setGenerateError] = useState<{ message: string; status: number } | null>(null)
   const [showClearCvConfirm, setShowClearCvConfirm] = useState(false)
   const [previewTab, setPreviewTab] = useState<'original' | 'generated'>('generated')
   const [originalFileUrl, setOriginalFileUrl] = useState<string | null>(null)
@@ -945,7 +947,7 @@ export default function CVBuilderPage() {
   async function generate(confirmedSkills: string[] = []) {
     if (!cvText.trim()) return
     if (credits !== null && credits < CV_COST) { alert(`You need ${CV_COST} credit to build a CV. Please top up on the Account page.`); return }
-    setLoading(true); setCvData(null); setRawCv('')
+    setLoading(true); setGenerateError(null)
 
     try {
       // Use the edited full job description if the user provided one
@@ -955,10 +957,16 @@ export default function CVBuilderPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ cvText, job: effJob, template, tone, pages, lang, confirmedSkills, returnJson: true }),
       })
-      if (res.status === 402) { const d = await res.json(); if (typeof d.credits === 'number') setCredits(d.credits); setLoading(false); alert('Not enough credits. Please top up on the Account page.'); return }
-      const data = await res.json()
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) {
+        // Server already refunded on failure — keep the previous tailored CV on screen
+        if (res.status === 402 && typeof data.credits === 'number') setCredits(data.credits)
+        setGenerateError({ message: data.error || t.common.requestFailed(res.status), status: res.status })
+        return
+      }
       if (typeof data.creditsRemaining === 'number') setCredits(data.creditsRemaining)
       const raw = data.cv || data.enhanced || data.result || ''
+      if (!raw) { setGenerateError({ message: t.common.requestFailed(res.status), status: res.status }); return }
       setRawCv(raw)
       sessionStorage.setItem(SS.cvbTailored, raw)
       try {
@@ -968,9 +976,10 @@ export default function CVBuilderPage() {
         sessionStorage.setItem(SS.cvbData, JSON.stringify(parsed))
       } catch { setCvData(null) }
     } catch {
-      setRawCv('Failed to generate. Please try again.')
+      setGenerateError({ message: t.common.networkError, status: 0 })
+    } finally {
+      setLoading(false)
     }
-    setLoading(false)
   }
 
   async function runSkillGapThenGenerate() {
@@ -1545,7 +1554,7 @@ export default function CVBuilderPage() {
                 </button>
               </div>
             )}
-            <input ref={fileInputRef} type="file" accept=".pdf,.doc,.docx,.txt" style={{ display: 'none' }}
+            <input ref={fileInputRef} type="file" accept=".pdf,.docx,.txt" style={{ display: 'none' }}
               onChange={e => e.target.files?.[0] && handleCvFile(e.target.files[0])} />
             {!cvText && !loadingSavedCv && hasSavedCv && (
               <button onClick={useSavedCvNow}
@@ -1793,6 +1802,12 @@ export default function CVBuilderPage() {
                 {credits === 0 ? t.cvBuilder.sidebar.noCredits : t.cvBuilder.sidebar.lowCredits(credits!)}
               </div>
             )}
+            {generateError && (
+              <div style={{ marginBottom: 8, fontSize: 11, color: '#f87171', background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.25)', borderRadius: 6, padding: '7px 10px', lineHeight: 1.5 }}>
+                ⚠ {generateError.message}
+                {generateError.status === 402 && <> · <Link href="/app/account" style={{ color: '#f87171', fontWeight: 700 }}>{t.common.topUp}</Link></>}
+              </div>
+            )}
             <button className="cvb-gen" onClick={handleGenerate} disabled={loading || !cvText.trim() || (credits !== null && credits < CV_COST)}
               style={{ width: '100%', padding: '12px 0', borderRadius: 10, border: 'none', background: loading || !cvText.trim() || (credits !== null && credits < CV_COST) ? 'rgba(255,255,255,0.08)' : `linear-gradient(135deg, ${currentAccent}, ${currentAccent}BB)`, color: loading || !cvText.trim() || (credits !== null && credits < CV_COST) ? 'rgba(255,255,255,0.25)' : '#042C53', fontFamily: "'Outfit', sans-serif", fontSize: 13, fontWeight: 700, cursor: loading || !cvText.trim() || (credits !== null && credits < CV_COST) ? 'not-allowed' : 'pointer', transition: 'all 0.2s', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
               {loading
@@ -1832,6 +1847,13 @@ export default function CVBuilderPage() {
               </div>
             )}
           </div>
+
+          {generateError && (
+            <div style={{ margin: '12px 24px 0', fontSize: 12, color: '#f87171', background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.25)', borderRadius: 8, padding: '8px 12px', lineHeight: 1.5, flexShrink: 0 }}>
+              ⚠ {generateError.message}
+              {generateError.status === 402 && <> · <Link href="/app/account" style={{ color: '#f87171', fontWeight: 700 }}>{t.common.topUp}</Link></>}
+            </div>
+          )}
 
           {/* Preview canvas */}
           <div ref={previewAreaRef} style={{ flex: 1, overflowY: 'auto', padding: '28px 24px', display: 'flex', justifyContent: 'center' }}>

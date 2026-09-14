@@ -9,8 +9,12 @@
 import { NextRequest, NextResponse } from 'next/server'
 import Anthropic from '@anthropic-ai/sdk'
 import { createServerSupabase, isUserRateLimited } from '@/lib/supabase-server'
+import { IN_REVISION } from '@/lib/constants'
+
+export const maxDuration = 60
 
 const SSRF_RE = /^(localhost|127\.|10\.|192\.168\.|172\.(1[6-9]|2[0-9]|3[01])\.|169\.254\.|::1$|fc[0-9a-f]{2}:|fd)/i
+const ADMIN_EMAILS = (process.env.ADMIN_EMAILS || '').split(',').map(e => e.trim().toLowerCase())
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
 
@@ -101,6 +105,10 @@ export async function POST(req: NextRequest) {
     const supabase = await createServerSupabase()
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
+    if (IN_REVISION.jobCase && !ADMIN_EMAILS.includes((user.email ?? '').toLowerCase())) {
+      return NextResponse.json({ error: 'Job Case is being reworked and is temporarily unavailable.' }, { status: 503 })
+    }
 
     if (await isUserRateLimited(user.id, 'job_case_analyse', 10)) {
       return NextResponse.json({ error: 'Too many requests. Please wait a minute.' }, { status: 429 })

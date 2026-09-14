@@ -13,7 +13,8 @@ type CaseData = {
   company_name: string
   match_score: number
   job_requirements: { id: string; skill: string; description: string; essential: boolean }[]
-  requirement_evidence: { requirementId: string; text: string; url: string; status?: string }[] | null
+  // Stored by /api/job-case/create in requirement order: { skill, status, evidence, url, score }
+  requirement_evidence: { skill?: string; status?: string; evidence?: string; url?: string; score?: number }[] | null
   pitch_narrative: string | null
   test_answers: { question: string; answer: string; score: number }[] | null
   test_overall_score: number | null
@@ -67,6 +68,18 @@ function ScoreRing({ value, size = 88 }: { value: number; size?: number }) {
 
 function fmt(iso: string) {
   return new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
+}
+
+type EvidenceRow = NonNullable<CaseData['requirement_evidence']>[number]
+
+// Evidence rows are stored positionally (same order as job_requirements);
+// fall back to a case-insensitive skill match if the arrays ever drift.
+function evidenceFor(rows: CaseData['requirement_evidence'], req: CaseData['job_requirements'][number], index: number): EvidenceRow | undefined {
+  if (!rows?.length) return undefined
+  const byIndex = rows[index]
+  if (byIndex && (!byIndex.skill || byIndex.skill.trim().toLowerCase() === req.skill.trim().toLowerCase())) return byIndex
+  const target = req.skill.trim().toLowerCase()
+  return rows.find(r => r.skill?.trim().toLowerCase() === target) ?? byIndex
 }
 
 export default function PublicCasePage() {
@@ -162,11 +175,11 @@ export default function PublicCasePage() {
   // recruiter skimming for a few seconds gets the headline numbers before
   // reading a single requirement row.
   const totalReqs    = caseData?.job_requirements?.length ?? 0
-  const verifiedReqs = caseData?.job_requirements?.filter(req => {
-    const ev = caseData.requirement_evidence?.find(e => e.requirementId === req.id)
-    return !!ev?.text && (ev.status ?? 'verified') === 'verified'
+  const verifiedReqs = caseData?.job_requirements?.filter((req, i) => {
+    const ev = evidenceFor(caseData.requirement_evidence, req, i)
+    return !!ev?.evidence?.trim() && (ev.status ?? 'verified') === 'verified'
   }).length ?? 0
-  const evidenceCount = caseData?.requirement_evidence?.filter(e => e.text?.trim()).length ?? 0
+  const evidenceCount = caseData?.requirement_evidence?.filter(e => e.evidence?.trim()).length ?? 0
 
   return (
     <>
@@ -380,14 +393,14 @@ export default function PublicCasePage() {
                   </p>
                   <div style={{ border: `1px solid ${D.border}`, borderRadius: 12, overflow: 'hidden' }}>
                     {caseData.job_requirements.map((req, i) => {
-                      const ev = caseData.requirement_evidence?.find(e => e.requirementId === req.id)
-                      const status = ev?.text ? (ev.status ?? 'verified') : 'missing'
+                      const ev = evidenceFor(caseData.requirement_evidence, req, i)
+                      const status = ev?.evidence?.trim() ? (ev.status ?? 'verified') : 'missing'
                       return (
                         <div key={req.id} className="jc-req-row" style={{ display: 'flex', alignItems: 'flex-start', gap: 14, padding: '14px 18px', borderBottom: i < caseData.job_requirements.length - 1 ? `1px solid ${D.border}` : 'none', background: i % 2 === 0 ? 'rgba(255,255,255,0.015)' : 'transparent' }}>
                           <MatchBadge status={status} />
                           <div style={{ flex: 1, minWidth: 0 }}>
                             <div style={{ fontSize: 13, fontWeight: 600, color: D.txt1, marginBottom: 3 }}>{req.skill}</div>
-                            {ev?.text && <div style={{ fontSize: 12, color: D.txt2, lineHeight: 1.6 }}>{ev.text}</div>}
+                            {ev?.evidence?.trim() && <div style={{ fontSize: 12, color: D.txt2, lineHeight: 1.6 }}>{ev.evidence}</div>}
                             {ev?.url && (
                               <a href={ev.url} target="_blank" rel="noopener noreferrer" style={{ fontSize: 11, color: c.accent, textDecoration: 'none', marginTop: 4, display: 'inline-block', opacity: 0.8 }}>
                                 → {ev.url.replace('https://', '')}

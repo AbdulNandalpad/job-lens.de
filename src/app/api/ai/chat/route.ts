@@ -1,7 +1,9 @@
 import { NextRequest } from 'next/server'
 import Anthropic from '@anthropic-ai/sdk'
-import { createServerSupabase, createAdminSupabase, checkAndDeductCredits, refundCredits } from '@/lib/supabase-server'
+import { createServerSupabase, createAdminSupabase, checkAndDeductCredits, refundCredits, isUserRateLimited } from '@/lib/supabase-server'
 import { MARKET, CREDIT_COST, AI_CHAT_FREE_MESSAGES } from '@/lib/constants'
+
+export const maxDuration = 60
 
 const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
 
@@ -471,6 +473,14 @@ export async function POST(req: NextRequest) {
       }, 45_000)
 
       try {
+        // Emitted inside the stream (not as a 429) so the client's existing
+        // error-event handling renders it like any other Kira failure.
+        if (await isUserRateLimited(user.id, 'ai_chat', 20)) {
+          safeSend({ error: 'Too many requests. Please wait a minute.' })
+          safeClose()
+          return
+        }
+
         // Increment message count before streaming so client disconnects cannot
         // skip the charge. Credit deduction still happens after (needs the count).
         const adminEmails = (process.env.ADMIN_EMAILS || '').split(',').map(e => e.trim().toLowerCase())
@@ -494,8 +504,16 @@ export async function POST(req: NextRequest) {
           role: m.role, content: m.content,
         }))
 
+        // Buffer text per round — only flush to client on the final (non-tool) round.
+        // Sending text from tool-use rounds causes double TTS in voice mode.
+        // Hoisted so text from an unfinished last round isn't lost if the loop
+        // exhausts its rounds on a tool call.
+        const textBuffer: string[] = []
+        let textFlushed = false
+
         // Agentic loop — max 3 rounds
         for (let round = 0; round < 3; round++) {
+          textBuffer.length = 0
           const stream = client.messages.stream({
             model:      'claude-haiku-4-5-20251001',
             max_tokens: isVoice ? 150 : 700,
@@ -504,9 +522,6 @@ export async function POST(req: NextRequest) {
             messages:   currentMsgs,
           })
 
-          // Buffer text — only flush to client if this is the final round (not a tool-use round).
-          // Sending text from tool-use rounds causes double TTS in voice mode.
-          const textBuffer: string[] = []
           stream.on('text', (text) => { if (text) textBuffer.push(text) })
 
           const response = await stream.finalMessage()
@@ -578,8 +593,15 @@ export async function POST(req: NextRequest) {
           } else {
             // Final round — flush buffered text tokens to client now
             for (const t of textBuffer) safeSend({ text: t })
+            textFlushed = true
             break
           }
+        }
+
+        // Loop exhausted on a tool round — never send {done:true} after an empty reply
+        if (!textFlushed) {
+          if (textBuffer.length) for (const t of textBuffer) safeSend({ text: t })
+          else safeSend({ text: 'I ran out of steps — please ask again more specifically.' })
         }
 
         safeSend({ done: true })

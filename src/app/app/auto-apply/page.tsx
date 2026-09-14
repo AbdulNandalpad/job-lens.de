@@ -6,6 +6,7 @@ import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import Navbar from '../components/Navbar'
 import { useLanguage } from '@/lib/i18n'
+import { SS, API } from '@/lib/constants'
 import type { FieldMapping, AnalyzeResult, ExecuteEvent } from '@/lib/auto-apply-engine'
 import { theme } from '@/lib/theme'
 import SvgIcon from '@/components/SvgIcon'
@@ -64,10 +65,11 @@ function flattenCvJson(raw: string): string {
 
 export default function AutoApplyPage() {
   const router = useRouter()
-  const { lang } = useLanguage()
+  const { lang, t } = useLanguage()
 
   const [isAdmin, setIsAdmin] = useState(false)
   const [adminChecked, setAdminChecked] = useState(false)
+  const [trackerError, setTrackerError] = useState('')
 
   useEffect(() => {
     fetch('/api/user/profile').then(r => r.json()).then(d => {
@@ -124,17 +126,17 @@ export default function AutoApplyPage() {
 
   useEffect(() => {
     const raw =
-      sessionStorage.getItem('jl_cvb_tailored') ||
-      sessionStorage.getItem('jl_sjs_cv_text') ||
-      sessionStorage.getItem('jl_cv_text') ||
+      sessionStorage.getItem(SS.cvbTailored) ||
+      sessionStorage.getItem(SS.sjsCvText) ||
+      sessionStorage.getItem(SS.cvText) ||
       ''
     const cv = flattenCvJson(raw)
-    const cl = sessionStorage.getItem('jl_cl_letter') || ''
+    const cl = sessionStorage.getItem(SS.clLetter) || ''
     setCvText(cv)
     setCoverLetter(cl)
     if (cl) setUseCoverLetter(true)
     try {
-      const job = JSON.parse(sessionStorage.getItem('jl_cvb_job') || '{}')
+      const job = JSON.parse(sessionStorage.getItem(SS.cvbJob) || '{}')
       if (job?.job_title) setTargetJob({ title: job.job_title, company: job.employer_name || '' })
     } catch { /* no job in session */ }
   }, [])
@@ -296,21 +298,36 @@ export default function AutoApplyPage() {
     await streamEvents('/api/auto-apply/submit', { sessionId }, () => {})
   }
 
-  function logToTracker() {
+  // Persist to the applications tracker (the same store /app/tracker reads)
+  async function logToTracker() {
     const job = (() => {
-      try { return JSON.parse(sessionStorage.getItem('jl_cvb_job') || '{}') } catch { return {} }
+      try { return JSON.parse(sessionStorage.getItem(SS.cvbJob) || '{}') } catch { return {} }
     })()
-    const existing = JSON.parse(localStorage.getItem('jl_tracker') || '[]')
-    const entry = {
-      id: Date.now(),
-      role: job.job_title || (lang === 'DE' ? 'Beworben via Auto-Bewerbung' : 'Applied via Auto Apply'),
-      company: job.employer_name || new URL(jobUrl).hostname.replace('www.', ''),
-      date: new Date().toLocaleDateString('de-DE', { day: '2-digit', month: 'short', year: 'numeric' }),
-      notes: `${lang === 'DE' ? 'Auto-Bewerbung' : 'Auto Apply'} — ${jobUrl.slice(0, 60)}`,
-      source: lang === 'DE' ? 'Auto-Bewerbung' : 'Auto Apply',
+    let host = ''
+    try { host = new URL(jobUrl).hostname.replace('www.', '') } catch { /* not a URL — company falls back below */ }
+    const d = new Date()
+    const today = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+    setTrackerError('')
+    try {
+      const res = await fetch(API.applications, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          company:    job.employer_name || host || (lang === 'DE' ? 'Unbekanntes Unternehmen' : 'Unknown company'),
+          role:       job.job_title || (lang === 'DE' ? 'Beworben via Auto-Bewerbung' : 'Applied via Auto Apply'),
+          status:     'applied',
+          location:   job.job_city || '',
+          job_url:    job.job_apply_link || jobUrl,
+          notes:      'Applied via Job-Lens',
+          applied_at: today,
+        }),
+      })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) { setTrackerError(data.error || t.common.requestFailed(res.status)); return }
+      router.push('/app/tracker')
+    } catch {
+      setTrackerError(t.common.networkError)
     }
-    localStorage.setItem('jl_tracker', JSON.stringify([entry, ...existing]))
-    router.push('/app/tracker')
   }
 
   const card: React.CSSProperties = {
@@ -481,7 +498,7 @@ export default function AutoApplyPage() {
                       </div>
                       <label style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 10, cursor: 'pointer' }}>
                         <span style={{ fontSize: 11, color: c.textFaint }}>{lang === 'DE' ? 'Mit anderem Lebenslauf ersetzen →' : 'Replace with a different CV →'}</span>
-                        <input type="file" accept=".pdf,.doc,.docx,.txt" style={{ display: 'none' }}
+                        <input type="file" accept=".pdf,.docx,.txt" style={{ display: 'none' }}
                           onChange={e => { const f = e.target.files?.[0]; if (f) handleCvUpload(f) }}
                         />
                       </label>
@@ -507,10 +524,10 @@ export default function AutoApplyPage() {
                           <>
                             <SvgIcon name="document" size={24} color={c.accent} />
                             <span style={{ fontSize: 13, fontWeight: 600, color: c.primary }}>{lang === 'DE' ? 'Lebenslauf hochladen' : 'Upload your CV'}</span>
-                            <span style={{ fontSize: 11, color: c.textMuted }}>{lang === 'DE' ? 'PDF, DOC, DOCX oder TXT · max. 10 MB' : 'PDF, DOC, DOCX or TXT · max 10 MB'}</span>
+                            <span style={{ fontSize: 11, color: c.textMuted }}>{lang === 'DE' ? 'PDF, DOCX oder TXT · max. 10 MB' : 'PDF, DOCX or TXT · max 10 MB'}</span>
                           </>
                         )}
-                        <input type="file" accept=".pdf,.doc,.docx,.txt" style={{ display: 'none' }}
+                        <input type="file" accept=".pdf,.docx,.txt" style={{ display: 'none' }}
                           onChange={e => { const f = e.target.files?.[0]; if (f) handleCvUpload(f) }}
                         />
                       </label>
@@ -997,6 +1014,7 @@ export default function AutoApplyPage() {
                   )}
 
                   {phase === 'done' && (
+                    <>
                     <div style={{ display: 'flex', gap: 12 }}>
                       <button className="aa-btn-success" style={{ flex: 1 }} onClick={logToTracker}>
                         {lang === 'DE' ? '✓ Im Tracker speichern →' : '✓ Log to Tracker →'}
@@ -1008,6 +1026,12 @@ export default function AutoApplyPage() {
                         {lang === 'DE' ? 'Weitere Bewerbung' : 'Apply another'}
                       </button>
                     </div>
+                    {trackerError && (
+                      <div style={{ marginTop: 10, fontSize: 12, color: c.error, background: c.errorLight, border: `1px solid ${c.errorBorder}`, borderRadius: 8, padding: '8px 12px' }}>
+                        {t.common.trackerSaveFailed} {trackerError}
+                      </div>
+                    )}
+                    </>
                   )}
                 </>
               )}

@@ -357,6 +357,12 @@ export const translations = {
         closeSettings: 'Einstellungen schließen',
       },
     },
+    jobs: {
+      postedWithin: 'Veröffentlicht innerhalb',
+      postedOptions: { any: 'Alle', day: '24 Std.', threeDays: '3 Tage', week: '7 Tage', month: '30 Tage' },
+      enterKeywordOrCity: 'Bitte einen Suchbegriff oder eine Stadt eingeben.',
+      baNeedsKeyword: 'Die Mittelstand-Suche benötigt einen Suchbegriff.',
+    },
     common: {
       loading: 'Wird geladen...',
       error: 'Fehler',
@@ -366,6 +372,10 @@ export const translations = {
       close: 'Schließen',
       today: 'Heute',
       yesterday: 'Gestern',
+      networkError: 'Verbindungsfehler. Bitte erneut versuchen.',
+      requestFailed: (status: number) => `Anfrage fehlgeschlagen (${status})`,
+      topUp: 'Credits aufladen →',
+      trackerSaveFailed: 'Bewerbung konnte nicht gespeichert werden.',
     },
   },
 
@@ -727,6 +737,12 @@ export const translations = {
         closeSettings: 'Close Settings',
       },
     },
+    jobs: {
+      postedWithin: 'Posted within',
+      postedOptions: { any: 'Any', day: '24h', threeDays: '3 days', week: '7 days', month: '30 days' },
+      enterKeywordOrCity: 'Enter a keyword or a city to search.',
+      baNeedsKeyword: 'Mittelstand search needs a keyword.',
+    },
     common: {
       loading: 'Loading...',
       error: 'Error',
@@ -736,6 +752,10 @@ export const translations = {
       close: 'Close',
       today: 'Today',
       yesterday: 'Yesterday',
+      networkError: 'Network error. Please try again.',
+      requestFailed: (status: number) => `Request failed (${status})`,
+      topUp: 'Top up credits →',
+      trackerSaveFailed: 'Could not save the application.',
     },
   },
 }

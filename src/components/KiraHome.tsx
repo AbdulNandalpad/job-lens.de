@@ -421,7 +421,7 @@ export default function KiraHome({ market }: { market: 'eu' | 'in' }) {
               {subline}
             </div>
 
-            <input ref={fileInputRef} type="file" accept=".pdf,.doc,.docx,.txt" style={{ display: 'none' }}
+            <input ref={fileInputRef} type="file" accept=".pdf,.docx,.txt" style={{ display: 'none' }}
               onChange={e => { const file = e.target.files?.[0]; if (file) handleFile(file) }} />
 
             {/* Ask bar */}

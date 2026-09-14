@@ -5,11 +5,22 @@ import { useRouter } from 'next/navigation'
 import Navbar from '../components/Navbar'
 import { useLanguage } from '@/lib/i18n'
 import { SS, API } from '@/lib/constants'
+import { theme } from '@/lib/theme'
 import SvgIcon, { type IconName } from '@/components/SvgIcon'
 
 const blue  = '#378ADD'
 const navy  = '#042C53'
 const green = '#1D9E75'
+
+// Adzuna `max_days_old` values; '' = no filter
+const POSTED_OPTIONS = [
+  { key: 'any',       value: '' },
+  { key: 'day',       value: '1' },
+  { key: 'threeDays', value: '3' },
+  { key: 'week',      value: '7' },
+  { key: 'month',     value: '30' },
+] as const
+type PostedValue = typeof POSTED_OPTIONS[number]['value']
 
 type JobSource = 'adzuna' | 'ba'
 
@@ -60,10 +71,12 @@ function timeAgo(dateStr: string) {
 
 export default function DACHJobsPage() {
   const router = useRouter()
-  const { lang } = useLanguage()
+  const { lang, t } = useLanguage()
   const [query,    setQuery]    = useState('')
   const [country,  setCountry]  = useState('de')
   const [city,     setCity]     = useState('')
+  const [postedWithin, setPostedWithin] = useState<PostedValue>('')
+  const [searchHint, setSearchHint] = useState('')
   const [jobs,     setJobs]     = useState<Job[]>([])
   const [loading,  setLoading]  = useState(false)
   const [loadingMore, setLoadingMore] = useState(false)
@@ -104,19 +117,22 @@ export default function DACHJobsPage() {
   }
 
   // ── Adzuna: fallback by trimming last word on 0 results ──────
-  async function fetchWithFallback(q: string, countryCode: string, location = ''): Promise<{ jobs: Job[]; usedQuery: string }> {
+  // An empty keyword is a valid Adzuna query when a location/country is set —
+  // that case runs exactly once with no word-trimming.
+  async function fetchWithFallback(q: string, countryCode: string, location = '', maxDaysOld = ''): Promise<{ jobs: Job[]; usedQuery: string }> {
     let current = q.trim()
-    while (current.length > 0) {
+    do {
       const params = new URLSearchParams({ q: current, country: countryCode, page: '1' })
       if (location) params.set('location', location)
-      const res  = await fetch(`/api/jobs?${params}`)
+      if (maxDaysOld) params.set('max_days_old', maxDaysOld)
+      const res  = await fetch(`${API.jobs}?${params}`)
       const data = await res.json()
       const jobs = (data.jobs || []).map((j: Job) => ({ ...j, job_source: 'adzuna' as JobSource }))
-      if (jobs.length > 0) return { jobs, usedQuery: current }
+      if (jobs.length > 0 || !current) return { jobs, usedQuery: current }
       const words = current.split(' ')
       if (words.length === 1) break
       current = words.slice(0, -1).join(' ')
-    }
+    } while (current.length > 0)
     return { jobs: [], usedQuery: current }
   }
 
@@ -157,15 +173,21 @@ export default function DACHJobsPage() {
     }
   }, [country])
 
-  async function search() {
-    if (!query.trim()) return
+  async function search(overrides: { posted?: PostedValue } = {}) {
+    const posted = overrides.posted ?? postedWithin
+    const q = query.trim()
+    // Keyword may be empty when a city (or non-default country) narrows the search;
+    // the BA Jobbörse API returns nothing without a keyword.
+    if (!q && source === 'ba') { setSearchHint(t.jobs.baNeedsKeyword); return }
+    if (!q && !city.trim() && country === 'de') { setSearchHint(t.jobs.enterKeywordOrCity); return }
+    setSearchHint('')
     setLoading(true); setSearched(true); setSelectedJobId(null); setPage(1)
     try {
       const { jobs: results, usedQuery: uq } = source === 'ba'
         ? await fetchBAWithFallback(query, city || (country === 'de' ? '' : country))
-        : await fetchWithFallback(query, country, city)
+        : await fetchWithFallback(query, country, city, posted)
       setJobs(results); setUsedQuery(uq); setHasMore(results.length === 20)
-      if (results.length) scoreJobs(results, query)
+      if (results.length && q) scoreJobs(results, query)
     } catch { setJobs([]); setUsedQuery(query); setHasMore(false) }
     setLoading(false)
   }
@@ -183,7 +205,8 @@ export default function DACHJobsPage() {
       } else {
         const lmParams = new URLSearchParams({ q: usedQuery, country, page: String(next) })
         if (city) lmParams.set('location', city)
-        const res  = await fetch(`/api/jobs?${lmParams}`)
+        if (postedWithin) lmParams.set('max_days_old', postedWithin)
+        const res  = await fetch(`${API.jobs}?${lmParams}`)
         const data = await res.json()
         more = (data.jobs || []).map((j: Job) => ({ ...j, job_source: 'adzuna' as JobSource }))
       }
@@ -199,11 +222,13 @@ export default function DACHJobsPage() {
   // Re-search when source toggle changes (if already searched)
   function switchSource(s: JobSource) {
     setSource(s)
-    if (searched && query.trim()) {
+    if (searched && !query.trim() && s === 'ba') { setSearchHint(t.jobs.baNeedsKeyword); return }
+    if (searched && (query.trim() || city.trim() || country !== 'de')) {
+      setSearchHint('')
       setLoading(true); setSelectedJobId(null); setPage(1)
       const fetch$ = s === 'ba'
-        ? fetchBAWithFallback(query, country === 'de' ? '' : country)
-        : fetchWithFallback(query, country)
+        ? fetchBAWithFallback(query, city || (country === 'de' ? '' : country))
+        : fetchWithFallback(query, country, city, postedWithin)
       fetch$
         .then(({ jobs, usedQuery: uq }) => { setJobs(jobs); setUsedQuery(uq); setHasMore(jobs.length === 20) })
         .catch(() => { setJobs([]); setUsedQuery(query); setHasMore(false) })
@@ -298,7 +323,7 @@ export default function DACHJobsPage() {
                     style={{ position: 'absolute', right: 8, background: 'none', border: 'none', cursor: 'pointer', color: '#9aafbc', fontSize: 14, lineHeight: 1, padding: 0 }}>×</button>
                 )}
               </div>
-              <button onClick={search} disabled={loading}
+              <button onClick={() => search()} disabled={loading}
                 style={{ padding: '10px 22px', borderRadius: 8, background: loading ? '#ccc' : `linear-gradient(135deg,${blue},#2563eb)`, color: '#fff', fontWeight: 700, fontSize: 13, border: 'none', cursor: loading ? 'not-allowed' : 'pointer', flexShrink: 0 }}>
                 {loading ? (lang === 'DE' ? 'Suche...' : 'Searching...') : (lang === 'DE' ? 'Suchen' : 'Search')}
               </button>
@@ -313,6 +338,22 @@ export default function DACHJobsPage() {
                 </button>
               ))}
             </div>
+
+            {/* Posted-within chips (Adzuna max_days_old) */}
+            {source === 'adzuna' && (
+              <div style={{ padding: '0 16px 14px', display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
+                <span style={{ fontSize: 11, color: '#9aafbc', marginRight: 2 }}>{t.jobs.postedWithin}:</span>
+                {POSTED_OPTIONS.map(o => (
+                  <button key={o.key} onClick={() => { setPostedWithin(o.value); if (searched) search({ posted: o.value }) }}
+                    style={{ padding: '4px 11px', borderRadius: 16, border: `1.5px solid ${postedWithin === o.value ? blue : '#dce4ef'}`, background: postedWithin === o.value ? blue + '12' : '#f8fafc', color: postedWithin === o.value ? blue : '#6b7c93', fontSize: 11, fontWeight: postedWithin === o.value ? 700 : 400, cursor: 'pointer', fontFamily: "'DM Sans',sans-serif", transition: 'all .12s' }}>
+                    {t.jobs.postedOptions[o.key]}
+                  </button>
+                ))}
+              </div>
+            )}
+            {searchHint && (
+              <div style={{ padding: '0 16px 14px', fontSize: 12, color: theme.colors.danger }}>{searchHint}</div>
+            )}
 
             {/* Source + Country filters — shown before first search */}
             {!searched && (

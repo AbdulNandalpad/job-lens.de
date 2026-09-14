@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useRef, useLayoutEffect } from 'react'
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 import { useCredits } from '@/lib/useCredits'
 import CrossMarketModal from '@/components/CrossMarketModal'
 import SkillGapModal from '@/components/SkillGapModal'
@@ -617,6 +618,7 @@ export default function IndiaCVBuilderPage() {
   const lang: Lang = 'EN'
   const [cvData,        setCvData]        = useState<CVData | null>(null)
   const [rawCv,         setRawCv]         = useState('')
+  const [generateError, setGenerateError] = useState<{ message: string; status: number } | null>(null)
   const [loading,       setLoading]       = useState(false)
   const [openSections,  setOpenSections]  = useState<Record<string, boolean>>({ template: false, style: false })
   const [feedback,      setFeedback]      = useState('')
@@ -750,7 +752,7 @@ export default function IndiaCVBuilderPage() {
   async function generate(confirmedSkills: string[] = []) {
     if (!cvText.trim()) return
     if (credits !== null && credits < CV_COST) { alert(`You need ${CV_COST} credit to build a CV.`); return }
-    setLoading(true); setCvData(null); setRawCv(''); setMobOpen(false)
+    setLoading(true); setGenerateError(null); setMobOpen(false)
 
     const systemPrompt = `You are an elite CV designer. Extract and structure CV information into JSON for visual rendering.
 Return ONLY valid JSON - no markdown, no backticks, no preamble.
@@ -772,14 +774,20 @@ ${atsSuggestions?.section_gaps?.length ? `- ATS SECTION GAPS to address: ${atsSu
 
     try {
       const res  = await fetch(API.tailorCv, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ cvText, job, template, tone, lang, systemPrompt, returnJson: true, market: MARKET.in }) })
-      if (res.status === 402) { const d = await res.json(); if (typeof d.credits === 'number') setCredits(d.credits); setLoading(false); alert('Not enough credits.'); return }
-      const data = await res.json()
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) {
+        // Server already refunded on failure — keep the previous tailored CV on screen
+        if (res.status === 402 && typeof data.credits === 'number') setCredits(data.credits)
+        setGenerateError({ message: data.error || `Request failed (${res.status})`, status: res.status })
+        return
+      }
       if (typeof data.creditsRemaining === 'number') setCredits(data.creditsRemaining)
       const raw  = data.cv || data.enhanced || data.result || ''
+      if (!raw) { setGenerateError({ message: `Request failed (${res.status})`, status: res.status }); return }
       setRawCv(raw); sessionStorage.setItem(SS.cvbTailored, raw)
       try { const parsed = normalizeCv(JSON.parse(raw.replace(/```json|```/g, '').trim())); setCvData(parsed); setPreviewTab('generated'); sessionStorage.setItem(SS.cvbData, JSON.stringify(parsed)) } catch { setCvData(null) }
-    } catch { setRawCv('Failed to generate.') }
-    setLoading(false)
+    } catch { setGenerateError({ message: 'Network error. Please try again.', status: 0 }) }
+    finally { setLoading(false) }
   }
 
   async function runSkillGapThenGenerate() {
@@ -1165,7 +1173,7 @@ ${atsSuggestions?.section_gaps?.length ? `- ATS SECTION GAPS to address: ${atsSu
               </div>
             )}
 
-            <input ref={fileInputRef} type="file" accept=".pdf,.doc,.docx,.txt" style={{ display: 'none' }} onChange={e => e.target.files?.[0] && handleCvFile(e.target.files[0])} />
+            <input ref={fileInputRef} type="file" accept=".pdf,.docx,.txt" style={{ display: 'none' }} onChange={e => e.target.files?.[0] && handleCvFile(e.target.files[0])} />
             {!cvText ? (
               <div onClick={() => fileInputRef.current?.click()} onDragOver={e => e.preventDefault()} onDrop={e => { e.preventDefault(); if (e.dataTransfer.files?.[0]) handleCvFile(e.dataTransfer.files[0]) }}
                 style={{ marginTop: 12, padding: '16px 12px', border: '1.5px dashed rgba(255,255,255,0.18)', borderRadius: 9, cursor: 'pointer', textAlign: 'center' }}>
@@ -1276,6 +1284,12 @@ ${atsSuggestions?.section_gaps?.length ? `- ATS SECTION GAPS to address: ${atsSu
           {/* Generate button */}
           <div style={{ padding: '14px 16px', borderTop: '1px solid rgba(255,255,255,0.08)', flexShrink: 0 }}>
             {credits !== null && credits <= LOW_CREDIT_WARN && <div style={{ background: 'rgba(245,158,11,0.15)', border: '1px solid rgba(245,158,11,0.4)', borderRadius: 8, padding: '7px 10px', fontSize: 11, color: '#fcd34d', marginBottom: 8, lineHeight: 1.5 }}>{credits === 0 ? 'No credits left. Top up on Account page.' : `${credits} credit${credits === 1 ? '' : 's'} remaining.`}</div>}
+            {generateError && (
+              <div style={{ marginBottom: 8, fontSize: 11, color: '#f87171', background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.25)', borderRadius: 6, padding: '7px 10px', lineHeight: 1.5 }}>
+                ⚠ {generateError.message}
+                {generateError.status === 402 && <> · <Link href="/in/account" style={{ color: '#f87171', fontWeight: 700 }}>Top up credits →</Link></>}
+              </div>
+            )}
             <button className="cvb-gen" onClick={handleGenerate} disabled={!canGenerate}
               style={{ width: '100%', padding: '12px 0', borderRadius: 10, border: 'none', background: canGenerate ? `linear-gradient(135deg, ${accent}, #e67300)` : 'rgba(255,255,255,0.08)', color: canGenerate ? '#042C53' : 'rgba(255,255,255,0.25)', fontFamily: "'Outfit', sans-serif", fontSize: 13, fontWeight: 700, cursor: canGenerate ? 'pointer' : 'not-allowed', transition: 'all 0.2s', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
               {loading ? <><div style={{ width: 14, height: 14, borderRadius: '50%', border: '2px solid rgba(255,255,255,0.15)', borderTopColor: 'rgba(255,255,255,0.6)', animation: 'spin 0.7s linear infinite' }} />Generating...</>
@@ -1345,6 +1359,13 @@ ${atsSuggestions?.section_gaps?.length ? `- ATS SECTION GAPS to address: ${atsSu
               </div>
             )}
           </div>
+
+          {generateError && (
+            <div style={{ margin: '12px 20px 0', fontSize: 12, color: '#f87171', background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.25)', borderRadius: 8, padding: '8px 12px', lineHeight: 1.5, flexShrink: 0 }}>
+              ⚠ {generateError.message}
+              {generateError.status === 402 && <> · <Link href="/in/account" style={{ color: '#f87171', fontWeight: 700 }}>Top up credits →</Link></>}
+            </div>
+          )}
 
           {/* Preview area */}
           <div ref={previewAreaRef} style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden', WebkitOverflowScrolling: 'touch', padding: '28px 20px', display: 'flex', justifyContent: 'center' }}>

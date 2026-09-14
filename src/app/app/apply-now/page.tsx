@@ -5,8 +5,14 @@ import { useRouter } from 'next/navigation'
 import Navbar from '../components/Navbar'
 import { theme } from '@/lib/theme'
 import { useLanguage } from '@/lib/i18n'
+import { SS, API } from '@/lib/constants'
 
 const { colors: c, gradients: g, fonts: f } = theme
+
+function todayIso() {
+  const d = new Date()
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+}
 
 interface Job {
   job_title: string
@@ -23,36 +29,53 @@ interface Job {
 
 export default function ApplyNowPage() {
   const router = useRouter()
-  const { lang } = useLanguage()
+  const { lang, t } = useLanguage()
   const [job, setJob] = useState<Job | null>(null)
   const [cvReady, setCvReady] = useState(false)
   const [clReady, setClReady] = useState(false)
   const [applied, setApplied] = useState(false)
   const [logged, setLogged] = useState(false)
+  const [saving, setSaving] = useState(false)
+  const [saveError, setSaveError] = useState('')
   const [hasCv, setHasCv] = useState(false)
   const [hasCl, setHasCl] = useState(false)
 
   useEffect(() => {
-    const jobRaw = sessionStorage.getItem('jl_cvb_job')
-    const cv = sessionStorage.getItem('jl_cvb_tailored') || sessionStorage.getItem('jl_sjs_cv_text') || ''
-    const cl = sessionStorage.getItem('jl_cl_letter') || ''
+    const jobRaw = sessionStorage.getItem(SS.cvbJob)
+    const cv = sessionStorage.getItem(SS.cvbTailored) || sessionStorage.getItem(SS.sjsCvText) || ''
+    const cl = sessionStorage.getItem(SS.clLetter) || ''
     if (jobRaw) { try { setJob(JSON.parse(jobRaw)) } catch { } }
     setHasCv(cv.length > 0)
     setHasCl(cl.length > 0)
   }, [])
 
-  function saveToTracker() {
-    const existing = JSON.parse(localStorage.getItem('jl_tracker') || '[]')
-    localStorage.setItem('jl_tracker', JSON.stringify([{
-      id: Date.now(),
-      role: job?.job_title || 'Unknown Role',
-      company: job?.employer_name || 'Unknown Company',
-      date: new Date().toLocaleDateString('de-DE', { day: '2-digit', month: 'short', year: 'numeric' }),
-      notes: lang === 'DE' ? 'Via Job-Lens Jetzt bewerben' : 'Via Job-Lens Apply Now',
-      source: 'Job-Lens',
-    }, ...existing]))
-    setLogged(true)
-    setTimeout(() => router.push('/app/tracker'), 800)
+  // Persist to the applications tracker (the same store /app/tracker reads)
+  async function saveToTracker() {
+    if (saving || logged) return
+    setSaving(true); setSaveError('')
+    try {
+      const res = await fetch(API.applications, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          company:    job?.employer_name || 'Unknown Company',
+          role:       job?.job_title || 'Unknown Role',
+          status:     'applied',
+          location:   job?.job_city || '',
+          job_url:    job?.job_apply_link || '',
+          notes:      'Applied via Job-Lens',
+          applied_at: todayIso(),
+        }),
+      })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) { setSaveError(data.error || t.common.requestFailed(res.status)); return }
+      setLogged(true)
+      setTimeout(() => router.push('/app/tracker'), 800)
+    } catch {
+      setSaveError(t.common.networkError)
+    } finally {
+      setSaving(false)
+    }
   }
 
   const salary = job?.job_min_salary && job?.job_max_salary
@@ -178,12 +201,20 @@ export default function ApplyNowPage() {
             )}
             <button
               onClick={saveToTracker}
-              disabled={!applied || logged}
-              style={{ padding: '11px 24px', borderRadius: 8, border: 'none', fontFamily: f.heading, fontSize: 13, fontWeight: 700, transition: 'all 0.2s', cursor: (applied && !logged) ? 'pointer' : 'not-allowed', background: logged ? c.success : applied ? g.successBtn : c.border, color: (applied || logged) ? '#fff' : c.textFaint }}
+              disabled={!applied || logged || saving}
+              style={{ padding: '11px 24px', borderRadius: 8, border: 'none', fontFamily: f.heading, fontSize: 13, fontWeight: 700, transition: 'all 0.2s', cursor: (applied && !logged && !saving) ? 'pointer' : 'not-allowed', background: logged ? c.success : applied ? g.successBtn : c.border, color: (applied || logged) ? '#fff' : c.textFaint, opacity: saving ? 0.7 : 1 }}
             >
-              {logged ? (lang === 'DE' ? '✓ In meinen Bewerbungen gespeichert' : '✓ Saved to my applications') : (lang === 'DE' ? 'In meinen Bewerbungen speichern →' : 'Save to my applications →')}
+              {logged
+                ? (lang === 'DE' ? '✓ In meinen Bewerbungen gespeichert' : '✓ Saved to my applications')
+                : saving ? t.common.loading
+                : (lang === 'DE' ? 'In meinen Bewerbungen speichern →' : 'Save to my applications →')}
             </button>
           </div>
+          {saveError && (
+            <div style={{ marginTop: 10, fontSize: 12, color: c.error, background: c.errorLight, border: `1px solid ${c.errorBorder}`, borderRadius: 8, padding: '8px 12px' }}>
+              {t.common.trackerSaveFailed} {saveError}
+            </div>
+          )}
           {!applied && (
             <div style={{ fontSize: 12, color: c.textFaint, marginTop: 10 }}>
               {lang === 'DE' ? 'Öffne zuerst die Stellenanzeige, dann speichere deine Bewerbung.' : 'Open the listing first, then save your application.'}

@@ -12,12 +12,15 @@
 import { NextRequest, NextResponse } from 'next/server'
 import Anthropic from '@anthropic-ai/sdk'
 import { createServerSupabase, createAdminSupabase, checkAndDeductCredits, refundCredits } from '@/lib/supabase-server'
-import { JOB_CASE, MARKET } from '@/lib/constants'
+import { JOB_CASE, MARKET, IN_REVISION } from '@/lib/constants'
 import { nanoid } from 'nanoid'
 import { reportError } from '@/lib/error-reporter'
 import { encrypt, encryptJson } from '@/lib/encryption'
 
+export const maxDuration = 60
+
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
+const ADMIN_EMAILS = (process.env.ADMIN_EMAILS || '').split(',').map(e => e.trim().toLowerCase())
 
 function scrubPii(text: string): string {
   return text
@@ -144,6 +147,10 @@ export async function POST(req: NextRequest) {
     const supabase = await createServerSupabase()
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
+    if (IN_REVISION.jobCase && !ADMIN_EMAILS.includes((user.email ?? '').toLowerCase())) {
+      return NextResponse.json({ error: 'Job Case is being reworked and is temporarily unavailable.' }, { status: 503 })
+    }
 
     const body = await req.json()
     const {

@@ -441,7 +441,7 @@ export default function AccountPage() {
                     style={{ padding: '8px 16px', borderRadius: 8, border: `1px solid ${c.border}`, background: c.bgSubtle, color: c.textMuted, fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: f.heading }}>
                     {cvUploading ? (lang === 'DE' ? 'Lädt hoch…' : 'Uploading…') : (lang === 'DE' ? 'Ersetzen' : 'Replace')}
                   </button>
-                  <input ref={cvFileInputRef} type="file" accept=".pdf,.txt,.doc,.docx" style={{ display: 'none' }}
+                  <input ref={cvFileInputRef} type="file" accept=".pdf,.docx,.txt" style={{ display: 'none' }}
                     onChange={e => { const file = e.target.files?.[0]; if (file) handleCvFile(file) }} />
                 </div>
               ) : (
@@ -459,7 +459,7 @@ export default function AccountPage() {
                     style={{ padding: '9px 18px', borderRadius: 8, border: 'none', background: cvConsentChecked ? g.primaryBtn : c.borderLight, color: cvConsentChecked ? '#fff' : c.textFaint, fontSize: 13, fontWeight: 700, cursor: cvConsentChecked ? 'pointer' : 'not-allowed', fontFamily: f.heading }}>
                     {cvUploading ? (lang === 'DE' ? 'Lädt hoch…' : 'Uploading…') : (lang === 'DE' ? 'Lebenslauf hochladen' : 'Upload CV')}
                   </button>
-                  <input ref={cvFileInputRef} type="file" accept=".pdf,.txt,.doc,.docx" style={{ display: 'none' }}
+                  <input ref={cvFileInputRef} type="file" accept=".pdf,.docx,.txt" style={{ display: 'none' }}
                     onChange={e => { const file = e.target.files?.[0]; if (file) handleCvFile(file) }} />
                 </div>
               )}

@@ -4,6 +4,7 @@ export const dynamic = 'force-dynamic'
 
 import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
+import { SS, API, AUTO_APPLY_MAINTENANCE } from '@/lib/constants'
 import type { FieldMapping, AnalyzeResult, ExecuteEvent } from '@/lib/auto-apply-engine'
 import { theme } from '@/lib/theme'
 import SvgIcon from '@/components/SvgIcon'
@@ -53,6 +54,20 @@ function flattenCvJson(raw: string): string {
 
 export default function InAutoApplyPage() {
   const router = useRouter()
+
+  // Mirrors the DACH page: non-admins see the maintenance card while the
+  // feature is gated (AUTO_APPLY_MAINTENANCE), never a working-looking form.
+  const [isAdmin, setIsAdmin] = useState(false)
+  const [adminChecked, setAdminChecked] = useState(false)
+  const [trackerError, setTrackerError] = useState('')
+
+  useEffect(() => {
+    fetch(API.userProfile).then(r => r.json()).then(d => {
+      setIsAdmin(!!d.isAdmin)
+      setAdminChecked(true)
+    }).catch(() => setAdminChecked(true))
+  }, [])
+
   const [mode, setMode] = useState<Mode>('demo')
 
   const [jobUrl, setJobUrl] = useState('')
@@ -102,15 +117,15 @@ export default function InAutoApplyPage() {
 
   useEffect(() => {
     const raw =
-      sessionStorage.getItem('jl_cvb_tailored') ||
-      sessionStorage.getItem('jl_sjs_cv_text') ||
-      sessionStorage.getItem('jl_cv_text') || ''
+      sessionStorage.getItem(SS.cvbTailored) ||
+      sessionStorage.getItem(SS.sjsCvText) ||
+      sessionStorage.getItem(SS.cvText) || ''
     setCvText(flattenCvJson(raw))
-    const cl = sessionStorage.getItem('jl_cl_letter') || ''
+    const cl = sessionStorage.getItem(SS.clLetter) || ''
     setCoverLetter(cl)
     if (cl) setUseCoverLetter(true)
     try {
-      const job = JSON.parse(sessionStorage.getItem('jl_in_selected_job') || sessionStorage.getItem('jl_cvb_job') || '{}')
+      const job = JSON.parse(sessionStorage.getItem(SS.inSelectedJob) || sessionStorage.getItem(SS.cvbJob) || '{}')
       if (job?.job_title) setTargetJob({ title: job.job_title, company: job.employer_name || '' })
     } catch { /* no job in session */ }
   }, [])
@@ -270,18 +285,36 @@ export default function InAutoApplyPage() {
     await streamEvents('/api/auto-apply/submit', { sessionId }, logToTracker)
   }
 
-  function logToTracker() {
-    const existing = JSON.parse(localStorage.getItem('jl_tracker') || '[]')
-    const entry = {
-      id: Date.now(),
-      role: 'Applied via Auto Apply',
-      company: new URL(jobUrl).hostname.replace('www.', ''),
-      date: new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }),
-      notes: `Auto Apply — ${jobUrl.slice(0, 60)}`,
-      source: 'Auto Apply',
+  // Persist to the applications tracker (the same store /in/tracker reads)
+  async function logToTracker() {
+    const job = (() => {
+      try { return JSON.parse(sessionStorage.getItem(SS.inSelectedJob) || sessionStorage.getItem(SS.cvbJob) || '{}') } catch { return {} }
+    })()
+    let host = ''
+    try { host = new URL(jobUrl).hostname.replace('www.', '') } catch { /* not a URL — company falls back below */ }
+    const d = new Date()
+    const today = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+    setTrackerError('')
+    try {
+      const res = await fetch(API.applications, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          company:    job.employer_name || host || 'Unknown company',
+          role:       job.job_title || 'Applied via Auto Apply',
+          status:     'applied',
+          location:   job.job_city || '',
+          job_url:    job.job_apply_link || jobUrl,
+          notes:      'Applied via Job-Lens',
+          applied_at: today,
+        }),
+      })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) { setTrackerError(data.error || `Request failed (${res.status})`); return }
+      router.push('/in/tracker')
+    } catch {
+      setTrackerError('Network error. Please try again.')
     }
-    localStorage.setItem('jl_tracker', JSON.stringify([entry, ...existing]))
-    router.push('/in/tracker')
   }
 
   const card: React.CSSProperties = { background: c.bgCard, border: `1px solid ${c.border}`, borderRadius: 14, overflow: 'hidden' }
@@ -326,6 +359,24 @@ export default function InAutoApplyPage() {
         @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
       `}</style>
 
+      {AUTO_APPLY_MAINTENANCE && adminChecked && !isAdmin && (
+        <div style={{ minHeight: 'calc(100vh - 64px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '40px 20px' }}>
+          <div style={{ textAlign: 'center', maxWidth: 400 }}>
+            <svg width="56" height="56" viewBox="0 0 56 56" fill="none" style={{ margin: '0 auto 20px' }}>
+              <circle cx="28" cy="28" r="27" fill={ACCENT_LIGHT} stroke={ACCENT_BORDER} strokeWidth="1.5"/>
+              <path d="M28 18v12M28 34v2" stroke={ACCENT} strokeWidth="2.5" strokeLinecap="round"/>
+            </svg>
+            <div style={{ fontSize: 18, fontWeight: 700, color: c.primary, fontFamily: f.heading, marginBottom: 10 }}>
+              Auto Apply is currently in maintenance mode
+            </div>
+            <div style={{ fontSize: 13, color: c.textMuted, lineHeight: 1.7 }}>
+              We&apos;re improving Auto Apply. It will be back soon — check back later.
+            </div>
+          </div>
+        </div>
+      )}
+
+      {!(AUTO_APPLY_MAINTENANCE && adminChecked && !isAdmin) && (
       <div style={{ maxWidth: 1240, margin: '0 auto', padding: '24px 20px' }}>
 
         {/* Page header */}
@@ -410,7 +461,7 @@ export default function InAutoApplyPage() {
                       </div>
                       <label style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 10, cursor: 'pointer' }}>
                         <span style={{ fontSize: 11, color: c.textFaint }}>Replace with a different CV →</span>
-                        <input type="file" accept=".pdf,.doc,.docx,.txt" style={{ display: 'none' }}
+                        <input type="file" accept=".pdf,.docx,.txt" style={{ display: 'none' }}
                           onChange={e => { const f = e.target.files?.[0]; if (f) handleCvUpload(f) }}
                         />
                       </label>
@@ -435,10 +486,10 @@ export default function InAutoApplyPage() {
                           <>
                             <SvgIcon name="document" size={24} color={ACCENT} />
                             <span style={{ fontSize: 13, fontWeight: 600, color: c.primary }}>Upload your Resume</span>
-                            <span style={{ fontSize: 11, color: c.textMuted }}>PDF, DOC, DOCX or TXT · max 10 MB</span>
+                            <span style={{ fontSize: 11, color: c.textMuted }}>PDF, DOCX or TXT · max 10 MB</span>
                           </>
                         )}
-                        <input type="file" accept=".pdf,.doc,.docx,.txt" style={{ display: 'none' }}
+                        <input type="file" accept=".pdf,.docx,.txt" style={{ display: 'none' }}
                           onChange={e => { const f = e.target.files?.[0]; if (f) handleCvUpload(f) }}
                         />
                       </label>
@@ -720,6 +771,7 @@ export default function InAutoApplyPage() {
                   )}
 
                   {phase === 'done' && (
+                    <>
                     <div style={{ display: 'flex', gap: 12 }}>
                       <button className="ina-btn-success" style={{ flex: 1 }} onClick={logToTracker}>
                         ✓ Log to Tracker →
@@ -728,6 +780,12 @@ export default function InAutoApplyPage() {
                         Apply another
                       </button>
                     </div>
+                    {trackerError && (
+                      <div style={{ marginTop: 10, fontSize: 12, color: c.error, background: c.errorLight, border: `1px solid ${c.errorBorder}`, borderRadius: 8, padding: '8px 12px' }}>
+                        Could not save the application. {trackerError}
+                      </div>
+                    )}
+                    </>
                   )}
                 </>
               )}
@@ -817,6 +875,7 @@ export default function InAutoApplyPage() {
           </div>
         )}
       </div>
+      )}
     </div>
   )
 }

@@ -670,7 +670,7 @@ function SmartJobSearchPage() {
       )}
 
       <UploadBox label={t.smartApply.sidebar.linkedinLabel} sublabel={t.smartApply.sidebar.linkedinSub} fileName={linkedinFileName} inputRef={linkedinRef} onFile={handleLinkedinFile} onClear={clearLinkedinFile} accept=".pdf" />
-      <UploadBox label={t.smartApply.sidebar.cvLabel} sublabel={t.smartApply.sidebar.cvSub} fileName={cvFileName} inputRef={cvRef} onFile={handleCvFile} onClear={clearCvFile} accept=".pdf,.txt,.doc,.docx" />
+      <UploadBox label={t.smartApply.sidebar.cvLabel} sublabel={t.smartApply.sidebar.cvSub} fileName={cvFileName} inputRef={cvRef} onFile={handleCvFile} onClear={clearCvFile} accept=".pdf,.docx,.txt" />
 
       <div style={{ height: 1, background: 'rgba(255,255,255,0.1)' }} />
 

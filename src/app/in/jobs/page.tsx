@@ -3,14 +3,24 @@
 import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { SS, API } from '@/lib/constants'
+import { theme } from '@/lib/theme'
 import SvgIcon from '@/components/SvgIcon'
-import { createClient } from '@/lib/supabase'
 import { GermanFlag, IndiaFlag } from '@/components/Flags'
 
 const orange = '#ff9933'
 const navy = '#042C53'
 const blue = '#378ADD'
 const green = '#1D9E75'
+
+// Adzuna `max_days_old` values; '' = no filter
+const POSTED_OPTIONS = [
+  { label: 'Any',     value: '' },
+  { label: '24h',     value: '1' },
+  { label: '3 days',  value: '3' },
+  { label: '7 days',  value: '7' },
+  { label: '30 days', value: '30' },
+] as const
+type PostedValue = typeof POSTED_OPTIONS[number]['value']
 
 interface Job {
   job_id: string
@@ -54,6 +64,8 @@ export default function IndiaJobsPage() {
   const [query, setQuery] = useState('')
   const [city, setCity] = useState('')
   const [country, setCountry] = useState<'in' | 'de'>('in')
+  const [postedWithin, setPostedWithin] = useState<PostedValue>('')
+  const [searchHint, setSearchHint] = useState('')
   const [sortBy,  setSortBy]  = useState<'date' | 'relevance'>('date')
   const [scores,  setScores]  = useState<Record<string, number>>({})
   const [scoring, setScoring] = useState(false)
@@ -95,26 +107,31 @@ export default function IndiaJobsPage() {
     setScoring(false)
   }
 
-  async function fetchWithFallback(q: string, ctry: 'in' | 'de' = country): Promise<{ jobs: Job[]; usedQuery: string }> {
+  // Fallback by trimming the last word on 0 results. An empty keyword is a
+  // valid Adzuna query when a location/country is set — that case runs once.
+  async function fetchWithFallback(q: string, ctry: 'in' | 'de' = country, location = city, maxDaysOld: string = postedWithin): Promise<{ jobs: Job[]; usedQuery: string }> {
     let current = q.trim()
-    while (current.length > 0) {
+    do {
       const params = new URLSearchParams({ q: current, country: ctry, page: '1' })
-      const res  = await fetch(`/api/jobs?${params}`)
+      if (location) params.set('location', location)
+      if (maxDaysOld) params.set('max_days_old', maxDaysOld)
+      const res  = await fetch(`${API.jobs}?${params}`)
       const data = await res.json()
       const jobs = data.jobs || []
-      if (jobs.length > 0) return { jobs, usedQuery: current }
+      if (jobs.length > 0 || !current) return { jobs, usedQuery: current }
       const words = current.split(' ')
       if (words.length === 1) break
       current = words.slice(0, -1).join(' ')
-    }
+    } while (current.length > 0)
     return { jobs: [], usedQuery: current }
   }
 
 
   useEffect(() => {
-    createClient().auth.getUser().then(({ data }) => {
-      setIsAdmin(data.user?.email === 'sap.rashid@gmail.com')
-    })
+    fetch(API.userProfile)
+      .then(r => r.ok ? r.json() : null)
+      .then(d => setIsAdmin(!!d?.isAdmin))
+      .catch(() => setIsAdmin(false))
   }, [])
 
   useEffect(() => {
@@ -129,23 +146,27 @@ export default function IndiaJobsPage() {
       setQuery(q)
       if (loc) setCity(loc)
       setLoading(true); setSearched(true); setPage(1)
-      fetchWithFallback(q, ctry)
+      fetchWithFallback(q, ctry, loc || '', '')
         .then(({ jobs, usedQuery: uq }) => { setJobs(jobs); setUsedQuery(uq); setHasMore(jobs.length === 20); if (jobs.length) scoreJobs(jobs, q) })
         .catch(() => { setJobs([]); setUsedQuery(q); setHasMore(false) })
         .finally(() => setLoading(false))
     }
   }, [])
 
-  async function search(ctryOverride?: 'in' | 'de') {
-    if (!query.trim()) return
+  async function search(ctryOverride?: 'in' | 'de', postedOverride?: PostedValue) {
+    const q = query.trim()
+    const ctry = ctryOverride ?? country
+    // Keyword may be empty when a city (or the non-default country) narrows the search
+    if (!q && !city.trim() && ctry === 'in') { setSearchHint('Enter a keyword or a city to search.'); return }
+    setSearchHint('')
     setLoading(true)
     setSearched(true)
     setSelectedJobId(null)
     setPage(1)
     try {
-      const { jobs: results, usedQuery: uq } = await fetchWithFallback(query, ctryOverride ?? country)
+      const { jobs: results, usedQuery: uq } = await fetchWithFallback(query, ctry, city, postedOverride ?? postedWithin)
       setJobs(results); setUsedQuery(uq); setHasMore(results.length === 20)
-      if (results.length) scoreJobs(results, query)
+      if (results.length && q) scoreJobs(results, query)
     } catch { setJobs([]); setUsedQuery(query); setHasMore(false) }
     setLoading(false)
   }
@@ -156,7 +177,8 @@ export default function IndiaJobsPage() {
     try {
       const params = new URLSearchParams({ q: usedQuery, country, page: String(nextPage) })
       if (city) params.set('location', city)
-      const res = await fetch(`/api/jobs?${params}`)
+      if (postedWithin) params.set('max_days_old', postedWithin)
+      const res = await fetch(`${API.jobs}?${params}`)
       const data = await res.json()
       const more = data.jobs || []
       setJobs(prev => {
@@ -192,7 +214,7 @@ export default function IndiaJobsPage() {
       if (data.text) {
         const enriched = { ...job, job_description: data.text }
         sessionStorage.setItem(SS.inSelectedJob, JSON.stringify(enriched))
-        sessionStorage.removeItem('jl_ats_suggestions')
+        sessionStorage.removeItem(SS.atsSuggestions)
         router.push('/in/cv-builder')
         return
       }
@@ -205,13 +227,13 @@ export default function IndiaJobsPage() {
     if (!jdFallback) return
     const enriched = { ...jdFallback.job, job_description: jdFallback.manualJd || jdFallback.job.job_description }
     sessionStorage.setItem(SS.inSelectedJob, JSON.stringify(enriched))
-    sessionStorage.removeItem('jl_ats_suggestions')
+    sessionStorage.removeItem(SS.atsSuggestions)
     setJdFallback(null)
     router.push('/in/cv-builder')
   }
 
   function goTo(path: string) {
-    if (path === '/in/cv-builder') sessionStorage.removeItem('jl_ats_suggestions')
+    if (path === '/in/cv-builder') sessionStorage.removeItem(SS.atsSuggestions)
     router.push(path)
   }
 
@@ -270,7 +292,7 @@ export default function IndiaJobsPage() {
                     if (cn === country) return
                     setCountry(cn)
                     setCity('')
-                    if (searched && query.trim()) search(cn)
+                    if (searched && (query.trim() || cn === 'de')) search(cn)
                   }}
                   style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12, fontWeight: 700, padding: '6px 14px', borderRadius: 16, border: 'none', cursor: 'pointer', fontFamily: 'inherit', transition: 'all .2s', background: country === cn ? `linear-gradient(135deg, ${orange}, #e67300)` : 'transparent', color: country === cn ? '#fff' : '#6b7c93' }}>
                   <Flag width={16} />{label}
@@ -294,6 +316,19 @@ export default function IndiaJobsPage() {
                 {loading ? 'Searching...' : 'Search'}
               </button>
             </div>
+            {/* Posted-within chips (Adzuna max_days_old) */}
+            <div style={{ padding: '0 16px 14px', display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
+              <span style={{ fontSize: 11, color: '#9aafbc', marginRight: 2 }}>Posted within:</span>
+              {POSTED_OPTIONS.map(o => (
+                <button key={o.value} onClick={() => { setPostedWithin(o.value); if (searched) search(undefined, o.value) }}
+                  style={{ padding: '4px 11px', borderRadius: 16, border: `1.5px solid ${postedWithin === o.value ? orange : '#dce4ef'}`, background: postedWithin === o.value ? orange + '15' : '#f8fafc', color: postedWithin === o.value ? orange : '#6b7c93', fontSize: 11, fontWeight: postedWithin === o.value ? 700 : 400, cursor: 'pointer', fontFamily: "'DM Sans',sans-serif", transition: 'all .12s' }}>
+                  {o.label}
+                </button>
+              ))}
+            </div>
+            {searchHint && (
+              <div style={{ padding: '0 16px 14px', fontSize: 12, color: theme.colors.danger }}>{searchHint}</div>
+            )}
             {!searched && (
               <div style={{ padding: '0 16px 16px' }}>
                 <select

@@ -1250,7 +1250,7 @@ export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
               </div>
             </div>
 
-            <input ref={fileInputRef} type="file" accept=".pdf,.doc,.docx,.txt" style={{ display: 'none' }} onChange={handleCvUpload}/>
+            <input ref={fileInputRef} type="file" accept=".pdf,.docx,.txt" style={{ display: 'none' }} onChange={handleCvUpload}/>
 
             {/* Upload CV — hidden in maintenance mode for non-admins */}
             {(!KIRA_MAINTENANCE || isAdmin) && <button title={lang === 'DE' ? 'Lebenslauf hochladen' : 'Upload CV'} onClick={() => fileInputRef.current?.click()} disabled={cvUploading}

@@ -6,6 +6,8 @@ import { createServerSupabase, checkAndDeductCredits, refundCredits, createAdmin
 import { CREDIT_COST, MARKET } from '@/lib/constants'
 import { saveMemoriesFromInteraction } from '@/lib/memory'
 
+export const maxDuration = 60
+
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
 const COST = CREDIT_COST.careerScan
 

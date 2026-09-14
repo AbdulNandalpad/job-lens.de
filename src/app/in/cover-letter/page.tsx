@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
+import Link from 'next/link'
 import { useCredits } from '@/lib/useCredits'
 import CrossMarketModal from '@/components/CrossMarketModal'
 import { CREDIT_COST, LOW_CREDIT_WARN, MARKET, SS, API } from '@/lib/constants'
@@ -22,6 +23,43 @@ const LENGTHS: { id: Length; label: string; desc: string }[] = [
 
 const accent = '#FF9933'
 
+// SS.cvbTailored holds the CV Builder output as raw JSON (possibly fenced) —
+// flatten it to plain text for the letter prompt instead of sending JSON.
+// A shared helper replaces this in a later commit.
+function cvTextForLetter(): string {
+  const tailored = (sessionStorage.getItem(SS.cvbTailored) || '').replace(/```json|```/g, '').trim()
+  if (tailored.startsWith('{')) {
+    try {
+      const d = JSON.parse(tailored)
+      const lines: string[] = []
+      if (d.name) lines.push(String(d.name))
+      if (d.title) lines.push(String(d.title))
+      if (d.email) lines.push(`Email: ${d.email}`)
+      if (d.phone) lines.push(`Phone: ${d.phone}`)
+      if (d.location) lines.push(`Location: ${d.location}`)
+      if (d.summary) lines.push('', String(d.summary))
+      if (Array.isArray(d.experience) && d.experience.length) {
+        lines.push('', 'Experience:')
+        for (const e of d.experience as { role?: string; company?: string; period?: string; bullets?: string[] }[]) {
+          lines.push([e.role, e.company].filter(Boolean).join(' at ') + (e.period ? ` (${e.period})` : ''))
+          if (Array.isArray(e.bullets)) for (const b of e.bullets) lines.push(`  - ${b}`)
+        }
+      }
+      if (Array.isArray(d.skills) && d.skills.length)
+        lines.push('', `Skills: ${(d.skills as ({ name?: string } | string)[]).map(s => typeof s === 'string' ? s : s.name).filter(Boolean).join(', ')}`)
+      if (Array.isArray(d.education) && d.education.length) {
+        lines.push('', 'Education:')
+        for (const ed of d.education as { degree?: string; school?: string; year?: string }[]) lines.push([ed.degree, ed.school, ed.year].filter(Boolean).join(', '))
+      }
+      const text = lines.join('\n').trim()
+      if (text) return text
+    } catch { /* not valid JSON — fall through to the plain-text keys */ }
+  } else if (tailored) {
+    return tailored
+  }
+  return sessionStorage.getItem(SS.sjsCvText) || sessionStorage.getItem(SS.cvText) || ''
+}
+
 export default function IndiaCoverLetterPage() {
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [cvText, setCvText]     = useState('')
@@ -35,6 +73,7 @@ export default function IndiaCoverLetterPage() {
   const [loading, setLoading]   = useState(false)
   const [feedback, setFeedback] = useState('')
   const [applyingFeedback, setApplyingFeedback] = useState(false)
+  const [generateError, setGenerateError] = useState<{ message: string; status: number } | null>(null)
   const [downloading, setDownloading] = useState<'pdf' | 'docx' | null>(null)
   const [openSections, setOpenSections] = useState<Record<string, boolean>>({ contact: false, style: false, format: false })
   const [mobOpen, setMobOpen] = useState(false)
@@ -50,8 +89,9 @@ export default function IndiaCoverLetterPage() {
   const jobLabel = job ? `${job.employer_name} - ${job.job_title}` : ''
 
   useEffect(() => {
-    const cv = sessionStorage.getItem(SS.cvbTailored) || sessionStorage.getItem(SS.sjsCvText) || sessionStorage.getItem(SS.cvText) || ''
-    const jobRaw = sessionStorage.getItem(SS.cvbJob)
+    const cv = cvTextForLetter()
+    // A job picked on /in/jobs lands in SS.inSelectedJob, not SS.cvbJob
+    const jobRaw = sessionStorage.getItem(SS.cvbJob) || sessionStorage.getItem(SS.inSelectedJob)
     const saved  = sessionStorage.getItem(SS.clLetter)
     setCvText(cv)
     if (jobRaw) { try { setJob(JSON.parse(jobRaw)) } catch { } }
@@ -96,7 +136,7 @@ export default function IndiaCoverLetterPage() {
     if (!cvText.trim()) return
     const isFree = freeChangesLeft > 0
     if (!isFree && credits !== null && credits < CL_COST) { alert(`You need ${CL_COST} credit. Please top up on the Account page.`); return }
-    setLoading(true); setLetter('')
+    setLoading(true); setGenerateError(null)
     try {
       const contactHeader = [
         contactName  ? `Full Name: ${contactName}`  : '',
@@ -108,13 +148,19 @@ export default function IndiaCoverLetterPage() {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ cvText: cvWithContact, job, tone, length, lang, market: MARKET.in, freeUsage: isFree }),
       })
-      if (res.status === 402) { const d = await res.json(); if (typeof d.credits === 'number') setCredits(d.credits); setLoading(false); alert('Not enough credits.'); return }
-      const data = await res.json()
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) {
+        // Server already refunded on failure — keep the previous letter on screen
+        if (res.status === 402 && typeof data.credits === 'number') setCredits(data.credits)
+        setGenerateError({ message: data.error || `Request failed (${res.status})`, status: res.status })
+        return
+      }
       if (typeof data.creditsRemaining === 'number') setCredits(data.creditsRemaining)
       const cl = data.coverLetter || data.letter || ''
+      if (!cl) { setGenerateError({ message: `Request failed (${res.status})`, status: res.status }); return }
       setLetter(cl); sessionStorage.setItem(SS.clLetter, cl)
       if (isFree) setFreeChangesLeft(p => p - 1)
-    } catch { setLetter('Failed to generate. Please try again.') }
+    } catch { setGenerateError({ message: 'Network error. Please try again.', status: 0 }) }
     finally { setLoading(false) }
   }
 
@@ -131,20 +177,25 @@ export default function IndiaCoverLetterPage() {
     if (!feedback.trim() || !letter) return
     const isFree = freeChangesLeft > 0
     if (!isFree && credits !== null && credits < CL_COST) { alert(`You need ${CL_COST} credit. Please top up on the Account page.`); return }
-    setApplyingFeedback(true)
+    setApplyingFeedback(true); setGenerateError(null)
     try {
       const res = await fetch(API.coverLetter, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ cvText, job, tone, length, lang, feedback, currentLetter: letter, market: MARKET.in, freeUsage: isFree }),
       })
-      if (res.status === 402) { alert('Not enough credits.'); setApplyingFeedback(false); return }
-      const data = await res.json()
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) {
+        if (res.status === 402 && typeof data.credits === 'number') setCredits(data.credits)
+        setGenerateError({ message: data.error || `Request failed (${res.status})`, status: res.status })
+        return
+      }
       if (typeof data.creditsRemaining === 'number') setCredits(data.creditsRemaining)
       const cl = data.coverLetter || data.letter || ''
+      if (!cl) { setGenerateError({ message: `Request failed (${res.status})`, status: res.status }); return }
       setLetter(cl); sessionStorage.setItem(SS.clLetter, cl); setFeedback('')
       if (isFree) setFreeChangesLeft(p => p - 1)
-    } catch { }
-    setApplyingFeedback(false)
+    } catch { setGenerateError({ message: 'Network error. Please try again.', status: 0 }) }
+    finally { setApplyingFeedback(false) }
   }
 
   async function downloadPDF() {
@@ -251,7 +302,7 @@ export default function IndiaCoverLetterPage() {
                 )}
               </div>
             )}
-            <input ref={fileInputRef} type="file" accept=".pdf,.doc,.docx,.txt" style={{ display: 'none' }}
+            <input ref={fileInputRef} type="file" accept=".pdf,.docx,.txt" style={{ display: 'none' }}
               onChange={e => e.target.files?.[0] && handleCvFile(e.target.files[0])} />
             {!cvText ? (
               <div onClick={() => fileInputRef.current?.click()} onDragOver={e => e.preventDefault()}
@@ -393,6 +444,12 @@ export default function IndiaCoverLetterPage() {
                 ✓ {freeChangesLeft} free use{freeChangesLeft !== 1 ? 's' : ''} remaining
               </div>
             )}
+            {generateError && (
+              <div style={{ marginBottom: 8, fontSize: 11, color: '#f87171', background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.25)', borderRadius: 6, padding: '7px 10px', lineHeight: 1.5 }}>
+                ⚠ {generateError.message}
+                {generateError.status === 402 && <> · <Link href="/in/account" style={{ color: '#f87171', fontWeight: 700 }}>Top up credits →</Link></>}
+              </div>
+            )}
             <button className="cl-gen" onClick={handleGenerate} disabled={loading || !cvText.trim() || (freeChangesLeft <= 0 && credits !== null && credits < CL_COST)}
               style={{ width: '100%', padding: '12px 0', borderRadius: 10, border: 'none', background: loading || !cvText.trim() || (freeChangesLeft <= 0 && credits !== null && credits < CL_COST) ? 'rgba(255,255,255,0.08)' : `linear-gradient(135deg, ${accent}, #e67300)`, color: loading || !cvText.trim() || (freeChangesLeft <= 0 && credits !== null && credits < CL_COST) ? 'rgba(255,255,255,0.25)' : '#fff', fontFamily: "'Outfit', sans-serif", fontSize: 13, fontWeight: 700, cursor: loading || !cvText.trim() || (freeChangesLeft <= 0 && credits !== null && credits < CL_COST) ? 'not-allowed' : 'pointer', transition: 'all 0.2s', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
               {loading
@@ -447,6 +504,13 @@ export default function IndiaCoverLetterPage() {
               </div>
             )}
           </div>
+
+          {generateError && (
+            <div style={{ margin: '12px 24px 0', fontSize: 12, color: '#f87171', background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.25)', borderRadius: 8, padding: '8px 12px', lineHeight: 1.5, flexShrink: 0 }}>
+              ⚠ {generateError.message}
+              {generateError.status === 402 && <> · <Link href="/in/account" style={{ color: '#f87171', fontWeight: 700 }}>Top up credits →</Link></>}
+            </div>
+          )}
 
           {/* Preview */}
           <div style={{ flex: 1, overflowY: 'auto', padding: '32px 40px', display: 'flex', justifyContent: 'center' }}>

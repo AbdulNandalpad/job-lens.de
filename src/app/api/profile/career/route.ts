@@ -3,6 +3,8 @@ import Anthropic from '@anthropic-ai/sdk'
 import { createServerSupabase, createAdminSupabase } from '@/lib/supabase-server'
 import { MARKET } from '@/lib/constants'
 
+export const maxDuration = 60
+
 const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
 
 // GET — fetch career profile for current user

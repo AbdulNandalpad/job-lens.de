@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createServerSupabase, checkAndDeductCredits, isUserRateLimited, refundCredits } from '@/lib/supabase-server'
 import { CREDIT_COST, AUTO_APPLY_MAINTENANCE } from '@/lib/constants'
 
+export const maxDuration = 60
+
 const COST = CREDIT_COST.autoApply
 const SSRF_RE = /^(localhost|127\.|10\.|192\.168\.|172\.(1[6-9]|2[0-9]|3[01])\.|169\.254\.|::1$|fc[0-9a-f]{2}:|fd)/i
 const ADMIN_EMAILS = (process.env.ADMIN_EMAILS || '').split(',').map(e => e.trim().toLowerCase())

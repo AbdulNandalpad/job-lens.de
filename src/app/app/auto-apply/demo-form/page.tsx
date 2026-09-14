@@ -124,8 +124,8 @@ export default function AutoApplyDemoForm() {
 
             <div style={{ marginBottom: 20 }}>
               <label htmlFor="resume" style={label}>{lang === 'DE' ? 'Lebenslauf *' : 'Resume / CV *'}</label>
-              <input id="resume" type="file" accept=".pdf,.doc,.docx,.txt" className="df-input" style={{ ...field, padding: '8px 14px', cursor: 'pointer' }} required />
-              <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 4 }}>{lang === 'DE' ? 'PDF, DOC, DOCX oder TXT · max. 10 MB' : 'PDF, DOC, DOCX or TXT · max 10 MB'}</div>
+              <input id="resume" type="file" accept=".pdf,.docx,.txt" className="df-input" style={{ ...field, padding: '8px 14px', cursor: 'pointer' }} required />
+              <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 4 }}>{lang === 'DE' ? 'PDF, DOCX oder TXT · max. 10 MB' : 'PDF, DOCX or TXT · max 10 MB'}</div>
             </div>
 
             <div style={{ marginBottom: 28 }}>

@@ -1,15 +1,32 @@
 import { NextRequest } from 'next/server'
 import { createServerSupabase } from '@/lib/supabase-server'
 import type { FieldMapping } from '@/lib/auto-apply-engine'
+import { AUTO_APPLY_MAINTENANCE } from '@/lib/constants'
 
 export const dynamic = 'force-dynamic'
 
 const SSRF_RE = /^(localhost|127\.|10\.|192\.168\.|172\.(1[6-9]|2[0-9]|3[01])\.|169\.254\.|::1$|fc[0-9a-f]{2}:|fd)/i
+const ADMIN_EMAILS = (process.env.ADMIN_EMAILS || '').split(',').map(e => e.trim().toLowerCase())
+
+function sseError(message: string): Response {
+  const encoder = new TextEncoder()
+  const stream = new ReadableStream({
+    start(controller) {
+      controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: 'error', message })}\n\n`))
+      controller.close()
+    },
+  })
+  return new Response(stream, { headers: { 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache' } })
+}
 
 export async function POST(req: NextRequest) {
   const supabase = await createServerSupabase()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return new Response('Unauthorized', { status: 401 })
+
+  if (AUTO_APPLY_MAINTENANCE && !ADMIN_EMAILS.includes((user.email ?? '').toLowerCase())) {
+    return sseError('Auto Apply is currently in maintenance mode. Please check back soon.')
+  }
 
   const body = await req.json()
   const { jobUrl, mapping, cvText, coverLetter } = body as {
@@ -44,17 +61,7 @@ export async function POST(req: NextRequest) {
       body: JSON.stringify({ jobUrl, mapping, cvText, coverLetter, storageState }),
     })
 
-    if (!upstream.ok || !upstream.body) {
-      const encoder = new TextEncoder()
-      const errMsg = JSON.stringify({ type: 'error', message: 'Browser service unavailable' })
-      const stream = new ReadableStream({
-        start(controller) {
-          controller.enqueue(encoder.encode(`data: ${errMsg}\n\n`))
-          controller.close()
-        },
-      })
-      return new Response(stream, { headers: { 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache' } })
-    }
+    if (!upstream.ok || !upstream.body) return sseError('Browser service unavailable')
 
     return new Response(upstream.body, {
       headers: {
@@ -91,13 +98,5 @@ export async function POST(req: NextRequest) {
     })
   }
 
-  const encoder = new TextEncoder()
-  const errMsg = JSON.stringify({ type: 'error', message: 'Auto Apply is not yet configured.' })
-  const stream = new ReadableStream({
-    start(controller) {
-      controller.enqueue(encoder.encode(`data: ${errMsg}\n\n`))
-      controller.close()
-    },
-  })
-  return new Response(stream, { headers: { 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache' } })
+  return sseError('Auto Apply is not yet configured.')
 }

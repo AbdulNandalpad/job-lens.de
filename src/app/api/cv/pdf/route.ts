@@ -4,6 +4,8 @@ import { pdf, DocumentProps } from '@react-pdf/renderer'
 import { CVPdfDocument } from '@/lib/CVPdf'
 import { createServerSupabase } from '@/lib/supabase-server'
 
+export const maxDuration = 60
+
 export async function POST(req: NextRequest) {
   const supabase = await createServerSupabase()
   const { data: { user } } = await supabase.auth.getUser()

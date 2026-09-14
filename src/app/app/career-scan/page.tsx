@@ -228,9 +228,11 @@ export default function CareerScanPage() {
       clearInterval(timer)
       if (res.status === 402) {
         setPhase('error')
-        setToastMsg('Not enough credits. Please top up to continue.')
+        setToastMsg(data.error || 'Not enough credits. Please top up to continue.')
         if (typeof data.credits === 'number') setCredits(data.credits)
-      } else if (data.error || !data.score) {
+      } else if (!res.ok || data.error || !data.score) {
+        // Surface the server's precise reason; the i18n generic copy is the fallback
+        setToastMsg(typeof data.error === 'string' && data.error ? data.error : (!res.ok ? t.common.requestFailed(res.status) : ''))
         setPhase('error')
       } else {
         if (typeof data.creditsRemaining === 'number') setCredits(data.creditsRemaining)
@@ -238,7 +240,7 @@ export default function CareerScanPage() {
         setPhase('results')
         setShowJobSearchBanner(true)
       }
-    } catch { clearInterval(timer); setPhase('error') }
+    } catch { clearInterval(timer); setToastMsg(t.common.networkError); setPhase('error') }
   }
 
   function handleRunScan() {
@@ -299,7 +301,7 @@ export default function CareerScanPage() {
         </button>
       )}
 
-      <UploadBox label={cs.sidebar.cvLabel} sublabel={cs.sidebar.cvSub} fileName={fileName} inputRef={fileInputRef} onFile={handleFile} onClear={clearCvFile} accept=".pdf,.txt,.doc,.docx" uploadedLabel={t.careerScan.sidebar.uploaded} clickToUploadLabel={t.careerScan.sidebar.clickToUpload} />
+      <UploadBox label={cs.sidebar.cvLabel} sublabel={cs.sidebar.cvSub} fileName={fileName} inputRef={fileInputRef} onFile={handleFile} onClear={clearCvFile} accept=".pdf,.docx,.txt" uploadedLabel={t.careerScan.sidebar.uploaded} clickToUploadLabel={t.careerScan.sidebar.clickToUpload} />
 
       <div style={{ height: 1, background: 'rgba(255,255,255,0.1)' }} />
 
@@ -821,7 +823,7 @@ export default function CareerScanPage() {
                 <div style={{ width: 60, height: 60, borderRadius: '50%', background: c.errorLight, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 28, margin: '0 auto 16px', color: c.error, fontWeight: 700 }}>!</div>
                 <div style={{ fontSize: 15, fontWeight: 600, color: c.error, marginBottom: 8 }}>{cs.errorTitle}</div>
                 <div style={{ fontSize: 13, color: c.textMuted, marginBottom: 20 }}>{toastMsg || cs.errorSub}</div>
-                <button onClick={() => { setPhase('upload'); setFileName(''); setCvText('') }} style={{ padding: '10px 24px', borderRadius: 10, background: g.primaryBtn, color: c.primaryLight, border: 'none', cursor: 'pointer', fontSize: 14, fontWeight: 600, fontFamily: f.heading }}>
+                <button onClick={() => { setToastMsg(''); setPhase('upload') }} style={{ padding: '10px 24px', borderRadius: 10, background: g.primaryBtn, color: c.primaryLight, border: 'none', cursor: 'pointer', fontSize: 14, fontWeight: 600, fontFamily: f.heading }}>
                   {cs.tryAgain}
                 </button>
               </div>

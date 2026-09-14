@@ -530,7 +530,7 @@ function Spinner({ light = false }: { light?: boolean }) {
 
 export default function JobCaseNewPage() {
   const router = useRouter()
-  const { lang } = useLanguage()
+  const { lang, t } = useLanguage()
   const { credits } = useCredits()
 
   const [step, setStep]          = useState<Step>('paste')
@@ -552,6 +552,7 @@ export default function JobCaseNewPage() {
   const [evidence, setEvidence]  = useState<Evidence[]>([])
   const [questions, setQuestions] = useState<Question[]>([])
   const [analyseError, setAnalyseError] = useState('')
+  const [createError, setCreateError]   = useState('')
   const [caseSlug, setCaseSlug]  = useState('')
   const [caseUrl, setCaseUrl]    = useState('')
   const [videoStorageKey, setVideoStorageKey] = useState<string | null>(null)
@@ -725,6 +726,7 @@ export default function JobCaseNewPage() {
 
   async function createCase() {
     setStep('generating')
+    setCreateError('')
     try {
       const cvText = sessionStorage.getItem(SS.cvText) || sessionStorage.getItem(SS.cvbTailored) || sessionStorage.getItem(SS.atsSuggestions) || ''
       const res = await fetch(API.jobCaseCreate, {
@@ -740,14 +742,17 @@ export default function JobCaseNewPage() {
           cvText,
         }),
       })
-      const data = await res.json()
-      if (!res.ok) { setStep('test'); return }
+      const data = await res.json().catch(() => ({}))
+      // Stay on 'generating' and show the reason — the 'test' step's JSX is
+      // commented out, so sending the user there rendered a blank screen.
+      // Video + answers are still in memory, so "Try again" just re-posts.
+      if (!res.ok) { setCreateError(data.error || t.common.requestFailed(res.status)); return }
       setCaseSlug(data.slug ?? '')
       setCaseUrl(data.caseUrl ?? '')
       setMatchScore(data.matchScore ?? matchScore)
       setStep('done')
     } catch {
-      setStep('test')
+      setCreateError(t.common.networkError)
     }
   }
 
@@ -923,7 +928,7 @@ export default function JobCaseNewPage() {
                       <input
                         ref={cvInputRef}
                         type="file"
-                        accept=".pdf,.docx"
+                        accept=".pdf,.docx,.txt"
                         style={{ display: 'none' }}
                         onChange={e => { const f = e.target.files?.[0]; if (f) handleCvUpload(f); e.target.value = '' }}
                       />
@@ -1336,11 +1341,20 @@ export default function JobCaseNewPage() {
               ── END of commented-out written test step ── */}
 
               {/* ── GENERATING ─────────────────────────────────────────── */}
-              {step === 'generating' && (
+              {step === 'generating' && !createError && (
                 <div className="jc-fade" style={{ textAlign: 'center', padding: '80px 20px' }}>
                   <div style={{ width: 48, height: 48, border: `3px solid ${c.border}`, borderTopColor: c.accent, borderRadius: '50%', animation: 'spin 1s linear infinite', margin: '0 auto 20px' }} />
                   <h2 style={{ fontFamily: f.heading, fontSize: 20, fontWeight: 700, color: c.primary, margin: '0 0 8px' }}>{lang === 'DE' ? 'Dein Job Case wird erstellt…' : 'Building your Job Case…'}</h2>
                   <p style={{ fontSize: 13, color: c.textMuted, maxWidth: 360, margin: '0 auto', lineHeight: 1.6 }}>{lang === 'DE' ? 'Die KI bewertet deine Antworten, ordnet Nachweise zu und verfasst deine Pitch-Erzählung. Etwa 15 Sekunden.' : 'AI is scoring your answers, mapping evidence, and writing your pitch narrative. About 15 seconds.'}</p>
+                </div>
+              )}
+              {step === 'generating' && createError && (
+                <div className="jc-fade" style={{ textAlign: 'center', padding: '80px 20px' }}>
+                  <div style={{ width: 48, height: 48, borderRadius: '50%', background: c.errorLight, border: `1px solid ${c.errorBorder}`, display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px', color: c.error, fontWeight: 700, fontSize: 22 }}>!</div>
+                  <h2 style={{ fontFamily: f.heading, fontSize: 20, fontWeight: 700, color: c.primary, margin: '0 0 8px' }}>{lang === 'DE' ? 'Job Case konnte nicht erstellt werden' : 'Could not build your Job Case'}</h2>
+                  <p style={{ fontSize: 13, color: c.error, maxWidth: 420, margin: '0 auto 8px', lineHeight: 1.6 }}>{createError}</p>
+                  <p style={{ fontSize: 13, color: c.textMuted, maxWidth: 360, margin: '0 auto 20px', lineHeight: 1.6 }}>{lang === 'DE' ? 'Dein Video und deine Antworten sind noch da — einfach erneut versuchen.' : 'Your video and answers are still here — just try again.'}</p>
+                  <button className="jc-btn" onClick={createCase}>{t.common.tryAgain}</button>
                 </div>
               )}
 

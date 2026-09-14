@@ -1,7 +1,10 @@
 import { NextRequest } from 'next/server'
 import { createServerSupabase } from '@/lib/supabase-server'
+import { AUTO_APPLY_MAINTENANCE } from '@/lib/constants'
 
 export const dynamic = 'force-dynamic'
+
+const ADMIN_EMAILS = (process.env.ADMIN_EMAILS || '').split(',').map(e => e.trim().toLowerCase())
 
 function sseError(message: string): Response {
   const encoder = new TextEncoder()
@@ -18,6 +21,12 @@ export async function POST(req: NextRequest) {
   const supabase = await createServerSupabase()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return new Response('Unauthorized', { status: 401 })
+
+  // SSE rather than a 503 body: the client's streamEvents() discards non-OK
+  // bodies, so only an SSE error event actually reaches the user.
+  if (AUTO_APPLY_MAINTENANCE && !ADMIN_EMAILS.includes((user.email ?? '').toLowerCase())) {
+    return sseError('Auto Apply is currently in maintenance mode. Please check back soon.')
+  }
 
   const body = await req.json() as { sessionId?: string }
   const { sessionId } = body
