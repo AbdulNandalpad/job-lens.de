@@ -75,6 +75,7 @@ export default function Navbar() {
   }
 
   const navItems = [
+    { label: t.navbar.apply,       href: '/app/apply' },
     { label: t.navbar.jobSearch,   href: '/app/jobs' },
     { label: t.navbar.careerScan,  href: '/app/career-scan' },
     { label: t.navbar.cvBuilder,   href: '/app/cv-builder' },

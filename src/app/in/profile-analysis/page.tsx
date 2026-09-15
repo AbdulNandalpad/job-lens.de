@@ -3,9 +3,12 @@
 import { useState, useRef, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useCredits } from '@/lib/useCredits'
+import { useCurrentCv } from '@/lib/useCurrentCv'
 import CrossMarketModal from '@/components/CrossMarketModal'
 import CareerCard from '@/components/CareerCard'
+import FlowError from '@/components/FlowError'
 import { CREDIT_COST, MARKET, SS, API } from '@/lib/constants'
+import { readJsonOrError } from '@/lib/apiError'
 import SvgIcon from '@/components/SvgIcon'
 
 const orange = '#ff9933'
@@ -83,7 +86,11 @@ function readinessStyle(r: string) {
 export default function ProfileAnalysisPage() {
   const router = useRouter()
   const { credits, setCredits, needsCrossMarket, crossMarketAmount } = useCredits()
-  const [cvText,      setCvText]      = useState('')
+  const { cvText, fileName, source: cvSource, rememberedConsent, setCv, clearCv, extractFile } = useCurrentCv()
+  // Textarea buffer: setCv() trims, which would eat a trailing newline mid-edit — the hook's cvText stays the truth.
+  const [cvDraft,     setCvDraft]     = useState('')
+  const [saveConsent, setSaveConsent] = useState(false)
+  const [cvNotice,    setCvNotice]    = useState<{ kind: 'ok' | 'error'; text: string } | null>(null)
   const [role,        setRole]        = useState('')
   const [result,      setResult]      = useState<CareerResult | null>(null)
   const [loading,     setLoading]     = useState(false)
@@ -91,12 +98,14 @@ export default function ProfileAnalysisPage() {
   const [fileLoading, setFileLoading] = useState(false)
   const [resTab,      setResTab]      = useState<ResTab>('insights')
   const [crossWarn,   setCrossWarn]   = useState<(() => void) | null>(null)
+  const [scanError,   setScanError]   = useState<{ text: string; topUp?: boolean } | null>(null)
   const fileRef = useRef<HTMLInputElement>(null)
   const loadTimer = useRef<ReturnType<typeof setInterval> | null>(null)
 
+  useEffect(() => { setCvDraft(d => (d.trim() === cvText.trim() ? d : cvText)) }, [cvText])
+  useEffect(() => { setSaveConsent(rememberedConsent) }, [rememberedConsent])
+
   useEffect(() => {
-    const saved = sessionStorage.getItem(SS.cvText) || ''
-    if (saved) setCvText(saved)
     const savedResult = sessionStorage.getItem(SS.inCareerScanResult)
     const savedRole   = sessionStorage.getItem(SS.inCareerScanRole)
     if (savedResult) { try { setResult(JSON.parse(savedResult)); setResTab('insights') } catch {} }
@@ -113,27 +122,47 @@ export default function ProfileAnalysisPage() {
     if (loadTimer.current) { clearInterval(loadTimer.current); loadTimer.current = null }
   }
 
-  async function handleFile(file: File) {
-    setFileLoading(true)
-    if (file.name.endsWith('.txt') || file.type === 'text/plain') {
-      const fr = new FileReader()
-      fr.onload = e => { const t = (e.target?.result as string) ?? ''; setCvText(t); sessionStorage.setItem(SS.cvText, t); setFileLoading(false) }
-      fr.readAsText(file)
-    } else {
-      const form = new FormData(); form.append('file', file)
-      try {
-        const res = await fetch(API.extractPdf, { method: 'POST', body: form })
-        const d   = await res.json()
-        if (d.text) { setCvText(d.text); sessionStorage.setItem(SS.cvText, d.text) }
-        else alert(d.error || 'Could not read file.')
-      } catch { alert('Failed to read file.') }
-      setFileLoading(false)
-    }
+  function showSaveOutcome(out: { saved: boolean; error?: string }) {
+    setCvNotice(out.saved ? { kind: 'ok', text: 'Saved to your account' } : { kind: 'error', text: `Could not save: ${out.error || ''}` })
   }
 
+  async function handleFile(file: File) {
+    setCvNotice(null)
+    setFileLoading(true)
+    const extracted = await extractFile(file)
+    if ('error' in extracted) {
+      setCvNotice({ kind: 'error', text: extracted.error })
+    } else if (extracted.text.trim().length < 50) {
+      setCvNotice({ kind: 'error', text: 'That file has too little text to be a CV — try another file or paste the text.' })
+    } else {
+      const out = await setCv(extracted.text, file.name, { saveToAccount: saveConsent })
+      if (saveConsent) showSaveOutcome(out)
+    }
+    setFileLoading(false)
+    if (fileRef.current) fileRef.current.value = ''
+  }
+
+  function onCvTextChange(value: string) {
+    setCvDraft(value)
+    setCvNotice(null)
+    void setCv(value, value.trim() ? fileName : '')
+  }
+
+  // Ticking the box after a paste/upload saves the CV that is already here — the tick is the consent.
+  async function onConsentChange(checked: boolean) {
+    setSaveConsent(checked)
+    if (!checked || cvSource !== 'session' || !cvText.trim()) return
+    showSaveOutcome(await setCv(cvText, fileName, { saveToAccount: true }))
+  }
+
+  // clearCv() on the account CV would re-adopt it at once, so "Remove" detaches it for this session via an empty session CV.
+  function removeSavedCv() { void setCv('', ''); setCvNotice(null); if (fileRef.current) fileRef.current.value = '' }
+  function clearSessionCv() { clearCv(); setCvDraft(''); setCvNotice(null); if (fileRef.current) fileRef.current.value = '' }
+
   async function runScan() {
-    if (!cvText.trim()) { alert('Please add your CV text first.'); return }
-    if (!role.trim())   { alert('Please enter a target role.'); return }
+    if (!cvText.trim()) { setScanError({ text: 'Please add your CV text first.' }); return }
+    if (!role.trim())   { setScanError({ text: 'Please enter a target role.' }); return }
+    setScanError(null)
     setLoading(true); setResult(null); startLoadTimer()
     try {
       const res = await fetch(API.indiaCareerScanPro, {
@@ -141,21 +170,20 @@ export default function ProfileAnalysisPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ cvText, role }),
       })
-      if (res.status === 402) {
-        const d = await res.json()
-        if (typeof d.credits === 'number') setCredits(d.credits)
-        alert('Not enough credits. Please top up on the Account page.')
+      const out = await readJsonOrError<CareerResult>(res)
+      if (!out.ok) {
+        if (typeof out.credits === 'number') setCredits(out.credits)
+        setScanError({ text: out.message, topUp: out.status === 402 })
         stopLoadTimer(); setLoading(false); return
       }
-      const data: CareerResult = await res.json()
-      if ('error' in data) { alert((data as { error: string }).error); stopLoadTimer(); setLoading(false); return }
+      const data = out.data
       if (typeof data.creditsRemaining === 'number') setCredits(data.creditsRemaining)
       setResult(data); setResTab('insights')
       try {
         sessionStorage.setItem(SS.inCareerScanResult, JSON.stringify(data))
         sessionStorage.setItem(SS.inCareerScanRole, role)
       } catch {}
-    } catch { alert('Analysis failed. Please try again.') }
+    } catch { setScanError({ text: 'Analysis failed. Please check your connection and try again.' }) }
     stopLoadTimer(); setLoading(false)
   }
 
@@ -192,7 +220,7 @@ export default function ProfileAnalysisPage() {
 
           {/* Header */}
           <div style={{ marginBottom: 24, paddingLeft: 14, borderLeft: `3px solid ${orange}` }}>
-            <h1 style={{ fontFamily: "'Outfit',sans-serif", fontSize: 22, fontWeight: 700, color: navy, margin: 0 }}>Career Scan</h1>
+            <h1 style={{ fontFamily: "'Outfit',sans-serif", fontSize: 22, fontWeight: 700, color: navy, margin: 0 }}>Career Analysis</h1>
             <p style={{ fontSize: 13, color: '#6b7c93', margin: '4px 0 0' }}>
               Upload your CV, pick a target role — get salary benchmarks, AI risk exposure, and a 3-month career roadmap.
               <span style={{ marginLeft: 10, fontSize: 11, fontWeight: 700, color: '#FF9933', background: 'rgba(255,153,51,0.15)', padding: '2px 8px', borderRadius: 20 }}>
@@ -210,21 +238,72 @@ export default function ProfileAnalysisPage() {
               <div style={{ background: '#fff', borderRadius: 14, padding: 20, boxShadow: '0 2px 12px rgba(4,44,83,0.06)', border: '1px solid #edf1f6' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
                   <label style={{ fontSize: 13, fontWeight: 700, color: navy, fontFamily: "'Outfit',sans-serif" }}>Your CV</label>
-                  <button onClick={() => fileRef.current?.click()}
-                    style={{ fontSize: 11, padding: '4px 12px', borderRadius: 8, border: `1px solid ${blue}`, background: 'transparent', color: blue, cursor: 'pointer', fontWeight: 600 }}>
-                    {fileLoading ? 'Reading…' : 'Upload PDF / DOCX'}
-                  </button>
+                  {cvSource !== 'saved' && (
+                    <button type="button" onClick={() => fileRef.current?.click()} disabled={fileLoading}
+                      style={{ fontSize: 11, padding: '4px 12px', borderRadius: 8, border: `1px solid ${blue}`, background: 'transparent', color: blue, cursor: fileLoading ? 'wait' : 'pointer', fontWeight: 600 }}>
+                      {fileLoading ? 'Reading your CV…' : 'Upload your CV'}
+                    </button>
+                  )}
                   <input ref={fileRef} type="file" accept=".pdf,.docx,.txt" style={{ display: 'none' }}
                     onChange={e => e.target.files?.[0] && handleFile(e.target.files[0])} />
                 </div>
-                <textarea
-                  value={cvText}
-                  onChange={e => setCvText(e.target.value)}
-                  placeholder="Paste your CV text or upload a file…"
-                  rows={9}
-                  style={{ width: '100%', resize: 'vertical', padding: '10px 12px', borderRadius: 8, border: '1px solid #dce4ef', fontSize: 12, color: '#374151', fontFamily: "'DM Sans',sans-serif", lineHeight: 1.6, outline: 'none', boxSizing: 'border-box' }}
-                />
-                {cvText && <div style={{ fontSize: 11, color: '#9aafbc', marginTop: 4 }}>{cvText.length.toLocaleString()} chars</div>}
+
+                {cvSource === 'saved' ? (
+                  <div style={{ border: `1.5px solid ${green}`, borderRadius: 10, padding: '10px 12px', background: 'rgba(29,158,117,0.08)' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                      <SvgIcon name="document" size={18} color={green} />
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontSize: 12, fontWeight: 600, color: navy, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          {fileName ? `CV on file: ${fileName}` : 'Using your saved CV'}
+                        </div>
+                        {fileName && <div style={{ fontSize: 11, color: green, marginTop: 2 }}>Using your saved CV</div>}
+                      </div>
+                    </div>
+                    <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
+                      <button type="button" onClick={() => fileRef.current?.click()} disabled={fileLoading}
+                        style={{ flex: 1, padding: '6px 10px', borderRadius: 8, border: `1px solid ${blue}`, background: 'transparent', color: blue, fontSize: 11, fontWeight: 600, cursor: fileLoading ? 'wait' : 'pointer', fontFamily: 'inherit' }}>
+                        {fileLoading ? 'Reading your CV…' : 'Replace'}
+                      </button>
+                      <button type="button" onClick={removeSavedCv}
+                        style={{ flex: 1, padding: '6px 10px', borderRadius: 8, border: '1px solid #dce4ef', background: 'transparent', color: '#6b7c93', fontSize: 11, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>
+                        Remove
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <>
+                    {fileName && (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8, fontSize: 11, color: green, fontWeight: 600 }}>
+                        <SvgIcon name="document" size={14} color={green} />
+                        <span style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{`CV on file: ${fileName}`}</span>
+                        <button type="button" onClick={clearSessionCv}
+                          style={{ fontSize: 11, padding: '2px 8px', borderRadius: 6, border: '1px solid #dce4ef', background: 'transparent', color: '#6b7c93', cursor: 'pointer', fontWeight: 600, fontFamily: 'inherit' }}>
+                          Remove
+                        </button>
+                      </div>
+                    )}
+                    <textarea
+                      value={cvDraft}
+                      onChange={e => onCvTextChange(e.target.value)}
+                      placeholder="Paste your CV text or upload a file (PDF, DOCX or TXT)…"
+                      rows={9}
+                      style={{ width: '100%', resize: 'vertical', padding: '10px 12px', borderRadius: 8, border: '1px solid #dce4ef', fontSize: 12, color: '#374151', fontFamily: "'DM Sans',sans-serif", lineHeight: 1.6, outline: 'none', boxSizing: 'border-box' }}
+                    />
+                    {cvText && <div style={{ fontSize: 11, color: '#9aafbc', marginTop: 4 }}>{cvText.length.toLocaleString()} chars</div>}
+                    <label style={{ display: 'flex', gap: 8, alignItems: 'flex-start', fontSize: 11, color: '#6b7c93', lineHeight: 1.4, cursor: 'pointer', marginTop: 8 }}>
+                      <input type="checkbox" checked={saveConsent} onChange={e => onConsentChange(e.target.checked)} style={{ marginTop: 1, accentColor: orange, flexShrink: 0 }} />
+                      <span>Save to my account for next time</span>
+                    </label>
+                  </>
+                )}
+
+                {cvNotice && (
+                  <div style={{ marginTop: 8 }}>
+                    {cvNotice.kind === 'ok'
+                      ? <div style={{ fontSize: 11, color: green, display: 'flex', alignItems: 'center', gap: 6 }}><SvgIcon name="check-circle" size={13} color={green} />{cvNotice.text}</div>
+                      : <FlowError compact message={cvNotice.text} />}
+                  </div>
+                )}
               </div>
 
               {/* Target role */}
@@ -245,6 +324,10 @@ export default function ProfileAnalysisPage() {
                   <div style={{ fontSize: 12, color: '#9aafbc', textAlign: 'center' }}>
                     {credits} credits remaining &mdash; costs {COST}
                   </div>
+                )}
+                {scanError && (
+                  <FlowError compact message={scanError.text} onRetry={scanError.topUp ? undefined : handleRun}
+                    secondary={scanError.topUp ? { label: 'Top up credits', href: '/in/account' } : undefined} />
                 )}
                 <button onClick={handleRun} disabled={loading || !cvText.trim() || !role.trim()}
                   style={{ padding: '13px 0', borderRadius: 10, border: 'none', cursor: loading || !cvText.trim() || !role.trim() ? 'not-allowed' : 'pointer', background: loading || !cvText.trim() || !role.trim() ? '#d1d9e4' : `linear-gradient(135deg,${orange},#e67300)`, color: loading || !cvText.trim() || !role.trim() ? '#94a3b8' : '#042C53', fontFamily: "'Outfit',sans-serif", fontSize: 14, fontWeight: 700, transition: 'all .15s', boxShadow: loading || !cvText.trim() || !role.trim() ? 'none' : '0 4px 16px rgba(255,153,51,0.35)' }}>

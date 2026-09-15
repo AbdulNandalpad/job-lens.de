@@ -141,6 +141,7 @@ export const translations = {
       packageActiveNote: (until: string) => `Paket für diese Stelle aktiv bis ${until}`,
     },
     navbar: {
+      apply: 'Bewerben',
       aiAssistant: 'AI Assistent',
       careerScan: 'Career Scan',
       jobSearch: 'Job-Suche',
@@ -203,6 +204,8 @@ export const translations = {
         jobBannerSub: 'Dein Profil ist bereit — weiter zur Jobsuche',
         jobBannerBtn: 'Passende Jobs finden →',
         jobBannerLater: 'Später',
+        applyWithCv: 'Mit diesem Lebenslauf bewerben →',
+        applyWithCvSub: 'Stelle wählen, Fit prüfen, CV + Anschreiben in einem Schritt',
         modeInsights: 'Einblicke',
         modeUpgrade: 'Entwicklung',
         profileStrength: 'Profilstärke',
@@ -661,6 +664,7 @@ export const translations = {
       packageActiveNote: (until: string) => `Package for this job active until ${until}`,
     },
     navbar: {
+      apply: 'Apply',
       aiAssistant: 'AI Assistant',
       careerScan: 'Career Scan',
       jobSearch: 'Job Search',
@@ -723,6 +727,8 @@ export const translations = {
         jobBannerSub: 'Your profile is ready — take it to Smart Job Search',
         jobBannerBtn: 'Find Matching Jobs →',
         jobBannerLater: 'Later',
+        applyWithCv: 'Apply to a job with this CV →',
+        applyWithCvSub: 'Pick a job, check the fit, get CV + cover letter in one step',
         modeInsights: 'Insights',
         modeUpgrade: 'Upgrade',
         profileStrength: 'Profile Strength',

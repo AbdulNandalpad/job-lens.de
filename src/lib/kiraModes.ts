@@ -15,6 +15,11 @@ export interface KiraTile {
 // same names, same order, same accents — minus the redundant Kira AI tile.
 export const KIRA_TILES: KiraTile[] = [
   {
+    id: 'apply', href: { eu: '/app/apply', in: '/in/apply' },
+    label: { eu_DE: 'Bewerben', eu_EN: 'Apply to a job', in_EN: 'Apply to a job' },
+    desc:  { eu_DE: 'CV + Anschreiben für eine Stelle, in 5 Schritten', eu_EN: 'CV + cover letter for one job, in 5 steps', in_EN: 'CV + cover letter for one job, in 5 steps' },
+  },
+  {
     id: 'career_scan', href: { eu: '/app/career-scan', in: '/in/career-scan' },
     label: { eu_DE: 'Career Scan', eu_EN: 'Career Scan', in_EN: 'ATS Score' },
     desc:  { eu_DE: 'Ehrlicher CV-Score & Feedback', eu_EN: 'Honest CV score & feedback', in_EN: 'Beat the AI filter' },
@@ -30,7 +35,7 @@ export const KIRA_TILES: KiraTile[] = [
     desc:  { eu_DE: 'Auf jede Stelle zugeschnitten', eu_EN: 'Tailored to every role', in_EN: 'Tailored in minutes' },
   },
   {
-    id: 'cover_letter', href: { eu: '/app/cv-builder', in: '/in/cover-letter' },
+    id: 'cover_letter', href: { eu: '/app/cover-letter', in: '/in/cover-letter' },
     label: { eu_DE: 'Anschreiben', eu_EN: 'Cover Letter', in_EN: 'Cover Letter' },
     desc:  { eu_DE: 'Überzeugend & persönlich', eu_EN: 'Personal & persuasive', in_EN: 'Personal & sharp' },
   },

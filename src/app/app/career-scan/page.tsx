@@ -6,15 +6,17 @@ import { useRouter } from 'next/navigation'
 import Navbar from '../components/Navbar'
 import { theme } from '@/lib/theme'
 import { useCredits } from '@/lib/useCredits'
-import { useSavedCv } from '@/lib/useSavedCv'
+import { useCurrentCv } from '@/lib/useCurrentCv'
 import { useLanguage } from '@/lib/i18n'
 import CrossMarketModal from '@/components/CrossMarketModal'
 import CareerCard from '@/components/CareerCard'
+import FlowError from '@/components/FlowError'
 import { CREDIT_COST, LOW_CREDIT_WARN, MARKET, SS, API } from '@/lib/constants'
 import { AiDisclosureNotice } from '@/components/AiDisclosureNotice'
 import SvgIcon, { type IconName } from '@/components/SvgIcon'
 
 const { colors: c, gradients: g, fonts: f } = theme
+const fa = theme.featureAccents
 
 interface ScanResult {
   score: number
@@ -84,10 +86,12 @@ function MobileSection({ title, icon, defaultOpen = false, children }: {
   )
 }
 
-function UploadBox({ label, sublabel, fileName, inputRef, onFile, onClear, accept, uploadedLabel, clickToUploadLabel }: {
+// The hidden <input type="file"> lives in the sidebar (not here) so the saved-CV chip's
+// "Replace" button can open the same picker.
+function UploadBox({ label, sublabel, fileName, inputRef, onClear, uploadedLabel, clickToUploadLabel }: {
   label: string; sublabel: string; fileName: string
   inputRef: { current: HTMLInputElement | null }
-  onFile: (f: File) => void; onClear: () => void; accept: string
+  onClear: () => void
   uploadedLabel: string; clickToUploadLabel: string
 }) {
   return (
@@ -107,8 +111,6 @@ function UploadBox({ label, sublabel, fileName, inputRef, onFile, onClear, accep
             display: 'flex', alignItems: 'center', gap: 10,
           }}
         >
-          <input ref={inputRef} type="file" accept={accept} style={{ display: 'none' }}
-            onChange={e => { const f = e.target.files?.[0]; if (f) onFile(f) }} />
           <div style={{ width: 20, height: 20, borderRadius: 4, background: fileName ? 'rgba(29,158,117,0.3)' : 'rgba(255,255,255,0.15)', flexShrink: 0 }} />
           <div>
             <div style={{ fontSize: 12, fontWeight: 600, color: fileName ? c.success : '#fff', marginBottom: 2 }}>
@@ -133,9 +135,13 @@ export default function CareerScanPage() {
   const router = useRouter()
   const { lang, t } = useLanguage()
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const { cvText, fileName, source: cvSource, rememberedConsent, setCv, clearCv, extractFile } = useCurrentCv()
 
-  const [cvText, setCvText] = useState('')
-  const [fileName, setFileName] = useState('')
+  // Textarea buffer: setCv() trims, which would eat a trailing newline mid-edit — the hook's cvText stays the truth.
+  const [cvDraft, setCvDraft] = useState('')
+  const [saveConsent, setSaveConsent] = useState(false)
+  const [cvNotice, setCvNotice] = useState<{ kind: 'ok' | 'error'; text: string } | null>(null)
+  const [scanBlocked, setScanBlocked] = useState('')
   const [fileLoading, setFileLoading] = useState(false)
   const [role, setRole] = useState('')
   const [phase, setPhase] = useState<'upload' | 'loading' | 'results' | 'error'>('upload')
@@ -146,26 +152,21 @@ export default function CareerScanPage() {
   const [toastMsg, setToastMsg] = useState('')
   const [showJobSearchBanner, setShowJobSearchBanner] = useState(false)
   const { credits, setCredits, needsCrossMarket, crossMarketAmount } = useCredits()
-  const { hasCv: hasSavedCv, cvText: savedCvText, fileName: savedCvFileName, loadingSavedCv } = useSavedCv()
-
-  function useSavedCvNow() {
-    if (!savedCvText) return
-    setCvText(savedCvText)
-    setFileName(savedCvFileName || (lang === 'DE' ? 'Gespeicherter Lebenslauf' : 'Saved CV'))
-  }
   const SCAN_COST = CREDIT_COST.careerScan
   const [crossWarnPending, setCrossWarnPending] = useState<(() => void) | null>(null)
+
+  useEffect(() => { setCvDraft(d => (d.trim() === cvText.trim() ? d : cvText)) }, [cvText])
+  useEffect(() => { setSaveConsent(rememberedConsent) }, [rememberedConsent])
 
   useEffect(() => {
     if (phase === 'results' && result) {
       sessionStorage.setItem(SS.scanResult, JSON.stringify(result))
       sessionStorage.setItem(SS.scanRole, role)
       sessionStorage.setItem(SS.scanPhase, 'results')
-      // Persist CV text and target role for downstream pages (cv-builder, jobs)
-      if (cvText) sessionStorage.setItem(SS.cvText, cvText)
-      if (role)   sessionStorage.setItem(SS.targetRole, role)
+      // Target role for downstream pages (jobs); the CV itself is already shared via useCurrentCv
+      if (role) sessionStorage.setItem(SS.targetRole, role)
     }
-  }, [phase, result, cvText, role])
+  }, [phase, result, role])
 
   useEffect(() => {
     const savedPhase = sessionStorage.getItem(SS.scanPhase)
@@ -183,38 +184,54 @@ export default function CareerScanPage() {
     }
   }, [])
 
-  async function handleFile(file: File) {
-    setFileName(file.name)
-    setCvText('')
-    setFileLoading(true)
-    if (file.name.endsWith('.txt') || file.type === 'text/plain') {
-      const r = new FileReader()
-      r.onload = e => { setCvText((e.target?.result as string) ?? ''); setFileLoading(false) }
-      r.readAsText(file)
-    } else {
-      const form = new FormData()
-      form.append('file', file)
-      try {
-        const res = await fetch(API.extractPdf, { method: 'POST', body: form })
-        const data = await res.json()
-        if (data.text) { setCvText(data.text) } else { alert(data.error || 'Could not read PDF. Please paste your CV text below.'); setFileName('') }
-      } catch { alert('Failed to read PDF. Please paste your CV text below.'); setFileName('') }
-      setFileLoading(false)
-    }
+  function showSaveOutcome(out: { saved: boolean; error?: string }) {
+    setCvNotice(out.saved ? { kind: 'ok', text: t.cv.saved } : { kind: 'error', text: t.cv.saveFailed(out.error || '') })
   }
 
-  function clearCvFile() { setFileName(''); setCvText(''); if (fileInputRef.current) fileInputRef.current.value = '' }
+  async function handleFile(file: File) {
+    setCvNotice(null)
+    setFileLoading(true)
+    const extracted = await extractFile(file)
+    if ('error' in extracted) {
+      setCvNotice({ kind: 'error', text: extracted.error })
+    } else if (extracted.text.trim().length < 50) {
+      setCvNotice({ kind: 'error', text: t.cv.tooShort })
+    } else {
+      const out = await setCv(extracted.text, file.name, { saveToAccount: saveConsent })
+      if (saveConsent) showSaveOutcome(out)
+    }
+    setFileLoading(false)
+    if (fileInputRef.current) fileInputRef.current.value = ''
+  }
 
+  function onCvTextChange(value: string) {
+    setCvDraft(value)
+    setCvNotice(null)
+    void setCv(value, value.trim() ? fileName : '')
+  }
+
+  // Ticking the box after a paste/upload saves the CV that is already here — the tick is the consent.
+  async function onConsentChange(checked: boolean) {
+    setSaveConsent(checked)
+    if (!checked || cvSource !== 'session' || !cvText.trim()) return
+    showSaveOutcome(await setCv(cvText, fileName, { saveToAccount: true }))
+  }
+
+  // Session upload → clearCv() falls back to the account CV (if any). For the account CV itself,
+  // clearCv() would re-adopt it at once, so "Remove" detaches it for this session via an empty session CV.
+  function clearCvFile() { clearCv(); setCvNotice(null); if (fileInputRef.current) fileInputRef.current.value = '' }
+  function detachSavedCv() { void setCv('', ''); setCvNotice(null) }
+
+  // Clears this page's results only — the shared CV stays (the user removes it explicitly via the chip).
   function resetAll() {
-    setPhase('upload'); setFileName(''); setCvText('')
+    setPhase('upload'); setToastMsg('')
     setShowJobSearchBanner(false); setResult(null); setRole('')
     sessionStorage.removeItem(SS.scanResult); sessionStorage.removeItem(SS.scanPhase)
-    sessionStorage.removeItem(SS.scanRole)
-    sessionStorage.removeItem(SS.cvText); sessionStorage.removeItem(SS.targetRole)
+    sessionStorage.removeItem(SS.scanRole); sessionStorage.removeItem(SS.targetRole)
   }
 
   async function runScan() {
-    if (!cvText.trim()) { alert('Please upload your CV or paste your CV text first.'); return }
+    if (!cvText.trim()) return
     setPhase('loading'); setMobOpen(false); setStep(0); setMode('insights'); setShowJobSearchBanner(false); setToastMsg('')
     const loadingSteps = t.careerScan.loadingSteps
     const timer = setInterval(() => setStep(p => Math.min(p + 1, loadingSteps.length - 1)), 1800)
@@ -244,7 +261,8 @@ export default function CareerScanPage() {
   }
 
   function handleRunScan() {
-    if (!hasEnoughCredits) { alert(cs.sidebar.noCredits); return }
+    if (!hasEnoughCredits) { setScanBlocked(cs.sidebar.noCredits); return }
+    setScanBlocked('')
     if (needsCrossMarket(SCAN_COST, MARKET.eu)) {
       setCrossWarnPending(() => runScan)
     } else {
@@ -273,6 +291,12 @@ export default function CareerScanPage() {
     </div>
   )
 
+  const chipBtn: React.CSSProperties = {
+    flex: 1, padding: '6px 10px', borderRadius: 8, border: '1px solid rgba(255,255,255,0.2)',
+    background: 'rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.85)', fontSize: 11, fontWeight: 600,
+    cursor: 'pointer', fontFamily: 'inherit',
+  }
+
 
   const extracting = fileLoading
   const hasEnoughCredits = credits === null || credits >= SCAN_COST
@@ -293,15 +317,41 @@ export default function CareerScanPage() {
         </div>
       </div>
 
-      {!loadingSavedCv && hasSavedCv && !cvText && (
-        <button onClick={useSavedCvNow}
-          style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 14px', borderRadius: 8, border: '1px solid rgba(55,138,221,0.4)', background: 'rgba(55,138,221,0.12)', color: '#85B7EB', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left' as const, width: '100%' }}>
-          <span style={{ fontSize: 15 }}>📄</span>
-          {lang === 'DE' ? `Gespeicherten Lebenslauf verwenden${savedCvFileName ? ` (${savedCvFileName})` : ''}` : `Use my saved CV${savedCvFileName ? ` (${savedCvFileName})` : ''}`}
-        </button>
+      <input ref={fileInputRef} type="file" accept=".pdf,.docx,.txt" style={{ display: 'none' }}
+        onChange={e => { const file = e.target.files?.[0]; if (file) handleFile(file) }} />
+
+      {cvSource === 'saved' ? (
+        <div>
+          {secLabel(cs.sidebar.cvLabel)}
+          <div style={{ border: `1.5px solid ${c.success}`, borderRadius: 10, padding: '10px 12px', background: 'rgba(29,158,117,0.12)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <SvgIcon name="document" size={18} color={c.success} />
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: 12, fontWeight: 600, color: c.success, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' as const }}>
+                  {fileName || t.cv.usingSaved}
+                </div>
+                {fileName && <div style={{ fontSize: 11, color: c.success, marginTop: 2 }}>{t.cv.usingSaved}</div>}
+              </div>
+            </div>
+            <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
+              <button type="button" onClick={() => fileInputRef.current?.click()} style={chipBtn}>{t.cv.replace}</button>
+              <button type="button" onClick={detachSavedCv} style={chipBtn}>{t.cv.remove}</button>
+            </div>
+          </div>
+        </div>
+      ) : (
+        <>
+          <UploadBox label={cs.sidebar.cvLabel} sublabel={cs.sidebar.cvSub} fileName={fileName} inputRef={fileInputRef} onClear={clearCvFile} uploadedLabel={cs.sidebar.uploaded} clickToUploadLabel={cs.sidebar.clickToUpload} />
+          <label style={{ display: 'flex', gap: 8, alignItems: 'flex-start', fontSize: 11, color: 'rgba(255,255,255,0.6)', lineHeight: 1.4, cursor: 'pointer' }}>
+            <input type="checkbox" checked={saveConsent} onChange={e => onConsentChange(e.target.checked)} style={{ marginTop: 1, accentColor: c.accent, flexShrink: 0 }} />
+            <span>{t.cv.saveToAccount}</span>
+          </label>
+        </>
       )}
 
-      <UploadBox label={cs.sidebar.cvLabel} sublabel={cs.sidebar.cvSub} fileName={fileName} inputRef={fileInputRef} onFile={handleFile} onClear={clearCvFile} accept=".pdf,.docx,.txt" uploadedLabel={t.careerScan.sidebar.uploaded} clickToUploadLabel={t.careerScan.sidebar.clickToUpload} />
+      {cvNotice && (cvNotice.kind === 'ok'
+        ? <div style={{ fontSize: 11, color: c.success, display: 'flex', alignItems: 'center', gap: 6 }}><SvgIcon name="check-circle" size={13} color={c.success} />{cvNotice.text}</div>
+        : <FlowError compact message={cvNotice.text} />)}
 
       <div style={{ height: 1, background: 'rgba(255,255,255,0.1)' }} />
 
@@ -327,8 +377,8 @@ export default function CareerScanPage() {
       ) : cvText ? (
         <div style={{ position: 'relative' }}>
           <textarea
-            value={cvText}
-            onChange={e => setCvText(e.target.value)}
+            value={cvDraft}
+            onChange={e => onCvTextChange(e.target.value)}
             rows={4}
             style={{ width: '100%', padding: '9px 12px', borderRadius: 8, border: `1px solid ${c.success}`, fontSize: 11, fontFamily: f.body, color: '#fff', background: 'rgba(29,158,117,0.07)', outline: 'none', resize: 'vertical', boxSizing: 'border-box' as const, lineHeight: 1.5 }}
           />
@@ -336,8 +386,8 @@ export default function CareerScanPage() {
         </div>
       ) : (
         <textarea
-          value={cvText}
-          onChange={e => setCvText(e.target.value)}
+          value={cvDraft}
+          onChange={e => onCvTextChange(e.target.value)}
           placeholder={cs.sidebar.pastePlaceholder}
           rows={4}
           style={{ width: '100%', padding: '9px 12px', borderRadius: 8, border: '1px solid rgba(255,255,255,0.2)', fontSize: 11, fontFamily: f.body, color: '#fff', background: 'rgba(255,255,255,0.05)', outline: 'none', resize: 'vertical', boxSizing: 'border-box' as const, lineHeight: 1.5 }}
@@ -353,7 +403,7 @@ export default function CareerScanPage() {
 
 
 
-      {(cvText || fileName || phase === 'results') && (
+      {phase === 'results' && (
         <button onClick={resetAll} style={{ width: '100%', padding: 9, borderRadius: 10, border: '1px solid rgba(255,255,255,0.2)', background: 'rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.7)', fontFamily: f.heading, fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
           {cs.sidebar.resetBtn}
         </button>
@@ -366,6 +416,8 @@ export default function CareerScanPage() {
             : cs.sidebar.lowCredits(credits)}
         </div>
       )}
+
+      {scanBlocked && <FlowError compact message={scanBlocked} secondary={{ label: t.common.topUp, href: '/app/account' }} />}
 
       <button
         disabled={!meetsInputRequirements}
@@ -397,6 +449,17 @@ export default function CareerScanPage() {
 
   const ResultsView = result && (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+
+      {/* Primary next step: the guided Apply flow */}
+      <div style={{ background: `linear-gradient(135deg, ${c.primary}, ${fa.apply})`, borderRadius: 14, padding: '16px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', boxShadow: '0 4px 20px rgba(37,99,235,0.25)' }}>
+        <div>
+          <div style={{ fontSize: 14, fontWeight: 700, color: '#fff', fontFamily: f.heading, marginBottom: 3 }}>{cs.results.applyWithCv}</div>
+          <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.85)' }}>{cs.results.applyWithCvSub}</div>
+        </div>
+        <button onClick={() => router.push('/app/apply')} style={{ fontSize: 12, padding: '9px 18px', borderRadius: 8, background: '#fff', color: c.primary, border: 'none', cursor: 'pointer', fontFamily: f.heading, fontWeight: 700 }}>
+          {t.navbar.apply}
+        </button>
+      </div>
 
       {/* Smart Job Search banner */}
       {showJobSearchBanner && (
@@ -793,7 +856,7 @@ export default function CareerScanPage() {
 
                       {canScan && (
                         <div style={{ marginTop: 4, padding: '12px 18px', borderRadius: 12, background: `linear-gradient(135deg, ${c.primaryLight}, #dbeafe)`, border: `1px solid ${c.accentLight}`, display: 'flex', alignItems: 'center', gap: 12 }}>
-                          <div style={{ fontSize: 20 }}>&#127919;</div>
+                          <SvgIcon name="target" size={20} color={c.navy} />
                           <div style={{ fontSize: 13, color: c.navy, fontWeight: 600 }}>
                             {cs.upload.allSet}
                           </div>

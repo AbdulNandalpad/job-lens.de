@@ -1,7 +1,7 @@
 import { NextRequest } from 'next/server'
 import Anthropic from '@anthropic-ai/sdk'
 import { createServerSupabase, createAdminSupabase, checkAndDeductCredits, refundCredits, isUserRateLimited } from '@/lib/supabase-server'
-import { MARKET, CREDIT_COST, AI_CHAT_FREE_MESSAGES } from '@/lib/constants'
+import { MARKET, CREDIT_COST, AI_CHAT_FREE_MESSAGES, IN_REVISION } from '@/lib/constants'
 
 export const maxDuration = 60
 
@@ -36,11 +36,11 @@ const MODE_PROMPTS: Record<string, string> = {
 - 2-3 sentences per turn. No markdown.`,
 
   feature_help: `You are Kira, Job-Lens product guide. Know every tool cold:
+Apply to a job (1cr): the guided flow — CV → job → fit check → tailored CV + cover letter PDF → "I applied". One credit covers the CV, the letter and 3 changes for that job. Suggest this first whenever someone has a specific job in mind.
 Career Scan (2cr): ATS score + skills gap analysis.
-CV Builder (1cr): AI-tailored CV PDF for a specific job.
-Cover Letter (1cr): personalised letter from your tailored CV.
-Auto Apply (3cr): AI fills and submits the job application form automatically.
-Job Case (6cr): verified proof package — video pitch, skill test, evidence table — shareable recruiter link.
+CV Builder (1cr): AI-tailored CV PDF for a specific job (standalone tool; the Apply flow includes it).
+Cover Letter (included with a tailored CV, else 1cr): personalised letter for the job.
+Auto Apply and Job Case are currently being reworked and are not available — say so plainly and point to Apply to a job instead.
 - When a tool fits what they need, call suggest_feature immediately after a 1-sentence explanation.
 - 1-2 sentences max. Plain text only. No markdown.`,
 }
@@ -65,6 +65,11 @@ WHAT YOU DO:
 JOB-LENS FEATURES — KNOW THESE COLD
 ════════════════════════════════════
 
+── APPLY TO A JOB (the main path) ──
+What: One guided screen, five steps: your CV (upload once, optionally saved to your account) → the job (paste a link, paste the posting, or search live jobs by city and "posted within" days) → free fit check (matching vs missing skills) → tailored CV + cover letter generated together, previewed as the real PDF, with up to 3 change requests → apply: download both, open the posting, click "I applied" to log it in the Tracker.
+Cost: 1 credit for the whole package (tailored CV + cover letter + 3 changes for that job, valid 24h). Fit check is free.
+Available DACH (/app/apply) and India (/in/apply). This is what to suggest whenever the user has a concrete job in mind.
+
 ── CAREER SCAN ──
 What: Upload your CV and get an ATS score, skills gap analysis, and career path suggestions. AI reads your CV against current market demand and tells you exactly what's weak and what to fix.
 Cost: 2 credits. Available on DACH (/app/career-scan) and India (/in/career-scan, /in/profile-analysis).
@@ -75,10 +80,11 @@ Cost: 1 credit. Available DACH and India.
 
 ── COVER LETTER ──
 What: AI generates a personalised cover letter based on your tailored CV and the job description. Takes about 10 seconds. Outputs formatted text you can copy or download.
-Cost: 1 credit. Available DACH and India.
+Cost: included when a tailored CV for the same job was generated in the last 24h; otherwise 1 credit. Available DACH and India.
 
 ── AUTO APPLY ──
-What: Paste a job application URL. Job-Lens opens the form in a browser, analyses every field, then fills the entire application automatically using your CV and cover letter. You see a live preview screenshot of the filled form before submitting. You confirm, then it submits.
+STATUS: currently being reworked and NOT available to users. If asked, say it is temporarily unavailable and suggest Apply to a job. Never call suggest_feature with auto_apply.
+What (when it returns): Paste a job application URL. Job-Lens opens the form in a browser, analyses every field, then fills the entire application automatically using your CV and cover letter. You see a live preview screenshot of the filled form before submitting. You confirm, then it submits.
 How it works step by step:
   1. Paste the job application URL
   2. AI analyses the form fields (takes ~15 seconds)
@@ -91,7 +97,8 @@ Important: works best on standard ATS forms (Greenhouse, Lever, Workday, Taleo).
 Available on DACH (/app/auto-apply) and India (/in/auto-apply).
 
 ── JOB CASE ──
-What: A Job Case is a verified, job-specific proof package you send to recruiters instead of a generic CV. It shows: your evidence for each requirement, a video pitch, AI-scored skill test answers, and a CV match score. Recruiters get a shareable link — no account needed. You get notified when they view it.
+STATUS: currently being reworked and NOT available to users. If asked, say it is temporarily unavailable and suggest Apply to a job. Never call suggest_feature with job_case.
+What (when it returns): A Job Case is a verified, job-specific proof package you send to recruiters instead of a generic CV. It shows: your evidence for each requirement, a video pitch, AI-scored skill test answers, and a CV match score. Recruiters get a shareable link — no account needed. You get notified when they view it.
 Why it's different from a CV: A CV is generic. A Job Case is built for one specific job. Every section proves you can actually do that role.
 How it works step by step:
   1. Paste the job description. AI extracts 5-7 concrete requirements.
@@ -116,7 +123,7 @@ Cost: Free.
 What: AI-powered interview preparation. Generates likely questions for a role, lets you practice answers with feedback. Available India (/in/interview). Coming to DACH soon.
 
 ── TRACKER ──
-What: Tracks every job you've applied to. Logs application date, status, notes. Auto-populated when you complete an Auto Apply. Also available on DACH and India.
+What: Tracks every job you've applied to. Logs application date, status, notes. Auto-populated when you click "I applied" at the end of Apply to a job. Available on DACH (/app/tracker) and India (/in/tracker).
 Cost: Free.
 
 ── SALARY SIMULATOR ──
@@ -129,8 +136,7 @@ What: Explains the German work visa process for Indian professionals. Covers Blu
 COMING SOON — PLANNED FEATURES
 ════════════════════════════════════
 - Marketplace: recruiters will be able to browse Job Cases by role/skill without waiting for a candidate to apply. Candidates get discovered passively.
-- Razorpay payments for India market (in_credits top-up) — PayPal works for DACH now.
-- India Career Scan in main navigation — it exists but isn't linked yet.
+- Auto Apply and Job Case return after their rework.
 - DACH Interview Prep — coming after India launch.
 - DACH Salary Simulator.
 - Email notifications when recruiters view Job Cases (already triggers, email delivery being improved).
@@ -142,16 +148,16 @@ CREDIT SYSTEM
 Three credit pools:
 - Common credits (free): given on signup, usable for any feature on any market
 - EU credits (paid via PayPal): for DACH market features
-- IN credits (paid via Razorpay, coming soon): for India market features
+- IN credits (paid via Razorpay): for India market features
 Deduction order: common → native paid → cross-market paid (with a warning modal before cross-market).
 Low credit warning at 2 credits remaining.
 
 SUGGEST_FEATURE RULES — call it after your text reply when:
+- User has a specific job / posting / link and wants to apply, or wants a CV AND a cover letter for it → suggest "apply"
 - User asks for CV scan / career scan / analyse my CV / review my profile → suggest "career_scan"
-- User asks to tailor CV for a job / rewrite CV → suggest "cv_builder"
-- User asks to write a cover letter → suggest "cover_letter"
-- User asks about auto apply / filling forms automatically / applying to jobs fast → suggest "auto_apply"
-- User asks about Job Case / proof package / standing out to recruiters / recruiter link → suggest "job_case"
+- User only wants the CV rewritten (no application in sight) → suggest "cv_builder"
+- User only wants a cover letter → suggest "cover_letter"
+- User asks about auto apply, form filling, Job Case, proof packages or recruiter links → explain they are being reworked and suggest "apply" instead
 - Never suggest a feature without giving a short answer first.
 - Never suggest more than one feature per turn.
 
@@ -166,6 +172,23 @@ FORMAT — CRITICAL:
 - 1-3 sentences max. Short and punchy.
 - After jobs found: one spoken intro line only — job cards appear automatically, don't repeat details.
 - When explaining features: be conversational, not a manual. 2-4 sentences then suggest the feature.`
+
+// ── Feature suggestion map ────────────────────────────────────────────────────
+interface FeatureDef { label: string; href: (market: string) => string }
+const FEATURE_MAP: Record<string, FeatureDef> = {
+  apply:        { label: 'Apply to a job',          href: m => m === 'in' ? '/in/apply'        : '/app/apply'        },
+  career_scan:  { label: 'Run Full Career Scan',    href: m => m === 'in' ? '/in/career-scan'  : '/app/career-scan'  },
+  cv_builder:   { label: 'Tailor My CV',            href: m => m === 'in' ? '/in/cv-builder'   : '/app/cv-builder'   },
+  cover_letter: { label: 'Write Cover Letter',      href: m => m === 'in' ? '/in/cover-letter' : '/app/cover-letter' },
+  auto_apply:   { label: 'Try Auto Apply',          href: m => m === 'in' ? '/in/auto-apply'   : '/app/auto-apply'   },
+  job_case:     { label: 'Build a Job Case',        href: m => m === 'in' ? '/in/job-case'     : '/app/job-case'     },
+}
+// Hidden features never enter the tool enum, so the model cannot suggest them while IN_REVISION.
+const HIDDEN_FEATURES = new Set<string>([
+  ...(IN_REVISION.autoApply ? ['auto_apply'] : []),
+  ...(IN_REVISION.jobCase ? ['job_case'] : []),
+])
+const SUGGESTABLE_FEATURES = Object.keys(FEATURE_MAP).filter(k => !HIDDEN_FEATURES.has(k))
 
 // ── Tools ─────────────────────────────────────────────────────────────────────
 
@@ -191,7 +214,7 @@ const tools: Anthropic.Messages.Tool[] = [
       properties: {
         feature: {
           type: 'string',
-          enum: ['career_scan', 'cv_builder', 'cover_letter', 'auto_apply', 'job_case'],
+          enum: SUGGESTABLE_FEATURES,
           description: 'Which Job-Lens feature to suggest',
         },
         reason: {
@@ -203,16 +226,6 @@ const tools: Anthropic.Messages.Tool[] = [
     },
   },
 ]
-
-// ── Feature suggestion map ────────────────────────────────────────────────────
-interface FeatureDef { label: string; href: (market: string) => string }
-const FEATURE_MAP: Record<string, FeatureDef> = {
-  career_scan:  { label: 'Run Full Career Scan',    href: m => m === 'in' ? '/in/career-scan'  : '/app/career-scan'  },
-  cv_builder:   { label: 'Tailor My CV',            href: m => m === 'in' ? '/in/cv-builder'   : '/app/cv-builder'   },
-  cover_letter: { label: 'Write Cover Letter',      href: m => m === 'in' ? '/in/cover-letter' : '/app/cover-letter' },
-  auto_apply:   { label: 'Try Auto Apply',          href: m => m === 'in' ? '/in/auto-apply'   : '/app/auto-apply'   },
-  job_case:     { label: 'Build a Job Case',        href: m => m === 'in' ? '/in/job-case'     : '/app/job-case'     },
-}
 
 // ── Adzuna job search ─────────────────────────────────────────────────────────
 

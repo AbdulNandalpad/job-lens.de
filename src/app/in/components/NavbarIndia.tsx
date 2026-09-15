@@ -89,7 +89,8 @@ export default function NavbarIndia() {
   }
 
   const navItems = [
-    { label: 'Career Scan',  href: '/in/profile-analysis' },
+    { label: 'Apply',        href: '/in/apply' },
+    { label: 'Career Analysis', href: '/in/profile-analysis' },
     { label: 'ATS Score',    href: '/in/career-scan' },
     { label: 'Job Search',   href: '/in/jobs' },
     { label: 'CV Builder',   href: '/in/cv-builder' },
