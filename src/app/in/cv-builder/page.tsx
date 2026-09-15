@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect, useRef, useLayoutEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { useCredits } from '@/lib/useCredits'
 import { useCurrentCv } from '@/lib/useCurrentCv'
@@ -13,558 +13,75 @@ import { type CVData, parseCvJson } from '@/lib/cv'
 import { type JobRef, normalizeJob, readJob, writeJob } from '@/lib/job'
 import { readJsonOrError } from '@/lib/apiError'
 import SvgIcon from '@/components/SvgIcon'
+import { c } from '@/lib/theme'
 
 const accent = '#FF9933'
 
-type Template = 'clean' | 'saffron' | 'classic' | 'modern' | 'executive' | 'executive2'
+// Ids are the names src/lib/CVPdf.tsx understands: clean/classic = single column, saffron/modern = header band, executive = sidebar
+type Template = 'clean' | 'saffron' | 'classic' | 'modern' | 'executive'
 type Tone = 'professional' | 'concise' | 'detailed'
 type Lang = 'EN'
 
-// ── Template 1: Clean / Saffron / Classic (single-column ATS) ─────────────
-function IndiaCV({ cv, ac }: { cv: CVData; ac: string }) {
-  const navy = '#0d2137'
-  const secHeader = (title: string) => (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8, marginTop: 18 }}>
-      <span style={{ fontSize: 10, fontWeight: 700, color: navy, letterSpacing: 1.5, textTransform: 'uppercase' as const, whiteSpace: 'nowrap' as const }}>{title}</span>
-      <div style={{ flex: 1, height: 1, background: '#d1dae6' }} />
-    </div>
-  )
+// ── PDF preview ──────────────────────────────────────────────────────────────
+// The preview IS the download: both come from POST /api/cv/pdf (src/lib/CVPdf.tsx),
+// so what the user sees can never drift from the file they send to an employer.
+
+const PREVIEW_DEBOUNCE_MS = 600
+
+interface RenderedPdf { url: string; blob: Blob; body: string }
+
+async function fetchCvPdf(body: string, signal?: AbortSignal): Promise<Blob> {
+  const res = await fetch(API.cvPdf, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body, signal })
+  if (!res.ok) {
+    const out = await readJsonOrError(res)
+    throw new Error(out.ok ? `Request failed (${res.status})` : out.message)
+  }
+  return res.blob()
+}
+
+function pdfErrorMessage(err: unknown): string {
+  if (err instanceof TypeError) return 'Network error. Please check your connection and try again.'
+  return err instanceof Error && err.message ? err.message : 'The preview could not be rendered.'
+}
+
+function PdfPreview({ url, pending, error, onRetry }: { url: string | null; pending: boolean; error: string | null; onRetry: () => void }) {
+  const showOverlay = pending || (!url && !error)
   return (
-    <div style={{ fontFamily: "'DM Sans', sans-serif", background: '#fff', padding: '40px 48px', minHeight: 900 }}>
-      <div style={{ marginBottom: 6 }}>
-        <div style={{ fontSize: 28, fontWeight: 700, color: navy, letterSpacing: -0.3, lineHeight: 1.2 }}>{cv.name}</div>
-        <div style={{ fontSize: 13, fontWeight: 700, color: ac, letterSpacing: 0.5, marginTop: 3, marginBottom: 5 }}>{cv.title}</div>
-        <div style={{ fontSize: 11, color: '#6b7c93' }}>{[cv.email, cv.phone, cv.location, cv.linkedin].filter(Boolean).join('  |  ')}</div>
-      </div>
-      <div style={{ height: 1, background: '#ccd5e0', marginBottom: 4 }} />
-      {cv.summary && (<div>{secHeader('Summary')}<div style={{ fontSize: 11.5, color: '#374151', lineHeight: 1.8 }}>{cv.summary}</div></div>)}
-      {cv.skills.length > 0 && (<div>{secHeader('Skills')}<div style={{ fontSize: 11.5, color: '#374151', lineHeight: 1.7 }}>{cv.skills.map(s => s.name).join('  ·  ')}</div></div>)}
-      {cv.tools.length > 0 && (<div>{secHeader('Tech Stack')}<div style={{ fontSize: 11.5, color: ac, lineHeight: 1.7 }}>{cv.tools.join('  ·  ')}</div></div>)}
-      {cv.experience.length > 0 && (
-        <div>{secHeader('Experience')}
-          {cv.experience.map((exp, i) => (
-            <div key={i} style={{ marginBottom: 14 }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                <div style={{ fontSize: 13, fontWeight: 700, color: navy }}>{exp.role}</div>
-                <div style={{ fontSize: 10, color: ac, fontWeight: 600, flexShrink: 0, marginLeft: 8 }}>{exp.period}</div>
-              </div>
-              <div style={{ fontSize: 11, color: '#6b7c93', fontStyle: 'italic', marginBottom: 5 }}>{[exp.company, exp.location, exp.type].filter(Boolean).join('  ·  ')}</div>
-              {(exp.bullets ?? []).map((b, j) => (<div key={j} style={{ display: 'flex', gap: 7, marginBottom: 3, alignItems: 'flex-start' }}><span style={{ color: ac, fontSize: 11, flexShrink: 0, marginTop: 1 }}>•</span><span style={{ fontSize: 11, color: '#374151', lineHeight: 1.65, wordBreak: 'break-word' as const }}>{b}</span></div>))}
-            </div>
-          ))}
+    <div>
+      {error && (
+        <div style={{ marginBottom: 12 }}>
+          <FlowError compact message={error} onRetry={onRetry} />
         </div>
       )}
-      {cv.education.length > 0 && (
-        <div>{secHeader('Education')}
-          {cv.education.map((e, i) => (<div key={i} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 7 }}><div><div style={{ fontSize: 12, fontWeight: 600, color: navy }}>{e.degree}</div><div style={{ fontSize: 11, color: '#6b7c93' }}>{e.school}</div></div><div style={{ fontSize: 11, color: '#8fa3b8', flexShrink: 0, marginLeft: 8 }}>{e.year}</div></div>))}
+      <div style={{ position: 'relative', width: '100%', aspectRatio: '210 / 297', background: c.bgCard, border: `1px solid ${c.borderLight}`, borderRadius: 14, overflow: 'hidden', boxShadow: '0 32px 80px rgba(0,0,0,0.6)' }}>
+        {url && (
+          <iframe key={url} src={`${url}#toolbar=0&navpanes=0&view=FitH`} title="CV preview (PDF)"
+            style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', border: 'none', display: 'block' }} />
+        )}
+        {showOverlay && (
+          <div role="status" aria-live="polite" style={{ position: 'absolute', inset: 0, background: url ? 'rgba(255,255,255,0.78)' : c.bgCard, display: 'flex', flexDirection: 'column', padding: '9% 8%', gap: 10 }}>
+            <div style={{ height: 22, width: '52%', background: c.border, borderRadius: 4 }} />
+            <div style={{ height: 10, width: '34%', background: c.border, borderRadius: 4, marginBottom: 18 }} />
+            {[100, 88, 95, 72, 100, 84, 91, 66, 100, 78].map((w, i) => (
+              <div key={i} style={{ height: i % 4 === 0 ? 12 : 8, width: `${w}%`, background: c.border, borderRadius: 4 }} />
+            ))}
+            <div style={{ marginTop: 'auto', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, fontSize: 12, fontWeight: 600, color: c.textFaint }}>
+              <div style={{ width: 12, height: 12, borderRadius: '50%', border: `2px solid ${c.borderLight}`, borderTopColor: c.textFaint, animation: 'spin 0.7s linear infinite' }} />
+              Rendering preview…
+            </div>
+          </div>
+        )}
+      </div>
+      {url && (
+        <div style={{ marginTop: 8, textAlign: 'right' as const }}>
+          <a href={url} target="_blank" rel="noopener noreferrer" style={{ fontSize: 11, fontWeight: 600, color: c.accentIn, textDecoration: 'none' }}>
+            Open in new tab ↗
+          </a>
         </div>
       )}
-      {cv.certifications.length > 0 && (<div>{secHeader('Certifications')}{cv.certifications.map((c, i) => (<div key={i} style={{ display: 'flex', gap: 7, marginBottom: 4, alignItems: 'flex-start' }}><span style={{ color: ac, fontSize: 11, flexShrink: 0 }}>•</span><span style={{ fontSize: 11, color: '#374151', lineHeight: 1.6 }}>{c}</span></div>))}</div>)}
-      {cv.languages.length > 0 && (<div>{secHeader('Languages')}<div style={{ fontSize: 11.5, color: '#374151' }}>{cv.languages.map((l, i) => { const lv = l.level >= 90 ? 'Native' : l.level >= 75 ? 'Fluent' : l.level >= 55 ? 'Proficient' : 'Basic'; return <span key={i}>{l.name} <span style={{ color: '#8fa3b8' }}>({lv})</span>{i < cv.languages.length - 1 ? '  ·  ' : ''}</span> })}</div></div>)}
     </div>
   )
 }
-
-// ── Template 2: Modern (gradient header, chip skills, visual) ─────────────
-function ModernCV({ cv, ac }: { cv: CVData; ac: string }) {
-  const navy = '#0d2137'
-  const sec = (title: string) => (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10, marginTop: 22 }}>
-      <div style={{ width: 3, height: 14, background: ac, borderRadius: 2, flexShrink: 0 }} />
-      <span style={{ fontSize: 10, fontWeight: 700, color: navy, letterSpacing: 1.3, textTransform: 'uppercase' as const }}>{title}</span>
-    </div>
-  )
-  return (
-    <div style={{ fontFamily: "'DM Sans', sans-serif", background: '#fff', minHeight: 900 }}>
-      {/* Hero header */}
-      <div style={{ background: `linear-gradient(135deg, ${ac} 0%, ${ac}bb 100%)`, padding: '40px 48px 32px', position: 'relative', overflow: 'hidden' }}>
-        <div style={{ position: 'absolute', right: -50, top: -50, width: 220, height: 220, borderRadius: '50%', background: 'rgba(255,255,255,0.07)', pointerEvents: 'none' }} />
-        <div style={{ position: 'absolute', right: 80, bottom: -70, width: 160, height: 160, borderRadius: '50%', background: 'rgba(255,255,255,0.04)', pointerEvents: 'none' }} />
-        <div style={{ position: 'relative' }}>
-          <div style={{ fontSize: 32, fontWeight: 800, color: '#fff', letterSpacing: -0.5, lineHeight: 1.1 }}>{cv.name}</div>
-          <div style={{ fontSize: 14, fontWeight: 600, color: 'rgba(255,255,255,0.88)', marginTop: 6 }}>{cv.title}</div>
-          {cv.tagline && <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.65)', marginTop: 5, fontStyle: 'italic' }}>{cv.tagline}</div>}
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 20, marginTop: 16 }}>
-            {[cv.email, cv.phone, cv.location, cv.linkedin].filter(Boolean).map((c, i) => (
-              <span key={i} style={{ fontSize: 11, color: 'rgba(255,255,255,0.82)' }}>{c}</span>
-            ))}
-          </div>
-        </div>
-      </div>
-      {/* Stats bar */}
-      {cv.stats?.length > 0 && (
-        <div style={{ background: navy, padding: '14px 48px', display: 'flex', gap: 32, flexWrap: 'wrap' }}>
-          {cv.stats.map((s, i) => (
-            <div key={i} style={{ textAlign: 'center' }}>
-              <div style={{ fontSize: 18, fontWeight: 800, color: ac, lineHeight: 1 }}>{s.value}</div>
-              <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.5)', marginTop: 2 }}>{s.label}</div>
-            </div>
-          ))}
-        </div>
-      )}
-      {/* Body */}
-      <div style={{ padding: '4px 48px 40px' }}>
-        {cv.summary && (<div>{sec('Professional Summary')}<div style={{ fontSize: 11.5, color: '#374151', lineHeight: 1.8 }}>{cv.summary}</div></div>)}
-        {cv.skills.length > 0 && (
-          <div>{sec('Core Skills')}
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-              {cv.skills.map((s, i) => (<span key={i} style={{ fontSize: 10.5, padding: '3px 10px', background: `${ac}12`, color: navy, border: `1px solid ${ac}30`, borderRadius: 12, fontWeight: 600 }}>{s.name}</span>))}
-            </div>
-          </div>
-        )}
-        {cv.tools.length > 0 && (
-          <div>{sec('Tech Stack')}
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-              {cv.tools.map((t, i) => (<span key={i} style={{ fontSize: 10, padding: '3px 9px', background: 'rgba(0,0,0,0.04)', color: '#374151', border: '1px solid rgba(0,0,0,0.08)', borderRadius: 10 }}>{t}</span>))}
-            </div>
-          </div>
-        )}
-        {cv.experience.length > 0 && (
-          <div>{sec('Experience')}
-            {cv.experience.map((exp, i) => (
-              <div key={i} style={{ marginBottom: 16 }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                  <div style={{ fontSize: 13, fontWeight: 700, color: navy }}>{exp.role}</div>
-                  <div style={{ fontSize: 10, color: ac, fontWeight: 600, flexShrink: 0, marginLeft: 8, background: `${ac}15`, padding: '2px 8px', borderRadius: 10 }}>{exp.period}</div>
-                </div>
-                <div style={{ fontSize: 11, color: '#6b7c93', fontStyle: 'italic', marginBottom: 5 }}>{[exp.company, exp.location, exp.type].filter(Boolean).join(' · ')}</div>
-                {exp.bullets.map((b, j) => (<div key={j} style={{ display: 'flex', gap: 7, marginBottom: 3, alignItems: 'flex-start' }}><span style={{ color: ac, fontSize: 11, flexShrink: 0, marginTop: 1 }}>▸</span><span style={{ fontSize: 11, color: '#374151', lineHeight: 1.65 }}>{b}</span></div>))}
-              </div>
-            ))}
-          </div>
-        )}
-        {cv.education.length > 0 && (
-          <div>{sec('Education')}
-            {cv.education.map((e, i) => (<div key={i} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}><div><div style={{ fontSize: 12, fontWeight: 600, color: navy }}>{e.degree}</div><div style={{ fontSize: 11, color: '#6b7c93' }}>{e.school}</div></div><div style={{ fontSize: 11, color: '#8fa3b8', flexShrink: 0, marginLeft: 8 }}>{e.year}</div></div>))}
-          </div>
-        )}
-        {cv.certifications.length > 0 && (<div>{sec('Certifications')}{cv.certifications.map((c, i) => (<div key={i} style={{ fontSize: 11, color: '#374151', marginBottom: 4 }}>• {c}</div>))}</div>)}
-        {cv.languages.length > 0 && (<div>{sec('Languages')}<div style={{ fontSize: 11.5, color: '#374151' }}>{cv.languages.map((l, i) => { const lv = l.level >= 90 ? 'Native' : l.level >= 75 ? 'Fluent' : l.level >= 55 ? 'Proficient' : 'Basic'; return <span key={i}>{l.name} <span style={{ color: '#8fa3b8' }}>({lv})</span>{i < cv.languages.length - 1 ? '  ·  ' : ''}</span> })}</div></div>)}
-      </div>
-    </div>
-  )
-}
-
-// ── Template 3: Executive (redesigned — premium sidebar, optional photo) ─────
-function ExecutiveCV({ cv, ac, photo }: { cv: CVData; ac: string; photo?: string }) {
-  const navy = '#0f1e32'
-  const lvLabel = (l: number) => l >= 90 ? 'Native' : l >= 75 ? 'Fluent' : l >= 55 ? 'Proficient' : 'Basic'
-  const initials = cv.name.split(' ').map((n: string) => n[0] ?? '').join('').slice(0, 2).toUpperCase()
-
-  const sideLabel = (title: string) => (
-    <div style={{ fontSize: 7.5, fontWeight: 700, color: ac, letterSpacing: 2, textTransform: 'uppercase' as const, marginBottom: 8, marginTop: 18, borderBottom: '1px solid rgba(255,255,255,0.07)', paddingBottom: 5 }}>
-      {title}
-    </div>
-  )
-  const secR = (title: string) => (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10, marginTop: 22 }}>
-      <div style={{ width: 3, height: 16, background: ac, borderRadius: 2, flexShrink: 0 }} />
-      <span style={{ fontSize: 9.5, fontWeight: 700, color: navy, letterSpacing: 1.8, textTransform: 'uppercase' as const }}>{title}</span>
-    </div>
-  )
-  return (
-    <div style={{ fontFamily: "'DM Sans', sans-serif", background: '#fff', display: 'flex', minHeight: 900 }}>
-
-      {/* ── Left sidebar ── */}
-      <div style={{ width: 208, flexShrink: 0, background: navy, display: 'flex', flexDirection: 'column' }}>
-        {/* Top accent bar */}
-        <div style={{ height: 4, background: `linear-gradient(90deg, ${ac}, ${ac}70)`, flexShrink: 0 }} />
-
-        <div style={{ padding: '26px 18px 32px', flex: 1, display: 'flex', flexDirection: 'column' }}>
-          {/* Photo / initials avatar */}
-          <div style={{ textAlign: 'center', marginBottom: 18 }}>
-            {photo ? (
-              <img src={photo} alt={cv.name}
-                style={{ width: 84, height: 84, borderRadius: '50%', objectFit: 'cover', border: `2.5px solid ${ac}`, display: 'block', margin: '0 auto 12px' }} />
-            ) : (
-              <div style={{ width: 84, height: 84, borderRadius: '50%', background: `linear-gradient(145deg, ${ac}25, ${ac}08)`, border: `2px solid ${ac}45`, display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 12px', fontSize: 28, fontWeight: 800, color: ac, letterSpacing: -1 }}>
-                {initials}
-              </div>
-            )}
-            <div style={{ fontSize: 14, fontWeight: 700, color: '#fff', lineHeight: 1.25, marginBottom: 5 }}>{cv.name}</div>
-            <div style={{ fontSize: 8.5, fontWeight: 600, color: ac, letterSpacing: 1.8, textTransform: 'uppercase' as const, lineHeight: 1.5 }}>{cv.title}</div>
-          </div>
-
-          <div style={{ height: 1, background: 'rgba(255,255,255,0.07)', marginBottom: 2 }} />
-
-          {/* Contact */}
-          {[cv.email, cv.phone, cv.location, cv.linkedin].filter(Boolean).length > 0 && (
-            <div>
-              {sideLabel('Contact')}
-              {[cv.email, cv.phone, cv.location, cv.linkedin].filter(Boolean).map((c, i) => (
-                <div key={i} style={{ fontSize: 9, color: 'rgba(255,255,255,0.62)', marginBottom: 6, lineHeight: 1.55, wordBreak: 'break-word' as const, display: 'flex', alignItems: 'flex-start', gap: 5 }}>
-                  <span style={{ color: ac, fontSize: 7, flexShrink: 0, marginTop: 3 }}>◆</span>{c}
-                </div>
-              ))}
-            </div>
-          )}
-
-          {/* Expertise */}
-          {cv.skills.length > 0 && (
-            <div>
-              {sideLabel('Expertise')}
-              {cv.skills.slice(0, 9).map((s, i) => (
-                <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 5 }}>
-                  <div style={{ width: 5, height: 5, borderRadius: '50%', background: ac, flexShrink: 0, opacity: Math.max(0.45, s.level / 100) }} />
-                  <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.72)', lineHeight: 1.4 }}>{s.name}</span>
-                </div>
-              ))}
-            </div>
-          )}
-
-          {/* Tools */}
-          {cv.tools.length > 0 && (
-            <div>
-              {sideLabel('Tools & Tech')}
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 3 }}>
-                {cv.tools.slice(0, 16).map((t, i) => (
-                  <span key={i} style={{ fontSize: 7.5, padding: '2px 6px', background: 'rgba(255,255,255,0.05)', color: 'rgba(255,255,255,0.58)', borderRadius: 6, border: '1px solid rgba(255,255,255,0.09)' }}>{t}</span>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Languages */}
-          {cv.languages.length > 0 && (
-            <div>
-              {sideLabel('Languages')}
-              {cv.languages.map((l, i) => (
-                <div key={i} style={{ fontSize: 9, color: 'rgba(255,255,255,0.68)', marginBottom: 5, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span>{l.name}</span>
-                  <span style={{ fontSize: 8, color: ac, fontWeight: 600 }}>{lvLabel(l.level)}</span>
-                </div>
-              ))}
-            </div>
-          )}
-
-          {/* Certifications */}
-          {cv.certifications.length > 0 && (
-            <div>
-              {sideLabel('Certifications')}
-              {cv.certifications.map((c, i) => (
-                <div key={i} style={{ fontSize: 8.5, color: 'rgba(255,255,255,0.58)', marginBottom: 5, lineHeight: 1.5, display: 'flex', gap: 5, alignItems: 'flex-start' }}>
-                  <span style={{ color: ac, fontSize: 8, flexShrink: 0, marginTop: 1 }}>✦</span>{c}
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-
-        {/* Bottom accent strip */}
-        <div style={{ height: 3, background: `${ac}28`, flexShrink: 0 }} />
-      </div>
-
-      {/* ── Right main content ── */}
-      <div style={{ flex: 1, padding: '30px 34px 40px 28px', display: 'flex', flexDirection: 'column' }}>
-
-        {/* Key metrics */}
-        {cv.stats?.length > 0 && (
-          <div style={{ display: 'flex', gap: 10, marginBottom: 4, flexWrap: 'wrap' }}>
-            {cv.stats.map((s, i) => (
-              <div key={i} style={{ textAlign: 'center', padding: '8px 14px', background: `${ac}09`, border: `1px solid ${ac}22`, borderRadius: 8, minWidth: 58 }}>
-                <div style={{ fontSize: 19, fontWeight: 800, color: ac, lineHeight: 1 }}>{s.value}</div>
-                <div style={{ fontSize: 8, color: '#94a3b8', marginTop: 3, textTransform: 'uppercase' as const, letterSpacing: 0.6 }}>{s.label}</div>
-              </div>
-            ))}
-          </div>
-        )}
-
-        {/* Executive Profile / Summary */}
-        {cv.summary && (
-          <div>
-            {secR('Executive Profile')}
-            <div style={{ fontSize: 11.5, color: '#3d4f63', lineHeight: 1.85, borderLeft: `3px solid ${ac}28`, paddingLeft: 12 }}>
-              {cv.summary}
-            </div>
-          </div>
-        )}
-
-        {/* Career History */}
-        {cv.experience.length > 0 && (
-          <div>
-            {secR('Career History')}
-            {cv.experience.map((exp, i) => (
-              <div key={i} style={{ marginBottom: 18 }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 2 }}>
-                  <div style={{ fontSize: 12.5, fontWeight: 700, color: navy }}>{exp.role}</div>
-                  <div style={{ fontSize: 9, color: ac, fontWeight: 600, flexShrink: 0, marginLeft: 8, background: `${ac}12`, border: `1px solid ${ac}28`, padding: '2px 8px', borderRadius: 9, whiteSpace: 'nowrap' as const }}>{exp.period}</div>
-                </div>
-                <div style={{ fontSize: 10.5, color: '#64748b', marginBottom: 6 }}>
-                  <span style={{ fontWeight: 600 }}>{exp.company}</span>
-                  {exp.location ? ` · ${exp.location}` : ''}
-                  {exp.type ? ` · ${exp.type}` : ''}
-                </div>
-                <div style={{ paddingLeft: 10, borderLeft: `2px solid ${ac}28` }}>
-                  {(exp.bullets ?? []).map((b, j) => (
-                    <div key={j} style={{ display: 'flex', gap: 7, marginBottom: 4, alignItems: 'flex-start' }}>
-                      <span style={{ color: ac, fontSize: 9, flexShrink: 0, marginTop: 3 }}>▸</span>
-                      <span style={{ fontSize: 11, color: '#374151', lineHeight: 1.65, wordBreak: 'break-word' as const }}>{b}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-
-        {/* Education */}
-        {cv.education.length > 0 && (
-          <div>
-            {secR('Education')}
-            {cv.education.map((e, i) => (
-              <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 10, paddingBottom: 10, borderBottom: i < cv.education.length - 1 ? '1px solid #f1f5f9' : 'none' }}>
-                <div>
-                  <div style={{ fontSize: 12, fontWeight: 700, color: navy }}>{e.degree}</div>
-                  <div style={{ fontSize: 10.5, color: '#64748b', marginTop: 2 }}>{e.school}</div>
-                </div>
-                <div style={{ fontSize: 10, color: '#94a3b8', flexShrink: 0, marginLeft: 12, fontWeight: 600 }}>{e.year}</div>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-    </div>
-  )
-}
-
-// ── Template 4: Executive V2 (DACH-style — wide sidebar, timeline, photo) ───
-function ExecutiveV2CV({ cv, ac, photo }: { cv: CVData; ac: string; photo?: string }) {
-  const navy = '#0d2137'
-  const initials = cv.name.split(' ').map((n: string) => n[0] ?? '').join('').slice(0, 2).toUpperCase()
-
-  const sideSection = (title: string) => (
-    <div style={{ fontSize: 9, fontWeight: 700, color: 'rgba(255,255,255,0.4)', letterSpacing: 1.2, textTransform: 'uppercase' as const, marginBottom: 10 }}>{title}</div>
-  )
-  const secHeader = (title: string) => (
-    <div style={{ fontSize: 10, fontWeight: 700, color: navy, letterSpacing: 1.5, textTransform: 'uppercase' as const, marginBottom: 14, display: 'flex', alignItems: 'center', gap: 8 }}>
-      <span>{title}</span>
-      <div style={{ flex: 1, height: 1, background: '#edf1f6' }} />
-    </div>
-  )
-
-  return (
-    <div style={{ display: 'flex', minHeight: 900, fontFamily: "'DM Sans', sans-serif", background: '#fff' }}>
-
-      {/* ── Dark sidebar ── */}
-      <div style={{ width: 240, background: 'linear-gradient(170deg, #0d2137 0%, #1e1208 100%)', flexShrink: 0, padding: '36px 22px', display: 'flex', flexDirection: 'column', gap: 24 }}>
-
-        {/* Photo / initials */}
-        <div style={{ textAlign: 'center', paddingBottom: 22, borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
-          {photo ? (
-            <img src={photo} alt={cv.name}
-              style={{ width: 76, height: 76, borderRadius: '50%', objectFit: 'cover', border: `2.5px solid ${ac}`, display: 'block', margin: '0 auto 14px' }} />
-          ) : (
-            <div style={{ width: 76, height: 76, borderRadius: '50%', background: `linear-gradient(135deg, ${ac}, ${ac}88)`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 26, fontWeight: 700, color: '#fff', margin: '0 auto 14px', letterSpacing: 1 }}>
-              {initials}
-            </div>
-          )}
-          <div style={{ fontSize: 14, fontWeight: 700, color: '#fff', letterSpacing: 0.3, marginBottom: 4 }}>{cv.name}</div>
-          <div style={{ fontSize: 10, color: ac, fontWeight: 700, letterSpacing: 1.5, textTransform: 'uppercase' as const, lineHeight: 1.5 }}>{cv.title}</div>
-        </div>
-
-        {/* Contact */}
-        <div>
-          {sideSection('Contact')}
-          {[
-            { icon: '@',  val: cv.email    },
-            { icon: 'T',  val: cv.phone    },
-            { icon: 'L',  val: cv.location },
-            { icon: 'in', val: cv.linkedin },
-          ].filter(r => r.val).map((r, i) => (
-            <div key={i} style={{ display: 'flex', gap: 8, marginBottom: 7, alignItems: 'flex-start' }}>
-              <span style={{ fontSize: 9, fontWeight: 700, color: ac, width: 14, flexShrink: 0, marginTop: 1 }}>{r.icon}</span>
-              <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.65)', lineHeight: 1.5, wordBreak: 'break-all' as const }}>{r.val}</span>
-            </div>
-          ))}
-        </div>
-
-        {/* Skills with progress bars + % */}
-        {cv.skills.length > 0 && (
-          <div>
-            {sideSection('Skills')}
-            {cv.skills.slice(0, 10).map((s, i) => (
-              <div key={i} style={{ marginBottom: 8 }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 3 }}>
-                  <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.75)' }}>{s.name}</span>
-                  <span style={{ fontSize: 9, color: ac, fontWeight: 700 }}>{s.level}%</span>
-                </div>
-                <div style={{ height: 3, background: 'rgba(255,255,255,0.1)', borderRadius: 2 }}>
-                  <div style={{ height: '100%', width: `${s.level}%`, background: `linear-gradient(90deg, ${ac}, ${ac}88)`, borderRadius: 2 }} />
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-
-        {/* Languages — 5-dot indicators */}
-        {cv.languages.length > 0 && (
-          <div>
-            {sideSection('Languages')}
-            {cv.languages.map((l, i) => (
-              <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
-                <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.75)' }}>{l.name}</span>
-                <div style={{ display: 'flex', gap: 3 }}>
-                  {[1,2,3,4,5].map(d => (
-                    <div key={d} style={{ width: 6, height: 6, borderRadius: '50%', background: d <= Math.round(l.level / 20) ? ac : 'rgba(255,255,255,0.15)' }} />
-                  ))}
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-
-        {/* Certifications */}
-        {cv.certifications.length > 0 && (
-          <div>
-            {sideSection('Certifications')}
-            {cv.certifications.map((c, i) => (
-              <div key={i} style={{ display: 'flex', gap: 6, marginBottom: 6, alignItems: 'flex-start' }}>
-                <span style={{ color: ac, fontSize: 10, marginTop: 1 }}>*</span>
-                <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.65)', lineHeight: 1.5 }}>{c}</span>
-              </div>
-            ))}
-          </div>
-        )}
-
-        {/* Highlights */}
-        {cv.highlights?.length > 0 && (
-          <div>
-            {sideSection('Highlights')}
-            {cv.highlights.map((h, i) => (
-              <div key={i} style={{ display: 'flex', gap: 6, marginBottom: 5, alignItems: 'flex-start' }}>
-                <span style={{ color: ac, fontSize: 9, marginTop: 2 }}>›</span>
-                <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.6)', lineHeight: 1.5 }}>{h}</span>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-
-      {/* ── Main content ── */}
-      <div style={{ flex: 1, padding: '36px 32px' }}>
-
-        {/* Header */}
-        <div style={{ marginBottom: 24, paddingBottom: 20, borderBottom: '2px solid #f0f4f8' }}>
-          <div style={{ fontSize: 32, fontWeight: 700, color: navy, fontFamily: "'Outfit', sans-serif", letterSpacing: -0.5, marginBottom: 4 }}>{cv.name}</div>
-          <div style={{ fontSize: 13, fontWeight: 700, color: ac, letterSpacing: 2, textTransform: 'uppercase' as const, marginBottom: 8 }}>{cv.title}</div>
-          {cv.tagline && <div style={{ fontSize: 11, color: '#6b7c93', letterSpacing: 0.5 }}>{cv.tagline}</div>}
-        </div>
-
-        {/* Stats strip */}
-        {cv.stats?.length > 0 && (
-          <div style={{ display: 'flex', gap: 0, marginBottom: 24, background: '#f8fafc', borderRadius: 12, overflow: 'hidden', border: '1px solid #edf1f6' }}>
-            {cv.stats.map((s, i) => (
-              <div key={i} style={{ flex: 1, padding: '14px 16px', textAlign: 'center', borderRight: i < cv.stats.length - 1 ? '1px solid #edf1f6' : 'none' }}>
-                <div style={{ fontSize: 22, fontWeight: 700, color: navy, fontFamily: "'Outfit', sans-serif" }}>{s.value}</div>
-                <div style={{ fontSize: 10, color: '#8fa3b8', marginTop: 2, letterSpacing: 0.3 }}>{s.label}</div>
-              </div>
-            ))}
-          </div>
-        )}
-
-        {/* Executive Summary */}
-        {cv.summary && (
-          <div style={{ marginBottom: 24 }}>
-            {secHeader('Executive Summary')}
-            <div style={{ fontSize: 12, color: '#374151', lineHeight: 1.8 }}>{cv.summary}</div>
-          </div>
-        )}
-
-        {/* Core Stack */}
-        {cv.tools.length > 0 && (
-          <div style={{ marginBottom: 24 }}>
-            {secHeader('Core Stack')}
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-              {cv.tools.map((t, i) => (
-                <span key={i} style={{ fontSize: 10, padding: '4px 10px', borderRadius: 6, background: '#f0f4f8', color: '#374151', border: '1px solid #e2e8f0', fontWeight: 500 }}>{t}</span>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Professional Experience — timeline */}
-        {cv.experience.length > 0 && (
-          <div style={{ marginBottom: 24 }}>
-            {secHeader('Professional Experience')}
-            {cv.experience.map((exp, i) => (
-              <div key={i} style={{ marginBottom: 20, display: 'flex', gap: 14 }}>
-                {/* Timeline dot + line */}
-                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', paddingTop: 3 }}>
-                  <div style={{ width: 10, height: 10, borderRadius: '50%', background: ac, flexShrink: 0 }} />
-                  {i < cv.experience.length - 1 && <div style={{ width: 1, flex: 1, background: '#e2e8f0', marginTop: 4 }} />}
-                </div>
-                <div style={{ flex: 1, paddingBottom: i < cv.experience.length - 1 ? 16 : 0 }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 2 }}>
-                    <div style={{ fontSize: 13, fontWeight: 700, color: navy }}>{exp.role}</div>
-                    <div style={{ fontSize: 10, color: ac, fontWeight: 600, flexShrink: 0, marginLeft: 8 }}>{exp.period}</div>
-                  </div>
-                  <div style={{ fontSize: 11, color: '#6b7c93', marginBottom: 8, fontStyle: 'italic' }}>
-                    {[exp.company, exp.location, exp.type].filter(Boolean).join(' · ')}
-                  </div>
-                  {(exp.bullets ?? []).map((b, j) => (
-                    <div key={j} style={{ display: 'flex', gap: 6, marginBottom: 4, alignItems: 'flex-start' }}>
-                      <span style={{ color: ac, fontSize: 10, marginTop: 3, flexShrink: 0 }}>+</span>
-                      <span style={{ fontSize: 11, color: '#374151', lineHeight: 1.6, wordBreak: 'break-word' as const }}>{b}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-
-        {/* Education */}
-        {cv.education.length > 0 && (
-          <div>
-            {secHeader('Education')}
-            {cv.education.map((e, i) => (
-              <div key={i} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
-                <div>
-                  <div style={{ fontSize: 12, fontWeight: 600, color: navy }}>{e.degree}</div>
-                  <div style={{ fontSize: 11, color: '#6b7c93' }}>{e.school}</div>
-                </div>
-                <div style={{ fontSize: 11, color: '#8fa3b8' }}>{e.year}</div>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-    </div>
-  )
-}
-
-// ── Mobile scale wrapper ───────────────────────────────────────────────────
-// Shrinks the CV visually to fit the container on small screens.
-// Uses transform:scale (not zoom) so html2canvas captures the full-res DOM.
-function CVScaleWrapper({ scale, children }: { scale: number; children: React.ReactNode }) {
-  const innerRef = useRef<HTMLDivElement>(null)
-  const [outerH, setOuterH] = useState<number | undefined>(undefined)
-
-  useLayoutEffect(() => {
-    if (!innerRef.current || scale >= 1) { setOuterH(undefined); return }
-    const measure = () => {
-      if (innerRef.current) {
-        const h = innerRef.current.offsetHeight
-        setOuterH(prev => (prev === h * scale ? prev : h * scale))
-      }
-    }
-    measure()
-    const obs = new ResizeObserver(measure)
-    obs.observe(innerRef.current)
-    return () => obs.disconnect()
-  }, [scale])
-
-  if (scale >= 1) return <>{children}</>
-
-  return (
-    <div style={{ width: 740 * scale, height: outerH, overflow: 'hidden', flexShrink: 0 }}>
-      <div ref={innerRef} style={{ width: 740, transformOrigin: 'top left', transform: `scale(${scale})` }}>
-        {children}
-      </div>
-    </div>
-  )
-}
-
 // Inline English copy for the server-enforced application package (mirrors t.pricing.* on DACH)
 const PRICING_COPY = {
   packageIncludes: (n: number) => `Includes the cover letter + ${n} changes for this job (${BUNDLE.windowHours} h)`,
@@ -596,8 +113,6 @@ export default function IndiaCVBuilderPage() {
   const router = useRouter()
   const fileInputRef  = useRef<HTMLInputElement>(null)
   const photoInputRef = useRef<HTMLInputElement>(null)
-  const previewRef    = useRef<HTMLDivElement>(null)
-  const previewAreaRef = useRef<HTMLDivElement>(null)
 
   const { cvText, fileName: cvFileName, source: cvSource, rememberedConsent, setCv, clearCv, extractFile } = useCurrentCv()
   const [fileLoading,   setFileLoading]   = useState(false)
@@ -622,7 +137,6 @@ export default function IndiaCVBuilderPage() {
   const [atsSuggestions, setAtsSuggestions] = useState<{ missing_keywords: string[]; quick_fixes: string[]; format_issues?: string[]; section_gaps?: string[] } | null>(null)
   const [editingContact, setEditingContact] = useState(false)
   const [contactDraft,  setContactDraft]  = useState({ name: '', email: '', phone: '', location: '', linkedin: '' })
-  const [mobileScale,   setMobileScale]   = useState(1)
   const [photoUrl,      setPhotoUrl]      = useState('')
   const [skillGapOpen,  setSkillGapOpen]  = useState(false)
   const [skillGapData,  setSkillGapData]  = useState<{ matching: string[]; missing: string[] } | null>(null)
@@ -641,6 +155,10 @@ export default function IndiaCVBuilderPage() {
   const [manualJd,      setManualJd]      = useState('')
   const [pricing,       setPricing]       = useState<{ bundle: BundleState; admin: boolean } | null>(null)
   const [feedbackError, setFeedbackError] = useState<{ message: string; status: number } | null>(null)
+  const [pdf,           setPdf]           = useState<RenderedPdf | null>(null)
+  const [pdfPending,    setPdfPending]    = useState(false)
+  const [pdfError,      setPdfError]      = useState<string | null>(null)
+  const [pdfAttempt,    setPdfAttempt]    = useState(0)
 
   const { credits, setCredits, needsCrossMarket, crossMarketAmount } = useCredits()
 
@@ -684,21 +202,9 @@ export default function IndiaCVBuilderPage() {
     if (data?.pricing?.bundle) setPricing({ bundle: data.pricing.bundle, admin: !!data.pricing.admin })
   }
 
-  // ── Calculate mobile scale ──
   useEffect(() => {
     return () => { if (originalFileUrl) URL.revokeObjectURL(originalFileUrl) }
   }, [originalFileUrl])
-
-  useEffect(() => {
-    function calc() {
-      if (!previewAreaRef.current) return
-      const available = previewAreaRef.current.offsetWidth - 32 // 16px each side
-      setMobileScale(Math.min(1, available / 740))
-    }
-    calc()
-    window.addEventListener('resize', calc)
-    return () => window.removeEventListener('resize', calc)
-  }, [])
 
   // ── Restore session ──
   useEffect(() => {
@@ -894,29 +400,33 @@ ${atsSuggestions?.section_gaps?.length ? `- ATS SECTION GAPS to address: ${atsSu
     finally { setApplyingFeedback(false) }
   }
 
+  // Downloads the exact bytes on screen; only renders again if the CV changed inside the debounce window
   async function downloadPDF() {
-    if (!cvData) return
-    setDownloading('pdf'); setDownloadError(null)
-    try {
-      const ac = templates.find(t => t.id === template)?.ac || accent
-      const res = await fetch(API.cvPdf, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ cv: cvData, ac, template, photo: photoUrl || undefined }),
-      })
-      if (!res.ok) throw new Error(`PDF request failed (${res.status})`)
-      const blob = await res.blob()
-      const name = (cvData.name || 'JobLens').replace(/[^a-zA-Z0-9]/g, '_')
-      const url = URL.createObjectURL(blob)
-      const a = document.createElement('a')
-      a.href = url
-      a.download = `CV_${name}.pdf`
-      document.body.appendChild(a)
-      a.click()
-      document.body.removeChild(a)
-      URL.revokeObjectURL(url)
-    } catch (err) { console.error('PDF error:', err); setDownloadError('PDF generation failed. Please try again or download as Word.') }
-    setDownloading(null)
+    if (!cvData || !pdfBody) return
+    setDownloadError(null)
+    let blob = pdf?.body === pdfBody ? pdf.blob : null
+    if (!blob) {
+      setDownloading('pdf')
+      try {
+        blob = await fetchCvPdf(pdfBody)
+        cachePdf(blob, pdfBody)
+      } catch (err) {
+        console.error('PDF error:', err)
+        setDownloadError(`${pdfErrorMessage(err)} You can also download as Word.`)
+        setDownloading(null)
+        return
+      }
+      setDownloading(null)
+    }
+    const name = (cvData.name || 'JobLens').replace(/[^a-zA-Z0-9]/g, '_')
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `CV_${name}.pdf`
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    URL.revokeObjectURL(url)
   }
 
   async function downloadDOCX() {
@@ -981,13 +491,16 @@ ${atsSuggestions?.section_gaps?.length ? `- ATS SECTION GAPS to address: ${atsSu
       ),
     },
     {
-      id: 'saffron', label: 'Saffron', ac: '#FF9933', desc: 'Single column · Orange', ats: 'ATS: High ✓', atsColor: '#1D9E75',
+      id: 'saffron', label: 'Saffron', ac: '#FF9933', desc: 'Header band · Orange', ats: 'ATS: Medium ◐', atsColor: '#f59e0b',
       preview: (
-        <div style={{ padding: '5px 4px', display: 'flex', flexDirection: 'column', gap: 2 }}>
-          <div style={{ height: 5, background: 'rgba(255,255,255,0.6)', borderRadius: 1, width: '70%' }} />
-          <div style={{ height: 2, background: '#FF993380', borderRadius: 1, width: '40%', marginBottom: 2 }} />
-          <div style={{ height: 0.5, background: 'rgba(255,255,255,0.2)', marginBottom: 2 }} />
-          {[90,70,85,60,95,75,80,65].map((w, i) => (<div key={i} style={{ height: 1.5, background: 'rgba(255,255,255,0.12)', borderRadius: 1, width: `${w}%` }} />))}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
+          <div style={{ height: 14, background: '#0d2137', borderBottom: '1.5px solid #FF9933', padding: '2px 4px', display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 1 }}>
+            <div style={{ height: 3, background: 'rgba(255,255,255,0.8)', borderRadius: 1, width: '60%' }} />
+            <div style={{ height: 1.5, background: '#FF993380', borderRadius: 1, width: '40%' }} />
+          </div>
+          <div style={{ padding: '3px 4px', display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+            {[85,65,90,70,95,75,80].map((w, i) => (<div key={i} style={{ height: 1.5, background: 'rgba(255,255,255,0.12)', borderRadius: 1, width: `${w}%` }} />))}
+          </div>
         </div>
       ),
     },
@@ -1003,10 +516,10 @@ ${atsSuggestions?.section_gaps?.length ? `- ATS SECTION GAPS to address: ${atsSu
       ),
     },
     {
-      id: 'modern', label: 'Modern', ac: '#0050b3', desc: 'Gradient header · Print-ready', ats: 'ATS: Medium ◐', atsColor: '#f59e0b',
+      id: 'modern', label: 'Modern', ac: '#0050b3', desc: 'Header band · Blue', ats: 'ATS: Medium ◐', atsColor: '#f59e0b',
       preview: (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
-          <div style={{ height: 14, background: 'linear-gradient(135deg,#0050b3,#0050b380)', borderRadius: '3px 3px 0 0', padding: '2px 4px', display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 1 }}>
+          <div style={{ height: 14, background: '#0d2137', borderBottom: '1.5px solid #0050b3', padding: '2px 4px', display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 1 }}>
             <div style={{ height: 3, background: 'rgba(255,255,255,0.8)', borderRadius: 1, width: '60%' }} />
             <div style={{ height: 1.5, background: 'rgba(255,255,255,0.4)', borderRadius: 1, width: '40%' }} />
           </div>
@@ -1017,7 +530,7 @@ ${atsSuggestions?.section_gaps?.length ? `- ATS SECTION GAPS to address: ${atsSu
       ),
     },
     {
-      id: 'executive', label: 'Executive', ac: '#FF9933', desc: 'Sidebar layout · Premium', ats: 'ATS: Low ⚠', atsColor: '#ef4444',
+      id: 'executive', label: 'Executive', ac: '#FF9933', desc: 'Navy sidebar · Premium', ats: 'ATS: Low ⚠', atsColor: '#ef4444',
       preview: (
         <div style={{ display: 'flex', height: '100%', gap: 0 }}>
           <div style={{ width: 14, background: 'rgba(13,33,55,0.9)', padding: '4px 2px', display: 'flex', flexDirection: 'column', gap: 1.5, borderRadius: '3px 0 0 3px' }}>
@@ -1031,35 +544,6 @@ ${atsSuggestions?.section_gaps?.length ? `- ATS SECTION GAPS to address: ${atsSu
         </div>
       ),
     },
-    {
-      id: 'executive2', label: 'Executive II', ac: '#FF9933', desc: 'Wide sidebar · Timeline · DACH-style', ats: 'ATS: Low ⚠', atsColor: '#ef4444',
-      preview: (
-        <div style={{ display: 'flex', height: '100%', gap: 0 }}>
-          <div style={{ width: 18, background: 'linear-gradient(170deg,rgba(13,33,55,0.95),rgba(30,18,8,0.95))', padding: '4px 2px', display: 'flex', flexDirection: 'column', gap: 2, borderRadius: '3px 0 0 3px' }}>
-            <div style={{ width: 11, height: 11, borderRadius: '50%', background: 'linear-gradient(135deg,#FF9933,#FF993388)', margin: '0 auto 2px' }} />
-            {[85,65,78,55,85].map((w, i) => (
-              <div key={i} style={{ marginBottom: 1 }}>
-                <div style={{ height: 1, background: 'rgba(255,255,255,0.12)', borderRadius: 1, width: `${w}%`, marginBottom: 0.5 }} />
-                <div style={{ height: 1.5, background: 'rgba(255,153,51,0.5)', borderRadius: 1, width: `${Math.round(w * 0.9)}%` }} />
-              </div>
-            ))}
-          </div>
-          <div style={{ flex: 1, padding: '4px 3px', display: 'flex', flexDirection: 'column', gap: 0 }}>
-            <div style={{ height: 5, background: 'rgba(255,255,255,0.55)', borderRadius: 1, width: '65%', marginBottom: 1 }} />
-            <div style={{ height: 2, background: '#FF993355', borderRadius: 1, width: '45%', marginBottom: 3 }} />
-            <div style={{ height: 1, background: '#edf1f620', marginBottom: 2 }} />
-            {[0,1,2,3].map(i => (
-              <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 1.5, marginBottom: 2 }}>
-                <div style={{ width: 3, height: 3, borderRadius: '50%', background: '#FF9933', flexShrink: 0, marginTop: 0.5 }} />
-                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 0.5 }}>
-                  {[70,55].map((w, j) => <div key={j} style={{ height: 1.5, background: 'rgba(255,255,255,0.1)', borderRadius: 1, width: `${w}%` }} />)}
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      ),
-    },
   ]
 
   const tones: { id: Tone; label: string; desc: string }[] = [
@@ -1067,15 +551,6 @@ ${atsSuggestions?.section_gaps?.length ? `- ATS SECTION GAPS to address: ${atsSu
     { id: 'concise',      label: 'Concise',      desc: 'Sharp & efficient'  },
     { id: 'detailed',     label: 'Detailed',      desc: 'Thorough & expansive' },
   ]
-
-  function renderCV() {
-    if (!cvData) return null
-    const t = templates.find(t => t.id === template)!
-    if (template === 'modern')      return <ModernCV      cv={cvData} ac={t.ac} />
-    if (template === 'executive')   return <ExecutiveCV   cv={cvData} ac={t.ac} photo={photoUrl || undefined} />
-    if (template === 'executive2')  return <ExecutiveV2CV cv={cvData} ac={t.ac} photo={photoUrl || undefined} />
-    return <IndiaCV cv={cvData} ac={t.ac} />
-  }
 
   function renderCvInput(mobile: boolean) {
     const green = '#1D9E75'
@@ -1143,6 +618,42 @@ ${atsSuggestions?.section_gaps?.length ? `- ATS SECTION GAPS to address: ${atsSu
 
   const canGenerate = !loading && !!cvText.trim() && canAfford
   const curTpl = templates.find(t => t.id === template)!
+
+  // Same body the download sends — any edit that changes it (revision, template, photo, contact) re-renders the preview
+  const pdfBody = cvData ? JSON.stringify({ cv: cvData, ac: curTpl.ac, template, photo: photoUrl || undefined }) : ''
+  const cachedBody = pdf?.body ?? ''
+
+  function cachePdf(blob: Blob, body: string) {
+    setPdf({ url: URL.createObjectURL(blob), blob, body })
+    setPdfError(null)
+  }
+
+  useEffect(() => () => { if (pdf) URL.revokeObjectURL(pdf.url) }, [pdf])
+
+  useEffect(() => {
+    if (!pdfBody) {
+      setPdf(null); setPdfPending(false); setPdfError(null)
+      return
+    }
+    if (cachedBody === pdfBody) { setPdfPending(false); return }
+    const ctrl = new AbortController()
+    setPdfPending(true)
+    const timer = setTimeout(() => {
+      fetchCvPdf(pdfBody, ctrl.signal)
+        .then(blob => {
+          if (ctrl.signal.aborted) return
+          setPdf({ url: URL.createObjectURL(blob), blob, body: pdfBody })
+          setPdfError(null)
+        })
+        .catch(err => {
+          if (ctrl.signal.aborted) return
+          console.error('PDF preview error:', err)
+          setPdfError(pdfErrorMessage(err))
+        })
+        .finally(() => { if (!ctrl.signal.aborted) setPdfPending(false) })
+    }, PREVIEW_DEBOUNCE_MS)
+    return () => { clearTimeout(timer); ctrl.abort() }
+  }, [pdfBody, cachedBody, pdfAttempt])
 
   return (
     <div style={{ minHeight: '100vh', background: '#0F1923', fontFamily: "'DM Sans', system-ui, sans-serif" }}>
@@ -1292,10 +803,10 @@ ${atsSuggestions?.section_gaps?.length ? `- ATS SECTION GAPS to address: ${atsSu
             <div style={{ marginTop: 12 }}>{renderCvInput(false)}</div>
           </div>
 
-          {/* ── Photo upload (used in Executive template) ── */}
+          {/* ── Photo upload (every PDF template renders it) ── */}
           <div style={{ padding: '12px 20px 14px', borderBottom: '1px solid rgba(255,255,255,0.07)' }}>
             <div style={{ fontSize: 9, fontWeight: 700, color: 'rgba(255,255,255,0.28)', letterSpacing: 1.2, textTransform: 'uppercase' as const, marginBottom: 10 }}>
-              Profile Photo <span style={{ fontWeight: 400, color: 'rgba(255,255,255,0.18)' }}>· Executive</span>
+              Profile Photo <span style={{ fontWeight: 400, color: 'rgba(255,255,255,0.18)' }}>· optional</span>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
               {photoUrl ? (
@@ -1312,7 +823,7 @@ ${atsSuggestions?.section_gaps?.length ? `- ATS SECTION GAPS to address: ${atsSu
                 )}
               </div>
             </div>
-            <input ref={photoInputRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={e => e.target.files?.[0] && handlePhotoFile(e.target.files[0])} />
+            <input ref={photoInputRef} type="file" accept="image/jpeg,image/png,image/webp" style={{ display: 'none' }} onChange={e => e.target.files?.[0] && handlePhotoFile(e.target.files[0])} />
           </div>
 
           <div style={{ flex: 1, overflowY: 'auto', minHeight: 0 }}>
@@ -1426,7 +937,7 @@ ${atsSuggestions?.section_gaps?.length ? `- ATS SECTION GAPS to address: ${atsSu
                 )}
                 <div style={{ flex: 1 }}>
                   <button onClick={() => photoInputRef.current?.click()} style={{ fontSize: 11, fontWeight: 600, color: photoUrl ? accent : 'rgba(255,255,255,0.4)', background: 'none', border: 'none', cursor: 'pointer', padding: 0, fontFamily: 'inherit' }}>
-                    {photoUrl ? 'Change photo' : 'Photo (Executive)'}
+                    {photoUrl ? 'Change photo' : 'Add photo (optional)'}
                   </button>
                   {photoUrl && <button onClick={() => setPhotoUrl('')} style={{ fontSize: 9, color: 'rgba(255,255,255,0.25)', background: 'none', border: 'none', cursor: 'pointer', padding: 0, marginLeft: 10, fontFamily: 'inherit' }}>Remove</button>}
                 </div>
@@ -1482,7 +993,7 @@ ${atsSuggestions?.section_gaps?.length ? `- ATS SECTION GAPS to address: ${atsSu
           )}
 
           {/* Preview area */}
-          <div ref={previewAreaRef} style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden', WebkitOverflowScrolling: 'touch', padding: '28px 20px', display: 'flex', justifyContent: 'center' }}>
+          <div style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden', WebkitOverflowScrolling: 'touch', padding: '28px 20px', display: 'flex', justifyContent: 'center' }}>
 
             {loading && (
               <div style={{ width: '100%', maxWidth: 740 }}>
@@ -1534,7 +1045,7 @@ ${atsSuggestions?.section_gaps?.length ? `- ATS SECTION GAPS to address: ${atsSu
 
             {/* Original file preview — uploaded but not yet generated */}
             {!loading && !cvData && originalFileUrl && (
-              <div className="cv-preview" style={{ width: '100%', maxWidth: mobileScale < 1 ? 740 * mobileScale : 740 }}>
+              <div className="cv-preview" style={{ width: '100%', maxWidth: 740 }}>
                 <div style={{ background: '#fff', borderRadius: 14, boxShadow: '0 32px 80px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,0.05)', overflow: 'hidden' }}>
                   <div style={{ background: '#f8f9fa', borderBottom: '1px solid #e9ecef', padding: '10px 20px', display: 'flex', alignItems: 'center', gap: 8 }}>
                     <SvgIcon name="document" size={14} color="#6c757d" />
@@ -1558,7 +1069,7 @@ ${atsSuggestions?.section_gaps?.length ? `- ATS SECTION GAPS to address: ${atsSu
             )}
 
             {!loading && cvData && (
-              <div className="cv-preview" style={{ width: '100%', maxWidth: mobileScale < 1 ? 740 * mobileScale : 740 }}>
+              <div className="cv-preview" style={{ width: '100%', maxWidth: 740 }}>
 
                 {/* Before / After tab toggle — only when original file is in memory */}
                 {originalFileUrl && (
@@ -1597,13 +1108,9 @@ ${atsSuggestions?.section_gaps?.length ? `- ATS SECTION GAPS to address: ${atsSu
                   </div>
                 )}
 
-                {/* Generated CV visual preview */}
+                {/* Generated CV — the rendered PDF itself */}
                 {(previewTab === 'generated' || !originalFileUrl) && (
-                <CVScaleWrapper scale={mobileScale}>
-                  <div ref={previewRef} style={{ borderRadius: 14, overflow: 'hidden', boxShadow: '0 32px 80px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,0.05)' }}>
-                    {renderCV()}
-                  </div>
-                </CVScaleWrapper>
+                  <PdfPreview url={pdf?.url ?? null} pending={pdfPending} error={pdfError} onRetry={() => setPdfAttempt(n => n + 1)} />
                 )}
 
                 {previewTab === 'original' && originalFileUrl && (
