@@ -3,14 +3,13 @@
 import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { SS, API } from '@/lib/constants'
-import { theme } from '@/lib/theme'
+import { theme, c as tc } from '@/lib/theme'
 import { normalizeJob, writeJob } from '@/lib/job'
 import SvgIcon from '@/components/SvgIcon'
 import { GermanFlag, IndiaFlag } from '@/components/Flags'
 
 const orange = '#ff9933'
 const navy = '#042C53'
-const blue = '#378ADD'
 const green = '#1D9E75'
 
 // Adzuna `max_days_old` values; '' = no filter
@@ -231,6 +230,13 @@ export default function IndiaJobsPage() {
     router.push('/in/cv-builder')
   }
 
+  // The Apply flow pulls the full posting itself when the Adzuna snippet is short
+  function applyWithJobLens(job: Job, e?: React.MouseEvent) {
+    e?.stopPropagation()
+    saveJob(job)
+    router.push('/in/apply')
+  }
+
   function openCoverLetter(job: Job) {
     saveJob(job)
     router.push('/in/cover-letter')
@@ -434,6 +440,12 @@ export default function IndiaJobsPage() {
                             const col = s >= 70 ? green : s >= 45 ? '#F59E0B' : '#9aafbc'
                             return <span style={{ fontSize: 10, padding: '2px 8px', borderRadius: 8, background: col + '18', color: col, fontWeight: 700 }}>{s}% match</span>
                           })()}
+                          {!isSelected && (
+                            <button className="jl-action-btn" onClick={e => applyWithJobLens(job, e)}
+                              style={{ marginLeft: 'auto', padding: '7px 14px', borderRadius: 8, border: 'none', background: tc.accentIn, color: tc.bgCard, fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: "'Outfit',sans-serif" }}>
+                              Apply with Job-Lens
+                            </button>
+                          )}
                         </div>
                       </div>
                       <div style={{ fontSize: 16, color: isSelected ? orange : '#c0cfe0', flexShrink: 0, transition: 'transform 0.2s', transform: isSelected ? 'rotate(180deg)' : 'rotate(0deg)', marginTop: 2 }}>v</div>
@@ -443,13 +455,17 @@ export default function IndiaJobsPage() {
                       <div onClick={e => e.stopPropagation()} style={{ marginTop: 18, paddingTop: 16, borderTop: `1px solid ${orange}20` }}>
                         <div style={{ fontSize: 11, fontWeight: 700, color: orange, letterSpacing: 0.5, textTransform: 'uppercase', marginBottom: 10 }}>What do you want to do?</div>
                         <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+                          <button className="jl-action-btn" onClick={() => applyWithJobLens(job)}
+                            style={{ padding: '10px 18px', borderRadius: 9, border: 'none', background: tc.accentIn, color: tc.bgCard, fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: "'Outfit',sans-serif" }}>
+                            Apply with Job-Lens
+                          </button>
                           <button className="jl-action-btn" onClick={() => openCvBuilder(job)}
                             disabled={fetchingJd}
-                            style={{ padding: '10px 18px', borderRadius: 9, border: 'none', background: fetchingJd ? '#ccc' : `linear-gradient(135deg, ${orange}, #e67300)`, color: '#fff', fontSize: 12, fontWeight: 700, cursor: fetchingJd ? 'not-allowed' : 'pointer', fontFamily: "'Outfit',sans-serif" }}>
+                            style={{ padding: '10px 18px', borderRadius: 9, border: `1px solid ${fetchingJd ? tc.borderLight : tc.accentIn}`, background: 'transparent', color: fetchingJd ? tc.textFaint : tc.accentIn, fontSize: 12, fontWeight: 600, cursor: fetchingJd ? 'not-allowed' : 'pointer', fontFamily: "'Outfit',sans-serif" }}>
                             {fetchingJd ? 'Fetching JD…' : 'Build CV for this job'}
                           </button>
                           <button className="jl-action-btn" onClick={() => openCoverLetter(job)}
-                            style={{ padding: '10px 18px', borderRadius: 9, border: `1px solid ${blue}40`, background: blue + '10', color: blue, fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: "'Outfit',sans-serif" }}>
+                            style={{ padding: '10px 18px', borderRadius: 9, border: `1px solid ${tc.accentIn}`, background: 'transparent', color: tc.accentIn, fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: "'Outfit',sans-serif" }}>
                             Write Cover Letter
                           </button>
                           {isAdmin && (

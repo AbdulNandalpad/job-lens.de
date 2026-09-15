@@ -103,6 +103,8 @@ export default function ApplyFlow({ market }: { market: Market }) {
   const [error, setError] = useState<{ message: string; status?: number; retry?: () => void } | null>(null)
   const [letterError, setLetterError] = useState<string | null>(null)
   const [cross, setCross] = useState<{ cost: number; amount: number; onConfirm: () => void } | null>(null)
+  const arrivedWithJobRef = useRef(false)
+  const needsCvFirstRef = useRef(false)
 
   // ── hydrate from session ────────────────────────────────────────────────────
   useEffect(() => {
@@ -133,6 +135,8 @@ export default function ApplyFlow({ market }: { market: Market }) {
         sessionStorage.removeItem(SS.cvbData)
         sessionStorage.removeItem(SS.clLetter)
       } catch {}
+      arrivedWithJobRef.current = true
+      needsCvFirstRef.current = true
       setJob(existingJob)
       setStep(2)
     } else {
@@ -145,6 +149,8 @@ export default function ApplyFlow({ market }: { market: Market }) {
   useEffect(() => {
     if (!hydrated || cv.loading) return
     if (step === 1 && cv.cvText && job) setStep(2)
+    else if (step === 2 && !cv.cvText && needsCvFirstRef.current) setStep(1)
+    needsCvFirstRef.current = false
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [hydrated, cv.loading])
 
@@ -247,6 +253,25 @@ export default function ApplyFlow({ market }: { market: Market }) {
       return { text: out.data.text }
     } catch (e) { return { error: toUserMessage(e) } }
   }
+
+  // Arrived with a picked job: prefill the paste fields and pull the full posting when the search snippet is short
+  useEffect(() => {
+    if (!hydrated || !arrivedWithJobRef.current || !job) return
+    arrivedWithJobRef.current = false
+    const initial = job
+    setJdTitle(initial.job_title); setJdCompany(initial.employer_name); setJdText(initial.job_description); setJdUrl(initial.job_apply_link || '')
+    if (initial.job_description.length >= MIN_JD_FETCH || !initial.job_apply_link) return
+    setFetching(true)
+    fetchJd(initial.job_apply_link).then(r => {
+      setFetching(false)
+      if (!('text' in r) || r.text.length <= initial.job_description.length) return
+      const enriched = { ...initial, job_description: r.text }
+      writeJob(enriched)
+      setJdText(r.text)
+      setJob(prev => (prev && jobDraftKey(prev) === jobDraftKey(initial) ? enriched : prev))
+    })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hydrated])
 
   const onFetchUrl = async () => {
     const link = url.trim()
@@ -617,7 +642,7 @@ export default function ApplyFlow({ market }: { market: Market }) {
               <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px', borderRadius: 12, background: c.primaryLight, marginBottom: 14, flexWrap: 'wrap' }}>
                 <SvgIcon name="briefcase" size={16} color={c.primary} />
                 <div style={{ flex: 1, minWidth: 160, fontWeight: 700, fontSize: 14 }}>{t.job.selected(job.job_title, job.employer_name)}</div>
-                <button type="button" className="af-btn" style={{ ...primaryBtn(), padding: '8px 14px', fontSize: 13 }} onClick={() => confirmJob(job, true)}>{t.next} →</button>
+                <button type="button" className="af-btn" style={{ ...primaryBtn(fetching), padding: '8px 14px', fontSize: 13 }} disabled={fetching} onClick={() => confirmJob(job, true)}>{fetching ? t.job.fetching : `${t.next} →`}</button>
               </div>
             )}
             <div style={{ display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap' }}>

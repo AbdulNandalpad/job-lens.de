@@ -17,7 +17,8 @@ import { useLanguage } from '@/lib/i18n'
 import KiraOrb from '@/components/KiraOrb'
 import FlowError from '@/components/FlowError'
 import { KIRA_TILES, type KiraTile } from '@/lib/kiraModes'
-import { CREDIT_COST, SS, API, KIRA_MAINTENANCE, KIRA_OPEN_EVENT, IN_REVISION } from '@/lib/constants'
+import { CREDIT_COST, SS, API, KIRA_MAINTENANCE, KIRA_OPEN_EVENT, IN_REVISION, MARKET } from '@/lib/constants'
+import { readJob } from '@/lib/job'
 
 const { colors: c, fonts: f, gradients: g } = theme
 
@@ -36,6 +37,22 @@ interface ScanFeedback {
 type SaveState = { kind: 'saved' } | { kind: 'failed'; msg: string } | null
 
 const MIN_CV_CHARS = 50
+
+interface ApplyPickup { step: number; title: string; employer: string }
+
+const APPLY_STEPS = 5
+
+function readApplyPickup(market: 'eu' | 'in'): ApplyPickup | null {
+  try {
+    const raw = sessionStorage.getItem(SS.applyDraft)
+    if (!raw) return null
+    const d = JSON.parse(raw) as { step?: unknown; market?: unknown } | null
+    if (!d || d.market !== market || typeof d.step !== 'number' || d.step < 1 || d.step > APPLY_STEPS) return null
+    const job = readJob()
+    if (!job) return null
+    return { step: d.step, title: job.job_title, employer: job.employer_name }
+  } catch { return null }
+}
 
 interface PickupCard { tag: string; color: string; title: string; sub: string; href: string; warn?: boolean }
 
@@ -125,6 +142,7 @@ export default function KiraHome({ market }: { market: 'eu' | 'in' }) {
   const [scanErr,     setScanErr]     = useState('')
   const [leaving,     setLeaving]     = useState(false)
   const [pickups,     setPickups]     = useState<PickupCard[]>([])
+  const [applyPickup, setApplyPickup] = useState<ApplyPickup | null>(null)
 
   const initRef      = useRef(false)
   const consentRef   = useRef(false)
@@ -169,7 +187,7 @@ export default function KiraHome({ market }: { market: 'eu' | 'in' }) {
             tag: market === 'in' ? 'ATS Score' : 'Career Scan', color: fa.careerScan,
             title: role || (isDE ? 'Dein letzter Scan' : 'Your last scan'),
             sub: `Score ${s.score}/100 · ${s.gaps?.length ?? 0} ${isDE ? 'offene Punkte' : 'fixes still open'}`,
-            href: p('career-scan'),
+            href: market === MARKET.in ? p('profile-analysis') : p('career-scan'),
           })
         }
       }
@@ -207,12 +225,18 @@ export default function KiraHome({ market }: { market: 'eu' | 'in' }) {
     } catch { /* ignore */ }
 
     setPickups(cards.slice(0, 3))
+    setApplyPickup(readApplyPickup(market))
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   // Hand the conversation to the real Kira (AIWidget, maximized).
   function openKira(detail: { text?: string; voice?: boolean }) {
     window.dispatchEvent(new CustomEvent(KIRA_OPEN_EVENT, { detail }))
+  }
+
+  function discardApplyDraft() {
+    try { sessionStorage.removeItem(SS.applyDraft) } catch {}
+    setApplyPickup(null)
   }
 
   function sendToKira() {
@@ -575,6 +599,29 @@ export default function KiraHome({ market }: { market: 'eu' | 'in' }) {
                 <button onClick={() => openKira({ text: isDE ? 'Ich habe gerade meinen CV-Check gemacht — lass uns mein Feedback durchgehen und die Lücken beheben.' : "I just ran my CV check — let's go through my feedback and fix the gaps." })}
                   style={{ marginTop: 10, padding: '8px 16px', borderRadius: 8, border: 'none', background: accent, color: '#fff', fontSize: 12.5, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>
                   {isDE ? 'Mit Kira besprechen →' : 'Discuss with Kira →'}
+                </button>
+              </div>
+            )}
+
+            {applyPickup && (
+              <div className="kh-rise" style={{ animationDelay: '.46s', width: '100%', maxWidth: 620, marginTop: 36, padding: '14px 18px', borderRadius: 14, border: `1px solid ${accent}55`, background: c.bgCard, boxShadow: theme.shadow.card, display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap' as const }}>
+                <div style={{ flex: 1, minWidth: 200 }}>
+                  <div style={{ fontFamily: f.heading, fontSize: 15, fontWeight: 700, color: c.text, lineHeight: 1.35 }}>
+                    {market === MARKET.in
+                      ? `Application in progress — ${applyPickup.title}${applyPickup.employer ? ` at ${applyPickup.employer}` : ''}`
+                      : t.apply.inProgress(applyPickup.title, applyPickup.employer)}
+                  </div>
+                  <div style={{ fontSize: 12.5, color: c.textMuted, marginTop: 3 }}>
+                    {market === MARKET.in ? `Step ${applyPickup.step} of ${APPLY_STEPS}` : t.apply.stepOf(applyPickup.step, APPLY_STEPS)}
+                  </div>
+                </div>
+                <button onClick={discardApplyDraft}
+                  style={{ padding: '6px 10px', borderRadius: 8, border: 'none', background: 'transparent', color: c.textFaint, fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>
+                  {market === MARKET.in ? 'Discard' : t.apply.discard}
+                </button>
+                <button onClick={() => router.push(market === MARKET.in ? '/in/apply' : '/app/apply')}
+                  style={{ padding: '9px 18px', borderRadius: 9, border: 'none', background: accent, color: c.bgCard, fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>
+                  {market === MARKET.in ? 'Continue' : t.apply.next}
                 </button>
               </div>
             )}

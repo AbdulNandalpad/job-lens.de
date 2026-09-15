@@ -6,7 +6,7 @@ import Navbar from '../components/Navbar'
 import { useLanguage } from '@/lib/i18n'
 import { SS, API } from '@/lib/constants'
 import { normalizeJob, writeJob } from '@/lib/job'
-import { theme } from '@/lib/theme'
+import { theme, c as tc } from '@/lib/theme'
 import SvgIcon, { type IconName } from '@/components/SvgIcon'
 
 const blue  = '#378ADD'
@@ -244,6 +244,13 @@ export default function DACHJobsPage() {
   }
 
   function goTo(path: string) { router.push(path) }
+
+  function applyWithJobLens(job: Job, e?: React.MouseEvent) {
+    e?.stopPropagation()
+    const ref = normalizeJob({ ...job, job_country: country, job_source: job.job_source === 'ba' ? 'ba' : 'adzuna' })
+    if (ref) writeJob(ref)
+    router.push('/app/apply')
+  }
 
   function goToJobCase(job: Job) {
     sessionStorage.setItem(SS.jcJob, JSON.stringify({
@@ -522,6 +529,12 @@ export default function DACHJobsPage() {
                             const col = s >= 70 ? green : s >= 45 ? '#F59E0B' : '#9aafbc'
                             return <span style={{ fontSize: 10, padding: '2px 8px', borderRadius: 8, background: col + '18', color: col, fontWeight: 700 }}>{s}% {label('Match', 'match')}</span>
                           })()}
+                          {!isSelected && (
+                            <button className="dach-action-btn" onClick={e => applyWithJobLens(job, e)}
+                              style={{ marginLeft: 'auto', padding: '7px 14px', borderRadius: 8, border: 'none', background: tc.accent, color: tc.bgCard, fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: "'Outfit',sans-serif" }}>
+                              {t.jobs.applyWithJobLens}
+                            </button>
+                          )}
                         </div>
                       </div>
                       <div style={{ fontSize: 16, color: isSelected ? blue : '#c0cfe0', flexShrink: 0, transition: 'transform 0.2s', transform: isSelected ? 'rotate(180deg)' : 'rotate(0deg)', marginTop: 2 }}>v</div>
@@ -533,12 +546,16 @@ export default function DACHJobsPage() {
                           {label('Was möchtest du tun?', 'What do you want to do?')}
                         </div>
                         <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+                          <button className="dach-action-btn" onClick={() => applyWithJobLens(job)}
+                            style={{ padding: '10px 18px', borderRadius: 9, border: 'none', background: tc.accent, color: tc.bgCard, fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: "'Outfit',sans-serif" }}>
+                            {t.jobs.applyWithJobLens}
+                          </button>
                           <button className="dach-action-btn" onClick={() => goTo('/app/cv-builder')}
-                            style={{ padding: '10px 18px', borderRadius: 9, border: 'none', background: `linear-gradient(135deg,${blue},#2563eb)`, color: '#fff', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: "'Outfit',sans-serif" }}>
+                            style={{ padding: '10px 18px', borderRadius: 9, border: `1px solid ${tc.accent}`, background: 'transparent', color: tc.accent, fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: "'Outfit',sans-serif" }}>
                             {label('CV für diese Stelle', 'Build CV for this job')}
                           </button>
                           <button className="dach-action-btn" onClick={() => goTo('/app/cover-letter')}
-                            style={{ padding: '10px 18px', borderRadius: 9, border: `1px solid ${blue}40`, background: blue + '10', color: blue, fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: "'Outfit',sans-serif" }}>
+                            style={{ padding: '10px 18px', borderRadius: 9, border: `1px solid ${tc.accent}`, background: 'transparent', color: tc.accent, fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: "'Outfit',sans-serif" }}>
                             {label('Anschreiben', 'Cover Letter')}
                           </button>
                           <button className="dach-action-btn" onClick={() => goToJobCase(job)}

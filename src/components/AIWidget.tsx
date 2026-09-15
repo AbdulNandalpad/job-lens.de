@@ -5,7 +5,7 @@ import { createPortal } from 'react-dom'
 import Link from 'next/link'
 import { useRouter, usePathname } from 'next/navigation'
 import { theme } from '@/lib/theme'
-import { SS, LS, API, CREDIT_COST, LIVE_VOICE_MAX_SECONDS, KIRA_MAINTENANCE, KIRA_OPEN_EVENT } from '@/lib/constants'
+import { SS, LS, API, CREDIT_COST, LIVE_VOICE_MAX_SECONDS, KIRA_MAINTENANCE, KIRA_OPEN_EVENT, MARKET } from '@/lib/constants'
 import { useLanguage } from '@/lib/i18n'
 import { useCurrentCv } from '@/lib/useCurrentCv'
 import { normalizeJob, writeJob } from '@/lib/job'
@@ -509,7 +509,7 @@ export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
     writeJob(ref)
     if (realtimeModeRef.current) exitRealtimeMode('widget_closed')
     setOpen(false); setMaximized(false)
-    router.push(market === 'in' ? '/in/cv-builder' : '/app/cv-builder')
+    router.push(market === MARKET.in ? '/in/apply' : '/app/apply')
   }
 
   // ── Voice task execution (kira.task from Railway) ────────────────────────

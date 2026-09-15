@@ -10,6 +10,7 @@ import SvgIcon, { type IconName } from '@/components/SvgIcon'
 import { useCurrentCv } from '@/lib/useCurrentCv'
 import { normalizeJob, writeJob, clearJob } from '@/lib/job'
 import FlowError from '@/components/FlowError'
+import { c as tc } from '@/lib/theme'
 
 interface Job {
   job_id: string
@@ -41,10 +42,10 @@ interface Profile {
 
 type JobTypeOption = 'Full-time' | 'Contract' | 'Hybrid' | 'Remote'
 type RightTab = 'description' | 'cv' | 'cl'
-type JobDest = 'cv' | 'cl'
+type JobDest = 'cv' | 'cl' | 'apply'
 
 const JOB_TYPE_OPTIONS: JobTypeOption[] = ['Full-time', 'Contract', 'Hybrid', 'Remote']
-const JOB_DEST_PATH: Record<JobDest, string> = { cv: '/app/cv-builder', cl: '/app/cover-letter' }
+const JOB_DEST_PATH: Record<JobDest, string> = { cv: '/app/cv-builder', cl: '/app/cover-letter', apply: '/app/apply' }
 
 function UploadBox({ label, sublabel, fileName, statusText, busy, inputRef, onFile, onClear, onReplace, replaceLabel, removeLabel, accept }: {
   label: string; sublabel: string; fileName: string; statusText?: string; busy?: boolean
@@ -335,6 +336,7 @@ function SmartJobSearchPage() {
 
   const openCvBuilder = (job: Job) => openWithFullJd(job, 'cv')
   const openCoverLetter = (job: Job) => openWithFullJd(job, 'cl')
+  const openApply = (job: Job) => openWithFullJd(job, 'apply')
 
   function confirmJdFallback() {
     if (!jdFallback) return
@@ -423,19 +425,26 @@ function SmartJobSearchPage() {
           {job.matchChips && <MatchChips chips={job.matchChips} />}
         </div>
         <div style={{ display: 'flex', gap: 6, padding: '9px 16px', borderTop: '1px solid #f3f6fa', background: '#fafbfd', flexWrap: 'wrap', alignItems: 'center' }}>
+          <button
+            onClick={() => openApply(job)}
+            disabled={fetchingJd}
+            style={{ fontSize: 11, padding: '5px 12px', borderRadius: 7, border: 'none', background: fetchingJd ? tc.borderLight : tc.accent, color: fetchingJd ? tc.textFaint : tc.bgCard, cursor: fetchingJd ? 'not-allowed' : 'pointer', fontFamily: 'inherit', fontWeight: 700 }}
+          >
+            {fetchingJd ? 'Fetching JD…' : t.jobs.applyWithJobLens}
+          </button>
           {/* Build CV -- saves job + navigates to CV Builder */}
           <button
             onClick={() => openCvBuilder(job)}
             disabled={!cvText || fetchingJd}
-            style={{ fontSize: 11, padding: '5px 12px', borderRadius: 7, border: 'none', background: cvText ? 'linear-gradient(135deg, #042C53, #185FA5)' : '#e8ecf1', color: cvText ? '#fff' : '#8fa3b8', cursor: cvText && !fetchingJd ? 'pointer' : 'not-allowed', fontFamily: 'inherit', fontWeight: 600 }}
+            style={{ fontSize: 11, padding: '5px 12px', borderRadius: 7, border: `1px solid ${cvText ? tc.accent : tc.borderLight}`, background: 'transparent', color: cvText ? tc.accent : tc.textFaint, cursor: cvText && !fetchingJd ? 'pointer' : 'not-allowed', fontFamily: 'inherit', fontWeight: 600 }}
           >
-            {fetchingJd ? 'Fetching JD…' : t.smartApply.results.buildCv}
+            {t.smartApply.results.buildCv}
           </button>
           {/* Cover Letter -- saves job + navigates to Cover Letter Builder */}
           <button
             onClick={() => openCoverLetter(job)}
             disabled={!cvText || fetchingJd}
-            style={{ fontSize: 11, padding: '5px 12px', borderRadius: 7, border: '1px solid #dce4ef', background: '#fff', color: cvText ? '#185FA5' : '#8fa3b8', cursor: cvText && !fetchingJd ? 'pointer' : 'not-allowed', fontFamily: 'inherit', fontWeight: 500 }}
+            style={{ fontSize: 11, padding: '5px 12px', borderRadius: 7, border: `1px solid ${cvText ? tc.accent : tc.borderLight}`, background: 'transparent', color: cvText ? tc.accent : tc.textFaint, cursor: cvText && !fetchingJd ? 'pointer' : 'not-allowed', fontFamily: 'inherit', fontWeight: 500 }}
           >
             {t.smartApply.results.coverLetter}
           </button>
@@ -601,7 +610,10 @@ function SmartJobSearchPage() {
                 {(selectedJob.job_description?.length ?? 0) > 1400 && <span style={{ color: '#8fa3b8' }}>...</span>}
               </div>
               <div style={{ marginTop: 16, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                <a href={selectedJob.job_apply_link} target="_blank" rel="noopener noreferrer" style={{ fontSize: 13, padding: '9px 20px', borderRadius: 8, background: 'linear-gradient(135deg, #042C53, #185FA5)', color: '#E6F1FB', textDecoration: 'none', fontWeight: 700, fontFamily: "'Outfit', sans-serif" }}>
+                <button onClick={() => openApply(selectedJob)} disabled={fetchingJd} style={{ fontSize: 13, padding: '9px 20px', borderRadius: 8, border: 'none', background: fetchingJd ? tc.borderLight : tc.accent, color: fetchingJd ? tc.textFaint : tc.bgCard, cursor: fetchingJd ? 'not-allowed' : 'pointer', fontWeight: 700, fontFamily: "'Outfit', sans-serif" }}>
+                  {fetchingJd ? 'Fetching job description…' : t.jobs.applyWithJobLens}
+                </button>
+                <a href={selectedJob.job_apply_link} target="_blank" rel="noopener noreferrer" style={{ fontSize: 13, padding: '9px 20px', borderRadius: 8, border: `1px solid ${tc.accent}`, background: 'transparent', color: tc.accent, textDecoration: 'none', fontWeight: 600, fontFamily: "'Outfit', sans-serif" }}>
                   {t.smartApply.results.viewPosting}
                 </a>
                 <button onClick={() => toggleLogged(selectedJob.job_id)} style={{ fontSize: 13, padding: '9px 16px', borderRadius: 8, border: `1px solid ${loggedJobs.has(selectedJob.job_id) ? '#b6ecd8' : '#dce4ef'}`, background: loggedJobs.has(selectedJob.job_id) ? '#f0fbf6' : '#fff', color: loggedJobs.has(selectedJob.job_id) ? '#1D9E75' : '#6b7c93', cursor: 'pointer', fontFamily: 'inherit', fontWeight: 500 }}>
@@ -940,7 +952,7 @@ function SmartJobSearchPage() {
                 Cancel
               </button>
               <button onClick={confirmJdFallback} style={{ padding: '9px 20px', borderRadius: 8, border: 'none', background: 'linear-gradient(135deg, #042C53, #185FA5)', color: '#fff', cursor: 'pointer', fontSize: 13, fontWeight: 700, fontFamily: 'inherit' }}>
-                {jdFallback.dest === 'cv' ? t.smartApply.results.buildCv : t.smartApply.results.coverLetter}
+                {jdFallback.dest === 'apply' ? t.jobs.applyWithJobLens : jdFallback.dest === 'cv' ? t.smartApply.results.buildCv : t.smartApply.results.coverLetter}
               </button>
             </div>
           </div>
