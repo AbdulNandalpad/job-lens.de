@@ -27,20 +27,23 @@ export async function GET(req: NextRequest) {
   const q    = searchParams.get('q') || ''
   const wo   = searchParams.get('location') || ''
   const page = parseInt(searchParams.get('page') || '1', 10)
+  const maxDaysOld = parseInt(searchParams.get('max_days_old') || '', 10)
   const size = 20
 
-  if (!q.trim()) {
+  // The BA API accepts a location without a keyword (e.g. all jobs in Frankfurt); it needs at least one of them.
+  if (!q.trim() && !wo.trim()) {
     return NextResponse.json({ jobs: [], total: 0 })
   }
 
   try {
     const params = new URLSearchParams({
-      was:         q,
       angebotsart: '1',            // 1 = Arbeitsstelle (jobs only, not training)
       page:        String(page),   // v6 pages are 1-based
       size:        String(size),
     })
-    if (wo.trim()) params.set('wo', wo)
+    if (q.trim()) params.set('was', q.trim())
+    if (wo.trim()) params.set('wo', wo.trim())
+    if (Number.isFinite(maxDaysOld) && maxDaysOld > 0 && maxDaysOld <= 100) params.set('veroeffentlichtseit', String(maxDaysOld))
 
     const res  = await fetch(`${BA_BASE}?${params}`, { headers: BA_HEADERS, next: { revalidate: 300 } })
     const data = await res.json()

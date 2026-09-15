@@ -139,20 +139,21 @@ export default function DACHJobsPage() {
   }
 
   // ── BA Jobbörse (Mittelstand): same fallback logic ───────────
-  async function fetchBAWithFallback(q: string, location: string): Promise<{ jobs: Job[]; usedQuery: string }> {
+  async function fetchBAWithFallback(q: string, location: string, maxDaysOld = ''): Promise<{ jobs: Job[]; usedQuery: string }> {
     setTotal(null)
     let current = q.trim()
-    while (current.length > 0) {
+    do {
       const params = new URLSearchParams({ q: current, page: '1' })
       if (location) params.set('location', location)
-      const res  = await fetch(`/api/ba-jobs?${params}`)
+      if (maxDaysOld) params.set('max_days_old', maxDaysOld)
+      const res  = await fetch(`${API.baJobs}?${params}`)
       const data = await res.json()
       const jobs = (data.jobs || []).map((j: Job) => ({ ...j, job_source: 'ba' as JobSource }))
-      if (jobs.length > 0) { setTotal(typeof data.total === 'number' ? data.total : null); return { jobs, usedQuery: current } }
+      if (jobs.length > 0 || !current) { setTotal(typeof data.total === 'number' ? data.total : null); return { jobs, usedQuery: current } }
       const words = current.split(' ')
       if (words.length === 1) break
       current = words.slice(0, -1).join(' ')
-    }
+    } while (current.length > 0)
     return { jobs: [], usedQuery: current }
   }
 
@@ -180,15 +181,13 @@ export default function DACHJobsPage() {
   async function search(overrides: { posted?: PostedValue } = {}) {
     const posted = overrides.posted ?? postedWithin
     const q = query.trim()
-    // Keyword may be empty when a city (or non-default country) narrows the search;
-    // the BA Jobbörse API returns nothing without a keyword.
-    if (!q && source === 'ba') { setSearchHint(t.jobs.baNeedsKeyword); return }
-    if (!q && !city.trim() && country === 'de') { setSearchHint(t.jobs.enterKeywordOrCity); return }
+    // Keyword may be empty when a city (or, for Adzuna, a non-default country) narrows the search.
+    if (!q && !city.trim() && (source === 'ba' || country === 'de')) { setSearchHint(t.jobs.enterKeywordOrCity); return }
     setSearchHint('')
     setLoading(true); setSearched(true); setSelectedJobId(null); setPage(1)
     try {
       const { jobs: results, usedQuery: uq } = source === 'ba'
-        ? await fetchBAWithFallback(query, city || (country === 'de' ? '' : country))
+        ? await fetchBAWithFallback(query, city || (country === 'de' ? '' : country), posted)
         : await fetchWithFallback(query, country, city, posted)
       setJobs(results); setUsedQuery(uq); setHasMore(results.length === 20)
       if (results.length && q) scoreJobs(results, query)
@@ -203,7 +202,9 @@ export default function DACHJobsPage() {
       let more: Job[] = []
       if (source === 'ba') {
         const params = new URLSearchParams({ q: usedQuery, page: String(next) })
-        const res  = await fetch(`/api/ba-jobs?${params}`)
+        if (city) params.set('location', city)
+        if (postedWithin) params.set('max_days_old', postedWithin)
+        const res  = await fetch(`${API.baJobs}?${params}`)
         const data = await res.json()
         more = (data.jobs || []).map((j: Job) => ({ ...j, job_source: 'ba' as JobSource }))
       } else {
@@ -226,12 +227,11 @@ export default function DACHJobsPage() {
   // Re-search when source toggle changes (if already searched)
   function switchSource(s: JobSource) {
     setSource(s)
-    if (searched && !query.trim() && s === 'ba') { setSearchHint(t.jobs.baNeedsKeyword); return }
-    if (searched && (query.trim() || city.trim() || country !== 'de')) {
+    if (searched && (query.trim() || city.trim() || (s === 'adzuna' && country !== 'de'))) {
       setSearchHint('')
       setLoading(true); setSelectedJobId(null); setPage(1)
       const fetch$ = s === 'ba'
-        ? fetchBAWithFallback(query, city || (country === 'de' ? '' : country))
+        ? fetchBAWithFallback(query, city || (country === 'de' ? '' : country), postedWithin)
         : fetchWithFallback(query, country, city, postedWithin)
       fetch$
         .then(({ jobs, usedQuery: uq }) => { setJobs(jobs); setUsedQuery(uq); setHasMore(jobs.length === 20) })
@@ -345,8 +345,9 @@ export default function DACHJobsPage() {
               ))}
             </div>
 
-            {/* Posted-within chips (Adzuna max_days_old) */}
-            {source === 'adzuna' && (
+            {/* Posted-within chips: Adzuna max_days_old / BA veroeffentlichtseit */}
+            {(
+
               <div style={{ padding: '0 16px 14px', display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
                 <span style={{ fontSize: 11, color: '#9aafbc', marginRight: 2 }}>{t.jobs.postedWithin}:</span>
                 {POSTED_OPTIONS.map(o => (

@@ -512,7 +512,6 @@ export const translations = {
       postedWithin: 'Veröffentlicht innerhalb',
       postedOptions: { any: 'Alle', day: '24 Std.', threeDays: '3 Tage', week: '7 Tage', month: '30 Tage' },
       enterKeywordOrCity: 'Bitte einen Suchbegriff oder eine Stadt eingeben.',
-      baNeedsKeyword: 'Die Mittelstand-Suche benötigt einen Suchbegriff.',
       applyWithJobLens: 'Mit Job-Lens bewerben',
     },
     common: {
@@ -1044,7 +1043,6 @@ export const translations = {
       postedWithin: 'Posted within',
       postedOptions: { any: 'Any', day: '24h', threeDays: '3 days', week: '7 days', month: '30 days' },
       enterKeywordOrCity: 'Enter a keyword or a city to search.',
-      baNeedsKeyword: 'Mittelstand search needs a keyword.',
       applyWithJobLens: 'Apply with Job-Lens',
     },
     common: {
