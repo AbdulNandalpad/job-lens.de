@@ -84,7 +84,8 @@ export async function GET(req: NextRequest) {
     const typed = jobs as { job_posted_at_datetime_utc: string }[]
     typed.sort((a, b) => parseTs(b.job_posted_at_datetime_utc) - parseTs(a.job_posted_at_datetime_utc))
 
-    return NextResponse.json({ jobs })
+    // Adzuna's `count` is the size of the whole result set, not this page — the UI must not show jobs.length as "found".
+    return NextResponse.json({ jobs, total: typeof data.count === 'number' ? data.count : null })
   } catch (err) {
     console.error('Adzuna API error:', err)
     return NextResponse.json({ error: 'Failed to fetch jobs' }, { status: 500 })

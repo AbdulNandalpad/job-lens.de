@@ -70,6 +70,7 @@ export default function IndiaJobsPage() {
   const [scores,  setScores]  = useState<Record<string, number>>({})
   const [scoring, setScoring] = useState(false)
   const [jobs, setJobs] = useState<Job[]>([])
+  const [total, setTotal] = useState<number | null>(null)
   const [loading, setLoading] = useState(false)
   const [loadingMore, setLoadingMore] = useState(false)
   const [searched, setSearched] = useState(false)
@@ -110,6 +111,7 @@ export default function IndiaJobsPage() {
   // Fallback by trimming the last word on 0 results. An empty keyword is a
   // valid Adzuna query when a location/country is set — that case runs once.
   async function fetchWithFallback(q: string, ctry: 'in' | 'de' = country, location = city, maxDaysOld: string = postedWithin): Promise<{ jobs: Job[]; usedQuery: string }> {
+    setTotal(null)
     let current = q.trim()
     do {
       const params = new URLSearchParams({ q: current, country: ctry, page: '1' })
@@ -118,7 +120,7 @@ export default function IndiaJobsPage() {
       const res  = await fetch(`${API.jobs}?${params}`)
       const data = await res.json()
       const jobs = data.jobs || []
-      if (jobs.length > 0 || !current) return { jobs, usedQuery: current }
+      if (jobs.length > 0 || !current) { setTotal(typeof data.total === 'number' ? data.total : null); return { jobs, usedQuery: current } }
       const words = current.split(' ')
       if (words.length === 1) break
       current = words.slice(0, -1).join(' ')
@@ -376,7 +378,7 @@ export default function IndiaJobsPage() {
                 </div>
               )}
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4, flexWrap: 'wrap', gap: 8 }}>
-                <span style={{ fontSize: 13, color: '#9aafbc' }}>{jobs.length} jobs found</span>
+                <span style={{ fontSize: 13, color: '#9aafbc' }}>{total !== null && total >= jobs.length ? `${total.toLocaleString('en-IN')} jobs found · showing ${jobs.length}` : `Showing ${jobs.length} jobs`}</span>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                   {scoring && <span style={{ fontSize: 11, color: '#9aafbc' }}>Scoring...</span>}
                   <span style={{ fontSize: 11, color: '#9aafbc' }}>Sort:</span>

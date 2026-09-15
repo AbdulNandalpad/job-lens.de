@@ -121,6 +121,7 @@ export default function DACHJobsPage() {
   // An empty keyword is a valid Adzuna query when a location/country is set —
   // that case runs exactly once with no word-trimming.
   async function fetchWithFallback(q: string, countryCode: string, location = '', maxDaysOld = ''): Promise<{ jobs: Job[]; usedQuery: string }> {
+    setTotal(null)
     let current = q.trim()
     do {
       const params = new URLSearchParams({ q: current, country: countryCode, page: '1' })
@@ -129,7 +130,7 @@ export default function DACHJobsPage() {
       const res  = await fetch(`${API.jobs}?${params}`)
       const data = await res.json()
       const jobs = (data.jobs || []).map((j: Job) => ({ ...j, job_source: 'adzuna' as JobSource }))
-      if (jobs.length > 0 || !current) return { jobs, usedQuery: current }
+      if (jobs.length > 0 || !current) { setTotal(typeof data.total === 'number' ? data.total : null); return { jobs, usedQuery: current } }
       const words = current.split(' ')
       if (words.length === 1) break
       current = words.slice(0, -1).join(' ')
@@ -139,6 +140,7 @@ export default function DACHJobsPage() {
 
   // ── BA Jobbörse (Mittelstand): same fallback logic ───────────
   async function fetchBAWithFallback(q: string, location: string): Promise<{ jobs: Job[]; usedQuery: string }> {
+    setTotal(null)
     let current = q.trim()
     while (current.length > 0) {
       const params = new URLSearchParams({ q: current, page: '1' })
@@ -146,7 +148,7 @@ export default function DACHJobsPage() {
       const res  = await fetch(`/api/ba-jobs?${params}`)
       const data = await res.json()
       const jobs = (data.jobs || []).map((j: Job) => ({ ...j, job_source: 'ba' as JobSource }))
-      if (jobs.length > 0) return { jobs, usedQuery: current }
+      if (jobs.length > 0) { setTotal(typeof data.total === 'number' ? data.total : null); return { jobs, usedQuery: current } }
       const words = current.split(' ')
       if (words.length === 1) break
       current = words.slice(0, -1).join(' ')
@@ -155,6 +157,7 @@ export default function DACHJobsPage() {
   }
 
   const label = (de: string, en: string) => lang === 'DE' ? de : en
+  const [total, setTotal] = useState<number | null>(null)
 
 
   useEffect(() => {
@@ -457,7 +460,9 @@ export default function DACHJobsPage() {
               )}
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4, flexWrap: 'wrap', gap: 8 }}>
                 <span style={{ fontSize: 13, color: '#9aafbc' }}>
-                  {jobs.length} {label('Stellen gefunden', 'jobs found')}
+                  {total !== null && total >= jobs.length
+                    ? label(`${total.toLocaleString('de-DE')} Stellen gefunden · ${jobs.length} angezeigt`, `${total.toLocaleString('en-US')} jobs found · showing ${jobs.length}`)
+                    : label(`${jobs.length} Stellen angezeigt`, `Showing ${jobs.length} jobs`)}
                 </span>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                   {scoring && <span style={{ fontSize: 11, color: '#9aafbc' }}>{label('Analyse läuft…', 'Scoring...')}</span>}

@@ -17,7 +17,7 @@ import { useLanguage } from '@/lib/i18n'
 import KiraOrb from '@/components/KiraOrb'
 import FlowError from '@/components/FlowError'
 import { KIRA_TILES, type KiraTile } from '@/lib/kiraModes'
-import { CREDIT_COST, SS, API, KIRA_MAINTENANCE, KIRA_OPEN_EVENT, IN_REVISION, MARKET } from '@/lib/constants'
+import { CREDIT_COST, SS, API, KIRA_MAINTENANCE, KIRA_OPEN_EVENT, MARKET } from '@/lib/constants'
 import { readJob } from '@/lib/job'
 
 const { colors: c, fonts: f, gradients: g } = theme
@@ -62,14 +62,6 @@ const CV_LOADING_STEPS: Record<'DE' | 'EN', string[]> = {
 }
 
 const fa = theme.featureAccents
-const TILE_COLOR: Record<string, string> = {
-  career_scan:  fa.careerScan,
-  job_search:   fa.jobSearch,
-  cv_builder:   fa.cvBuilder,
-  cover_letter: fa.coverLetter,
-  auto_apply:   fa.autoApply,
-  job_case:     fa.jobCase,
-}
 
 function TypingDots({ accent }: { accent: string }) {
   return (
@@ -110,7 +102,6 @@ export default function KiraHome({ market }: { market: 'eu' | 'in' }) {
   const accent = market === 'in' ? '#FF9933' : c.accent
   const stepLang: 'DE' | 'EN' = market === 'eu' && lang === 'DE' ? 'DE' : 'EN'
   const isDE = market === 'eu' && lang === 'DE'
-  const langKey = market === 'in' ? 'in_EN' : lang === 'DE' ? 'eu_DE' : 'eu_EN'
   const hasVoice = Boolean(process.env.NEXT_PUBLIC_REALTIME_WS_URL)
 
   // DACH goes through translations; India is inline English with identical wording.
@@ -224,8 +215,9 @@ export default function KiraHome({ market }: { market: 'eu' | 'in' }) {
       }
     } catch { /* ignore */ }
 
-    setPickups(cards.slice(0, 3))
-    setApplyPickup(readApplyPickup(market))
+    const apply = readApplyPickup(market)
+    setPickups((apply ? cards.filter(card => card.href !== p('cv-builder') && card.href !== p('cover-letter')) : cards).slice(0, 3))
+    setApplyPickup(apply)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
@@ -378,7 +370,6 @@ export default function KiraHome({ market }: { market: 'eu' | 'in' }) {
   }
   chips.push(
     { label: isDE ? 'Verbessere meine CV-Zusammenfassung' : 'Fix my CV summary', action: { kind: 'ask', text: isDE ? 'Verbessere meine CV-Zusammenfassung.' : 'Help me fix my CV summary.' } },
-    { label: isDE ? 'Bin ich ATS-ready?' : 'Am I ATS-ready?', action: { kind: 'ask', text: isDE ? 'Bin ich ATS-ready? Was würde ein ATS-Filter an meinem Lebenslauf bemängeln?' : 'Am I ATS-ready? What would an ATS filter flag in my CV?' } },
     { label: isDE ? 'Finde Jobs, die zu mir passen' : 'Find jobs that match my CV', action: { kind: 'ask', text: isDE ? 'Finde Jobs, die zu meinem Lebenslauf passen.' : 'Find jobs that match my CV.' } },
     { label: isDE ? 'Was bin ich wert?' : "What's my market value?", action: { kind: 'ask', text: isDE ? 'Was bin ich auf dem aktuellen Markt wert?' : "What's my current market value?" } },
   )
@@ -647,27 +638,19 @@ export default function KiraHome({ market }: { market: 'eu' | 'in' }) {
               </div>
             )}
 
-            {/* Jump to a tool */}
-            <div className="kh-rise" style={{ animationDelay: '.62s', width: '100%', marginTop: pickups.length > 0 ? 34 : 44 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap' as const }}>
-                <span style={{ fontSize: 11.5, fontWeight: 700, letterSpacing: 1.6, textTransform: 'uppercase' as const, color: c.textFaint }}>
-                  {isDE ? 'Direkt zum Tool' : 'Jump to a tool'}
-                </span>
-                {KIRA_TILES.filter(tile =>
-                  !(IN_REVISION.autoApply && tile.id === 'auto_apply') &&
-                  !(IN_REVISION.jobCase && tile.id === 'job_case')
-                ).map(tile => {
-                  const tc = tile.id === 'career_scan' && market === 'in' ? accent : (TILE_COLOR[tile.id] ?? c.accent)
-                  return (
-                    <button key={tile.id} className="kh-pill" onClick={() => handleTileClick(tile)}
-                      style={{ '--tc': `${tc}88` } as CSSProperties}>
-                      <span style={{ width: 7, height: 7, borderRadius: '50%', background: tc, flexShrink: 0 }} />
-                      {tile.label[langKey] ?? tile.label.eu_EN}
-                    </button>
-                  )
-                })}
+            {/* One primary next step. Every other tool is already in the navbar, so it is not repeated here. */}
+            {!applyPickup && (
+              <div className="kh-rise" style={{ animationDelay: '.62s', width: '100%', maxWidth: 620, marginTop: pickups.length > 0 ? 34 : 40 }}>
+                <button onClick={() => { const tile = KIRA_TILES.find(k => k.id === 'apply'); if (tile) handleTileClick(tile) }}
+                  style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 14, padding: '16px 20px', borderRadius: 14, border: 'none', background: accent, color: c.bgCard, cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left' as const, boxShadow: theme.shadow.card }}>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontFamily: f.heading, fontSize: 16, fontWeight: 700 }}>{isDE ? 'Auf eine Stelle bewerben' : 'Apply to a job'}</div>
+                    <div style={{ fontSize: 12.5, opacity: 0.9, marginTop: 2 }}>{isDE ? 'Lebenslauf + Anschreiben für genau diese Stelle, in 5 Schritten' : 'CV + cover letter for one specific job, in 5 steps'}</div>
+                  </div>
+                  <span style={{ fontSize: 20, fontWeight: 700 }}>→</span>
+                </button>
               </div>
-            </div>
+            )}
           </>
         )}
       </div>
