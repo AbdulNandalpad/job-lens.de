@@ -13,10 +13,11 @@ Numbering is stable — refer to items by number in future chats so we can pick 
 | 5 | Give Kira more flexibility (broader tool use / less rigid conversation flow) | Not started |
 | 6 | Tighten job search with the right search parameters — priority: sort by date posted | ✅ Done — see below |
 | 7 | Make scanner + CV generation deterministic — same input should give the same output every time, not a different answer per run | ✅ Done — see below |
-| 8 | Fix CV generation styles — correct padding/spacing when a line break occurs | ✅ Done — added `whiteSpace: 'pre-wrap'` to all 4 CV templates' summary + bullet text renders (`src/app/app/cv-builder/page.tsx`), which were silently collapsing embedded line breaks from the AI output |
+| 8 | Fix CV generation styles — correct padding/spacing when a line break occurs | ✅ Done (superseded 2026-09-15: CV Builder previews now render the real PDF) — added `whiteSpace: 'pre-wrap'` to all 4 CV templates' summary + bullet text renders (`src/app/app/cv-builder/page.tsx`), which were silently collapsing embedded line breaks from the AI output |
 | 9 | Job Case: confetti animation when a case is successfully created | ✅ Done — `src/lib/confetti.ts` (zero-dependency canvas confetti), fired in `src/app/app/job-case/new/page.tsx` on `step === 'done'` |
-| 10 | One saved CV across the platform (Account settings) instead of re-uploading on every page | In progress — see below |
+| 10 | One saved CV across the platform (Account settings) instead of re-uploading on every page | ✅ Done — `useCurrentCv` on every page (item 12) |
 | 11 | Job Case: full audit against its documented GDPR design + make the recruiter-facing page a genuinely better CV replacement | In progress — see below |
+| 12 | Retention revamp (2026-09-15): one guided Apply flow as the primary path, One CV + one job across pages, server-enforced application package pricing, CV PDF design pass, reliability fixes | Code complete — migration 015 must run in Supabase before deploy; end-to-end browser QA with a non-admin test user still pending. See AGENTS.md §5 and §12 |
 
 ### Item 7 detail — determinism, full-rewrite enforcement, output validation
 
