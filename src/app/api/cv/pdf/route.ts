@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import React from 'react'
 import { pdf, DocumentProps } from '@react-pdf/renderer'
 import { CVPdfDocument, ensureCvFonts, FALLBACK_FONTS } from '@/lib/CVPdf'
+import { renderFitted } from '@/lib/cvPdfFit'
 import { createServerSupabase } from '@/lib/supabase-server'
 import { c } from '@/lib/theme'
 
@@ -39,12 +40,12 @@ export async function POST(req: NextRequest) {
 
   let uint8: Uint8Array
   try {
-    uint8 = await render(props, fonts)
+    uint8 = (await renderFitted(density => render({ ...props, density }, fonts))).pdf
   } catch (err) {
     if (fonts === FALLBACK_FONTS) throw err
     // A font that preloaded fine can still fail at embed time; the PDF must never 500 because of it.
     console.error('[cv/pdf] render with brand fonts failed, retrying with Helvetica:', err)
-    uint8 = await render(props, FALLBACK_FONTS)
+    uint8 = (await renderFitted(density => render({ ...props, density }, FALLBACK_FONTS))).pdf
   }
 
   const safeName = (cv.name || 'JobLens').replace(/[^a-zA-Z0-9]/g, '_')

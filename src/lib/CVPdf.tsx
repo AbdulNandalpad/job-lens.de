@@ -11,7 +11,7 @@
  * document falls back to the built-in Helvetica family so a PDF is always produced.
  */
 import { Document, Page, Text, View, Image, Font } from '@react-pdf/renderer'
-import { c, s as sp } from '@/lib/theme'
+import { c, s as space } from '@/lib/theme'
 
 export interface CVData {
   name: string
@@ -120,10 +120,7 @@ const rule  = c.borderLight
 const paper = c.bgCard
 const navy  = c.primary
 
-const FS = { name: 24, title: 11, body: 10, meta: 9, small: 8.5, section: 8, stat: 15 }
 const LH = 1.4
-const PAGE_X = 44
-const PAGE_Y = 40
 const SIDEBAR_W = 190
 const SIDEBAR_PAD = 24
 
@@ -135,7 +132,29 @@ const BANDED_TEMPLATES  = ['modern', 'saffron']
 
 const lvLabel = (l: number) => (l >= 90 ? 'Native' : l >= 75 ? 'Fluent' : l >= 55 ? 'Proficient' : 'Basic')
 const has = <T,>(arr: T[] | undefined | null): arr is T[] => Array.isArray(arr) && arr.length > 0
-const nameSize = (name: string) => (name.length > 30 ? 18 : name.length > 22 ? 20 : FS.name)
+
+/**
+ * Layout tokens for one render. density 1 is the designed layout; the fit-to-page pass
+ * (src/lib/cvPdfFit.ts) re-renders below 1 to pull a nearly empty last page back.
+ * Spacing shrinks faster than type so the page stays readable; margins stop at 85%.
+ */
+function layoutTokens(density = 1) {
+  const d = density
+  const fs = (n: number) => n * d
+  const gap = (n: number) => n * d * d
+  const margin = Math.max(d, 0.85)
+  return {
+    fs,
+    gap,
+    FS: { name: fs(24), title: fs(11), body: Math.max(fs(10), 8.5), meta: fs(9), small: fs(8.5), section: fs(8), stat: fs(15) },
+    sp: { xs: gap(space.xs), sm: gap(space.sm), md: gap(space.md), lg: gap(space.lg), xl: gap(space.xl) },
+    PAGE_X: 44 * margin,
+    PAGE_Y: 40 * margin,
+  }
+}
+type Tokens = ReturnType<typeof layoutTokens>
+
+const nameSize = (t: Tokens, name: string) => (name.length > 30 ? t.fs(18) : name.length > 22 ? t.fs(20) : t.FS.name)
 
 // Relative luminance of a #rrggbb colour; used to keep accents legible on the dark sidebar.
 function luminance(hex: string): number {
@@ -148,9 +167,12 @@ function luminance(hex: string): number {
 
 // ───────────────────────── Shared pieces ─────────────────────────
 
-interface Ctx { cv: CVData; ac: string; fx: PdfFonts; photo?: string }
+// Tokens travel as a prop, not module state or context: route handlers bundle React without
+// createContext, and concurrent requests in one lambda render at different densities.
+interface Ctx { cv: CVData; ac: string; fx: PdfFonts; tk: Tokens; photo?: string }
 
-function SectionTitle({ title, ac, fx, color }: { title: string; ac: string; fx: PdfFonts; color?: string }) {
+function SectionTitle({ title, ac, fx, tk, color }: { title: string; ac: string; fx: PdfFonts; tk: Tokens; color?: string }) {
+  const { sp, FS } = tk
   return (
     <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: sp.lg, marginBottom: sp.sm }} minPresenceAhead={52} wrap={false}>
       <Text style={[fx.heading, { fontSize: FS.section, color: color || ac, textTransform: 'uppercase', letterSpacing: 1.4 }]}>{title}</Text>
@@ -159,16 +181,19 @@ function SectionTitle({ title, ac, fx, color }: { title: string; ac: string; fx:
   )
 }
 
-function Bullet({ text, ac, fx, size = FS.body, color = muted }: { text: string; ac: string; fx: PdfFonts; size?: number; color?: string }) {
+function Bullet({ text, ac, fx, tk, size: sizeProp, color = muted }: { text: string; ac: string; fx: PdfFonts; tk: Tokens; size?: number; color?: string }) {
+  const { FS, gap } = tk
+  const size = sizeProp ?? FS.body
   return (
-    <View style={{ flexDirection: 'row', marginBottom: 3 }} wrap={false}>
+    <View style={{ flexDirection: 'row', marginBottom: gap(3) }} wrap={false}>
       <Text style={[fx.bold, { width: 11, fontSize: size, lineHeight: LH, color: ac }]}>{BULLET}</Text>
       <Text style={[fx.body, { flex: 1, fontSize: size, lineHeight: LH, color }]}>{text}</Text>
     </View>
   )
 }
 
-function ExperienceBlock({ cv, ac, fx, roleSize = 11 }: Ctx & { roleSize?: number }) {
+function ExperienceBlock({ cv, ac, fx, tk, roleSize = 11 }: Ctx & { roleSize?: number }) {
+  const { sp, FS, fs, gap: g } = tk
   return (
     <>
       {cv.experience.map((exp, i) => {
@@ -181,15 +206,15 @@ function ExperienceBlock({ cv, ac, fx, roleSize = 11 }: Ctx & { roleSize?: numbe
           <View key={i}>
             <View wrap={false} style={{ marginBottom: rest.length ? 0 : gap }}>
               <View style={{ flexDirection: 'row', alignItems: 'flex-start' }}>
-                <Text style={[fx.bold, { flex: 1, fontSize: roleSize, lineHeight: 1.3, color: ink, paddingRight: sp.sm }]}>{exp.role}</Text>
+                <Text style={[fx.bold, { flex: 1, fontSize: fs(roleSize), lineHeight: 1.3, color: ink, paddingRight: sp.sm }]}>{exp.role}</Text>
                 {exp.period ? <Text style={[fx.medium, { flexShrink: 0, fontSize: FS.meta, lineHeight: 1.3, color: ac, textAlign: 'right', paddingTop: 1 }]}>{exp.period}</Text> : null}
               </View>
-              {meta ? <Text style={[fx.body, { fontSize: FS.meta, lineHeight: LH, color: faint, marginBottom: 4 }]}>{meta}</Text> : null}
-              {first ? <Bullet text={first} ac={ac} fx={fx} /> : null}
+              {meta ? <Text style={[fx.body, { fontSize: FS.meta, lineHeight: LH, color: faint, marginBottom: g(4) }]}>{meta}</Text> : null}
+              {first ? <Bullet tk={tk} text={first} ac={ac} fx={fx} /> : null}
             </View>
             {rest.map((b, j) => (
               <View key={j} style={{ marginBottom: j === rest.length - 1 ? gap : 0 }} wrap={false}>
-                <Bullet text={b} ac={ac} fx={fx} />
+                <Bullet tk={tk} text={b} ac={ac} fx={fx} />
               </View>
             ))}
           </View>
@@ -199,7 +224,8 @@ function ExperienceBlock({ cv, ac, fx, roleSize = 11 }: Ctx & { roleSize?: numbe
   )
 }
 
-function EducationBlock({ cv, fx }: Ctx) {
+function EducationBlock({ cv, fx, tk }: Ctx) {
+  const { sp, FS } = tk
   return (
     <>
       {cv.education.map((e, i) => (
@@ -215,23 +241,25 @@ function EducationBlock({ cv, fx }: Ctx) {
   )
 }
 
-function Chips({ items, bg, color, border }: { items: string[]; bg: string; color: string; border?: string; fx: PdfFonts }) {
+function Chips({ items, bg, color, border, tk }: { items: string[]; bg: string; color: string; border?: string; fx: PdfFonts; tk: Tokens }) {
+  const { FS, gap } = tk
   return (
-    <View style={{ flexDirection: 'row', flexWrap: 'wrap', marginBottom: -4 }} wrap={false}>
+    <View style={{ flexDirection: 'row', flexWrap: 'wrap', marginBottom: -gap(4) }} wrap={false}>
       {items.map((t, i) => (
-        <Text key={i} style={{ fontSize: FS.small, lineHeight: 1.2, color, backgroundColor: bg, paddingVertical: 3, paddingHorizontal: 7, borderRadius: 3, marginRight: 4, marginBottom: 4, ...(border ? { borderWidth: 0.5, borderColor: border } : {}) }}>{t}</Text>
+        <Text key={i} style={{ fontSize: FS.small, lineHeight: 1.2, color, backgroundColor: bg, paddingVertical: gap(3), paddingHorizontal: 7, borderRadius: 3, marginRight: 4, marginBottom: gap(4), ...(border ? { borderWidth: 0.5, borderColor: border } : {}) }}>{t}</Text>
       ))}
     </View>
   )
 }
 
-function StatsRow({ cv, ac, fx, compact }: Ctx & { compact?: boolean }) {
+function StatsRow({ cv, ac, fx, tk, compact }: Ctx & { compact?: boolean }) {
+  const { sp, FS, fs, gap } = tk
   return (
     <View style={{ flexDirection: 'row', flexWrap: 'wrap', marginTop: sp.md, marginBottom: -sp.sm }} wrap={false}>
       {cv.stats.map((st, i) => (
-        <View key={i} style={{ paddingHorizontal: compact ? 10 : 12, paddingVertical: 6, backgroundColor: c.bgSubtle, borderRadius: 4, borderWidth: 0.5, borderColor: rule, marginRight: sp.sm, marginBottom: sp.sm, alignItems: 'center' }}>
-          <Text style={[fx.headingBold, { fontSize: compact ? 13 : FS.stat, lineHeight: 1.1, color: ac }]}>{st.value}</Text>
-          <Text style={[fx.body, { fontSize: 7.5, color: faint, marginTop: 2, textTransform: 'uppercase', letterSpacing: 0.6 }]}>{st.label}</Text>
+        <View key={i} style={{ paddingHorizontal: compact ? 10 : 12, paddingVertical: gap(6), backgroundColor: c.bgSubtle, borderRadius: 4, borderWidth: 0.5, borderColor: rule, marginRight: sp.sm, marginBottom: sp.sm, alignItems: 'center' }}>
+          <Text style={[fx.headingBold, { fontSize: compact ? fs(13) : FS.stat, lineHeight: 1.1, color: ac }]}>{st.value}</Text>
+          <Text style={[fx.body, { fontSize: fs(7.5), color: faint, marginTop: gap(2), textTransform: 'uppercase', letterSpacing: 0.6 }]}>{st.label}</Text>
         </View>
       ))}
     </View>
@@ -239,13 +267,14 @@ function StatsRow({ cv, ac, fx, compact }: Ctx & { compact?: boolean }) {
 }
 
 /** Sections shared by both single-column templates (everything below the header). */
-function SingleColumnBody({ cv, ac, fx, photo, chips }: Ctx & { chips: boolean }) {
+function SingleColumnBody({ cv, ac, fx, tk, photo, chips }: Ctx & { chips: boolean }) {
   const skills = (cv.skills || []).map(sk => sk.name).filter(Boolean)
   const tools = (cv.tools || []).filter(Boolean)
   const certs = (cv.certifications || []).filter(Boolean)
   const highlights = (cv.highlights || []).filter(Boolean)
   const langs = (cv.languages || []).filter(l => l?.name)
-  const ctx = { cv, ac, fx, photo }
+  const ctx = { cv, ac, fx, tk, photo }
+  const { FS } = tk
   const bodyTxt = { fontSize: FS.body, lineHeight: LH, color: muted }
 
   return (
@@ -254,51 +283,51 @@ function SingleColumnBody({ cv, ac, fx, photo, chips }: Ctx & { chips: boolean }
 
       {cv.summary ? (
         <>
-          <SectionTitle title="Profile" ac={ac} fx={fx} />
+          <SectionTitle tk={tk} title="Profile" ac={ac} fx={fx} />
           <Text style={[fx.body, bodyTxt]}>{cv.summary}</Text>
         </>
       ) : null}
 
       {has(cv.experience) && (
         <>
-          <SectionTitle title="Professional Experience" ac={ac} fx={fx} />
+          <SectionTitle tk={tk} title="Professional Experience" ac={ac} fx={fx} />
           <ExperienceBlock {...ctx} />
         </>
       )}
 
       {has(skills) && (
         <>
-          <SectionTitle title="Core Skills" ac={ac} fx={fx} />
+          <SectionTitle tk={tk} title="Core Skills" ac={ac} fx={fx} />
           {chips
-            ? <Chips items={skills} bg={c.bgSubtle} color={ink} border={rule} fx={fx} />
+            ? <Chips tk={tk} items={skills} bg={c.bgSubtle} color={ink} border={rule} fx={fx} />
             : <Text style={[fx.body, bodyTxt]} wrap={false}>{skills.join(DOT_SEP)}</Text>}
         </>
       )}
 
       {has(tools) && (
         <>
-          <SectionTitle title="Tech Stack" ac={ac} fx={fx} />
+          <SectionTitle tk={tk} title="Tech Stack" ac={ac} fx={fx} />
           <Text style={[fx.medium, bodyTxt, { color: ink }]} wrap={false}>{tools.join(DOT_SEP)}</Text>
         </>
       )}
 
       {has(cv.education) && (
         <>
-          <SectionTitle title="Education" ac={ac} fx={fx} />
+          <SectionTitle tk={tk} title="Education" ac={ac} fx={fx} />
           <EducationBlock {...ctx} />
         </>
       )}
 
       {has(certs) && (
         <>
-          <SectionTitle title="Certifications" ac={ac} fx={fx} />
-          {certs.map((t, i) => <Bullet key={i} text={t} ac={ac} fx={fx} />)}
+          <SectionTitle tk={tk} title="Certifications" ac={ac} fx={fx} />
+          {certs.map((t, i) => <Bullet tk={tk} key={i} text={t} ac={ac} fx={fx} />)}
         </>
       )}
 
       {has(langs) && (
         <>
-          <SectionTitle title="Languages" ac={ac} fx={fx} />
+          <SectionTitle tk={tk} title="Languages" ac={ac} fx={fx} />
           <Text style={[fx.body, bodyTxt]} wrap={false}>
             {langs.map(l => `${l.name} (${lvLabel(l.level)})`).join(DOT_SEP)}
           </Text>
@@ -307,15 +336,17 @@ function SingleColumnBody({ cv, ac, fx, photo, chips }: Ctx & { chips: boolean }
 
       {has(highlights) && (
         <>
-          <SectionTitle title="Key Highlights" ac={ac} fx={fx} />
-          {highlights.map((t, i) => <Bullet key={i} text={t} ac={ac} fx={fx} />)}
+          <SectionTitle tk={tk} title="Key Highlights" ac={ac} fx={fx} />
+          {highlights.map((t, i) => <Bullet tk={tk} key={i} text={t} ac={ac} fx={fx} />)}
         </>
       )}
     </>
   )
 }
 
-function ContactLine({ items, color, fx, size = FS.meta }: { items: string[]; color: string; fx: PdfFonts; size?: number }) {
+function ContactLine({ items, color, fx, tk, size: sizeProp }: { items: string[]; color: string; fx: PdfFonts; tk: Tokens; size?: number }) {
+  const { FS } = tk
+  const size = sizeProp ?? FS.meta
   return (
     <View style={{ flexDirection: 'row', flexWrap: 'wrap' }} wrap={false}>
       {items.map((it, i) => (
@@ -334,7 +365,8 @@ function Photo({ src, size }: { src: string; size: number }) {
 
 // ───────────────────────── Minimal ─────────────────────────
 
-function CVPdfMinimal({ cv, ac, fx, photo }: Ctx) {
+function CVPdfMinimal({ cv, ac, fx, tk, photo }: Ctx) {
+  const { sp, FS, PAGE_X, PAGE_Y, gap } = tk
   const contact = [cv.email, cv.phone, cv.location, cv.linkedin].filter(Boolean)
   return (
     <Document>
@@ -342,13 +374,13 @@ function CVPdfMinimal({ cv, ac, fx, photo }: Ctx) {
         <View style={{ flexDirection: 'row', alignItems: 'center', paddingBottom: sp.md, borderBottomWidth: 1.2, borderBottomColor: ac }} wrap={false} minPresenceAhead={80}>
           {photo ? <View style={{ marginRight: sp.lg }}><Photo src={photo} size={64} /></View> : null}
           <View style={{ flex: 1 }}>
-            <Text style={[fx.headingBold, { fontSize: nameSize(cv.name), lineHeight: 1.15, color: ink }]}>{cv.name}</Text>
-            {cv.title ? <Text style={[fx.medium, { fontSize: FS.title, lineHeight: 1.3, color: ac, marginTop: 3 }]}>{cv.title}</Text> : null}
-            {cv.tagline ? <Text style={[fx.body, { fontSize: FS.meta, lineHeight: LH, color: faint, marginTop: 3 }]}>{cv.tagline}</Text> : null}
-            {contact.length > 0 && <View style={{ marginTop: sp.sm }}><ContactLine items={contact} color={faint} fx={fx} /></View>}
+            <Text style={[fx.headingBold, { fontSize: nameSize(tk, cv.name), lineHeight: 1.15, color: ink }]}>{cv.name}</Text>
+            {cv.title ? <Text style={[fx.medium, { fontSize: FS.title, lineHeight: 1.3, color: ac, marginTop: gap(3) }]}>{cv.title}</Text> : null}
+            {cv.tagline ? <Text style={[fx.body, { fontSize: FS.meta, lineHeight: LH, color: faint, marginTop: gap(3) }]}>{cv.tagline}</Text> : null}
+            {contact.length > 0 && <View style={{ marginTop: sp.sm }}><ContactLine tk={tk} items={contact} color={faint} fx={fx} /></View>}
           </View>
         </View>
-        <SingleColumnBody cv={cv} ac={ac} fx={fx} photo={photo} chips={false} />
+        <SingleColumnBody cv={cv} ac={ac} fx={fx} tk={tk} photo={photo} chips={false} />
       </Page>
     </Document>
   )
@@ -356,25 +388,26 @@ function CVPdfMinimal({ cv, ac, fx, photo }: Ctx) {
 
 // ───────────────────────── Modern (navy header band) ─────────────────────────
 
-function CVPdfModern({ cv, ac, fx, photo }: Ctx) {
+function CVPdfModern({ cv, ac, fx, tk, photo }: Ctx) {
+  const { sp, FS, PAGE_X, PAGE_Y, gap } = tk
   const contact = [cv.email, cv.phone, cv.location, cv.linkedin].filter(Boolean)
   const onBand = 'rgba(255,255,255,0.82)'
   return (
     <Document>
       <Page size="A4" style={[fx.body, { backgroundColor: paper, paddingHorizontal: PAGE_X, paddingVertical: PAGE_Y, fontSize: FS.body, color: muted }]}>
         {/* Negative margins pull the band out to the page edges on page 1 only; later pages keep normal padding. */}
-        <View style={{ marginTop: -PAGE_Y, marginHorizontal: -PAGE_X, paddingHorizontal: PAGE_X, paddingTop: PAGE_Y - 4, paddingBottom: sp.xl, backgroundColor: navy, borderBottomWidth: 4, borderBottomColor: ac }} wrap={false} minPresenceAhead={80}>
+        <View style={{ marginTop: -PAGE_Y, marginHorizontal: -PAGE_X, paddingHorizontal: PAGE_X, paddingTop: PAGE_Y - gap(4), paddingBottom: sp.xl, backgroundColor: navy, borderBottomWidth: 4, borderBottomColor: ac }} wrap={false} minPresenceAhead={80}>
           <View style={{ flexDirection: 'row', alignItems: 'center' }}>
             {photo ? <View style={{ marginRight: sp.lg }}><Photo src={photo} size={68} /></View> : null}
             <View style={{ flex: 1 }}>
-              <Text style={[fx.headingBold, { fontSize: nameSize(cv.name), lineHeight: 1.15, color: paper }]}>{cv.name}</Text>
-              {cv.title ? <Text style={[fx.medium, { fontSize: FS.title, lineHeight: 1.3, color: onBand, marginTop: 4, letterSpacing: 0.3 }]}>{cv.title}</Text> : null}
-              {cv.tagline ? <Text style={[fx.body, { fontSize: FS.meta, lineHeight: LH, color: 'rgba(255,255,255,0.6)', marginTop: 3 }]}>{cv.tagline}</Text> : null}
+              <Text style={[fx.headingBold, { fontSize: nameSize(tk, cv.name), lineHeight: 1.15, color: paper }]}>{cv.name}</Text>
+              {cv.title ? <Text style={[fx.medium, { fontSize: FS.title, lineHeight: 1.3, color: onBand, marginTop: gap(4), letterSpacing: 0.3 }]}>{cv.title}</Text> : null}
+              {cv.tagline ? <Text style={[fx.body, { fontSize: FS.meta, lineHeight: LH, color: 'rgba(255,255,255,0.6)', marginTop: gap(3) }]}>{cv.tagline}</Text> : null}
             </View>
           </View>
-          {contact.length > 0 && <View style={{ marginTop: sp.md }}><ContactLine items={contact} color={onBand} fx={fx} /></View>}
+          {contact.length > 0 && <View style={{ marginTop: sp.md }}><ContactLine tk={tk} items={contact} color={onBand} fx={fx} /></View>}
         </View>
-        <SingleColumnBody cv={cv} ac={ac} fx={fx} photo={photo} chips />
+        <SingleColumnBody cv={cv} ac={ac} fx={fx} tk={tk} photo={photo} chips />
       </Page>
     </Document>
   )
@@ -382,8 +415,9 @@ function CVPdfModern({ cv, ac, fx, photo }: Ctx) {
 
 // ───────────────────────── Two-column (executive / technical) ─────────────────────────
 
-function SideTitle({ title, fx, color }: { title: string; fx: PdfFonts; color: string }) {
-  return <Text style={[fx.heading, { fontSize: 7.5, color, textTransform: 'uppercase', letterSpacing: 1.3, marginBottom: 6 }]} minPresenceAhead={30}>{title}</Text>
+function SideTitle({ title, fx, tk, color }: { title: string; fx: PdfFonts; tk: Tokens; color: string }) {
+  const { fs, gap } = tk
+  return <Text style={[fx.heading, { fontSize: fs(7.5), color, textTransform: 'uppercase', letterSpacing: 1.3, marginBottom: gap(6) }]} minPresenceAhead={30}>{title}</Text>
 }
 
 const A4_H = 842
@@ -421,7 +455,7 @@ function lineCount(text: string, face: Face, size: number, width: number, letter
 }
 
 /** Largest name size whose longest word fits the sidebar; a hyphenated token that never fits is broken after its hyphen. */
-function fitSidebarName(name: string, face: Face, maxSize = 17, minSize = 12) {
+function fitSidebarName(t: Tokens, name: string, face: Face, maxSize = t.fs(17), minSize = t.fs(12)) {
   const text = name.split(' ')
     .map(tok => (textWidth(tok, face, minSize) <= SIDE_INNER || !tok.includes('-') ? tok : tok.replace(/-/g, '-\n')))
     .join(' ')
@@ -438,9 +472,10 @@ type SideSection = 'tools' | 'langs' | 'certs'
  * absolute block cleanly onto page 2 (it lands at y=0 with no padding and disturbs
  * page breaks). So sections that would overflow are moved into the main column instead.
  */
-function sidebarOverflow(fx: PdfFonts, p: { photo: boolean; name: { text: string; size: number }; title: string; contact: string[]; skills: string[]; tools: string[]; langs: number; certs: string[] }): Set<SideSection> {
+function sidebarOverflow(fx: PdfFonts, tk: Tokens, p: { photo: boolean; name: { text: string; size: number }; title: string; contact: string[]; skills: string[]; tools: string[]; langs: number; certs: string[] }): Set<SideSection> {
+  const { sp, FS, PAGE_Y, fs, gap } = tk
   const lh = FS.small * LH
-  const titleH = 7.5 * 1.2 + 6
+  const titleH = fs(7.5) * 1.2 + gap(6)
   const block = (h: number) => titleH + h + sp.lg
   const lines = (t: string, face: Face, size: number, width = SIDE_INNER, ls = 0) => lineCount(t, face, size, width, ls)
   const chipRows = () => {
@@ -456,14 +491,14 @@ function sidebarOverflow(fx: PdfFonts, p: { photo: boolean; name: { text: string
   let used = PAGE_Y * 2
     + (p.photo ? 72 + sp.md : 0)
     + nameLines * p.name.size * 1.2
-    + (p.title ? 4 + lines(p.title, fx.medium, FS.small, SIDE_INNER, 0.4) * FS.small * 1.35 : 0)
+    + (p.title ? gap(4) + lines(p.title, fx.medium, FS.small, SIDE_INNER, 0.4) * FS.small * 1.35 : 0)
     + sp.md + sp.lg
-    + (p.contact.length ? block(p.contact.reduce((h, t) => h + lines(t, fx.body, FS.small) * lh + 3, 0)) : 0)
-    + (p.skills.length ? block(chipRows() * (FS.small * 1.2 + 6 + 4) - 4) : 0)
+    + (p.contact.length ? block(p.contact.reduce((h, t) => h + lines(t, fx.body, FS.small) * lh + gap(3), 0)) : 0)
+    + (p.skills.length ? block(chipRows() * (FS.small * 1.2 + gap(6) + gap(4)) - gap(4)) : 0)
   const cost: Record<SideSection, number> = {
     tools: p.tools.length ? block(lines(p.tools.join('  ·  '), fx.body, FS.small) * lh) : 0,
-    langs: p.langs ? block(p.langs * (lh + 3)) : 0,
-    certs: p.certs.length ? block(p.certs.reduce((h, t) => h + lines(t, fx.body, FS.small, SIDE_INNER - 9) * lh + 3, 0)) : 0,
+    langs: p.langs ? block(p.langs * (lh + gap(3))) : 0,
+    certs: p.certs.length ? block(p.certs.reduce((h, t) => h + lines(t, fx.body, FS.small, SIDE_INNER - 9) * lh + gap(3), 0)) : 0,
   }
   const limit = A4_H - SIDE_SLACK
   const moved = new Set<SideSection>()
@@ -475,16 +510,17 @@ function sidebarOverflow(fx: PdfFonts, p: { photo: boolean; name: { text: string
   return moved
 }
 
-function CVPdfTwoColumn({ cv, ac, fx, photo }: Ctx) {
+function CVPdfTwoColumn({ cv, ac, fx, tk, photo }: Ctx) {
+  const { sp, FS, PAGE_Y, gap } = tk
   const contact = [cv.email, cv.phone, cv.location, cv.linkedin].filter(Boolean)
   const skills = (cv.skills || []).map(sk => sk.name).filter(Boolean)
   const tools = (cv.tools || []).filter(Boolean)
   const certs = (cv.certifications || []).filter(Boolean)
   const langs = (cv.languages || []).filter(l => l?.name)
   const highlights = (cv.highlights || []).filter(Boolean)
-  const ctx = { cv, ac, fx, photo }
-  const name = fitSidebarName(cv.name, fx.headingBold)
-  const moved = sidebarOverflow(fx, { photo: !!photo, name, title: cv.title || '', contact, skills, tools, langs: langs.length, certs })
+  const ctx = { cv, ac, fx, tk, photo }
+  const name = fitSidebarName(tk, cv.name, fx.headingBold)
+  const moved = sidebarOverflow(fx, tk, { photo: !!photo, name, title: cv.title || '', contact, skills, tools, langs: langs.length, certs })
   const mainBody = { fontSize: FS.body, lineHeight: LH, color: muted }
 
   // A dark accent (e.g. navy) vanishes on the navy sidebar; keep a light one there.
@@ -505,35 +541,35 @@ function CVPdfTwoColumn({ cv, ac, fx, photo }: Ctx) {
 
           <View style={{ paddingBottom: sp.md, marginBottom: sp.lg, borderBottomWidth: 0.6, borderBottomColor: 'rgba(255,255,255,0.15)' }} wrap={false}>
             <Text style={[fx.headingBold, { fontSize: name.size, lineHeight: 1.2, color: paper }]}>{name.text}</Text>
-            {cv.title ? <Text style={[fx.medium, { fontSize: FS.small, lineHeight: 1.35, color: sideAc, marginTop: 4, letterSpacing: 0.4 }]}>{cv.title}</Text> : null}
+            {cv.title ? <Text style={[fx.medium, { fontSize: FS.small, lineHeight: 1.35, color: sideAc, marginTop: gap(4), letterSpacing: 0.4 }]}>{cv.title}</Text> : null}
           </View>
 
           {contact.length > 0 && (
             <View style={{ marginBottom: sp.lg }} wrap={false}>
-              <SideTitle title="Contact" fx={fx} color={sideAc} />
-              {contact.map((it, i) => <Text key={i} style={[fx.body, sideBody, { marginBottom: 3 }]}>{it}</Text>)}
+              <SideTitle tk={tk} title="Contact" fx={fx} color={sideAc} />
+              {contact.map((it, i) => <Text key={i} style={[fx.body, sideBody, { marginBottom: gap(3) }]}>{it}</Text>)}
             </View>
           )}
 
           {has(skills) && (
             <View style={{ marginBottom: sp.lg }}>
-              <SideTitle title="Skills" fx={fx} color={sideAc} />
-              <Chips items={skills} bg="rgba(255,255,255,0.1)" color={onDark} fx={fx} />
+              <SideTitle tk={tk} title="Skills" fx={fx} color={sideAc} />
+              <Chips tk={tk} items={skills} bg="rgba(255,255,255,0.1)" color={onDark} fx={fx} />
             </View>
           )}
 
           {has(tools) && !moved.has('tools') && (
             <View style={{ marginBottom: sp.lg }} wrap={false}>
-              <SideTitle title="Tech Stack" fx={fx} color={sideAc} />
+              <SideTitle tk={tk} title="Tech Stack" fx={fx} color={sideAc} />
               <Text style={[fx.body, sideBody]}>{tools.join('  ·  ')}</Text>
             </View>
           )}
 
           {has(langs) && !moved.has('langs') && (
             <View style={{ marginBottom: sp.lg }} wrap={false}>
-              <SideTitle title="Languages" fx={fx} color={sideAc} />
+              <SideTitle tk={tk} title="Languages" fx={fx} color={sideAc} />
               {langs.map((l, i) => (
-                <View key={i} style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 3 }}>
+                <View key={i} style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: gap(3) }}>
                   <Text style={[fx.body, sideBody]}>{l.name}</Text>
                   <Text style={[fx.body, sideBody, { color: onDarkMuted }]}>{lvLabel(l.level)}</Text>
                 </View>
@@ -543,9 +579,9 @@ function CVPdfTwoColumn({ cv, ac, fx, photo }: Ctx) {
 
           {has(certs) && !moved.has('certs') && (
             <View>
-              <SideTitle title="Certifications" fx={fx} color={sideAc} />
+              <SideTitle tk={tk} title="Certifications" fx={fx} color={sideAc} />
               {certs.map((t, i) => (
-                <View key={i} style={{ flexDirection: 'row', marginBottom: 3 }} wrap={false}>
+                <View key={i} style={{ flexDirection: 'row', marginBottom: gap(3) }} wrap={false}>
                   <Text style={[fx.bold, sideBody, { width: 9, color: sideAc }]}>{BULLET}</Text>
                   <Text style={[fx.body, sideBody, { flex: 1 }]}>{t}</Text>
                 </View>
@@ -557,54 +593,60 @@ function CVPdfTwoColumn({ cv, ac, fx, photo }: Ctx) {
         {/* Main column */}
         {cv.summary ? (
           <>
-            <SectionTitle title="Profile" ac={ac} fx={fx} color={navy} />
+            <SectionTitle tk={tk} title="Profile" ac={ac} fx={fx} color={navy} />
             <Text style={[fx.body, { fontSize: FS.body, lineHeight: LH, color: muted }]}>{cv.summary}</Text>
           </>
         ) : null}
 
         {has(cv.stats) && <StatsRow {...ctx} compact />}
 
+        {/* Sidebar overflow goes directly under the profile, never at the end: at the end a short
+            section (languages) could be pushed alone onto a final page. */}
+        {moved.has('langs') && (
+          <View wrap={false}>
+            <SectionTitle tk={tk} title="Languages" ac={ac} fx={fx} color={navy} />
+            <Text style={[fx.body, mainBody]}>{langs.map(l => `${l.name} (${lvLabel(l.level)})`).join(DOT_SEP)}</Text>
+          </View>
+        )}
+
+        {moved.has('tools') && (
+          <View wrap={false}>
+            <SectionTitle tk={tk} title="Tech Stack" ac={ac} fx={fx} color={navy} />
+            <Text style={[fx.medium, mainBody, { color: ink }]}>{tools.join(DOT_SEP)}</Text>
+          </View>
+        )}
+
+        {moved.has('certs') && (
+          <>
+            <View wrap={false}>
+              <SectionTitle tk={tk} title="Certifications" ac={ac} fx={fx} color={navy} />
+              <Bullet tk={tk} text={certs[0]} ac={ac} fx={fx} />
+            </View>
+            {certs.slice(1).map((t, i) => <Bullet tk={tk} key={i} text={t} ac={ac} fx={fx} />)}
+          </>
+        )}
+
         {has(cv.experience) && (
           <>
-            <SectionTitle title="Experience" ac={ac} fx={fx} color={navy} />
+            <SectionTitle tk={tk} title="Experience" ac={ac} fx={fx} color={navy} />
             <ExperienceBlock {...ctx} roleSize={10.5} />
           </>
         )}
 
         {has(cv.education) && (
           <>
-            <SectionTitle title="Education" ac={ac} fx={fx} color={navy} />
+            <SectionTitle tk={tk} title="Education" ac={ac} fx={fx} color={navy} />
             <EducationBlock {...ctx} />
           </>
         )}
 
         {has(highlights) && (
           <>
-            <SectionTitle title="Key Highlights" ac={ac} fx={fx} color={navy} />
-            {highlights.map((t, i) => <Bullet key={i} text={t} ac={ac} fx={fx} />)}
+            <SectionTitle tk={tk} title="Key Highlights" ac={ac} fx={fx} color={navy} />
+            {highlights.map((t, i) => <Bullet tk={tk} key={i} text={t} ac={ac} fx={fx} />)}
           </>
         )}
 
-        {moved.has('certs') && (
-          <>
-            <SectionTitle title="Certifications" ac={ac} fx={fx} color={navy} />
-            {certs.map((t, i) => <Bullet key={i} text={t} ac={ac} fx={fx} />)}
-          </>
-        )}
-
-        {moved.has('langs') && (
-          <>
-            <SectionTitle title="Languages" ac={ac} fx={fx} color={navy} />
-            <Text style={[fx.body, mainBody]} wrap={false}>{langs.map(l => `${l.name} (${lvLabel(l.level)})`).join(DOT_SEP)}</Text>
-          </>
-        )}
-
-        {moved.has('tools') && (
-          <>
-            <SectionTitle title="Tech Stack" ac={ac} fx={fx} color={navy} />
-            <Text style={[fx.medium, mainBody, { color: ink }]} wrap={false}>{tools.join(DOT_SEP)}</Text>
-          </>
-        )}
       </Page>
     </Document>
   )
@@ -612,7 +654,7 @@ function CVPdfTwoColumn({ cv, ac, fx, photo }: Ctx) {
 
 // ───────────────────────── Entry point ─────────────────────────
 
-export function CVPdfDocument({ cv, ac, template, photo, fonts }: { cv: CVData; ac: string; template?: string; photo?: string; fonts?: PdfFonts }) {
+export function CVPdfDocument({ cv, ac, template, photo, fonts, density = 1 }: { cv: CVData; ac: string; template?: string; photo?: string; fonts?: PdfFonts; density?: number }) {
   const fx = fonts || FALLBACK_FONTS
   const safe: CVData = {
     ...cv,
@@ -620,7 +662,8 @@ export function CVPdfDocument({ cv, ac, template, photo, fonts }: { cv: CVData; 
     stats: cv.stats || [], skills: cv.skills || [], experience: cv.experience || [], education: cv.education || [],
     certifications: cv.certifications || [], languages: cv.languages || [], tools: cv.tools || [], highlights: cv.highlights || [],
   }
-  if (template && TWO_COL_TEMPLATES.includes(template)) return <CVPdfTwoColumn cv={safe} ac={ac} fx={fx} photo={photo} />
-  if (template && BANDED_TEMPLATES.includes(template)) return <CVPdfModern cv={safe} ac={ac} fx={fx} photo={photo} />
-  return <CVPdfMinimal cv={safe} ac={ac} fx={fx} photo={photo} />
+  const tk = layoutTokens(density)
+  if (template && TWO_COL_TEMPLATES.includes(template)) return <CVPdfTwoColumn cv={safe} ac={ac} fx={fx} tk={tk} photo={photo} />
+  if (template && BANDED_TEMPLATES.includes(template)) return <CVPdfModern cv={safe} ac={ac} fx={fx} tk={tk} photo={photo} />
+  return <CVPdfMinimal cv={safe} ac={ac} fx={fx} tk={tk} photo={photo} />
 }
