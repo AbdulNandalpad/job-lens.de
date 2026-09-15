@@ -34,11 +34,21 @@ export async function GET() {
     return NextResponse.json({ error: 'Could not load profiles or usage_events' }, { status: 500 })
   }
 
+  // Package pricing (src/lib/pricing.ts) logs included letters/revisions as their own
+  // actions. For the funnel, an included letter is still "used the cover letter", and a
+  // revision is a continuation of one action, not a return visit.
+  const canonical = (action: string): string | null => {
+    if (action.endsWith('_revision')) return null
+    if (action === 'cover_letter_bundled') return 'cover_letter'
+    return action
+  }
+
   // Per-user action list, earliest-first
   const byUser: Record<string, { action: string; created_at: string }[]> = {}
   for (const e of events) {
-    if (!e.user_id) continue
-    ;(byUser[e.user_id] ||= []).push({ action: e.action, created_at: e.created_at })
+    const action = canonical(e.action)
+    if (!e.user_id || !action) continue
+    ;(byUser[e.user_id] ||= []).push({ action, created_at: e.created_at })
   }
   for (const list of Object.values(byUser)) list.sort((a, b) => a.created_at.localeCompare(b.created_at))
 
@@ -64,8 +74,9 @@ export async function GET() {
   // Feature reach — distinct users per action, all-time, most-reached first
   const reach: Record<string, Set<string>> = {}
   for (const e of events) {
-    if (!e.user_id || !FEATURE_ACTIONS.includes(e.action)) continue
-    ;(reach[e.action] ||= new Set()).add(e.user_id)
+    const action = canonical(e.action)
+    if (!e.user_id || !action || !FEATURE_ACTIONS.includes(action)) continue
+    ;(reach[action] ||= new Set()).add(e.user_id)
   }
   const featureReach = Object.entries(reach)
     .map(([action, users]) => ({ action, users: users.size }))

@@ -9,7 +9,8 @@ import { useSavedCv } from '@/lib/useSavedCv'
 import { useLanguage } from '@/lib/i18n'
 import CrossMarketModal from '@/components/CrossMarketModal'
 import SkillGapModal from '@/components/SkillGapModal'
-import { CREDIT_COST, LOW_CREDIT_WARN, MARKET, SS, API } from '@/lib/constants'
+import { CREDIT_COST, LOW_CREDIT_WARN, MARKET, SS, API, BUNDLE } from '@/lib/constants'
+import type { BundleState } from '@/lib/pricingCore'
 import SvgIcon from '@/components/SvgIcon'
 
 type Template = 'executive' | 'modern' | 'minimal' | 'technical'
@@ -725,11 +726,22 @@ function CVScaleWrapper({ scale, children }: { scale: number; children: React.Re
   )
 }
 
+// Package expiry as HH:MM in the UI locale, prefixed with "tomorrow"/"morgen" when it is not today
+function formatUntil(iso: string | null | undefined, uiLang: 'DE' | 'EN'): string {
+  if (!iso) return ''
+  const d = new Date(iso)
+  if (Number.isNaN(d.getTime())) return ''
+  const time = d.toLocaleTimeString(uiLang === 'DE' ? 'de-DE' : 'en-GB', { hour: '2-digit', minute: '2-digit' })
+  const now = new Date()
+  const sameDay = d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth() && d.getDate() === now.getDate()
+  return sameDay ? time : `${uiLang === 'DE' ? 'morgen' : 'tomorrow'} ${time}`
+}
+
 // -- MAIN PAGE ----------------------------------------------------------------
 
 export default function CVBuilderPage() {
   const router = useRouter()
-  const { t } = useLanguage()
+  const { t, lang: uiLang } = useLanguage()
   const previewRef = useRef<HTMLDivElement>(null)
   const previewAreaRef = useRef<HTMLDivElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -762,7 +774,6 @@ export default function CVBuilderPage() {
   const [openSections, setOpenSections] = useState<Record<string, boolean>>({ template: false, style: false, output: false })
   const [feedback, setFeedback] = useState('')
   const [applyingFeedback, setApplyingFeedback] = useState(false)
-  const [feedbackCount, setFeedbackCount] = useState(0)   // how many feedback calls made total (resets every 4)
   const [feedbackError, setFeedbackError] = useState<string | null>(null)
   const [feedbackSuccess, setFeedbackSuccess] = useState(false)
   const [generateError, setGenerateError] = useState<{ message: string; status: number } | null>(null)
@@ -774,6 +785,18 @@ export default function CVBuilderPage() {
   const { credits, setCredits, needsCrossMarket, crossMarketAmount } = useCredits()
   const { hasCv: hasSavedCv, cvText: savedCvText, fileName: savedCvFileName, loadingSavedCv } = useSavedCv()
   const CV_COST = CREDIT_COST.tailorCv
+  // Server-decided package state for the current job (src/lib/pricing.ts) — display only; the route re-derives it on every call
+  const [pricing, setPricing] = useState<{ bundle: BundleState; admin: boolean } | null>(null)
+  const bundleActive = !!pricing?.bundle.active
+  const revisionsLeft = pricing?.bundle.revisionsLeft ?? 0
+  const changeIncluded = bundleActive && revisionsLeft > 0
+  const isAdmin = !!pricing?.admin
+  const until = formatUntil(pricing?.bundle.expiresAt, uiLang)
+  const cannotAffordCv = !isAdmin && credits !== null && credits < CV_COST
+  const changeBlocked = !changeIncluded && cannotAffordCv
+  function absorbPricing(data: { pricing?: { bundle?: BundleState; admin?: boolean } } | null | undefined) {
+    if (data?.pricing?.bundle) setPricing({ bundle: data.pricing.bundle, admin: !!data.pricing.admin })
+  }
   const [crossWarnPending, setCrossWarnPending] = useState<(() => void) | null>(null)
   const [skillGapOpen, setSkillGapOpen] = useState(false)
   const [skillGapData, setSkillGapData] = useState<{ matching: string[]; missing: string[] } | null>(null)
@@ -793,7 +816,6 @@ export default function CVBuilderPage() {
     setCvData(null)
     setRawCv('')
     setFeedback('')
-    setFeedbackCount(0)
     setFeedbackError(null)
     setFeedbackSuccess(false)
     if (originalFileUrl) URL.revokeObjectURL(originalFileUrl)
@@ -898,6 +920,22 @@ export default function CVBuilderPage() {
     } catch { }
   }, [jobDesc, job])
 
+  // Ask the server what this job costs right now (mount + whenever the job identity changes); on failure the copy falls back to "charged"
+  const jobTitleKey = job?.job_title ?? ''
+  const jobEmployerKey = job?.employer_name ?? ''
+  useEffect(() => {
+    let cancelled = false
+    fetch(API.pricingBundle, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ job: { job_title: jobTitleKey, employer_name: jobEmployerKey } }),
+    })
+      .then(r => (r.ok ? r.json() : null))
+      .then(d => { if (!cancelled && d?.bundle) setPricing({ bundle: d.bundle, admin: !!d.admin }) })
+      .catch(() => {})
+    return () => { cancelled = true }
+  }, [jobTitleKey, jobEmployerKey])
+
   // Detect language mismatch: German JD + English CV output setting
   useEffect(() => {
     if (!jobDesc && !job?.job_description) return
@@ -946,7 +984,7 @@ export default function CVBuilderPage() {
 
   async function generate(confirmedSkills: string[] = []) {
     if (!cvText.trim()) return
-    if (credits !== null && credits < CV_COST) { alert(`You need ${CV_COST} credit to build a CV. Please top up on the Account page.`); return }
+    if (cannotAffordCv) { setGenerateError({ message: t.coverLetter.sidebar.needCredits(CV_COST, credits ?? 0), status: 402 }); return }
     setLoading(true); setGenerateError(null)
 
     try {
@@ -958,6 +996,7 @@ export default function CVBuilderPage() {
         body: JSON.stringify({ cvText, job: effJob, template, tone, pages, lang, confirmedSkills, returnJson: true }),
       })
       const data = await res.json().catch(() => ({}))
+      absorbPricing(data)
       if (!res.ok) {
         // Server already refunded on failure — keep the previous tailored CV on screen
         if (res.status === 402 && typeof data.credits === 'number') setCredits(data.credits)
@@ -1005,21 +1044,28 @@ export default function CVBuilderPage() {
   }
 
   function handleGenerate() {
-    if (needsCrossMarket(CV_COST, MARKET.eu)) {
+    if (!isAdmin && needsCrossMarket(CV_COST, MARKET.eu)) {
       setCrossWarnPending(() => runSkillGapThenGenerate)
     } else {
       runSkillGapThenGenerate()
     }
   }
 
+  // A change request is only confirmed/pre-checked when the package will not cover it
+  function handleApplyFeedback() {
+    if (!changeIncluded && !isAdmin && needsCrossMarket(CV_COST, MARKET.eu)) {
+      setCrossWarnPending(() => applyFeedback)
+    } else {
+      applyFeedback()
+    }
+  }
+
   async function applyFeedback() {
     if (!feedback.trim() || !rawCv) return
+    if (changeBlocked) { setFeedbackError(t.coverLetter.sidebar.needCredits(CV_COST, credits ?? 0)); return }
     setApplyingFeedback(true)
     setFeedbackError(null)
     setFeedbackSuccess(false)
-
-    // Every 4th call charges 1 credit; calls 1-3 within a bundle are free
-    const isChargeCall = feedbackCount % 4 === 3
 
     try {
       const effJob = job ? { ...job, job_description: jobDesc || job.job_description } : job
@@ -1030,9 +1076,10 @@ export default function CVBuilderPage() {
           cvText, job: effJob, template, tone, pages, lang, returnJson: true,
           feedback, currentCv: rawCv,
           market: MARKET.eu,
-          skipCredit: !isChargeCall,
         }),
       })
+      const data = await res.json().catch(() => ({}))
+      absorbPricing(data)
 
       if (res.status === 401) {
         setFeedbackError(lang === 'DE' ? 'Bitte melde dich erneut an.' : 'Session expired — please sign in again.')
@@ -1040,20 +1087,20 @@ export default function CVBuilderPage() {
         return
       }
       if (res.status === 402) {
-        setFeedbackError(lang === 'DE' ? 'Nicht genug Credits. Du benötigst 1 Credit für die nächste Änderung.' : 'Not enough credits. You need 1 credit for this change.')
+        if (typeof data.credits === 'number') setCredits(data.credits)
+        setFeedbackError(data.error || t.coverLetter.sidebar.needCredits(CV_COST, credits ?? 0))
         setApplyingFeedback(false)
         return
       }
       if (!res.ok) {
-        const errData = await res.json().catch(() => ({}))
-        const msg = (errData as { error?: string }).error || `Server error (${res.status})`
+        const msg = (data as { error?: string }).error || `Server error (${res.status})`
         setFeedbackError(lang === 'DE' ? `Fehler vom Server: ${msg}` : `Server error: ${msg}`)
         console.error('[applyFeedback] API error:', res.status, msg)
         setApplyingFeedback(false)
         return
       }
 
-      const data = await res.json()
+      if (typeof data.creditsRemaining === 'number') setCredits(data.creditsRemaining)
       const raw: string = data.cv || ''
 
       if (!raw) {
@@ -1088,7 +1135,6 @@ export default function CVBuilderPage() {
         sessionStorage.setItem(SS.cvbData, JSON.stringify(parsed))
         setRawCv(raw)
         sessionStorage.setItem(SS.cvbTailored, raw)
-        setFeedbackCount(prev => prev + 1)
         setFeedback('')
         setFeedbackSuccess(true)
         setTimeout(() => setFeedbackSuccess(false), 4000)
@@ -1808,14 +1854,17 @@ export default function CVBuilderPage() {
                 {generateError.status === 402 && <> · <Link href="/app/account" style={{ color: '#f87171', fontWeight: 700 }}>{t.common.topUp}</Link></>}
               </div>
             )}
-            <button className="cvb-gen" onClick={handleGenerate} disabled={loading || !cvText.trim() || (credits !== null && credits < CV_COST)}
-              style={{ width: '100%', padding: '12px 0', borderRadius: 10, border: 'none', background: loading || !cvText.trim() || (credits !== null && credits < CV_COST) ? 'rgba(255,255,255,0.08)' : `linear-gradient(135deg, ${currentAccent}, ${currentAccent}BB)`, color: loading || !cvText.trim() || (credits !== null && credits < CV_COST) ? 'rgba(255,255,255,0.25)' : '#042C53', fontFamily: "'Outfit', sans-serif", fontSize: 13, fontWeight: 700, cursor: loading || !cvText.trim() || (credits !== null && credits < CV_COST) ? 'not-allowed' : 'pointer', transition: 'all 0.2s', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+            <button className="cvb-gen" onClick={handleGenerate} disabled={loading || !cvText.trim() || cannotAffordCv}
+              style={{ width: '100%', padding: '12px 0', borderRadius: 10, border: 'none', background: loading || !cvText.trim() || cannotAffordCv ? 'rgba(255,255,255,0.08)' : `linear-gradient(135deg, ${currentAccent}, ${currentAccent}BB)`, color: loading || !cvText.trim() || cannotAffordCv ? 'rgba(255,255,255,0.25)' : '#042C53', fontFamily: "'Outfit', sans-serif", fontSize: 13, fontWeight: 700, cursor: loading || !cvText.trim() || cannotAffordCv ? 'not-allowed' : 'pointer', transition: 'all 0.2s', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
               {loading
                 ? <><div style={{ width: 14, height: 14, borderRadius: '50%', border: '2px solid rgba(255,255,255,0.15)', borderTopColor: 'rgba(255,255,255,0.6)', animation: 'spin 0.7s linear infinite' }} /> {t.coverLetter.sidebar.writing}</>
-                : credits !== null && credits < CV_COST
-                ? t.coverLetter.sidebar.needCredits(CV_COST, credits)
+                : cannotAffordCv
+                ? t.coverLetter.sidebar.needCredits(CV_COST, credits ?? 0)
                 : cvData ? t.cvBuilder.sidebar.regenerateBtn(CV_COST) : t.cvBuilder.sidebar.generateBtn(CV_COST)}
             </button>
+            <div style={{ marginTop: 6, fontSize: 10, color: 'rgba(255,255,255,0.35)', textAlign: 'center' as const, lineHeight: 1.4 }}>
+              {t.pricing.packageIncludes(BUNDLE.freeRevisions)}
+            </div>
           </div>
         </div>
 
@@ -1911,11 +1960,16 @@ export default function CVBuilderPage() {
                     {cvText ? (lang === 'DE' ? 'Einstellungen wählen und Lebenslauf erstellen klicken' : 'Choose settings and click Generate CV') : (lang === 'DE' ? 'Lade zuerst deinen Lebenslauf hoch' : 'Upload your CV first to get started')}
                   </div>
                   {cvText && (
-                    <button onClick={handleGenerate} className="cvb-gen"
-                      disabled={credits !== null && credits < CV_COST}
-                      style={{ marginTop: 20, padding: '11px 28px', borderRadius: 10, border: 'none', background: credits !== null && credits < CV_COST ? 'rgba(255,255,255,0.1)' : currentAccent, color: credits !== null && credits < CV_COST ? 'rgba(255,255,255,0.3)' : '#0a1520', fontFamily: "'Outfit', sans-serif", fontSize: 13, fontWeight: 700, cursor: credits !== null && credits < CV_COST ? 'not-allowed' : 'pointer' }}>
-                      {credits !== null && credits < CV_COST ? t.coverLetter.sidebar.needCredits(CV_COST, credits) : t.cvBuilder.sidebar.generateBtn(CV_COST)}
-                    </button>
+                    <>
+                      <button onClick={handleGenerate} className="cvb-gen"
+                        disabled={cannotAffordCv}
+                        style={{ marginTop: 20, padding: '11px 28px', borderRadius: 10, border: 'none', background: cannotAffordCv ? 'rgba(255,255,255,0.1)' : currentAccent, color: cannotAffordCv ? 'rgba(255,255,255,0.3)' : '#0a1520', fontFamily: "'Outfit', sans-serif", fontSize: 13, fontWeight: 700, cursor: cannotAffordCv ? 'not-allowed' : 'pointer' }}>
+                        {cannotAffordCv ? t.coverLetter.sidebar.needCredits(CV_COST, credits ?? 0) : t.cvBuilder.sidebar.generateBtn(CV_COST)}
+                      </button>
+                      <div style={{ marginTop: 8, fontSize: 10, color: 'rgba(255,255,255,0.3)', lineHeight: 1.4 }}>
+                        {t.pricing.packageIncludes(BUNDLE.freeRevisions)}
+                      </div>
+                    </>
                   )}
                 </div>
               </div>
@@ -2077,18 +2131,16 @@ export default function CVBuilderPage() {
                 <div style={{ marginTop: 12, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 10, padding: '14px 16px' }}>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
                     <div style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.4)', letterSpacing: 0.5, textTransform: 'uppercase' as const }}>{lang === 'DE' ? 'Änderungen anfordern' : 'Request changes'}</div>
-                    {/* Credit counter pill */}
-                    {(() => {
-                      const usedInBundle = feedbackCount % 4
-                      const freeLeft = 3 - usedInBundle
-                      return freeLeft > 0
-                        ? <div style={{ fontSize: 10, fontWeight: 600, color: 'rgba(255,255,255,0.35)', background: 'rgba(255,255,255,0.06)', borderRadius: 20, padding: '2px 8px' }}>
-                            {lang === 'DE' ? `${freeLeft} gratis übrig` : `${freeLeft} free left`}
+                    {/* Package status pill — server-derived; nothing shown when no package is open for this job */}
+                    {changeIncluded
+                      ? <div style={{ fontSize: 10, fontWeight: 600, color: 'rgba(255,255,255,0.35)', background: 'rgba(255,255,255,0.06)', borderRadius: 20, padding: '2px 8px' }}>
+                          {t.pricing.changesLeft(revisionsLeft, until)}
+                        </div>
+                      : bundleActive
+                        ? <div style={{ fontSize: 10, fontWeight: 600, color: currentAccent, background: `${currentAccent}18`, borderRadius: 20, padding: '2px 8px' }}>
+                            {t.pricing.packageUsedUp(CV_COST)}
                           </div>
-                        : <div style={{ fontSize: 10, fontWeight: 600, color: currentAccent, background: `${currentAccent}18`, borderRadius: 20, padding: '2px 8px' }}>
-                            {lang === 'DE' ? '1 Credit für diese Änderung' : '1 credit for this change'}
-                          </div>
-                    })()}
+                        : null}
                   </div>
                   <textarea
                     value={feedback}
@@ -2110,18 +2162,17 @@ export default function CVBuilderPage() {
                     </div>
                   )}
                   <button
-                    onClick={applyFeedback}
-                    disabled={!feedback.trim() || applyingFeedback}
-                    style={{ marginTop: 8, padding: '7px 18px', borderRadius: 7, border: 'none', background: feedback.trim() && !applyingFeedback ? currentAccent : 'rgba(255,255,255,0.08)', color: feedback.trim() && !applyingFeedback ? '#042C53' : 'rgba(255,255,255,0.25)', fontSize: 12, fontWeight: 700, cursor: feedback.trim() && !applyingFeedback ? 'pointer' : 'not-allowed', fontFamily: "'Outfit', sans-serif" }}>
+                    onClick={handleApplyFeedback}
+                    disabled={!feedback.trim() || applyingFeedback || changeBlocked}
+                    style={{ marginTop: 8, padding: '7px 18px', borderRadius: 7, border: 'none', background: feedback.trim() && !applyingFeedback && !changeBlocked ? currentAccent : 'rgba(255,255,255,0.08)', color: feedback.trim() && !applyingFeedback && !changeBlocked ? '#042C53' : 'rgba(255,255,255,0.25)', fontSize: 12, fontWeight: 700, cursor: feedback.trim() && !applyingFeedback && !changeBlocked ? 'pointer' : 'not-allowed', fontFamily: "'Outfit', sans-serif" }}>
                     {applyingFeedback
                       ? (lang === 'DE' ? 'Wird angewendet...' : 'Applying changes…')
-                      : feedbackCount % 4 === 3
-                        ? (lang === 'DE' ? 'Änderungen übernehmen — 1 Credit' : 'Apply changes — 1 credit')
-                        : (lang === 'DE' ? 'Änderungen übernehmen (gratis)' : 'Apply changes (free)')}
+                      : changeBlocked
+                        ? t.coverLetter.sidebar.needCredits(CV_COST, credits ?? 0)
+                        : changeIncluded
+                          ? t.pricing.applyIncluded(revisionsLeft)
+                          : t.pricing.applyCosts(CV_COST)}
                   </button>
-                  <div style={{ marginTop: 6, fontSize: 10, color: 'rgba(255,255,255,0.22)' }}>
-                    {lang === 'DE' ? '4 Änderungen = 1 Credit' : '4 changes = 1 credit'}
-                  </div>
                 </div>
 
                 {/* Footer actions */}

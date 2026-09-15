@@ -8,6 +8,8 @@ export const theme = {
     primaryLight: '#E6F1FB',
     accent: '#378ADD',
     accentLight: '#85B7EB',
+    accentIn: '#FF9933',
+    accentInDark: '#e67300',
     success: '#1D9E75',
     successLight: '#E1F5EE',
     successBorder: '#b6ecd8',
@@ -33,6 +35,7 @@ export const theme = {
   // Feature accent colors used by the marketing hero panels (HeroDACH/HeroIndia)
   // and mirrored on Kira Home tiles. Keep in sync with the hero files.
   featureAccents: {
+    apply:       '#2563EB',
     careerScan:  '#378ADD',
     jobSearch:   '#10b981',
     cvBuilder:   '#8b5cf6',

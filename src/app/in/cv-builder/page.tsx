@@ -6,7 +6,8 @@ import Link from 'next/link'
 import { useCredits } from '@/lib/useCredits'
 import CrossMarketModal from '@/components/CrossMarketModal'
 import SkillGapModal from '@/components/SkillGapModal'
-import { CREDIT_COST, LOW_CREDIT_WARN, MARKET, SS, API } from '@/lib/constants'
+import { CREDIT_COST, LOW_CREDIT_WARN, MARKET, SS, API, BUNDLE } from '@/lib/constants'
+import type { BundleState } from '@/lib/pricingCore'
 import SvgIcon from '@/components/SvgIcon'
 
 const accent = '#FF9933'
@@ -601,6 +602,25 @@ function normalizeCv(data: Partial<CVData>): CVData {
   }
 }
 
+// Inline English copy for the server-enforced application package (mirrors t.pricing.* on DACH)
+const PRICING_COPY = {
+  packageIncludes: (n: number) => `Includes the cover letter + ${n} changes for this job (${BUNDLE.windowHours} h)`,
+  changesLeft:     (n: number, until: string) => `${n} change${n === 1 ? '' : 's'} left · included until ${until}`,
+  packageUsedUp:   (cost: number) => `Package used up — the next change costs ${cost} credit${cost === 1 ? '' : 's'}`,
+  applyIncluded:   (n: number) => `Apply changes — included (${n} left)`,
+  applyCosts:      (cost: number) => `Apply changes — ${cost} credit${cost === 1 ? '' : 's'}`,
+}
+
+function formatUntil(iso: string | null | undefined): string {
+  if (!iso) return ''
+  const d = new Date(iso)
+  if (Number.isNaN(d.getTime())) return ''
+  const time = d.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })
+  const now = new Date()
+  const sameDay = d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth() && d.getDate() === now.getDate()
+  return sameDay ? time : `tomorrow ${time}`
+}
+
 export default function IndiaCVBuilderPage() {
   const router = useRouter()
   const fileInputRef  = useRef<HTMLInputElement>(null)
@@ -646,6 +666,8 @@ export default function IndiaCVBuilderPage() {
   const [manualTitle,   setManualTitle]   = useState('')
   const [manualCompany, setManualCompany] = useState('')
   const [manualJd,      setManualJd]      = useState('')
+  const [pricing,       setPricing]       = useState<{ bundle: BundleState; admin: boolean } | null>(null)
+  const [feedbackError, setFeedbackError] = useState<{ message: string; status: number } | null>(null)
 
   const { credits, setCredits, needsCrossMarket, crossMarketAmount } = useCredits()
 
@@ -659,6 +681,33 @@ export default function IndiaCVBuilderPage() {
   }, [jobDesc, job])
   const CV_COST = CREDIT_COST.tailorCv
   const [crossWarnPending, setCrossWarnPending] = useState<(() => void) | null>(null)
+
+  const isAdmin        = !!pricing?.admin
+  const bundleActive   = !!pricing?.bundle.active
+  const revisionsLeft  = pricing?.bundle.revisionsLeft ?? 0
+  const changeIncluded = bundleActive && revisionsLeft > 0
+  const until          = formatUntil(pricing?.bundle.expiresAt)
+  // Admins bypass deduction server-side, so credits never gate them client-side either
+  const canAfford      = isAdmin || credits === null || credits >= CV_COST
+  const canApplyChange = !!feedback.trim() && !applyingFeedback && (changeIncluded || canAfford)
+
+  // Ask the ledger what this job costs right now so the buttons can say "included" before
+  // the click. Failures fall back to the charged copy — the server decides the price anyway.
+  const jobTitle    = job?.job_title ?? ''
+  const jobEmployer = job?.employer_name ?? ''
+  useEffect(() => {
+    let cancelled = false
+    setPricing(null)
+    fetch(API.pricingBundle, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ job: { job_title: jobTitle, employer_name: jobEmployer } }) })
+      .then(r => (r.ok ? r.json() : null))
+      .then(d => { if (!cancelled && d?.bundle) setPricing({ bundle: d.bundle, admin: !!d.admin }) })
+      .catch(() => {})
+    return () => { cancelled = true }
+  }, [jobTitle, jobEmployer])
+
+  function applyPricing(data: { pricing?: { bundle?: BundleState; admin?: boolean } } | null | undefined) {
+    if (data?.pricing?.bundle) setPricing({ bundle: data.pricing.bundle, admin: !!data.pricing.admin })
+  }
 
   // ── Calculate mobile scale ──
   useEffect(() => {
@@ -751,7 +800,7 @@ export default function IndiaCVBuilderPage() {
 
   async function generate(confirmedSkills: string[] = []) {
     if (!cvText.trim()) return
-    if (credits !== null && credits < CV_COST) { alert(`You need ${CV_COST} credit to build a CV.`); return }
+    if (!isAdmin && credits !== null && credits < CV_COST) { setGenerateError({ message: `You need ${CV_COST} credit to build a CV.`, status: 402 }); return }
     setLoading(true); setGenerateError(null); setMobOpen(false)
 
     const systemPrompt = `You are an elite CV designer. Extract and structure CV information into JSON for visual rendering.
@@ -775,6 +824,7 @@ ${atsSuggestions?.section_gaps?.length ? `- ATS SECTION GAPS to address: ${atsSu
     try {
       const res  = await fetch(API.tailorCv, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ cvText, job, template, tone, lang, systemPrompt, returnJson: true, market: MARKET.in }) })
       const data = await res.json().catch(() => ({}))
+      applyPricing(data)
       if (!res.ok) {
         // Server already refunded on failure — keep the previous tailored CV on screen
         if (res.status === 402 && typeof data.credits === 'number') setCredits(data.credits)
@@ -812,23 +862,35 @@ ${atsSuggestions?.section_gaps?.length ? `- ATS SECTION GAPS to address: ${atsSu
   }
 
   function handleGenerate() {
-    if (needsCrossMarket(CV_COST, MARKET.in)) { setCrossWarnPending(() => runSkillGapThenGenerate) } else { runSkillGapThenGenerate() }
+    if (!isAdmin && needsCrossMarket(CV_COST, MARKET.in)) { setCrossWarnPending(() => runSkillGapThenGenerate) } else { runSkillGapThenGenerate() }
+  }
+
+  // A change request is only a charged call once the package is used up or absent
+  function handleApplyFeedback() {
+    if (!changeIncluded && !isAdmin && needsCrossMarket(CV_COST, MARKET.in)) { setCrossWarnPending(() => applyFeedback) } else { applyFeedback() }
   }
 
   async function applyFeedback() {
     if (!feedback.trim() || !rawCv) return
-    setApplyingFeedback(true)
+    setApplyingFeedback(true); setFeedbackError(null)
     try {
       const atsCtx = atsSuggestions?.missing_keywords?.length ? ` Ensure these ATS keywords are present: ${atsSuggestions.missing_keywords.join(', ')}.` : ''
       const res = await fetch(API.tailorCv, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ cvText, job, template, tone, lang, systemPrompt: `Apply the feedback and return updated JSON matching the same schema. Return ONLY valid JSON.${atsCtx}`, returnJson: true, feedback, currentCv: rawCv, market: MARKET.in }) })
-      if (res.status === 402) { alert('Not enough credits.'); setApplyingFeedback(false); return }
-      const data = await res.json()
+      const data = await res.json().catch(() => ({}))
+      applyPricing(data)
+      if (!res.ok) {
+        if (res.status === 402 && typeof data.credits === 'number') setCredits(data.credits)
+        setFeedbackError({ message: data.error || `Request failed (${res.status})`, status: res.status })
+        return
+      }
+      if (typeof data.creditsRemaining === 'number') setCredits(data.creditsRemaining)
       const raw  = data.cv || ''
+      if (!raw) { setFeedbackError({ message: `Request failed (${res.status})`, status: res.status }); return }
       setRawCv(raw); sessionStorage.setItem(SS.cvbTailored, raw)
       try { const parsed = normalizeCv(JSON.parse(raw.replace(/```json|```/g, '').trim())); setCvData(parsed); setPreviewTab('generated'); sessionStorage.setItem(SS.cvbData, JSON.stringify(parsed)) } catch { }
       setFeedback('')
-    } catch { }
-    setApplyingFeedback(false)
+    } catch { setFeedbackError({ message: 'Network error. Please try again.', status: 0 }) }
+    finally { setApplyingFeedback(false) }
   }
 
   async function downloadPDF() {
@@ -1026,7 +1088,7 @@ ${atsSuggestions?.section_gaps?.length ? `- ATS SECTION GAPS to address: ${atsSu
     return <IndiaCV cv={cvData} ac={t.ac} />
   }
 
-  const canGenerate = !loading && !!cvText.trim() && (credits === null || credits >= CV_COST)
+  const canGenerate = !loading && !!cvText.trim() && canAfford
   const curTpl = templates.find(t => t.id === template)!
 
   return (
@@ -1293,9 +1355,12 @@ ${atsSuggestions?.section_gaps?.length ? `- ATS SECTION GAPS to address: ${atsSu
             <button className="cvb-gen" onClick={handleGenerate} disabled={!canGenerate}
               style={{ width: '100%', padding: '12px 0', borderRadius: 10, border: 'none', background: canGenerate ? `linear-gradient(135deg, ${accent}, #e67300)` : 'rgba(255,255,255,0.08)', color: canGenerate ? '#042C53' : 'rgba(255,255,255,0.25)', fontFamily: "'Outfit', sans-serif", fontSize: 13, fontWeight: 700, cursor: canGenerate ? 'pointer' : 'not-allowed', transition: 'all 0.2s', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
               {loading ? <><div style={{ width: 14, height: 14, borderRadius: '50%', border: '2px solid rgba(255,255,255,0.15)', borderTopColor: 'rgba(255,255,255,0.6)', animation: 'spin 0.7s linear infinite' }} />Generating...</>
-                : credits !== null && credits < CV_COST ? `Need ${CV_COST} credit — you have ${credits}`
+                : !isAdmin && credits !== null && credits < CV_COST ? `Need ${CV_COST} credit — you have ${credits}`
                 : cvData ? `Regenerate CV (${CV_COST} credit)` : `Generate CV (${CV_COST} credit)`}
             </button>
+            <div style={{ marginTop: 7, fontSize: 10.5, color: 'rgba(255,255,255,0.35)', textAlign: 'center' as const, lineHeight: 1.4 }}>
+              {PRICING_COPY.packageIncludes(BUNDLE.freeRevisions)}
+            </div>
           </div>
         </div>
 
@@ -1339,8 +1404,11 @@ ${atsSuggestions?.section_gaps?.length ? `- ATS SECTION GAPS to address: ${atsSu
               </div>
               <button className="cvb-gen" onClick={() => { handleGenerate() }} disabled={!canGenerate}
                 style={{ width: '100%', padding: '12px 0', borderRadius: 10, border: 'none', background: canGenerate ? `linear-gradient(135deg, ${accent}, #e67300)` : 'rgba(255,255,255,0.08)', color: canGenerate ? '#042C53' : 'rgba(255,255,255,0.25)', fontFamily: "'Outfit', sans-serif", fontSize: 13, fontWeight: 700, cursor: canGenerate ? 'pointer' : 'not-allowed' }}>
-                {loading ? 'Generating...' : credits !== null && credits < CV_COST ? `Need ${CV_COST} credit` : cvData ? `Regenerate (${CV_COST} credit)` : `Generate CV (${CV_COST} credit)`}
+                {loading ? 'Generating...' : !isAdmin && credits !== null && credits < CV_COST ? `Need ${CV_COST} credit` : cvData ? `Regenerate (${CV_COST} credit)` : `Generate CV (${CV_COST} credit)`}
               </button>
+              <div style={{ fontSize: 10.5, color: 'rgba(255,255,255,0.35)', textAlign: 'center' as const, lineHeight: 1.4 }}>
+                {PRICING_COPY.packageIncludes(BUNDLE.freeRevisions)}
+              </div>
             </div>
           )}
 
@@ -1527,12 +1595,25 @@ ${atsSuggestions?.section_gaps?.length ? `- ATS SECTION GAPS to address: ${atsSu
 
                 {/* Feedback */}
                 <div style={{ marginTop: 12, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 10, padding: '14px 16px' }}>
-                  <div style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.4)', letterSpacing: 0.5, textTransform: 'uppercase' as const, marginBottom: 8 }}>Request changes</div>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, flexWrap: 'wrap' as const, marginBottom: 8 }}>
+                    <div style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.4)', letterSpacing: 0.5, textTransform: 'uppercase' as const }}>Request changes</div>
+                    {changeIncluded ? (
+                      <span style={{ fontSize: 10, fontWeight: 600, color: accent, background: 'rgba(255,153,51,0.12)', border: '1px solid rgba(255,153,51,0.25)', padding: '2px 8px', borderRadius: 20 }}>{PRICING_COPY.changesLeft(revisionsLeft, until)}</span>
+                    ) : bundleActive ? (
+                      <span style={{ fontSize: 10, fontWeight: 600, color: '#fcd34d', background: 'rgba(245,158,11,0.12)', border: '1px solid rgba(245,158,11,0.3)', padding: '2px 8px', borderRadius: 20 }}>{PRICING_COPY.packageUsedUp(CV_COST)}</span>
+                    ) : null}
+                  </div>
                   <textarea value={feedback} onChange={e => setFeedback(e.target.value)} placeholder="e.g. Make the summary shorter, highlight technical skills more…" rows={2}
                     style={{ width: '100%', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 7, color: '#E6F1FB', fontSize: 12, padding: '8px 10px', resize: 'vertical' as const, fontFamily: "'DM Sans', sans-serif", outline: 'none', boxSizing: 'border-box' as const }} />
-                  <button onClick={applyFeedback} disabled={!feedback.trim() || applyingFeedback}
-                    style={{ marginTop: 8, padding: '7px 18px', borderRadius: 7, border: 'none', background: feedback.trim() && !applyingFeedback ? accent : 'rgba(255,255,255,0.08)', color: feedback.trim() && !applyingFeedback ? '#042C53' : 'rgba(255,255,255,0.25)', fontSize: 12, fontWeight: 700, cursor: feedback.trim() && !applyingFeedback ? 'pointer' : 'not-allowed', fontFamily: "'Outfit', sans-serif" }}>
-                    {applyingFeedback ? 'Applying…' : 'Apply changes — 1 credit'}
+                  {feedbackError && (
+                    <div style={{ marginTop: 8, fontSize: 11, color: '#f87171', background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.25)', borderRadius: 6, padding: '7px 10px', lineHeight: 1.5 }}>
+                      ⚠ {feedbackError.message}
+                      {feedbackError.status === 402 && <> · <Link href="/in/account" style={{ color: '#f87171', fontWeight: 700 }}>Top up credits →</Link></>}
+                    </div>
+                  )}
+                  <button onClick={handleApplyFeedback} disabled={!canApplyChange}
+                    style={{ marginTop: 8, padding: '7px 18px', borderRadius: 7, border: 'none', background: canApplyChange ? accent : 'rgba(255,255,255,0.08)', color: canApplyChange ? '#042C53' : 'rgba(255,255,255,0.25)', fontSize: 12, fontWeight: 700, cursor: canApplyChange ? 'pointer' : 'not-allowed', fontFamily: "'Outfit', sans-serif" }}>
+                    {applyingFeedback ? 'Applying…' : changeIncluded ? PRICING_COPY.applyIncluded(revisionsLeft) : PRICING_COPY.applyCosts(CV_COST)}
                   </button>
                 </div>
 

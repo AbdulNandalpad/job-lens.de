@@ -86,18 +86,23 @@ export async function isUserRateLimited(
 export async function refundCredits(
   userId: string,
   amount: number,
-  action: string
+  action: string,
+  jobKey?: string | null,
 ): Promise<void> {
   try {
     const admin = createAdminSupabase()
     // Atomic increment — avoids TOCTOU race on concurrent refunds.
     // Refunds always go back to common credits (the first pool deducted).
-    const { error } = await admin.rpc('increment_credits', { p_user_id: userId, p_amount: amount })
-    if (error) {
-      console.error('Credit refund RPC failed:', error.message)
-      return
+    // A 0-credit refund is log-only: it exists so a failed included revision or
+    // letter is not counted against the package (see src/lib/pricing.ts).
+    if (amount > 0) {
+      const { error } = await admin.rpc('increment_credits', { p_user_id: userId, p_amount: amount })
+      if (error) {
+        console.error('Credit refund RPC failed:', error.message)
+        return
+      }
     }
-    await admin.from('usage_events').insert({ user_id: userId, action: `refund_${action}`, credits_used: -amount })
+    await admin.from('usage_events').insert({ user_id: userId, action: `refund_${action}`, credits_used: -amount, job_key: jobKey ?? null })
   } catch (err) {
     console.error('Credit refund failed:', err)
   }
@@ -108,11 +113,12 @@ export async function checkAndDeductCredits(
   cost: number,
   action: string,
   userEmail?: string,
-  market: 'eu' | 'in' = 'eu'
-): Promise<{ ok: boolean; remaining: number; usedCrossMarket?: boolean; dbError?: string; reason?: string }> {
+  market: 'eu' | 'in' = 'eu',
+  jobKey?: string | null,
+): Promise<{ ok: boolean; remaining: number; usedCrossMarket?: boolean; dbError?: string; reason?: string; bypass?: boolean }> {
   const adminEmails = (process.env.ADMIN_EMAILS || '').split(',').map(e => e.trim().toLowerCase())
   if (userEmail && adminEmails.includes(userEmail.toLowerCase())) {
-    return { ok: true, remaining: 9999 }
+    return { ok: true, remaining: 9999, bypass: true }
   }
 
   const admin = createAdminSupabase()
@@ -125,6 +131,7 @@ export async function checkAndDeductCredits(
     p_cost:    cost,
     p_action:  action,
     p_market:  market,
+    p_job_key: jobKey ?? null,
   })
 
   if (error) {

@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { useCredits } from '@/lib/useCredits'
 import CrossMarketModal from '@/components/CrossMarketModal'
 import { CREDIT_COST, LOW_CREDIT_WARN, MARKET, SS, API } from '@/lib/constants'
+import type { BundleState } from '@/lib/pricingCore'
 
 type Tone = 'confident' | 'formal' | 'warm'
 type Length = 'short' | 'medium' | 'long'
@@ -22,6 +23,17 @@ const LENGTHS: { id: Length; label: string; desc: string }[] = [
 ]
 
 const accent = '#FF9933'
+
+// Same wording as t.pricing.* (EN) in translations.ts — India pages are inline English
+const PRICING_COPY = {
+  applyIncluded:       (n: number)    => `Apply changes — included (${n} left)`,
+  applyCosts:          (cost: number) => `Apply changes — ${cost} credit${cost === 1 ? '' : 's'}`,
+  letterIncluded:      'Generate cover letter — included in your package',
+  letterRegenIncluded: 'Regenerate — included',
+  letterCosts:         (cost: number) => `Generate cover letter (${cost} credit${cost === 1 ? '' : 's'})`,
+  letterRegenCosts:    (cost: number) => `Regenerate (${cost} credit${cost === 1 ? '' : 's'})`,
+  letterIncludedNote:  'Your CV package for this job includes the cover letter',
+}
 
 // SS.cvbTailored holds the CV Builder output as raw JSON (possibly fenced) —
 // flatten it to plain text for the letter prompt instead of sending JSON.
@@ -82,11 +94,41 @@ export default function IndiaCoverLetterPage() {
   const [contactPhone, setContactPhone] = useState('')
   const { credits, setCredits, needsCrossMarket, crossMarketAmount } = useCredits()
   const CL_COST = CREDIT_COST.coverLetter
-  const FREE_CHANGES = 3
-  const [freeChangesLeft, setFreeChangesLeft] = useState(FREE_CHANGES + 1)
+  const [pricing, setPricing] = useState<{ bundle: BundleState; admin: boolean } | null>(null)
   const [crossWarnPending, setCrossWarnPending] = useState<(() => void) | null>(null)
 
   const jobLabel = job ? `${job.employer_name} - ${job.job_title}` : ''
+  const jobTitle = job?.job_title
+  const jobEmployer = job?.employer_name
+
+  // Server decides the price from the ledger; this is only so the UI shows the right
+  // copy before the click. Failures fall back to the "charged" wording.
+  const isAdmin = !!pricing?.admin
+  const bundleActive = !!pricing?.bundle.active
+  const revisionsLeft = pricing?.bundle.revisionsLeft ?? 0
+  const changeIncluded = bundleActive && revisionsLeft > 0
+  const letterIncluded = bundleActive && !pricing!.bundle.coverLetterUsed
+  const letterCharged = !letterIncluded && !isAdmin
+  const changeCharged = !changeIncluded && !isAdmin
+  const notEnoughCredits = credits !== null && credits < CL_COST
+  const genBlocked = loading || !cvText.trim() || (letterCharged && notEnoughCredits)
+  const feedbackBlocked = !feedback.trim() || applyingFeedback || (changeCharged && notEnoughCredits)
+
+  function absorbPricing(data: { pricing?: { bundle?: BundleState; admin?: boolean } }) {
+    if (data?.pricing?.bundle) setPricing({ bundle: data.pricing.bundle, admin: !!data.pricing.admin })
+  }
+
+  useEffect(() => {
+    let stale = false
+    fetch(API.pricingBundle, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ job: { job_title: jobTitle, employer_name: jobEmployer } }),
+    })
+      .then(r => r.ok ? r.json() : null)
+      .then(d => { if (!stale && d?.bundle) setPricing({ bundle: d.bundle, admin: !!d.admin }) })
+      .catch(() => { /* keep the "charged" copy */ })
+    return () => { stale = true }
+  }, [jobTitle, jobEmployer])
 
   useEffect(() => {
     const cv = cvTextForLetter()
@@ -134,8 +176,7 @@ export default function IndiaCoverLetterPage() {
 
   async function generate() {
     if (!cvText.trim()) return
-    const isFree = freeChangesLeft > 0
-    if (!isFree && credits !== null && credits < CL_COST) { alert(`You need ${CL_COST} credit. Please top up on the Account page.`); return }
+    if (letterCharged && notEnoughCredits) { setGenerateError({ message: `You need ${CL_COST} credit. Please top up on the Account page.`, status: 402 }); return }
     setLoading(true); setGenerateError(null)
     try {
       const contactHeader = [
@@ -146,9 +187,10 @@ export default function IndiaCoverLetterPage() {
       const cvWithContact = contactHeader ? `${contactHeader}\n\n${cvText}` : cvText
       const res = await fetch(API.coverLetter, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ cvText: cvWithContact, job, tone, length, lang, market: MARKET.in, freeUsage: isFree }),
+        body: JSON.stringify({ cvText: cvWithContact, job, tone, length, lang, market: MARKET.in }),
       })
       const data = await res.json().catch(() => ({}))
+      absorbPricing(data)
       if (!res.ok) {
         // Server already refunded on failure — keep the previous letter on screen
         if (res.status === 402 && typeof data.credits === 'number') setCredits(data.credits)
@@ -159,13 +201,12 @@ export default function IndiaCoverLetterPage() {
       const cl = data.coverLetter || data.letter || ''
       if (!cl) { setGenerateError({ message: `Request failed (${res.status})`, status: res.status }); return }
       setLetter(cl); sessionStorage.setItem(SS.clLetter, cl)
-      if (isFree) setFreeChangesLeft(p => p - 1)
     } catch { setGenerateError({ message: 'Network error. Please try again.', status: 0 }) }
     finally { setLoading(false) }
   }
 
   function handleGenerate() {
-    if (freeChangesLeft > 0) { generate(); return }
+    if (!letterCharged) { generate(); return }
     if (needsCrossMarket(CL_COST, MARKET.in)) {
       setCrossWarnPending(() => generate)
     } else {
@@ -175,15 +216,15 @@ export default function IndiaCoverLetterPage() {
 
   async function applyFeedback() {
     if (!feedback.trim() || !letter) return
-    const isFree = freeChangesLeft > 0
-    if (!isFree && credits !== null && credits < CL_COST) { alert(`You need ${CL_COST} credit. Please top up on the Account page.`); return }
+    if (changeCharged && notEnoughCredits) { setGenerateError({ message: `You need ${CL_COST} credit. Please top up on the Account page.`, status: 402 }); return }
     setApplyingFeedback(true); setGenerateError(null)
     try {
       const res = await fetch(API.coverLetter, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ cvText, job, tone, length, lang, feedback, currentLetter: letter, market: MARKET.in, freeUsage: isFree }),
+        body: JSON.stringify({ cvText, job, tone, length, lang, feedback, currentLetter: letter, market: MARKET.in }),
       })
       const data = await res.json().catch(() => ({}))
+      absorbPricing(data)
       if (!res.ok) {
         if (res.status === 402 && typeof data.credits === 'number') setCredits(data.credits)
         setGenerateError({ message: data.error || `Request failed (${res.status})`, status: res.status })
@@ -193,9 +234,17 @@ export default function IndiaCoverLetterPage() {
       const cl = data.coverLetter || data.letter || ''
       if (!cl) { setGenerateError({ message: `Request failed (${res.status})`, status: res.status }); return }
       setLetter(cl); sessionStorage.setItem(SS.clLetter, cl); setFeedback('')
-      if (isFree) setFreeChangesLeft(p => p - 1)
     } catch { setGenerateError({ message: 'Network error. Please try again.', status: 0 }) }
     finally { setApplyingFeedback(false) }
+  }
+
+  function handleApplyFeedback() {
+    if (!changeCharged) { applyFeedback(); return }
+    if (needsCrossMarket(CL_COST, MARKET.in)) {
+      setCrossWarnPending(() => applyFeedback)
+    } else {
+      applyFeedback()
+    }
   }
 
   async function downloadPDF() {
@@ -439,9 +488,9 @@ export default function IndiaCoverLetterPage() {
                 {credits === 0 ? 'No credits left. Top up on Account page.' : `${credits} credit${credits === 1 ? '' : 's'} remaining.`}
               </div>
             )}
-            {freeChangesLeft > 0 && (
+            {letterIncluded && (
               <div style={{ background: 'rgba(34,197,94,0.1)', border: '1px solid rgba(34,197,94,0.3)', borderRadius: 8, padding: '6px 10px', fontSize: 11, color: '#4ade80', marginBottom: 8, lineHeight: 1.5 }}>
-                ✓ {freeChangesLeft} free use{freeChangesLeft !== 1 ? 's' : ''} remaining
+                {PRICING_COPY.letterIncludedNote}
               </div>
             )}
             {generateError && (
@@ -450,15 +499,15 @@ export default function IndiaCoverLetterPage() {
                 {generateError.status === 402 && <> · <Link href="/in/account" style={{ color: '#f87171', fontWeight: 700 }}>Top up credits →</Link></>}
               </div>
             )}
-            <button className="cl-gen" onClick={handleGenerate} disabled={loading || !cvText.trim() || (freeChangesLeft <= 0 && credits !== null && credits < CL_COST)}
-              style={{ width: '100%', padding: '12px 0', borderRadius: 10, border: 'none', background: loading || !cvText.trim() || (freeChangesLeft <= 0 && credits !== null && credits < CL_COST) ? 'rgba(255,255,255,0.08)' : `linear-gradient(135deg, ${accent}, #e67300)`, color: loading || !cvText.trim() || (freeChangesLeft <= 0 && credits !== null && credits < CL_COST) ? 'rgba(255,255,255,0.25)' : '#fff', fontFamily: "'Outfit', sans-serif", fontSize: 13, fontWeight: 700, cursor: loading || !cvText.trim() || (freeChangesLeft <= 0 && credits !== null && credits < CL_COST) ? 'not-allowed' : 'pointer', transition: 'all 0.2s', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+            <button className="cl-gen" onClick={handleGenerate} disabled={genBlocked}
+              style={{ width: '100%', padding: '12px 0', borderRadius: 10, border: 'none', background: genBlocked ? 'rgba(255,255,255,0.08)' : `linear-gradient(135deg, ${accent}, #e67300)`, color: genBlocked ? 'rgba(255,255,255,0.25)' : '#fff', fontFamily: "'Outfit', sans-serif", fontSize: 13, fontWeight: 700, cursor: genBlocked ? 'not-allowed' : 'pointer', transition: 'all 0.2s', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
               {loading
                 ? <><div style={{ width: 14, height: 14, borderRadius: '50%', border: '2px solid rgba(255,255,255,0.15)', borderTopColor: 'rgba(255,255,255,0.7)', animation: 'spin 0.7s linear infinite' }} /> Writing...</>
-                : freeChangesLeft > 0
-                ? (letter ? 'Regenerate — Free' : 'Generate Letter — Free')
-                : credits !== null && credits < CL_COST
+                : letterIncluded
+                ? (letter ? PRICING_COPY.letterRegenIncluded : PRICING_COPY.letterIncluded)
+                : letterCharged && notEnoughCredits
                 ? `Need ${CL_COST} credit — you have ${credits}`
-                : letter ? `Regenerate Letter (${CL_COST} credit)` : `Generate Letter (${CL_COST} credit)`}
+                : letter ? PRICING_COPY.letterRegenCosts(CL_COST) : PRICING_COPY.letterCosts(CL_COST)}
             </button>
           </div>
         </div>
@@ -483,9 +532,9 @@ export default function IndiaCoverLetterPage() {
                   {TONES.map(t => <button key={t.id} onClick={() => setTone(t.id)} style={{ flex: 1, padding: '8px 4px', borderRadius: 8, border: `1px solid ${tone === t.id ? accent : 'rgba(255,255,255,0.1)'}`, background: tone === t.id ? accent + '20' : 'rgba(255,255,255,0.04)', color: tone === t.id ? '#fff' : 'rgba(255,255,255,0.45)', fontSize: 11, cursor: 'pointer', fontFamily: 'inherit' }}>{t.label}</button>)}
                 </div>
               </div>
-              <button className="cl-gen" onClick={() => { handleGenerate(); setMobOpen(false) }} disabled={loading || !cvText.trim() || (freeChangesLeft <= 0 && credits !== null && credits < CL_COST)}
-                style={{ width: '100%', padding: '12px 0', borderRadius: 10, border: 'none', background: loading || !cvText.trim() || (freeChangesLeft <= 0 && credits !== null && credits < CL_COST) ? 'rgba(255,255,255,0.08)' : `linear-gradient(135deg, ${accent}, #e67300)`, color: loading || !cvText.trim() || (freeChangesLeft <= 0 && credits !== null && credits < CL_COST) ? 'rgba(255,255,255,0.25)' : '#fff', fontFamily: "'Outfit', sans-serif", fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>
-                {loading ? 'Writing...' : freeChangesLeft > 0 ? (letter ? 'Regenerate — Free' : 'Generate Letter — Free') : letter ? `Regenerate (${CL_COST} credit)` : `Generate Letter (${CL_COST} credit)`}
+              <button className="cl-gen" onClick={() => { handleGenerate(); setMobOpen(false) }} disabled={genBlocked}
+                style={{ width: '100%', padding: '12px 0', borderRadius: 10, border: 'none', background: genBlocked ? 'rgba(255,255,255,0.08)' : `linear-gradient(135deg, ${accent}, #e67300)`, color: genBlocked ? 'rgba(255,255,255,0.25)' : '#fff', fontFamily: "'Outfit', sans-serif", fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>
+                {loading ? 'Writing...' : letterIncluded ? (letter ? PRICING_COPY.letterRegenIncluded : PRICING_COPY.letterIncluded) : letter ? PRICING_COPY.letterRegenCosts(CL_COST) : PRICING_COPY.letterCosts(CL_COST)}
               </button>
             </div>
           )}
@@ -527,7 +576,7 @@ export default function IndiaCoverLetterPage() {
             {!loading && !letter && (
               <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', flex: 1, gap: 24 }}>
                 <div style={{ fontSize: 15, fontWeight: 600, color: 'rgba(255,255,255,0.4)', fontFamily: "'Outfit', sans-serif" }}>{cvText ? 'Ready to write' : 'Upload your CV to start'}</div>
-                {cvText && <button onClick={handleGenerate} className="cl-gen" style={{ padding: '11px 28px', borderRadius: 10, border: 'none', background: `linear-gradient(135deg, ${accent}, #e67300)`, color: '#fff', fontFamily: "'Outfit', sans-serif", fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>{freeChangesLeft > 0 ? 'Generate Letter — Free' : 'Generate Letter'}</button>}
+                {cvText && <button onClick={handleGenerate} className="cl-gen" style={{ padding: '11px 28px', borderRadius: 10, border: 'none', background: `linear-gradient(135deg, ${accent}, #e67300)`, color: '#fff', fontFamily: "'Outfit', sans-serif", fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>{letterIncluded ? PRICING_COPY.letterIncluded : PRICING_COPY.letterCosts(CL_COST)}</button>}
               </div>
             )}
             {!loading && letter && (
@@ -546,9 +595,9 @@ export default function IndiaCoverLetterPage() {
                   <div style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase' as const, marginBottom: 8 }}>Request changes</div>
                   <textarea value={feedback} onChange={e => setFeedback(e.target.value)} placeholder="e.g. Make it shorter, more formal, mention my Python skills..."
                     rows={2} style={{ width: '100%', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 7, color: '#E6F1FB', fontSize: 12, padding: '8px 10px', resize: 'vertical' as const, fontFamily: "'DM Sans', sans-serif", outline: 'none', boxSizing: 'border-box' as const }} />
-                  <button onClick={applyFeedback} disabled={!feedback.trim() || applyingFeedback}
-                    style={{ marginTop: 8, padding: '7px 18px', borderRadius: 7, border: 'none', background: feedback.trim() && !applyingFeedback ? accent : 'rgba(255,255,255,0.08)', color: feedback.trim() && !applyingFeedback ? '#fff' : 'rgba(255,255,255,0.25)', fontSize: 12, fontWeight: 700, cursor: feedback.trim() && !applyingFeedback ? 'pointer' : 'not-allowed', fontFamily: "'Outfit', sans-serif" }}>
-                    {applyingFeedback ? 'Applying...' : freeChangesLeft > 0 ? `Apply changes — Free (${freeChangesLeft} left)` : `Apply changes — ${CL_COST} credit`}
+                  <button onClick={handleApplyFeedback} disabled={feedbackBlocked}
+                    style={{ marginTop: 8, padding: '7px 18px', borderRadius: 7, border: 'none', background: !feedbackBlocked ? accent : 'rgba(255,255,255,0.08)', color: !feedbackBlocked ? '#fff' : 'rgba(255,255,255,0.25)', fontSize: 12, fontWeight: 700, cursor: !feedbackBlocked ? 'pointer' : 'not-allowed', fontFamily: "'Outfit', sans-serif" }}>
+                    {applyingFeedback ? 'Applying...' : changeIncluded ? PRICING_COPY.applyIncluded(revisionsLeft) : PRICING_COPY.applyCosts(CL_COST)}
                   </button>
                 </div>
                 <div style={{ display: 'flex', gap: 10, marginTop: 20, justifyContent: 'center', paddingBottom: 32, flexWrap: 'wrap' }}>

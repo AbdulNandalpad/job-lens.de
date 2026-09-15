@@ -17,6 +17,24 @@ export const CREDIT_COST = {
   jobCase:         6,  // /api/job-case/create — mirrors JOB_CASE.creditCost
 } as const
 
+// ── Application package ──────────────────────────────────────────────────────
+// One charged CV tailoring for a job includes that job's cover letter and up to
+// freeRevisions change requests for windowHours. Decided server-side from
+// usage_events (src/lib/pricing.ts) — never from client flags.
+export const BUNDLE = {
+  windowHours:   24,
+  freeRevisions: 3,
+} as const
+
+// usage_events.action values the pricing logic reasons about
+export const USAGE_ACTION = {
+  tailorCv:            'tailor_cv',
+  tailorCvRevision:    'tailor_cv_revision',
+  coverLetter:         'cover_letter',
+  coverLetterBundled:  'cover_letter_bundled',
+  coverLetterRevision: 'cover_letter_revision',
+} as const
+
 // ── Live voice (Realtime API) session limit, in seconds ──────────────────────
 export const LIVE_VOICE_MAX_SECONDS = 5 * 60
 
@@ -92,6 +110,9 @@ export const SS = {
   inCareerScanResult:  'jl_in_career_scan_result',
   inCareerScanRole:    'jl_in_career_scan_role',
 
+  // Guided "Apply to a job" flow — step + per-step results; CV/job/CV-JSON/letter stay in their own keys
+  applyDraft:          'jl_apply_draft',
+
   // Session owner — compared on every app load; mismatch triggers full clear
   uid:                 'jl_uid',
 
@@ -123,6 +144,8 @@ export const LS = {
 export const API = {
   extractPdf:       '/api/extract-pdf',
   cvPdf:            '/api/cv/pdf',
+  cvSkillGap:       '/api/cv/skill-gap',
+  pricingBundle:    '/api/pricing/bundle',
   careerScan:       '/api/career-scan',
   indiaCareerScan:  '/api/india/career-scan',
   tailorCv:         '/api/tailor-cv',

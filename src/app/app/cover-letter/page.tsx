@@ -8,6 +8,7 @@ import { useCredits } from '@/lib/useCredits'
 import { useLanguage } from '@/lib/i18n'
 import CrossMarketModal from '@/components/CrossMarketModal'
 import { CREDIT_COST, LOW_CREDIT_WARN, MARKET, SS, API } from '@/lib/constants'
+import type { BundleState } from '@/lib/pricingCore'
 import SvgIcon from '@/components/SvgIcon'
 
 type Tone = 'confident' | 'formal' | 'warm'
@@ -56,7 +57,7 @@ function cvTextForLetter(): string {
 
 export default function CoverLetterPage() {
   const router = useRouter()
-  const { t } = useLanguage()
+  const { t, lang } = useLanguage()
 
   const TONES: { id: Tone; label: string; desc: string }[] = TONE_IDS.map(id => ({
     id,
@@ -86,8 +87,9 @@ export default function CoverLetterPage() {
   const [generateError, setGenerateError] = useState<{ message: string; status: number } | null>(null)
   const { credits, setCredits, needsCrossMarket, crossMarketAmount } = useCredits()
   const CL_COST = CREDIT_COST.coverLetter
-  const FREE_CHANGES = 3
-  const [freeChangesLeft, setFreeChangesLeft] = useState(FREE_CHANGES + 1) // +1 covers initial generate
+  // Server-decided package state for this job (src/lib/pricing.ts). Null until the first
+  // fetch resolves — the UI then falls back to the "charged" copy, never to "included".
+  const [pricing, setPricing] = useState<{ bundle: BundleState; admin: boolean } | null>(null)
   const [crossWarnPending, setCrossWarnPending] = useState<(() => void) | null>(null)
   const [openSections, setOpenSections] = useState<Record<string, boolean>>({ contact: false, style: false, format: false })
   const [contactName,  setContactName]  = useState('')
@@ -120,6 +122,50 @@ export default function CoverLetterPage() {
       }
     }
   }, [])
+
+  // Ask the server what this job costs right now, so the button shows the right price
+  // before the click. Best-effort: on failure the page keeps the "charged" copy.
+  const jobTitle = job?.job_title ?? ''
+  const jobEmployer = job?.employer_name ?? ''
+  useEffect(() => {
+    let cancelled = false
+    fetch(API.pricingBundle, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      // Empty title + employer hashes to the same 'nojob' key as job: null server-side
+      body: JSON.stringify({ job: { job_title: jobTitle, employer_name: jobEmployer } }),
+    })
+      .then(res => (res.ok ? res.json() : null))
+      .then(data => {
+        if (cancelled || !data?.bundle) return
+        setPricing({ bundle: data.bundle as BundleState, admin: !!data.admin })
+      })
+      .catch(() => { /* silent — pricing preview is best-effort */ })
+    return () => { cancelled = true }
+  }, [jobTitle, jobEmployer])
+
+  function applyPricing(data: { pricing?: { bundle?: BundleState; admin?: boolean } }) {
+    if (data?.pricing?.bundle) setPricing({ bundle: data.pricing.bundle, admin: !!data.pricing.admin })
+  }
+
+  const isAdmin = !!pricing?.admin
+  const bundleActive = !!pricing?.bundle.active
+  const revisionsLeft = pricing?.bundle.revisionsLeft ?? 0
+  const changeIncluded = bundleActive && revisionsLeft > 0
+  const letterIncluded = bundleActive && !pricing?.bundle.coverLetterUsed
+  // Credit gates only apply when the call will actually be charged; admins bypass deduction server-side
+  const genBlocked = !letterIncluded && !isAdmin && credits !== null && credits < CL_COST
+  const changeBlocked = !changeIncluded && !isAdmin && credits !== null && credits < CL_COST
+  const until = (() => {
+    const iso = pricing?.bundle.expiresAt
+    if (!iso) return ''
+    const d = new Date(iso)
+    if (isNaN(d.getTime())) return ''
+    const now = new Date()
+    const time = d.toLocaleTimeString(lang === 'DE' ? 'de-DE' : 'en-GB', { hour: '2-digit', minute: '2-digit' })
+    const sameDay = d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth() && d.getDate() === now.getDate()
+    return sameDay ? time : `${lang === 'DE' ? 'morgen' : 'tomorrow'} ${time}`
+  })()
 
   function toggleSection(id: string) {
     setOpenSections(prev => ({ ...prev, [id]: !prev[id] }))
@@ -158,8 +204,7 @@ export default function CoverLetterPage() {
 
   async function generate() {
     if (!cvText.trim()) return
-    const isFree = freeChangesLeft > 0
-    if (!isFree && credits !== null && credits < CL_COST) { alert(`You need ${CL_COST} credit to generate a cover letter. Please top up on the Account page.`); return }
+    if (genBlocked) { setGenerateError({ message: t.coverLetter.sidebar.needCredits(CL_COST, credits ?? 0), status: 402 }); return }
     setLoading(true); setGenerateError(null)
     try {
       const contactHeader = [
@@ -171,16 +216,16 @@ export default function CoverLetterPage() {
       const res = await fetch(API.coverLetter, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ cvText: cvWithContact, job, tone, length, lang: letterLang, market: MARKET.eu, freeUsage: isFree }),
+        body: JSON.stringify({ cvText: cvWithContact, job, tone, length, lang: letterLang, market: MARKET.eu }),
       })
       const data = await res.json().catch(() => ({}))
+      applyPricing(data)
       if (!res.ok) {
         // Server already refunded on failure — keep the previous letter on screen
         if (res.status === 402 && typeof data.credits === 'number') setCredits(data.credits)
         setGenerateError({ message: data.error || t.common.requestFailed(res.status), status: res.status })
         return
       }
-      if (isFree) setFreeChangesLeft(prev => Math.max(0, prev - 1))
       if (typeof data.creditsRemaining === 'number') setCredits(data.creditsRemaining)
       const cl = data.coverLetter || data.letter || data.result || ''
       if (!cl) { setGenerateError({ message: t.common.requestFailed(res.status), status: res.status }); return }
@@ -191,7 +236,8 @@ export default function CoverLetterPage() {
   }
 
   function handleGenerate() {
-    if (freeChangesLeft > 0) { generate(); return }
+    // Nothing is deducted when the letter is included (or for admins) — no cross-market confirmation needed
+    if (letterIncluded || isAdmin) { generate(); return }
     if (needsCrossMarket(CL_COST, MARKET.eu)) {
       setCrossWarnPending(() => generate)
     } else {
@@ -201,21 +247,21 @@ export default function CoverLetterPage() {
 
   async function applyFeedback() {
     if (!feedback.trim() || !letter) return
-    const isFree = freeChangesLeft > 0
+    if (changeBlocked) { setGenerateError({ message: t.coverLetter.sidebar.needCredits(CL_COST, credits ?? 0), status: 402 }); return }
     setApplyingFeedback(true); setGenerateError(null)
     try {
       const res = await fetch(API.coverLetter, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ cvText, job, tone, length, lang: letterLang, feedback, currentLetter: letter, freeUsage: isFree }),
+        body: JSON.stringify({ cvText, job, tone, length, lang: letterLang, feedback, currentLetter: letter, market: MARKET.eu }),
       })
       const data = await res.json().catch(() => ({}))
+      applyPricing(data)
       if (!res.ok) {
         if (res.status === 402 && typeof data.credits === 'number') setCredits(data.credits)
         setGenerateError({ message: data.error || t.common.requestFailed(res.status), status: res.status })
         return
       }
-      if (isFree) setFreeChangesLeft(prev => Math.max(0, prev - 1))
       if (typeof data.creditsRemaining === 'number') setCredits(data.creditsRemaining)
       const cl = data.coverLetter || data.letter || ''
       if (!cl) { setGenerateError({ message: t.common.requestFailed(res.status), status: res.status }); return }
@@ -224,6 +270,15 @@ export default function CoverLetterPage() {
       setFeedback('')
     } catch { setGenerateError({ message: t.common.networkError, status: 0 }) }
     finally { setApplyingFeedback(false) }
+  }
+
+  function handleApplyFeedback() {
+    if (changeIncluded || isAdmin) { applyFeedback(); return }
+    if (needsCrossMarket(CL_COST, MARKET.eu)) {
+      setCrossWarnPending(() => applyFeedback)
+    } else {
+      applyFeedback()
+    }
   }
 
   async function downloadPDF() {
@@ -439,7 +494,7 @@ export default function CoverLetterPage() {
       {crossWarnPending && (
         <CrossMarketModal
           cost={CL_COST}
-          market="eu"
+          market={MARKET.eu}
           crossAmount={crossMarketAmount(CL_COST, MARKET.eu)}
           onConfirm={() => { const fn = crossWarnPending; setCrossWarnPending(null); fn() }}
           onCancel={() => setCrossWarnPending(null)}
@@ -633,11 +688,9 @@ export default function CoverLetterPage() {
 
           {/* Generate button */}
           <div style={{ padding: '14px 16px', borderTop: '1px solid rgba(255,255,255,0.08)', flexShrink: 0 }}>
-            {freeChangesLeft > 0 ? (
+            {letterIncluded ? (
               <div style={{ background: 'rgba(29,158,117,0.12)', border: '1px solid rgba(29,158,117,0.35)', borderRadius: 8, padding: '7px 10px', fontSize: 11, color: '#34d399', marginBottom: 8, lineHeight: 1.5 }}>
-                {letterLang === 'DE'
-                  ? `✓ ${freeChangesLeft} kostenlose ${freeChangesLeft === 1 ? 'Änderung' : 'Änderungen'} übrig`
-                  : `✓ ${freeChangesLeft} free ${freeChangesLeft === 1 ? 'use' : 'uses'} remaining`}
+                {t.pricing.letterIncludedNote}
               </div>
             ) : credits !== null && credits <= LOW_CREDIT_WARN ? (
               <div style={{ background: 'rgba(245,158,11,0.15)', border: '1px solid rgba(245,158,11,0.4)', borderRadius: 8, padding: '7px 10px', fontSize: 11, color: '#fcd34d', marginBottom: 8, lineHeight: 1.5 }}>
@@ -651,15 +704,15 @@ export default function CoverLetterPage() {
               </div>
             )}
             <button className="cl-gen" onClick={handleGenerate}
-              disabled={loading || !cvText.trim() || (freeChangesLeft === 0 && credits !== null && credits < CL_COST)}
-              style={{ width: '100%', padding: '12px 0', borderRadius: 10, border: 'none', background: loading || !cvText.trim() || (freeChangesLeft === 0 && credits !== null && credits < CL_COST) ? 'rgba(255,255,255,0.08)' : `linear-gradient(135deg, ${accentColor}, #1D9E75)`, color: loading || !cvText.trim() || (freeChangesLeft === 0 && credits !== null && credits < CL_COST) ? 'rgba(255,255,255,0.25)' : '#fff', fontFamily: "'Outfit', sans-serif", fontSize: 13, fontWeight: 700, cursor: loading || !cvText.trim() || (freeChangesLeft === 0 && credits !== null && credits < CL_COST) ? 'not-allowed' : 'pointer', transition: 'all 0.2s', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+              disabled={loading || !cvText.trim() || genBlocked}
+              style={{ width: '100%', padding: '12px 0', borderRadius: 10, border: 'none', background: loading || !cvText.trim() || genBlocked ? 'rgba(255,255,255,0.08)' : `linear-gradient(135deg, ${accentColor}, #1D9E75)`, color: loading || !cvText.trim() || genBlocked ? 'rgba(255,255,255,0.25)' : '#fff', fontFamily: "'Outfit', sans-serif", fontSize: 13, fontWeight: 700, cursor: loading || !cvText.trim() || genBlocked ? 'not-allowed' : 'pointer', transition: 'all 0.2s', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
               {loading
                 ? <><div style={{ width: 14, height: 14, borderRadius: '50%', border: '2px solid rgba(255,255,255,0.15)', borderTopColor: 'rgba(255,255,255,0.7)', animation: 'spin 0.7s linear infinite' }} /> {t.coverLetter.sidebar.writing}</>
-                : freeChangesLeft === 0 && credits !== null && credits < CL_COST
-                ? t.coverLetter.sidebar.needCredits(CL_COST, credits)
-                : freeChangesLeft > 0
-                ? (letter ? (letterLang === 'DE' ? '⟳ Neu generieren — Kostenlos' : '⟳ Regenerate — Free') : (letterLang === 'DE' ? '✦ Anschreiben generieren — Kostenlos' : '✦ Generate Cover Letter — Free'))
-                : letter ? t.coverLetter.sidebar.regenerateBtn(CL_COST) : t.coverLetter.sidebar.generateBtn(CL_COST)}
+                : genBlocked
+                ? t.coverLetter.sidebar.needCredits(CL_COST, credits ?? 0)
+                : letterIncluded
+                ? (letter ? t.pricing.letterRegenIncluded : t.pricing.letterIncluded)
+                : letter ? t.pricing.letterRegenCosts(CL_COST) : t.pricing.letterCosts(CL_COST)}
             </button>
           </div>
         </div>
@@ -726,14 +779,24 @@ export default function CoverLetterPage() {
                 </div>
               </div>
               {/* Generate */}
-              {credits !== null && credits <= LOW_CREDIT_WARN && (
+              {letterIncluded ? (
+                <div style={{ background: 'rgba(29,158,117,0.12)', border: '1px solid rgba(29,158,117,0.35)', borderRadius: 8, padding: '7px 10px', fontSize: 11, color: '#34d399', lineHeight: 1.5 }}>
+                  {t.pricing.letterIncludedNote}
+                </div>
+              ) : credits !== null && credits <= LOW_CREDIT_WARN ? (
                 <div style={{ background: 'rgba(245,158,11,0.15)', border: '1px solid rgba(245,158,11,0.4)', borderRadius: 8, padding: '7px 10px', fontSize: 11, color: '#fcd34d', lineHeight: 1.5 }}>
                   {credits === 0 ? t.coverLetter.sidebar.noCredits : t.coverLetter.sidebar.lowCredits(credits!)}
                 </div>
-              )}
-              <button className="cl-gen" onClick={() => { handleGenerate(); setMobOpen(false) }} disabled={loading || !cvText.trim() || (credits !== null && credits < CL_COST)}
-                style={{ width: '100%', padding: '12px 0', borderRadius: 10, border: 'none', background: loading || !cvText.trim() || (credits !== null && credits < CL_COST) ? 'rgba(255,255,255,0.08)' : `linear-gradient(135deg, ${accentColor}, #1D9E75)`, color: loading || !cvText.trim() || (credits !== null && credits < CL_COST) ? 'rgba(255,255,255,0.25)' : '#fff', fontFamily: "'Outfit', sans-serif", fontSize: 13, fontWeight: 700, cursor: loading || !cvText.trim() || (credits !== null && credits < CL_COST) ? 'not-allowed' : 'pointer' }}>
-                {loading ? t.coverLetter.sidebar.writing : credits !== null && credits < CL_COST ? t.coverLetter.sidebar.needCredits(CL_COST, credits) : letter ? t.coverLetter.sidebar.regenerateBtn(CL_COST) : t.coverLetter.sidebar.generateBtn(CL_COST)}
+              ) : null}
+              <button className="cl-gen" onClick={() => { handleGenerate(); setMobOpen(false) }} disabled={loading || !cvText.trim() || genBlocked}
+                style={{ width: '100%', padding: '12px 0', borderRadius: 10, border: 'none', background: loading || !cvText.trim() || genBlocked ? 'rgba(255,255,255,0.08)' : `linear-gradient(135deg, ${accentColor}, #1D9E75)`, color: loading || !cvText.trim() || genBlocked ? 'rgba(255,255,255,0.25)' : '#fff', fontFamily: "'Outfit', sans-serif", fontSize: 13, fontWeight: 700, cursor: loading || !cvText.trim() || genBlocked ? 'not-allowed' : 'pointer' }}>
+                {loading
+                  ? t.coverLetter.sidebar.writing
+                  : genBlocked
+                  ? t.coverLetter.sidebar.needCredits(CL_COST, credits ?? 0)
+                  : letterIncluded
+                  ? (letter ? t.pricing.letterRegenIncluded : t.pricing.letterIncluded)
+                  : letter ? t.pricing.letterRegenCosts(CL_COST) : t.pricing.letterCosts(CL_COST)}
               </button>
             </div>
           )}
@@ -817,9 +880,9 @@ export default function CoverLetterPage() {
                   </div>
                   {cvText && (
                     <button onClick={handleGenerate} className="cl-gen"
-                      disabled={credits !== null && credits < CL_COST}
-                      style={{ marginTop: 20, padding: '11px 28px', borderRadius: 10, border: 'none', background: credits !== null && credits < CL_COST ? 'rgba(255,255,255,0.1)' : `linear-gradient(135deg, ${accentColor}, #1D9E75)`, color: credits !== null && credits < CL_COST ? 'rgba(255,255,255,0.3)' : '#fff', fontFamily: "'Outfit', sans-serif", fontSize: 13, fontWeight: 700, cursor: credits !== null && credits < CL_COST ? 'not-allowed' : 'pointer' }}>
-                      {credits !== null && credits < CL_COST ? `Need ${CL_COST} credit` : 'Generate Letter'}
+                      disabled={genBlocked}
+                      style={{ marginTop: 20, padding: '11px 28px', borderRadius: 10, border: 'none', background: genBlocked ? 'rgba(255,255,255,0.1)' : `linear-gradient(135deg, ${accentColor}, #1D9E75)`, color: genBlocked ? 'rgba(255,255,255,0.3)' : '#fff', fontFamily: "'Outfit', sans-serif", fontSize: 13, fontWeight: 700, cursor: genBlocked ? 'not-allowed' : 'pointer' }}>
+                      {genBlocked ? t.coverLetter.sidebar.needCredits(CL_COST, credits ?? 0) : letterIncluded ? t.pricing.letterIncluded : t.pricing.letterCosts(CL_COST)}
                     </button>
                   )}
                 </div>
@@ -863,15 +926,22 @@ export default function CoverLetterPage() {
                     style={{ width: '100%', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 7, color: '#E6F1FB', fontSize: 12, padding: '8px 10px', resize: 'vertical' as const, fontFamily: "'DM Sans', sans-serif", outline: 'none', boxSizing: 'border-box' as const }}
                   />
                   <button
-                    onClick={applyFeedback}
-                    disabled={!feedback.trim() || applyingFeedback}
-                    style={{ marginTop: 8, padding: '7px 18px', borderRadius: 7, border: 'none', background: feedback.trim() && !applyingFeedback ? accentColor : 'rgba(255,255,255,0.08)', color: feedback.trim() && !applyingFeedback ? '#042C53' : 'rgba(255,255,255,0.25)', fontSize: 12, fontWeight: 700, cursor: feedback.trim() && !applyingFeedback ? 'pointer' : 'not-allowed', fontFamily: "'Outfit', sans-serif" }}>
+                    onClick={handleApplyFeedback}
+                    disabled={!feedback.trim() || applyingFeedback || changeBlocked}
+                    style={{ marginTop: 8, padding: '7px 18px', borderRadius: 7, border: 'none', background: feedback.trim() && !applyingFeedback && !changeBlocked ? accentColor : 'rgba(255,255,255,0.08)', color: feedback.trim() && !applyingFeedback && !changeBlocked ? '#042C53' : 'rgba(255,255,255,0.25)', fontSize: 12, fontWeight: 700, cursor: feedback.trim() && !applyingFeedback && !changeBlocked ? 'pointer' : 'not-allowed', fontFamily: "'Outfit', sans-serif" }}>
                     {applyingFeedback
                       ? t.coverLetter.preview.applying
-                      : freeChangesLeft > 0
-                      ? (letterLang === 'DE' ? `Änderungen anwenden — Kostenlos (${freeChangesLeft} übrig)` : `Apply changes — Free (${freeChangesLeft} left)`)
-                      : t.coverLetter.preview.applyChanges}
+                      : changeBlocked
+                      ? t.coverLetter.sidebar.needCredits(CL_COST, credits ?? 0)
+                      : changeIncluded
+                      ? t.pricing.applyIncluded(revisionsLeft)
+                      : t.pricing.applyCosts(CL_COST)}
                   </button>
+                  {bundleActive && (
+                    <div style={{ marginTop: 8, fontSize: 11, color: changeIncluded ? '#34d399' : 'rgba(255,255,255,0.4)', lineHeight: 1.5 }}>
+                      {changeIncluded ? t.pricing.changesLeft(revisionsLeft, until) : t.pricing.packageUsedUp(CL_COST)}
+                    </div>
+                  )}
                 </div>
 
                 {/* Footer actions */}
