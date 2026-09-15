@@ -4,7 +4,8 @@ import { useState, useRef, useEffect } from 'react'
 import Navbar from '../components/Navbar'
 import { theme } from '@/lib/theme'
 import { useCredits } from '@/lib/useCredits'
-import { SS, LS, API } from '@/lib/constants'
+import { LS, API } from '@/lib/constants'
+import { useCurrentCv } from '@/lib/useCurrentCv'
 import { useLanguage } from '@/lib/i18n'
 
 const { colors: c, gradients: g, fonts: f } = theme
@@ -115,18 +116,12 @@ export default function AIPage() {
   })
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
-  const [cvText, setCvText] = useState('')
-  const [hasCv, setHasCv] = useState(false)
+  const { cvText } = useCurrentCv()
+  const hasCv = !!cvText
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
   const { credits } = useCredits()
   const { lang } = useLanguage()
-
-  useEffect(() => {
-    const cv = sessionStorage.getItem(SS.cvText) || ''
-    setCvText(cv)
-    setHasCv(!!cv)
-  }, [])
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })

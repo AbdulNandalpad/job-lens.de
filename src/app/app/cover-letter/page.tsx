@@ -2,13 +2,19 @@
 
 import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
-import Link from 'next/link'
 import Navbar from '../components/Navbar'
 import { useCredits } from '@/lib/useCredits'
+import { useCurrentCv } from '@/lib/useCurrentCv'
 import { useLanguage } from '@/lib/i18n'
 import CrossMarketModal from '@/components/CrossMarketModal'
+import FlowError from '@/components/FlowError'
 import { CREDIT_COST, LOW_CREDIT_WARN, MARKET, SS, API } from '@/lib/constants'
 import type { BundleState } from '@/lib/pricingCore'
+import { cvTextFromTailored } from '@/lib/cv'
+import { readJob, writeJob, normalizeJob, type JobRef } from '@/lib/job'
+import { readJsonOrError } from '@/lib/apiError'
+import { downloadLetterPdf } from '@/lib/letterPdf'
+import { c } from '@/lib/theme'
 import SvgIcon from '@/components/SvgIcon'
 
 type Tone = 'confident' | 'formal' | 'warm'
@@ -18,41 +24,12 @@ type Lang = 'EN' | 'DE'
 const TONE_IDS: Tone[] = ['confident', 'formal', 'warm']
 const LENGTH_IDS: Length[] = ['short', 'medium', 'long']
 
-// SS.cvbTailored holds the CV Builder output as raw JSON (possibly fenced) —
-// flatten it to plain text for the letter prompt instead of sending JSON.
-// A shared helper replaces this in a later commit.
-function cvTextForLetter(): string {
-  const tailored = (sessionStorage.getItem(SS.cvbTailored) || '').replace(/```json|```/g, '').trim()
-  if (tailored.startsWith('{')) {
-    try {
-      const d = JSON.parse(tailored)
-      const lines: string[] = []
-      if (d.name) lines.push(String(d.name))
-      if (d.title) lines.push(String(d.title))
-      if (d.email) lines.push(`Email: ${d.email}`)
-      if (d.phone) lines.push(`Phone: ${d.phone}`)
-      if (d.location) lines.push(`Location: ${d.location}`)
-      if (d.summary) lines.push('', String(d.summary))
-      if (Array.isArray(d.experience) && d.experience.length) {
-        lines.push('', 'Experience:')
-        for (const e of d.experience as { role?: string; company?: string; period?: string; bullets?: string[] }[]) {
-          lines.push([e.role, e.company].filter(Boolean).join(' at ') + (e.period ? ` (${e.period})` : ''))
-          if (Array.isArray(e.bullets)) for (const b of e.bullets) lines.push(`  - ${b}`)
-        }
-      }
-      if (Array.isArray(d.skills) && d.skills.length)
-        lines.push('', `Skills: ${(d.skills as ({ name?: string } | string)[]).map(s => typeof s === 'string' ? s : s.name).filter(Boolean).join(', ')}`)
-      if (Array.isArray(d.education) && d.education.length) {
-        lines.push('', 'Education:')
-        for (const ed of d.education as { degree?: string; school?: string; year?: string }[]) lines.push([ed.degree, ed.school, ed.year].filter(Boolean).join(', '))
-      }
-      const text = lines.join('\n').trim()
-      if (text) return text
-    } catch { /* not valid JSON — fall through to the plain-text keys */ }
-  } else if (tailored) {
-    return tailored
-  }
-  return sessionStorage.getItem(SS.sjsCvText) || sessionStorage.getItem(SS.cvText) || ''
+interface LetterResponse {
+  coverLetter?: string
+  letter?: string
+  result?: string
+  creditsRemaining?: number
+  pricing?: { bundle?: BundleState; admin?: boolean }
 }
 
 export default function CoverLetterPage() {
@@ -72,10 +49,18 @@ export default function CoverLetterPage() {
   }))
 
   const fileInputRef = useRef<HTMLInputElement>(null)
-  const [cvText, setCvText] = useState('')
-  const [cvFileName, setCvFileName] = useState('')
+  const { cvText: baseCvText, fileName: cvFileName, source: cvSource, rememberedConsent, setCv, extractFile } = useCurrentCv()
+  // The CV Builder's tailored output wins over the shared CV for this page (plain text, never raw JSON)
+  const [tailoredCv, setTailoredCv] = useState('')
+  const cvText = tailoredCv || baseCvText
+  const [saveConsent, setSaveConsent] = useState(false)
+  const [cvNotice, setCvNotice] = useState<{ kind: 'ok' | 'error'; text: string } | null>(null)
   const [fileLoading, setFileLoading] = useState(false)
-  const [job, setJob] = useState<{ job_title: string; employer_name: string; job_city?: string; job_description?: string; job_apply_link?: string } | null>(null)
+  const [downloadError, setDownloadError] = useState('')
+  const [job, setJob] = useState<JobRef | null>(null)
+  const [manualTitle, setManualTitle] = useState('')
+  const [manualEmployer, setManualEmployer] = useState('')
+  const [manualDesc, setManualDesc] = useState('')
   const [tone, setTone] = useState<Tone>('confident')
   const [length, setLength] = useState<Length>('medium')
   const [letterLang, setLetterLang] = useState<Lang>('EN')
@@ -100,28 +85,33 @@ export default function CoverLetterPage() {
   const jobLabel = job ? `${job.employer_name} - ${job.job_title}` : ''
 
   useEffect(() => {
-    const cv = cvTextForLetter()
-    const jobRaw = sessionStorage.getItem(SS.cvbJob)
-    const saved = sessionStorage.getItem(SS.clLetter)
-    setCvText(cv)
-    if (jobRaw) { try { setJob(JSON.parse(jobRaw)) } catch { } }
-    if (saved) setLetter(saved)
+    try {
+      setTailoredCv(cvTextFromTailored(sessionStorage.getItem(SS.cvbTailored) || ''))
+      const saved = sessionStorage.getItem(SS.clLetter)
+      if (saved) setLetter(saved)
+    } catch {
+      // storage unavailable — page still works with the account CV
+    }
+    setJob(readJob())
+  }, [])
 
-    // Auto-extract contact details from CV
-    if (cv) {
-      const emailM = cv.match(/[\w.+\-]+@[\w\-]+(?:\.[\w\-]+)+/i)
-      if (emailM) setContactEmail(emailM[0].toLowerCase())
-      const phoneM = cv.match(/(?:\+\d{1,3}[\s\-.]?)?\(?\d{2,4}\)?[\s\-.]?\d{3,5}[\s\-.]?\d{3,5}(?:[\s\-.]?\d{1,4})?/)
-      if (phoneM) setContactPhone(phoneM[0].trim())
-      for (const line of cv.split('\n')) {
-        const t = line.trim()
-        if (t.length > 2 && t.length < 55 && !t.includes('@') && !/\d/.test(t) && /[A-Za-z]/.test(t)) {
-          const words = t.split(/\s+/)
-          if (words.length >= 2 && words.length <= 5) { setContactName(t); break }
-        }
+  useEffect(() => { setSaveConsent(rememberedConsent) }, [rememberedConsent])
+
+  // Auto-extract contact details from the CV — only fills fields the user has not typed into
+  useEffect(() => {
+    if (!cvText) return
+    const emailM = cvText.match(/[\w.+\-]+@[\w\-]+(?:\.[\w\-]+)+/i)
+    if (emailM) setContactEmail(prev => prev || emailM[0].toLowerCase())
+    const phoneM = cvText.match(/(?:\+\d{1,3}[\s\-.]?)?\(?\d{2,4}\)?[\s\-.]?\d{3,5}[\s\-.]?\d{3,5}(?:[\s\-.]?\d{1,4})?/)
+    if (phoneM) setContactPhone(prev => prev || phoneM[0].trim())
+    for (const line of cvText.split('\n')) {
+      const s = line.trim()
+      if (s.length > 2 && s.length < 55 && !s.includes('@') && !/\d/.test(s) && /[A-Za-z]/.test(s)) {
+        const words = s.split(/\s+/)
+        if (words.length >= 2 && words.length <= 5) { setContactName(prev => prev || s); break }
       }
     }
-  }, [])
+  }, [cvText])
 
   // Ask the server what this job costs right now, so the button shows the right price
   // before the click. Best-effort: on failure the page keeps the "charged" copy.
@@ -172,34 +162,44 @@ export default function CoverLetterPage() {
   }
 
   async function handleCvFile(file: File) {
-    setCvFileName(file.name)
-    setCvText('')
     setFileLoading(true)
-    if (file.name.endsWith('.txt') || file.type === 'text/plain') {
-      const r = new FileReader()
-      r.onload = e => {
-        const text = (e.target?.result as string) ?? ''
-        setCvText(text)
-        sessionStorage.setItem(SS.cvText, text)
-        setFileLoading(false)
+    setCvNotice(null)
+    try {
+      const out = await extractFile(file)
+      if ('error' in out) { setCvNotice({ kind: 'error', text: out.error }); return }
+      if (out.text.trim().length < 50) { setCvNotice({ kind: 'error', text: t.cv.tooShort }); return }
+      // An uploaded CV is an explicit choice — it replaces the CV Builder's tailored text for this page
+      setTailoredCv('')
+      const res = await setCv(out.text, file.name, { saveToAccount: saveConsent })
+      if (saveConsent) {
+        setCvNotice(res.saved ? { kind: 'ok', text: t.cv.saved } : { kind: 'error', text: t.cv.saveFailed(res.error || '') })
       }
-      r.readAsText(file)
-    } else {
-      const form = new FormData()
-      form.append('file', file)
-      try {
-        const res = await fetch(API.extractPdf, { method: 'POST', body: form })
-        const data = await res.json()
-        if (data.text) {
-          setCvText(data.text)
-          sessionStorage.setItem(SS.cvText, data.text)
-        } else {
-          alert(data.error || 'Could not read file. Try a different format.')
-          setCvFileName('')
-        }
-      } catch { alert('Failed to read file. Please try again.'); setCvFileName('') }
+    } finally {
       setFileLoading(false)
+      if (fileInputRef.current) fileInputRef.current.value = ''
     }
+  }
+
+  function saveManualJob() {
+    const next = normalizeJob({
+      job_title: manualTitle,
+      employer_name: manualEmployer,
+      job_description: manualDesc,
+      job_source: 'manual',
+    })
+    if (!next) return
+    writeJob(next)
+    setJob(next)
+  }
+
+  function failWith(out: { status: number; message: string; credits?: number }) {
+    if (out.status === 402 && typeof out.credits === 'number') setCredits(out.credits)
+    setGenerateError({ message: out.message, status: out.status })
+  }
+
+  function storeLetter(cl: string) {
+    setLetter(cl)
+    try { sessionStorage.setItem(SS.clLetter, cl) } catch {}
   }
 
   async function generate() {
@@ -218,19 +218,14 @@ export default function CoverLetterPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ cvText: cvWithContact, job, tone, length, lang: letterLang, market: MARKET.eu }),
       })
-      const data = await res.json().catch(() => ({}))
-      applyPricing(data)
-      if (!res.ok) {
-        // Server already refunded on failure — keep the previous letter on screen
-        if (res.status === 402 && typeof data.credits === 'number') setCredits(data.credits)
-        setGenerateError({ message: data.error || t.common.requestFailed(res.status), status: res.status })
-        return
-      }
-      if (typeof data.creditsRemaining === 'number') setCredits(data.creditsRemaining)
-      const cl = data.coverLetter || data.letter || data.result || ''
+      const out = await readJsonOrError<LetterResponse>(res)
+      if (out.data && typeof out.data === 'object') applyPricing(out.data as LetterResponse)
+      // Server already refunded on failure — keep the previous letter on screen
+      if (!out.ok) { failWith(out); return }
+      if (typeof out.data.creditsRemaining === 'number') setCredits(out.data.creditsRemaining)
+      const cl = (out.data.coverLetter || out.data.letter || out.data.result || '').trim()
       if (!cl) { setGenerateError({ message: t.common.requestFailed(res.status), status: res.status }); return }
-      setLetter(cl)
-      sessionStorage.setItem(SS.clLetter, cl)
+      storeLetter(cl)
     } catch { setGenerateError({ message: t.common.networkError, status: 0 }) }
     finally { setLoading(false) }
   }
@@ -255,18 +250,13 @@ export default function CoverLetterPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ cvText, job, tone, length, lang: letterLang, feedback, currentLetter: letter, market: MARKET.eu }),
       })
-      const data = await res.json().catch(() => ({}))
-      applyPricing(data)
-      if (!res.ok) {
-        if (res.status === 402 && typeof data.credits === 'number') setCredits(data.credits)
-        setGenerateError({ message: data.error || t.common.requestFailed(res.status), status: res.status })
-        return
-      }
-      if (typeof data.creditsRemaining === 'number') setCredits(data.creditsRemaining)
-      const cl = data.coverLetter || data.letter || ''
+      const out = await readJsonOrError<LetterResponse>(res)
+      if (out.data && typeof out.data === 'object') applyPricing(out.data as LetterResponse)
+      if (!out.ok) { failWith(out); return }
+      if (typeof out.data.creditsRemaining === 'number') setCredits(out.data.creditsRemaining)
+      const cl = (out.data.coverLetter || out.data.letter || '').trim()
       if (!cl) { setGenerateError({ message: t.common.requestFailed(res.status), status: res.status }); return }
-      setLetter(cl)
-      sessionStorage.setItem(SS.clLetter, cl)
+      storeLetter(cl)
       setFeedback('')
     } catch { setGenerateError({ message: t.common.networkError, status: 0 }) }
     finally { setApplyingFeedback(false) }
@@ -283,92 +273,18 @@ export default function CoverLetterPage() {
 
   async function downloadPDF() {
     if (!letter) return
-    setDownloading('pdf')
+    setDownloading('pdf'); setDownloadError('')
     try {
-      const { default: jsPDF } = await import('jspdf')
-      const doc = new jsPDF({ unit: 'mm', format: 'a4' })
-      const W = 210
-      const margin = 22
-      const contentW = W - margin * 2
-      let y = 28
-
-      // Top accent bar
-      doc.setFillColor(4, 44, 83)
-      doc.rect(0, 0, W, 12, 'F')
-      doc.setFillColor(55, 138, 221)
-      doc.rect(0, 10, W, 2, 'F')
-
-      // Header area
-      y = 24
-      doc.setFont('helvetica', 'bold')
-      doc.setFontSize(16)
-      doc.setTextColor(4, 44, 83)
-      doc.text(contactName || 'Cover Letter', margin, y)
-      y += 6
-
-      const contactParts = [contactEmail, contactPhone].filter(Boolean).join('  ·  ')
-      if (contactParts) {
-        doc.setFont('helvetica', 'normal')
-        doc.setFontSize(9)
-        doc.setTextColor(107, 124, 147)
-        doc.text(contactParts, margin, y)
-        y += 5
-      }
-
-      if (job) {
-        doc.setFont('helvetica', 'normal')
-        doc.setFontSize(9)
-        doc.setTextColor(107, 124, 147)
-        doc.text(`${job.employer_name} - ${job.job_title}`, margin, y)
-        y += 5
-      }
-
-      // Divider
-      doc.setDrawColor(220, 228, 238)
-      doc.setLineWidth(0.4)
-      doc.line(margin, y, W - margin, y)
-      y += 10
-
-      y += 6
-
-      // Letter body
-      const paragraphs = letter.split('\n').filter(p => p.trim() !== '')
-      paragraphs.forEach((para, i) => {
-        const isFirst = i === 0
-        const isLast = i === paragraphs.length - 1
-
-        // Page break check
-        if (y > 260) {
-          doc.addPage()
-          y = 20
-        }
-
-        doc.setFont('helvetica', isFirst || isLast ? 'bold' : 'normal')
-        doc.setFontSize(10.5)
-        doc.setTextColor(26, 35, 50)
-        const lines = doc.splitTextToSize(para, contentW)
-        doc.text(lines, margin, y)
-        y += lines.length * 6 + 5
+      await downloadLetterPdf({
+        letter,
+        name: contactName,
+        contact: [contactEmail, contactPhone].filter(Boolean).join('  ·  '),
+        jobTitle: job?.job_title,
+        employer: job?.employer_name,
       })
-
-      // Footer
-      const pageCount = (doc as unknown as { internal: { getNumberOfPages: () => number } }).internal.getNumberOfPages()
-      for (let p = 1; p <= pageCount; p++) {
-        doc.setPage(p)
-        doc.setFillColor(248, 250, 252)
-        doc.rect(0, 285, W, 12, 'F')
-        doc.setFont('helvetica', 'normal')
-        doc.setFontSize(7)
-        doc.setTextColor(143, 163, 184)
-        doc.text('Generated by Job-Lens AI', margin, 292)
-        doc.text(`Page ${p} of ${pageCount}`, W - margin, 292, { align: 'right' })
-      }
-
-      const filename = `CoverLetter_${(job?.employer_name || 'JobLens').replace(/[^a-zA-Z0-9]/g, '_')}.pdf`
-      doc.save(filename)
     } catch (err) {
       console.error('PDF error:', err)
-      alert('PDF generation failed. Please try again.')
+      setDownloadError(lang === 'DE' ? 'PDF konnte nicht erstellt werden. Bitte erneut versuchen.' : 'PDF generation failed. Please try again.')
     }
     setDownloading(null)
   }
@@ -455,15 +371,96 @@ export default function CoverLetterPage() {
       URL.revokeObjectURL(url)
     } catch (err) {
       console.error('DOCX error:', err)
-      alert('Word generation failed. Please try again.')
+      setDownloadError(lang === 'DE' ? 'Word-Datei konnte nicht erstellt werden. Bitte erneut versuchen.' : 'Word generation failed. Please try again.')
     }
     setDownloading(null)
   }
 
   function goApply() {
-    sessionStorage.setItem(SS.clLetter, letter)
+    if (letter.trim()) {
+      try { sessionStorage.setItem(SS.clLetter, letter) } catch {}
+    }
     router.push('/app/apply-now')
   }
+
+  const cvSourceLabel = tailoredCv
+    ? (lang === 'DE' ? 'Optimierter Lebenslauf aus dem CV Builder' : 'Tailored CV from the CV Builder')
+    : cvFileName
+    ? t.cv.onFile(cvFileName)
+    : cvSource === 'saved'
+    ? t.cv.usingSaved
+    : t.coverLetter.sidebar.cvLoaded
+
+  const cvControls = (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+      {!cvText ? (
+        <div onClick={() => !fileLoading && fileInputRef.current?.click()}
+          onDragOver={e => e.preventDefault()}
+          onDrop={e => { e.preventDefault(); if (e.dataTransfer.files?.[0]) handleCvFile(e.dataTransfer.files[0]) }}
+          style={{ padding: '16px 12px', border: '1.5px dashed rgba(255,255,255,0.18)', borderRadius: 9, cursor: 'pointer', textAlign: 'center' }}>
+          {fileLoading ? (
+            <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+              <div style={{ width: 10, height: 10, borderRadius: '50%', border: '2px solid rgba(255,255,255,0.15)', borderTopColor: c.accent, animation: 'spin 0.7s linear infinite' }} />
+              {t.cv.reading}
+            </div>
+          ) : (
+            <>
+              <div style={{ marginBottom: 6, display: 'flex', justifyContent: 'center' }}><SvgIcon name="document" size={20} color="rgba(255,255,255,0.5)" /></div>
+              <div style={{ fontSize: 12, fontWeight: 600, color: 'rgba(255,255,255,0.7)' }}>{t.cv.upload}</div>
+              <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)', marginTop: 3 }}>{t.cv.uploadHint}</div>
+            </>
+          )}
+        </div>
+      ) : (
+        <div style={{ padding: '7px 10px', background: 'rgba(29,158,117,0.12)', border: '1px solid rgba(29,158,117,0.3)', borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6 }}>
+          <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.7)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' as const, display: 'flex', alignItems: 'center', gap: 5 }}>
+            <SvgIcon name="check-circle" size={11} color={c.success} />
+            {cvSourceLabel}
+          </span>
+          <button type="button" onClick={() => fileInputRef.current?.click()} disabled={fileLoading}
+            style={{ background: 'none', border: 'none', color: c.accent, cursor: fileLoading ? 'wait' : 'pointer', fontSize: 10, fontWeight: 600, padding: 0, flexShrink: 0, fontFamily: 'inherit' }}>
+            {fileLoading ? t.cv.reading : t.cv.replace}
+          </button>
+        </div>
+      )}
+      <label style={{ display: 'flex', alignItems: 'flex-start', gap: 6, fontSize: 10, color: 'rgba(255,255,255,0.45)', lineHeight: 1.4, cursor: 'pointer' }}>
+        <input type="checkbox" checked={saveConsent} onChange={e => setSaveConsent(e.target.checked)} style={{ marginTop: 1, accentColor: c.accent }} />
+        {t.cv.saveToAccount}
+      </label>
+      {cvNotice && (
+        cvNotice.kind === 'error'
+          ? <FlowError compact message={cvNotice.text} />
+          : <div style={{ fontSize: 10, color: c.success }}>{cvNotice.text}</div>
+      )}
+    </div>
+  )
+
+  const manualJobForm = !job && (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+      <div style={{ fontSize: 9, color: c.accent, fontWeight: 700, letterSpacing: 0.8, textTransform: 'uppercase' }}>
+        {lang === 'DE' ? 'Stelle (optional)' : 'Job (optional)'}
+      </div>
+      {[
+        { val: manualTitle, set: setManualTitle, ph: lang === 'DE' ? 'Jobtitel' : 'Job title' },
+        { val: manualEmployer, set: setManualEmployer, ph: lang === 'DE' ? 'Unternehmen' : 'Company' },
+      ].map(({ val, set, ph }) => (
+        <input key={ph} value={val} onChange={e => set(e.target.value)} placeholder={ph}
+          style={{ width: '100%', padding: '7px 10px', borderRadius: 7, border: '1px solid rgba(255,255,255,0.14)', background: 'rgba(255,255,255,0.05)', color: '#fff', fontSize: 12, fontFamily: 'inherit', outline: 'none', boxSizing: 'border-box' }} />
+      ))}
+      <textarea value={manualDesc} onChange={e => setManualDesc(e.target.value)} rows={3}
+        placeholder={lang === 'DE' ? 'Stellenbeschreibung einfügen' : 'Paste the job description'}
+        style={{ width: '100%', padding: '7px 10px', borderRadius: 7, border: '1px solid rgba(255,255,255,0.14)', background: 'rgba(255,255,255,0.05)', color: '#fff', fontSize: 12, fontFamily: 'inherit', outline: 'none', boxSizing: 'border-box', resize: 'vertical' }} />
+      <button type="button" onClick={saveManualJob} disabled={!manualTitle.trim() && !manualEmployer.trim()}
+        style={{ padding: '7px 0', borderRadius: 7, border: `1px solid ${c.accent}`, background: 'transparent', color: c.accent, fontSize: 11, fontWeight: 700, cursor: manualTitle.trim() || manualEmployer.trim() ? 'pointer' : 'not-allowed', opacity: manualTitle.trim() || manualEmployer.trim() ? 1 : 0.5, fontFamily: 'inherit' }}>
+        {lang === 'DE' ? 'Stelle übernehmen' : 'Use this job'}
+      </button>
+    </div>
+  )
+
+  const errorBox = generateError && (
+    <FlowError compact message={generateError.message}
+      secondary={generateError.status === 402 ? { label: t.common.topUp, href: '/app/account' } : undefined} />
+  )
 
   const accentColor = '#378ADD'
 
@@ -534,33 +531,8 @@ export default function CoverLetterPage() {
             )}
             <input ref={fileInputRef} type="file" accept=".pdf,.docx,.txt" style={{ display: 'none' }}
               onChange={e => e.target.files?.[0] && handleCvFile(e.target.files[0])} />
-            {!cvText ? (
-              <div onClick={() => fileInputRef.current?.click()}
-                onDragOver={e => e.preventDefault()}
-                onDrop={e => { e.preventDefault(); if (e.dataTransfer.files?.[0]) handleCvFile(e.dataTransfer.files[0]) }}
-                style={{ marginTop: 12, padding: '16px 12px', border: '1.5px dashed rgba(255,255,255,0.18)', borderRadius: 9, cursor: 'pointer', textAlign: 'center' }}>
-                {fileLoading ? (
-                  <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
-                    <div style={{ width: 10, height: 10, borderRadius: '50%', border: '2px solid rgba(255,255,255,0.15)', borderTopColor: accentColor, animation: 'spin 0.7s linear infinite' }} />
-                    {t.coverLetter.sidebar.reading}
-                  </div>
-                ) : (
-                  <>
-                    <div style={{ marginBottom: 6, display: 'flex', justifyContent: 'center' }}><SvgIcon name="document" size={20} color="rgba(255,255,255,0.5)" /></div>
-                    <div style={{ fontSize: 12, fontWeight: 600, color: 'rgba(255,255,255,0.7)' }}>{t.coverLetter.sidebar.uploadCv}</div>
-                    <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)', marginTop: 3 }}>{t.coverLetter.sidebar.uploadFormats}</div>
-                  </>
-                )}
-              </div>
-            ) : (
-              <div style={{ marginTop: 12, padding: '7px 10px', background: 'rgba(29,158,117,0.12)', border: '1px solid rgba(29,158,117,0.3)', borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6 }}>
-                <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.7)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' as const }}>
-                  {cvFileName ? `✓ ${cvFileName}` : t.coverLetter.sidebar.cvLoaded}
-                </span>
-                <button onClick={() => { setCvText(''); setCvFileName(''); if (fileInputRef.current) fileInputRef.current.value = '' }}
-                  style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.35)', cursor: 'pointer', fontSize: 16, padding: 0, flexShrink: 0, lineHeight: 1 }}>×</button>
-              </div>
-            )}
+            {manualJobForm && <div style={{ marginTop: 12 }}>{manualJobForm}</div>}
+            <div style={{ marginTop: 12 }}>{cvControls}</div>
           </div>
 
           {/* Accordions */}
@@ -697,12 +669,7 @@ export default function CoverLetterPage() {
                 {credits === 0 ? t.coverLetter.sidebar.noCredits : t.coverLetter.sidebar.lowCredits(credits!)}
               </div>
             ) : null}
-            {generateError && (
-              <div style={{ marginBottom: 8, fontSize: 11, color: '#f87171', background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.25)', borderRadius: 6, padding: '7px 10px', lineHeight: 1.5 }}>
-                ⚠ {generateError.message}
-                {generateError.status === 402 && <> · <Link href="/app/account" style={{ color: '#f87171', fontWeight: 700 }}>{t.common.topUp}</Link></>}
-              </div>
-            )}
+            {errorBox && <div style={{ marginBottom: 8 }}>{errorBox}</div>}
             <button className="cl-gen" onClick={handleGenerate}
               disabled={loading || !cvText.trim() || genBlocked}
               style={{ width: '100%', padding: '12px 0', borderRadius: 10, border: 'none', background: loading || !cvText.trim() || genBlocked ? 'rgba(255,255,255,0.08)' : `linear-gradient(135deg, ${accentColor}, #1D9E75)`, color: loading || !cvText.trim() || genBlocked ? 'rgba(255,255,255,0.25)' : '#fff', fontFamily: "'Outfit', sans-serif", fontSize: 13, fontWeight: 700, cursor: loading || !cvText.trim() || genBlocked ? 'not-allowed' : 'pointer', transition: 'all 0.2s', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
@@ -729,19 +696,8 @@ export default function CoverLetterPage() {
           {mobOpen && (
             <div className="jl-mob" style={{ background: 'linear-gradient(180deg, #152233 0%, #0e1a28 100%)', borderBottom: '1px solid rgba(255,255,255,0.1)', flexDirection: 'column', overflowY: 'auto', maxHeight: '70vh', padding: '16px', gap: 14 }}>
               {/* CV upload (mobile) */}
-              {!cvText && (
-                <div onClick={() => fileInputRef.current?.click()}
-                  style={{ padding: '14px 12px', border: '1.5px dashed rgba(255,255,255,0.18)', borderRadius: 9, cursor: 'pointer', textAlign: 'center' }}>
-                  <div style={{ marginBottom: 4, display: 'flex', justifyContent: 'center' }}><SvgIcon name="document" size={18} color="rgba(255,255,255,0.5)" /></div>
-                  <div style={{ fontSize: 12, fontWeight: 600, color: 'rgba(255,255,255,0.7)' }}>{fileLoading ? t.coverLetter.sidebar.reading : t.coverLetter.sidebar.uploadCv}</div>
-                  <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)', marginTop: 2 }}>{t.coverLetter.sidebar.uploadFormats}</div>
-                </div>
-              )}
-              {cvText && cvFileName && (
-                <div style={{ padding: '7px 10px', background: 'rgba(29,158,117,0.12)', border: '1px solid rgba(29,158,117,0.3)', borderRadius: 8, fontSize: 10, color: 'rgba(255,255,255,0.7)' }}>
-                  ✓ {cvFileName}
-                </div>
-              )}
+              {manualJobForm}
+              {cvControls}
               {/* Tone */}
               <div>
                 <div style={{ fontSize: 10, fontWeight: 600, color: 'rgba(255,255,255,0.4)', letterSpacing: 0.5, textTransform: 'uppercase', marginBottom: 8 }}>{t.coverLetter.sidebar.toneLabel}</div>
@@ -831,10 +787,10 @@ export default function CoverLetterPage() {
             )}
           </div>
 
-          {generateError && (
-            <div style={{ margin: '12px 24px 0', fontSize: 12, color: '#f87171', background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.25)', borderRadius: 8, padding: '8px 12px', lineHeight: 1.5, flexShrink: 0 }}>
-              ⚠ {generateError.message}
-              {generateError.status === 402 && <> · <Link href="/app/account" style={{ color: '#f87171', fontWeight: 700 }}>{t.common.topUp}</Link></>}
+          {errorBox && <div style={{ margin: '12px 24px 0', flexShrink: 0 }}>{errorBox}</div>}
+          {downloadError && (
+            <div style={{ margin: '12px 24px 0', flexShrink: 0 }}>
+              <FlowError compact message={downloadError} onRetry={() => setDownloadError('')} retryLabel={lang === 'DE' ? 'Schließen' : 'Dismiss'} />
             </div>
           )}
 

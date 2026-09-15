@@ -6,7 +6,7 @@ import Navbar from '../components/Navbar'
 import { createClient } from '@/lib/supabase'
 import { theme } from '@/lib/theme'
 import { useLanguage } from '@/lib/i18n'
-import { CREDIT_COST, AI_CHAT_FREE_MESSAGES, API } from '@/lib/constants'
+import { CREDIT_COST, AI_CHAT_FREE_MESSAGES, API, SS } from '@/lib/constants'
 import { useSavedCv } from '@/lib/useSavedCv'
 import { getIcon } from '@/components/SvgIcon'
 
@@ -485,7 +485,7 @@ export default function AccountPage() {
                   <button onClick={async () => {
                     setDeletingKiraData(true)
                     await fetch('/api/profile/career', { method: 'DELETE' })
-                    ;['jl_cv_text', 'jl_scan_result'].forEach(k => sessionStorage.removeItem(k))
+                    ;[SS.cvText, SS.sjsCvName, SS.scanResult, SS.inCareerScanResult].forEach(k => sessionStorage.removeItem(k))
                     localStorage.removeItem('jl_cv_consent')
                     localStorage.removeItem('jl_ai_messages')
                     setDeletingKiraData(false)

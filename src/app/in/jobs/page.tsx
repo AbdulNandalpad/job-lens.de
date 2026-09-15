@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { SS, API } from '@/lib/constants'
 import { theme } from '@/lib/theme'
+import { normalizeJob, writeJob } from '@/lib/job'
 import SvgIcon from '@/components/SvgIcon'
 import { GermanFlag, IndiaFlag } from '@/components/Flags'
 
@@ -191,15 +192,15 @@ export default function IndiaJobsPage() {
     setLoadingMore(false)
   }
 
+  // Single writer for the selected job: every downstream page reads via readJob().
+  function saveJob(job: Job, description = job.job_description) {
+    const ref = normalizeJob({ ...job, job_description: description, job_country: country, job_source: 'adzuna' })
+    if (ref) writeJob(ref)
+  }
+
   function selectJob(job: Job) {
     setSelectedJobId(prev => prev === job.job_id ? null : job.job_id)
-    sessionStorage.setItem(SS.inSelectedJob, JSON.stringify({
-      job_title: job.job_title,
-      employer_name: job.employer_name,
-      job_description: job.job_description,
-      job_city: job.job_city,
-      job_apply_link: job.job_apply_link,
-    }))
+    saveJob(job)
   }
 
   async function openCvBuilder(job: Job) {
@@ -212,8 +213,7 @@ export default function IndiaJobsPage() {
       })
       const data = await res.json()
       if (data.text) {
-        const enriched = { ...job, job_description: data.text }
-        sessionStorage.setItem(SS.inSelectedJob, JSON.stringify(enriched))
+        saveJob(job, data.text)
         sessionStorage.removeItem(SS.atsSuggestions)
         router.push('/in/cv-builder')
         return
@@ -225,16 +225,15 @@ export default function IndiaJobsPage() {
 
   function confirmJdFallback() {
     if (!jdFallback) return
-    const enriched = { ...jdFallback.job, job_description: jdFallback.manualJd || jdFallback.job.job_description }
-    sessionStorage.setItem(SS.inSelectedJob, JSON.stringify(enriched))
+    saveJob(jdFallback.job, jdFallback.manualJd || jdFallback.job.job_description)
     sessionStorage.removeItem(SS.atsSuggestions)
     setJdFallback(null)
     router.push('/in/cv-builder')
   }
 
-  function goTo(path: string) {
-    if (path === '/in/cv-builder') sessionStorage.removeItem(SS.atsSuggestions)
-    router.push(path)
+  function openCoverLetter(job: Job) {
+    saveJob(job)
+    router.push('/in/cover-letter')
   }
 
   async function goToJobCase(job: Job) {
@@ -449,7 +448,7 @@ export default function IndiaJobsPage() {
                             style={{ padding: '10px 18px', borderRadius: 9, border: 'none', background: fetchingJd ? '#ccc' : `linear-gradient(135deg, ${orange}, #e67300)`, color: '#fff', fontSize: 12, fontWeight: 700, cursor: fetchingJd ? 'not-allowed' : 'pointer', fontFamily: "'Outfit',sans-serif" }}>
                             {fetchingJd ? 'Fetching JD…' : 'Build CV for this job'}
                           </button>
-                          <button className="jl-action-btn" onClick={() => goTo('/in/cover-letter')}
+                          <button className="jl-action-btn" onClick={() => openCoverLetter(job)}
                             style={{ padding: '10px 18px', borderRadius: 9, border: `1px solid ${blue}40`, background: blue + '10', color: blue, fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: "'Outfit',sans-serif" }}>
                             Write Cover Letter
                           </button>

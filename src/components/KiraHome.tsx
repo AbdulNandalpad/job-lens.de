@@ -11,9 +11,11 @@ import { useState, useRef, useEffect, type CSSProperties } from 'react'
 import { useRouter } from 'next/navigation'
 import { theme } from '@/lib/theme'
 import { useCredits } from '@/lib/useCredits'
-import { useSavedCv } from '@/lib/useSavedCv'
+import { useCurrentCv } from '@/lib/useCurrentCv'
+import { hashString } from '@/lib/cv'
 import { useLanguage } from '@/lib/i18n'
 import KiraOrb from '@/components/KiraOrb'
+import FlowError from '@/components/FlowError'
 import { KIRA_TILES, type KiraTile } from '@/lib/kiraModes'
 import { CREDIT_COST, SS, API, KIRA_MAINTENANCE, KIRA_OPEN_EVENT, IN_REVISION } from '@/lib/constants'
 
@@ -27,7 +29,13 @@ interface ScanFeedback {
   quick_wins: string[]
   creditsRemaining?: number
   fromCache?: boolean
+  /** hashString(cvText) the result was produced for — the cache is only reused when it matches. */
+  cvHash?: string
 }
+
+type SaveState = { kind: 'saved' } | { kind: 'failed'; msg: string } | null
+
+const MIN_CV_CHARS = 50
 
 interface PickupCard { tag: string; color: string; title: string; sub: string; href: string; warn?: boolean }
 
@@ -78,9 +86,9 @@ function KiraGlyph({ accent, size = 34 }: { accent: string; size?: number }) {
 
 export default function KiraHome({ market }: { market: 'eu' | 'in' }) {
   const router = useRouter()
-  const { lang } = useLanguage()
+  const { lang, t } = useLanguage()
   const { credits, setCredits } = useCredits()
-  const { hasCv, cvText: savedCvText, loadingSavedCv } = useSavedCv()
+  const cv = useCurrentCv()
 
   const accent = market === 'in' ? '#FF9933' : c.accent
   const stepLang: 'DE' | 'EN' = market === 'eu' && lang === 'DE' ? 'DE' : 'EN'
@@ -88,12 +96,28 @@ export default function KiraHome({ market }: { market: 'eu' | 'in' }) {
   const langKey = market === 'in' ? 'in_EN' : lang === 'DE' ? 'eu_DE' : 'eu_EN'
   const hasVoice = Boolean(process.env.NEXT_PUBLIC_REALTIME_WS_URL)
 
+  // DACH goes through translations; India is inline English with identical wording.
+  const cvStr = market === 'eu' ? {
+    onFile: t.cv.onFile, usingSaved: t.cv.usingSaved, saveToAccount: t.cv.saveToAccount,
+    saved: t.cv.saved, saveFailed: t.cv.saveFailed, reading: t.cv.reading, tooShort: t.cv.tooShort,
+  } : {
+    onFile: (name: string) => `CV: ${name}`,
+    usingSaved: 'Using your saved CV',
+    saveToAccount: 'Save to my account for next time',
+    saved: 'Saved to your account',
+    saveFailed: (msg: string) => `Saved for this session only — ${msg}`,
+    reading: 'Reading your CV…',
+    tooShort: 'That file has almost no text in it — try a different file or paste the text.',
+  }
+
   const [ready,       setReady]       = useState(false)
   const [isAdmin,     setIsAdmin]     = useState(false)
   const [userName,    setUserName]    = useState<string | null>(null)
   const [input,       setInput]       = useState('')
-  const [localCvText, setLocalCvText] = useState('')
   const [cvUploading, setCvUploading] = useState(false)
+  const [cvErr,       setCvErr]       = useState('')
+  const [saveToAccount, setSaveToAccount] = useState(false)
+  const [saveState,   setSaveState]   = useState<SaveState>(null)
   const [checkingCv,  setCheckingCv]  = useState(false)
   const [cvStep,      setCvStep]      = useState(0)
   const [scan,        setScan]        = useState<ScanFeedback | null>(null)
@@ -103,13 +127,22 @@ export default function KiraHome({ market }: { market: 'eu' | 'in' }) {
   const [pickups,     setPickups]     = useState<PickupCard[]>([])
 
   const initRef      = useRef(false)
+  const consentRef   = useRef(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
-  const effectiveCvText = savedCvText || localCvText
+  const effectiveCvText = cv.cvText
+  const hasAnyCv = cv.source !== 'none'
+
+  // Consent box defaults to what the user chose last time — read once the hook has hydrated.
+  useEffect(() => {
+    if (consentRef.current || cv.loading) return
+    consentRef.current = true
+    setSaveToAccount(cv.rememberedConsent)
+  }, [cv.loading, cv.rememberedConsent])
 
   // One-time greeting build, once we know the user's name and CV status.
   useEffect(() => {
-    if (initRef.current || loadingSavedCv) return
+    if (initRef.current || cv.loading) return
     initRef.current = true
 
     fetch(API.userProfile).then(r => r.ok ? r.json() : null).then(d => { if (d?.isAdmin) setIsAdmin(true) }).catch(() => {})
@@ -118,7 +151,7 @@ export default function KiraHome({ market }: { market: 'eu' | 'in' }) {
       setUserName(d?.name ?? null)
       setReady(true)
     }).catch(() => { setReady(true) })
-  }, [loadingSavedCv, hasCv])
+  }, [cv.loading])
 
   // "Pick up where you left off" — real artifacts from this session only.
   useEffect(() => {
@@ -199,22 +232,34 @@ export default function KiraHome({ market }: { market: 'eu' | 'in' }) {
 
   async function handleFile(file: File) {
     setCvUploading(true)
+    setCvErr('')
     setScanErr('')
-    try {
-      if (file.name.endsWith('.txt') || file.type === 'text/plain') {
-        setLocalCvText(await file.text())
-      } else {
-        const form = new FormData()
-        form.append('file', file)
-        const res = await fetch(API.extractPdf, { method: 'POST', body: form })
-        const data = await res.json()
-        if (data.text) setLocalCvText(data.text)
-        else setScanErr(data.error || "Couldn't read that file — try a PDF or DOCX.")
-      }
-    } catch {
-      setScanErr("Couldn't read that file — try a PDF or DOCX.")
+    setSaveState(null)
+    const out = await cv.extractFile(file)
+    if ('error' in out) {
+      setCvErr(out.error)
+      setCvUploading(false)
+      return
     }
+    if (out.text.trim().length < MIN_CV_CHARS) {
+      setCvErr(cvStr.tooShort)
+      setCvUploading(false)
+      return
+    }
+    // A new CV invalidates the inline feedback card — the scan chip comes back and re-runs against the new hash.
+    setScan(null)
+    const result = await cv.setCv(out.text, file.name, { saveToAccount })
+    if (saveToAccount) setSaveState(result.saved ? { kind: 'saved' } : { kind: 'failed', msg: result.error || '' })
     setCvUploading(false)
+  }
+
+  // Ticking the box after an upload saves the session CV to the account right away (non-blocking).
+  async function handleConsentToggle(checked: boolean) {
+    setSaveToAccount(checked)
+    if (!checked || cv.source !== 'session' || !cv.cvText || saveState?.kind === 'saved') return
+    setSaveState(null)
+    const result = await cv.setCv(cv.cvText, cv.fileName, { saveToAccount: true })
+    setSaveState(result.saved ? { kind: 'saved' } : { kind: 'failed', msg: result.error || '' })
   }
 
   async function runCvCheck() {
@@ -222,12 +267,15 @@ export default function KiraHome({ market }: { market: 'eu' | 'in' }) {
     setScanErr('')
 
     const resultKey = market === 'in' ? SS.inCareerScanResult : SS.scanResult
+    const cvHash = hashString(effectiveCvText)
     const cached = sessionStorage.getItem(resultKey)
     if (cached) {
       try {
         const data = JSON.parse(cached) as ScanFeedback
-        setScan({ ...data, fromCache: true })
-        return
+        if (data.cvHash === cvHash && typeof data.score === 'number') {
+          setScan({ ...data, fromCache: true })
+          return
+        }
       } catch { /* fall through to a fresh check */ }
     }
 
@@ -261,8 +309,9 @@ export default function KiraHome({ market }: { market: 'eu' | 'in' }) {
         return
       }
       if (typeof data.creditsRemaining === 'number') setCredits(data.creditsRemaining)
-      sessionStorage.setItem(resultKey, JSON.stringify(data))
-      setScan(data as ScanFeedback)
+      const stored: ScanFeedback = { ...(data as ScanFeedback), cvHash }
+      sessionStorage.setItem(resultKey, JSON.stringify(stored))
+      setScan(stored)
       setLastScan({ score: data.score, gaps: data.gaps?.length ?? 0 })
     } catch {
       clearInterval(timer)
@@ -280,7 +329,7 @@ export default function KiraHome({ market }: { market: 'eu' | 'in' }) {
     ? (isDE
         ? `Dein letzter CV-Score: ${lastScan.score}/100 — ${lastScan.gaps} offene Punkte. Sag mir, womit ich helfen soll.`
         : `Your last CV score: ${lastScan.score}/100 — ${lastScan.gaps} fixes still open. Tell me what to work on.`)
-    : hasCv || localCvText
+    : hasAnyCv
     ? (isDE
         ? 'Dein Lebenslauf ist gespeichert — frag mich etwas oder sag mir, was du brauchst.'
         : 'Your CV is on file — ask me anything, or tell me what you need.')
@@ -290,9 +339,16 @@ export default function KiraHome({ market }: { market: 'eu' | 'in' }) {
 
   type ChipAction = { kind: 'upload' } | { kind: 'scan' } | { kind: 'ask'; text: string }
   const chips: { label: string; action: ChipAction; accented?: boolean }[] = []
-  if (!hasCv && !localCvText) {
-    chips.push({ label: cvUploading ? (isDE ? 'Lese...' : 'Reading...') : (isDE ? 'Lebenslauf hochladen' : 'Upload my CV'), action: { kind: 'upload' }, accented: true })
+  if (!hasAnyCv) {
+    chips.push({ label: cvUploading ? cvStr.reading : (isDE ? 'Lebenslauf hochladen' : 'Upload my CV'), action: { kind: 'upload' }, accented: true })
   }
+
+  const cvStatus = cvUploading ? cvStr.reading
+    : cv.source === 'saved' ? cvStr.usingSaved
+    : cv.source === 'session' ? cvStr.onFile(cv.fileName || (isDE ? 'hochgeladen' : 'uploaded'))
+    : ''
+  // Next to the upload chip before a CV exists; after an upload until the account copy is saved.
+  const showConsent = !cv.loading && (cv.source === 'none' || (cv.source === 'session' && saveState?.kind !== 'saved'))
   if (effectiveCvText && !scan && !checkingCv) {
     chips.push({ label: isDE ? `Ehrliches CV-Feedback · ${CREDIT_COST.careerScan} Credits` : `Get honest CV feedback · ${CREDIT_COST.careerScan} credits`, action: { kind: 'scan' }, accented: true })
   }
@@ -464,6 +520,34 @@ export default function KiraHome({ market }: { market: 'eu' | 'in' }) {
                 </button>
               ))}
             </div>
+
+            {/* CV status + save-to-account consent (one CV, read and written through useCurrentCv) */}
+            {(cvStatus || showConsent || saveState || cvErr) && (
+              <div className="kh-rise" style={{ animationDelay: '.45s', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, marginTop: 12, maxWidth: 620, width: '100%' }}>
+                {cvStatus && (
+                  <div style={{ fontSize: 12.5, color: c.textMuted, textAlign: 'center' as const }}>{cvStatus}</div>
+                )}
+                {showConsent && (
+                  <label style={{ display: 'inline-flex', alignItems: 'flex-start', gap: 7, fontSize: 12, color: c.textMuted, cursor: 'pointer', textAlign: 'left' as const, lineHeight: 1.45 }}>
+                    <input type="checkbox" checked={saveToAccount} onChange={e => handleConsentToggle(e.target.checked)}
+                      style={{ marginTop: 2, accentColor: accent, cursor: 'pointer' }} />
+                    <span>{cvStr.saveToAccount}</span>
+                  </label>
+                )}
+                {saveState?.kind === 'saved' && (
+                  <div style={{ fontSize: 12, color: c.success, textAlign: 'center' as const }}>{cvStr.saved}</div>
+                )}
+                {saveState?.kind === 'failed' && (
+                  <div style={{ fontSize: 12, color: c.warning, textAlign: 'center' as const }}>{cvStr.saveFailed(saveState.msg)}</div>
+                )}
+                {cvErr && (
+                  <div style={{ width: '100%', maxWidth: 480 }}>
+                    <FlowError compact message={cvErr} onRetry={() => { setCvErr(''); fileInputRef.current?.click() }}
+                      retryLabel={isDE ? 'Andere Datei wählen' : 'Choose another file'} />
+                  </div>
+                )}
+              </div>
+            )}
 
             {/* Inline CV check feedback */}
             {checkingCv && (

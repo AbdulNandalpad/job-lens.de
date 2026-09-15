@@ -6,8 +6,12 @@ import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import Navbar from '../components/Navbar'
 import { useLanguage } from '@/lib/i18n'
-import { SS, API } from '@/lib/constants'
+import { SS, API, MARKET } from '@/lib/constants'
 import type { FieldMapping, AnalyzeResult, ExecuteEvent } from '@/lib/auto-apply-engine'
+import { useCurrentCv } from '@/lib/useCurrentCv'
+import { cvTextFromTailored } from '@/lib/cv'
+import { readJob } from '@/lib/job'
+import FlowError from '@/components/FlowError'
 import { theme } from '@/lib/theme'
 import SvgIcon from '@/components/SvgIcon'
 import AutoApplyDemoWidget from '@/components/AutoApplyDemoWidget'
@@ -23,44 +27,6 @@ interface LogEntry {
   message: string
   b64?: string
   success?: boolean
-}
-
-function flattenCvJson(raw: string): string {
-  if (!raw) return ''
-  try {
-    const d = JSON.parse(raw)
-    if (typeof d !== 'object' || !d.name) return raw
-    const lines: string[] = []
-    if (d.name) lines.push(d.name)
-    if (d.title) lines.push(d.title)
-    if (d.email) lines.push(`Email: ${d.email}`)
-    if (d.phone) lines.push(`Phone: ${d.phone}`)
-    if (d.location) lines.push(`Location: ${d.location}`)
-    if (d.linkedin) lines.push(`LinkedIn: ${d.linkedin}`)
-    if (d.summary) lines.push(`\nSummary:\n${d.summary}`)
-    if (Array.isArray(d.experience) && d.experience.length) {
-      lines.push('\nExperience:')
-      d.experience.forEach((e: { role?: string; company?: string; period?: string; bullets?: string[] }) => {
-        lines.push(`${e.role} at ${e.company} (${e.period})`)
-        if (Array.isArray(e.bullets)) e.bullets.forEach((b: string) => lines.push(`  - ${b}`))
-      })
-    }
-    if (Array.isArray(d.education) && d.education.length) {
-      lines.push('\nEducation:')
-      d.education.forEach((e: { degree?: string; school?: string; year?: string }) =>
-        lines.push(`${e.degree} — ${e.school} (${e.year})`)
-      )
-    }
-    if (Array.isArray(d.skills) && d.skills.length)
-      lines.push(`\nSkills: ${d.skills.map((s: { name?: string }) => s.name).join(', ')}`)
-    if (Array.isArray(d.languages) && d.languages.length)
-      lines.push(`Languages: ${d.languages.map((l: { name?: string }) => l.name).join(', ')}`)
-    if (Array.isArray(d.certifications) && d.certifications.length)
-      lines.push(`Certifications: ${d.certifications.join(', ')}`)
-    return lines.join('\n')
-  } catch {
-    return raw
-  }
 }
 
 export default function AutoApplyPage() {
@@ -81,28 +47,45 @@ export default function AutoApplyPage() {
   const [mode, setMode] = useState<Mode>('demo')
 
   const [jobUrl, setJobUrl] = useState('')
-  const [cvText, setCvText] = useState('')
   const [coverLetter, setCoverLetter] = useState('')
   const [useCoverLetter, setUseCoverLetter] = useState(false)
 
+  // One CV: the tailored CV from the CV Builder (this session) wins, otherwise the shared CV
+  // (this session's upload → the CV saved on the account) via useCurrentCv.
+  const currentCv = useCurrentCv()
+  const [tailoredText, setTailoredText] = useState('')
+  const cvText = tailoredText || currentCv.cvText
+
   const [cvUploading, setCvUploading] = useState(false)
   const [cvUploadError, setCvUploadError] = useState('')
+  const [cvSaveNote, setCvSaveNote] = useState<{ ok: boolean; text: string } | null>(null)
+  const [saveToAccount, setSaveToAccount] = useState(false)
+
+  useEffect(() => { setSaveToAccount(currentCv.rememberedConsent) }, [currentCv.rememberedConsent])
 
   async function handleCvUpload(file: File) {
     setCvUploading(true)
     setCvUploadError('')
+    setCvSaveNote(null)
     try {
-      const fd = new FormData()
-      fd.append('file', file)
-      const res = await fetch('/api/extract-pdf', { method: 'POST', body: fd })
-      const data = await res.json()
-      if (!res.ok) throw new Error(data.error || (lang === 'DE' ? 'Upload fehlgeschlagen' : 'Upload failed'))
-      setCvText(data.text || '')
-    } catch (err) {
-      setCvUploadError(err instanceof Error ? err.message : (lang === 'DE' ? 'Upload fehlgeschlagen' : 'Upload failed'))
+      const extracted = await currentCv.extractFile(file)
+      if ('error' in extracted) { setCvUploadError(extracted.error); return }
+      if (extracted.text.trim().length < 50) { setCvUploadError(t.cv.tooShort); return }
+      setTailoredText('')
+      const out = await currentCv.setCv(extracted.text, file.name, { saveToAccount })
+      if (saveToAccount) setCvSaveNote(out.saved ? { ok: true, text: t.cv.saved } : { ok: false, text: t.cv.saveFailed(out.error || '') })
     } finally {
       setCvUploading(false)
     }
+  }
+
+  // Remove is two-step when a tailored CV is in use: first fall back to the shared CV,
+  // then remove the shared CV itself — never wipes the shared CV as a side effect.
+  function handleCvRemove() {
+    setCvUploadError('')
+    setCvSaveNote(null)
+    if (tailoredText) { setTailoredText(''); return }
+    currentCv.clearCv()
   }
 
   const [phase, setPhase] = useState<Phase>('idle')
@@ -125,20 +108,14 @@ export default function AutoApplyPage() {
   const [targetJob, setTargetJob] = useState<{ title: string; company: string } | null>(null)
 
   useEffect(() => {
-    const raw =
-      sessionStorage.getItem(SS.cvbTailored) ||
-      sessionStorage.getItem(SS.sjsCvText) ||
-      sessionStorage.getItem(SS.cvText) ||
-      ''
-    const cv = flattenCvJson(raw)
-    const cl = sessionStorage.getItem(SS.clLetter) || ''
-    setCvText(cv)
-    setCoverLetter(cl)
-    if (cl) setUseCoverLetter(true)
     try {
-      const job = JSON.parse(sessionStorage.getItem(SS.cvbJob) || '{}')
-      if (job?.job_title) setTargetJob({ title: job.job_title, company: job.employer_name || '' })
-    } catch { /* no job in session */ }
+      setTailoredText(cvTextFromTailored(sessionStorage.getItem(SS.cvbTailored) || ''))
+      const cl = sessionStorage.getItem(SS.clLetter) || ''
+      setCoverLetter(cl)
+      if (cl) setUseCoverLetter(true)
+    } catch { /* storage unavailable — page still works without a tailored CV */ }
+    const job = readJob()
+    if (job?.job_title) setTargetJob({ title: job.job_title, company: job.employer_name })
   }, [])
 
   useEffect(() => {
@@ -154,7 +131,7 @@ export default function AutoApplyPage() {
 
   async function handleAnalyse(withCredentials = false) {
     if (!jobUrl.trim()) { setError(lang === 'DE' ? 'Bitte Bewerbungs-URL eingeben.' : 'Please enter the application URL.'); return }
-    if (!cvText.trim()) { setError(lang === 'DE' ? 'Kein Lebenslauf gefunden. Bitte zuerst den CV Builder abschließen.' : 'No CV found. Please complete the CV Builder first.'); return }
+    if (!cvText.trim()) { setError(lang === 'DE' ? 'Kein Lebenslauf gefunden. Bitte lade einen hoch oder schließe zuerst den CV Builder ab.' : 'No CV found. Upload one or complete the CV Builder first.'); return }
     setError('')
     setPhase('analyzing')
     setAnalyzeResult(null)
@@ -166,7 +143,7 @@ export default function AutoApplyPage() {
       jobUrl: jobUrl.trim(),
       cvText,
       coverLetter: useCoverLetter ? coverLetter : '',
-      market: 'eu',
+      market: MARKET.eu,
     }
     if (withCredentials && portalUsername && portalPassword) {
       body.credentials = { username: portalUsername, password: portalPassword }
@@ -300,9 +277,7 @@ export default function AutoApplyPage() {
 
   // Persist to the applications tracker (the same store /app/tracker reads)
   async function logToTracker() {
-    const job = (() => {
-      try { return JSON.parse(sessionStorage.getItem(SS.cvbJob) || '{}') } catch { return {} }
-    })()
+    const job = readJob()
     let host = ''
     try { host = new URL(jobUrl).hostname.replace('www.', '') } catch { /* not a URL — company falls back below */ }
     const d = new Date()
@@ -313,11 +288,11 @@ export default function AutoApplyPage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          company:    job.employer_name || host || (lang === 'DE' ? 'Unbekanntes Unternehmen' : 'Unknown company'),
-          role:       job.job_title || (lang === 'DE' ? 'Beworben via Auto-Bewerbung' : 'Applied via Auto Apply'),
+          company:    job?.employer_name || host || (lang === 'DE' ? 'Unbekanntes Unternehmen' : 'Unknown company'),
+          role:       job?.job_title || (lang === 'DE' ? 'Beworben via Auto-Bewerbung' : 'Applied via Auto Apply'),
           status:     'applied',
-          location:   job.job_city || '',
-          job_url:    job.job_apply_link || jobUrl,
+          location:   job?.job_city || '',
+          job_url:    job?.job_apply_link || jobUrl,
           notes:      'Applied via Job-Lens',
           applied_at: today,
         }),
@@ -357,6 +332,12 @@ export default function AutoApplyPage() {
 
   const isUrlValid = jobUrl.trim().startsWith('http')
   const hasCv = cvText.trim().length > 50
+  const cvWords = Math.round(cvText.length / 5)
+  const cvLabel = tailoredText
+    ? (lang === 'DE' ? 'Optimierter Lebenslauf aus dem CV Builder' : 'Tailored CV from the CV Builder')
+    : currentCv.fileName
+      ? t.cv.onFile(currentCv.fileName)
+      : (lang === 'DE' ? `Lebenslauf geladen (${cvWords} Wörter)` : `CV loaded (${cvWords} words)`)
 
   return (
     <div style={{ minHeight: '100vh', background: c.bg, fontFamily: f.body }}>
@@ -490,19 +471,31 @@ export default function AutoApplyPage() {
                 <div style={{ padding: 16 }}>
                   {hasCv ? (
                     <>
-                      <div style={{ fontSize: 12, color: c.success, fontWeight: 600, marginBottom: 6 }}>
-                        ✓ {lang === 'DE' ? `Lebenslauf geladen (${Math.round(cvText.length / 5)} Wörter)` : `CV loaded (${Math.round(cvText.length / 5)} words)`}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: c.success, fontWeight: 600, marginBottom: 6 }}>
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" style={{ flexShrink: 0 }}><path d="M20 6L9 17l-5-5"/></svg>
+                        <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{cvLabel}</span>
                       </div>
+                      {!tailoredText && currentCv.source === 'saved' && (
+                        <div style={{ fontSize: 11, color: c.textMuted, marginBottom: 6 }}>{t.cv.usingSaved}</div>
+                      )}
                       <div style={{ fontSize: 11, color: c.textMuted, lineHeight: 1.5, background: c.bgSubtle, borderRadius: 6, padding: '8px 10px', maxHeight: 60, overflow: 'hidden' }}>
                         {cvText.slice(0, 180)}…
                       </div>
-                      <label style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 10, cursor: 'pointer' }}>
-                        <span style={{ fontSize: 11, color: c.textFaint }}>{lang === 'DE' ? 'Mit anderem Lebenslauf ersetzen →' : 'Replace with a different CV →'}</span>
-                        <input type="file" accept=".pdf,.docx,.txt" style={{ display: 'none' }}
-                          onChange={e => { const f = e.target.files?.[0]; if (f) handleCvUpload(f) }}
-                        />
-                      </label>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginTop: 10 }}>
+                        <label style={{ fontSize: 11, color: cvUploading ? c.textMuted : c.accent, fontWeight: 600, cursor: cvUploading ? 'default' : 'pointer' }}>
+                          {cvUploading ? t.cv.reading : t.cv.replace}
+                          <input type="file" accept=".pdf,.docx,.txt" style={{ display: 'none' }} disabled={cvUploading}
+                            onChange={e => { const f = e.target.files?.[0]; e.target.value = ''; if (f) handleCvUpload(f) }}
+                          />
+                        </label>
+                        <button type="button" onClick={handleCvRemove} disabled={cvUploading}
+                          style={{ fontSize: 11, color: c.textMuted, background: 'none', border: 'none', padding: 0, cursor: 'pointer', fontFamily: 'inherit' }}>
+                          {t.cv.remove}
+                        </button>
+                      </div>
                     </>
+                  ) : currentCv.loading ? (
+                    <div style={{ fontSize: 12, color: c.textMuted, padding: '12px 0' }}>{t.cv.reading}</div>
                   ) : (
                     <>
                       {/* Upload drop zone */}
@@ -518,27 +511,34 @@ export default function AutoApplyPage() {
                             <svg className="spin" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={c.accent} strokeWidth="2.5">
                               <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/>
                             </svg>
-                            <span style={{ fontSize: 12, color: c.accent, fontWeight: 600 }}>{lang === 'DE' ? 'Text wird extrahiert…' : 'Extracting text…'}</span>
+                            <span style={{ fontSize: 12, color: c.accent, fontWeight: 600 }}>{t.cv.reading}</span>
                           </>
                         ) : (
                           <>
                             <SvgIcon name="document" size={24} color={c.accent} />
-                            <span style={{ fontSize: 13, fontWeight: 600, color: c.primary }}>{lang === 'DE' ? 'Lebenslauf hochladen' : 'Upload your CV'}</span>
-                            <span style={{ fontSize: 11, color: c.textMuted }}>{lang === 'DE' ? 'PDF, DOCX oder TXT · max. 10 MB' : 'PDF, DOCX or TXT · max 10 MB'}</span>
+                            <span style={{ fontSize: 13, fontWeight: 600, color: c.primary }}>{t.cv.upload}</span>
+                            <span style={{ fontSize: 11, color: c.textMuted }}>{t.cv.uploadHint} · max. 10 MB</span>
                           </>
                         )}
-                        <input type="file" accept=".pdf,.docx,.txt" style={{ display: 'none' }}
-                          onChange={e => { const f = e.target.files?.[0]; if (f) handleCvUpload(f) }}
+                        <input type="file" accept=".pdf,.docx,.txt" style={{ display: 'none' }} disabled={cvUploading}
+                          onChange={e => { const f = e.target.files?.[0]; e.target.value = ''; if (f) handleCvUpload(f) }}
                         />
                       </label>
-                      {cvUploadError && (
-                        <div style={{ fontSize: 11, color: c.error, marginBottom: 8 }}>{cvUploadError}</div>
-                      )}
                       <div style={{ fontSize: 11, color: c.textFaint }}>
                         {lang === 'DE' ? 'Oder erstelle einen im ' : 'Or build one in '}
                         <span onClick={() => router.push('/app/cv-builder')} style={{ textDecoration: 'underline', cursor: 'pointer', color: c.accent }}>CV Builder</span>
                       </div>
                     </>
+                  )}
+                  <label style={{ display: 'flex', alignItems: 'flex-start', gap: 8, marginTop: 10, fontSize: 11, color: c.textMuted, lineHeight: 1.5, cursor: 'pointer' }}>
+                    <input type="checkbox" checked={saveToAccount} onChange={e => setSaveToAccount(e.target.checked)} style={{ marginTop: 2, flexShrink: 0 }} />
+                    <span>{t.cv.saveToAccount}</span>
+                  </label>
+                  {cvUploadError && (
+                    <div style={{ marginTop: 8 }}><FlowError compact message={cvUploadError} /></div>
+                  )}
+                  {cvSaveNote && (
+                    <div style={{ fontSize: 11, color: cvSaveNote.ok ? c.success : c.warning, marginTop: 6 }}>{cvSaveNote.text}</div>
                   )}
                   <div style={{ marginTop: 14, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                     <span style={{ fontSize: 12, color: c.textMuted }}>{lang === 'DE' ? 'Anschreiben beifügen' : 'Include cover letter'}</span>

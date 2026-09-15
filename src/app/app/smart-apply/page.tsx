@@ -7,6 +7,9 @@ import Navbar from '../components/Navbar'
 import { useLanguage } from '@/lib/i18n'
 import { SS, API } from '@/lib/constants'
 import SvgIcon, { type IconName } from '@/components/SvgIcon'
+import { useCurrentCv } from '@/lib/useCurrentCv'
+import { normalizeJob, writeJob, clearJob } from '@/lib/job'
+import FlowError from '@/components/FlowError'
 
 interface Job {
   job_id: string
@@ -38,30 +41,40 @@ interface Profile {
 
 type JobTypeOption = 'Full-time' | 'Contract' | 'Hybrid' | 'Remote'
 type RightTab = 'description' | 'cv' | 'cl'
+type JobDest = 'cv' | 'cl'
 
 const JOB_TYPE_OPTIONS: JobTypeOption[] = ['Full-time', 'Contract', 'Hybrid', 'Remote']
+const JOB_DEST_PATH: Record<JobDest, string> = { cv: '/app/cv-builder', cl: '/app/cover-letter' }
 
-function UploadBox({ label, sublabel, fileName, inputRef, onFile, onClear, accept }: {
-  label: string; sublabel: string; fileName: string
+function UploadBox({ label, sublabel, fileName, statusText, busy, inputRef, onFile, onClear, onReplace, replaceLabel, removeLabel, accept }: {
+  label: string; sublabel: string; fileName: string; statusText?: string; busy?: boolean
   inputRef: React.RefObject<HTMLInputElement | null>
-  onFile: (f: File) => void; onClear: () => void; accept: string
+  onFile: (f: File) => void; onClear: () => void; onReplace?: () => void
+  replaceLabel?: string; removeLabel?: string; accept: string
 }) {
+  const ready = !!fileName
   return (
     <div>
       <div style={{ fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.6)', letterSpacing: 0.8, textTransform: 'uppercase' as const, marginBottom: 6 }}>{label}</div>
       <div style={{ position: 'relative' }}>
-        <div onClick={() => !fileName && inputRef.current?.click()} style={{ border: `1.5px ${fileName ? 'solid #4ade80' : 'dashed rgba(255,255,255,0.25)'}`, borderRadius: 10, padding: '11px 14px', cursor: fileName ? 'default' : 'pointer', background: fileName ? 'rgba(74,222,128,0.1)' : 'rgba(255,255,255,0.05)', transition: 'all 0.15s', display: 'flex', alignItems: 'center', gap: 10 }}>
-          <input ref={inputRef} type="file" accept={accept} style={{ display: 'none' }} onChange={e => { const f = e.target.files?.[0]; if (f) onFile(f) }} />
-          <div style={{ width: 20, height: 20, borderRadius: 4, background: fileName ? 'rgba(74,222,128,0.3)' : 'rgba(255,255,255,0.15)', flexShrink: 0 }} />
-          <div>
-            <div style={{ fontSize: 12, fontWeight: 600, color: fileName ? '#4ade80' : '#fff', marginBottom: 1 }}>{fileName || sublabel}</div>
-            <div style={{ fontSize: 11, color: fileName ? '#4ade80' : 'rgba(255,255,255,0.5)' }}>{fileName ? 'Ready - click x to remove' : 'Click to upload'}</div>
+        <div onClick={() => !ready && !busy && inputRef.current?.click()} style={{ border: `1.5px ${ready ? 'solid #4ade80' : 'dashed rgba(255,255,255,0.25)'}`, borderRadius: 10, padding: '11px 14px', cursor: ready || busy ? 'default' : 'pointer', background: ready ? 'rgba(74,222,128,0.1)' : 'rgba(255,255,255,0.05)', transition: 'all 0.15s', display: 'flex', alignItems: 'center', gap: 10 }}>
+          {/* Reset the input after reading so the same file can be picked again via Replace */}
+          <input ref={inputRef} type="file" accept={accept} style={{ display: 'none' }} onChange={e => { const f = e.target.files?.[0]; e.target.value = ''; if (f) onFile(f) }} />
+          <div style={{ width: 20, height: 20, borderRadius: 4, background: ready ? 'rgba(74,222,128,0.3)' : 'rgba(255,255,255,0.15)', flexShrink: 0 }} />
+          <div style={{ minWidth: 0 }}>
+            <div style={{ fontSize: 12, fontWeight: 600, color: ready ? '#4ade80' : '#fff', marginBottom: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{fileName || sublabel}</div>
+            <div style={{ fontSize: 11, color: ready ? '#4ade80' : 'rgba(255,255,255,0.5)' }}>{statusText || (ready ? 'Ready - click x to remove' : 'Click to upload')}</div>
           </div>
         </div>
-        {fileName && (
-          <button onClick={onClear} style={{ position: 'absolute', top: 8, right: 8, width: 20, height: 20, borderRadius: '50%', background: '#E24B4A', color: '#fff', border: 'none', cursor: 'pointer', fontSize: 10, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>x</button>
+        {ready && (
+          <button type="button" onClick={onClear} title={removeLabel} aria-label={removeLabel} style={{ position: 'absolute', top: 8, right: 8, width: 20, height: 20, borderRadius: '50%', background: '#E24B4A', color: '#fff', border: 'none', cursor: 'pointer', fontSize: 10, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>x</button>
         )}
       </div>
+      {ready && onReplace && replaceLabel && (
+        <button type="button" onClick={onReplace} disabled={busy} style={{ marginTop: 4, padding: 0, background: 'none', border: 'none', color: 'rgba(255,255,255,0.6)', fontSize: 11, cursor: busy ? 'default' : 'pointer', fontFamily: 'inherit', textDecoration: 'underline' }}>
+          {replaceLabel}
+        </button>
+      )}
     </div>
   )
 }
@@ -74,10 +87,17 @@ function SmartJobSearchPage() {
   const linkedinRef = useRef<HTMLInputElement>(null)
   const cvRef = useRef<HTMLInputElement>(null)
 
+  // The ONE source of the user's CV (this session → saved on the account → none).
+  const { cvText, fileName: cvFileName, source: cvSource, loading: cvLoading, rememberedConsent, setCv, clearCv, extractFile } = useCurrentCv()
+  const [saveToAccount, setSaveToAccount] = useState(false)
+  const [cvReading, setCvReading] = useState(false)
+  const [cvError, setCvError] = useState('')
+  const [cvNotice, setCvNotice] = useState<{ text: string; ok: boolean } | null>(null)
+
+  // LinkedIn export is a supplementary profile input for the job search only — it is not the CV.
   const [linkedinFileName, setLinkedinFileName] = useState('')
   const [linkedinText, setLinkedinText] = useState('')
-  const [cvFileName, setCvFileName] = useState('')
-  const [cvText, setCvText] = useState('')
+  const [linkedinError, setLinkedinError] = useState('')
   const [carriedOver, setCarriedOver] = useState(false)
 
   const [targetRole, setTargetRole] = useState('')
@@ -100,7 +120,7 @@ function SmartJobSearchPage() {
   const [loggedJobs, setLoggedJobs] = useState<Set<string>>(new Set())
   const [mobOpen, setMobOpen] = useState(false)
   const [fetchingJd, setFetchingJd] = useState(false)
-  const [jdFallback, setJdFallback] = useState<{ job: Job; manualJd: string } | null>(null)
+  const [jdFallback, setJdFallback] = useState<{ job: Job; manualJd: string; dest: JobDest } | null>(null)
 
   const hasProfile = !!(linkedinText || cvText)
   const autoSearchDone = useRef(false)
@@ -108,21 +128,18 @@ function SmartJobSearchPage() {
   useEffect(() => {
     const fromCareerScan = searchParams.get('from') === 'career-scan'
     if (fromCareerScan) {
-      const savedCv = sessionStorage.getItem(SS.cvText)
+      // The CV itself arrives through useCurrentCv (Career Scan stored it via setCv) — only the role is page-local.
       const savedRole = sessionStorage.getItem(SS.targetRole)
-      if (savedCv) { setCvText(savedCv); setCvFileName('From Career Scan'); setCarriedOver(true) }
       if (savedRole) setTargetRole(savedRole)
+      setCarriedOver(true)
     } else {
       const savedJobs = sessionStorage.getItem(SS.jobs)
       const savedQuery = sessionStorage.getItem(SS.usedQuery)
-      const savedCv = sessionStorage.getItem(SS.sjsCvText)
-      const savedCvName = sessionStorage.getItem(SS.sjsCvName)
       const savedRole = sessionStorage.getItem(SS.sjsTargetRole)
       if (savedJobs) {
         try {
           setJobs(JSON.parse(savedJobs))
           if (savedQuery) setUsedQuery(savedQuery)
-          if (savedCv) { setCvText(savedCv); setCvFileName(savedCvName || 'Restored') }
           if (savedRole) setTargetRole(savedRole)
         } catch { }
       }
@@ -130,15 +147,15 @@ function SmartJobSearchPage() {
   }, [searchParams])
 
   useEffect(() => {
+    if (rememberedConsent) setSaveToAccount(true)
+  }, [rememberedConsent])
+
+  useEffect(() => {
     if (jobs.length > 0) {
       sessionStorage.setItem(SS.jobs, JSON.stringify(jobs))
       sessionStorage.setItem(SS.usedQuery, usedQuery)
     }
   }, [jobs, usedQuery])
-
-  useEffect(() => {
-    if (cvText) { sessionStorage.setItem(SS.sjsCvText, cvText); sessionStorage.setItem(SS.sjsCvName, cvFileName) }
-  }, [cvText, cvFileName])
 
   // Auto-trigger job search when CV is carried over from Career Scan
   useEffect(() => {
@@ -160,35 +177,27 @@ function SmartJobSearchPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [EXPERIENCE_OPTIONS])
 
-  function clearLinkedinFile() { setLinkedinFileName(''); setLinkedinText(''); if (linkedinRef.current) linkedinRef.current.value = '' }
-  function clearCvFile() { setCvFileName(''); setCvText(''); setCarriedOver(false); if (cvRef.current) cvRef.current.value = '' }
+  function clearLinkedinFile() { setLinkedinFileName(''); setLinkedinText(''); setLinkedinError('') }
+  function clearCvFile() { clearCv(); setCarriedOver(false); setCvError(''); setCvNotice(null) }
 
   async function handleLinkedinFile(file: File) {
-    setLinkedinFileName(file.name)
-    const form = new FormData()
-    form.append('file', file)
-    try {
-      const res = await fetch(API.extractPdf, { method: 'POST', body: form })
-      const data = await res.json()
-      if (data.text) setLinkedinText(data.text)
-    } catch { }
+    setLinkedinFileName(file.name); setLinkedinText(''); setLinkedinError('')
+    const out = await extractFile(file)
+    if ('error' in out) { setLinkedinFileName(''); setLinkedinError(out.error); return }
+    setLinkedinText(out.text)
   }
 
   async function handleCvFile(file: File) {
-    setCvFileName(file.name); setCvText(''); setCarriedOver(false)
-    if (file.name.endsWith('.txt') || file.type === 'text/plain') {
-      const r = new FileReader()
-      r.onload = e => setCvText((e.target?.result as string) ?? '')
-      r.readAsText(file)
-    } else {
-      const form = new FormData()
-      form.append('file', file)
-      try {
-        const res = await fetch(API.extractPdf, { method: 'POST', body: form })
-        const data = await res.json()
-        if (data.text) { setCvText(data.text) } else { alert(data.error || 'Could not read PDF.'); setCvFileName('') }
-      } catch { alert('Failed to read PDF.'); setCvFileName('') }
+    setCvError(''); setCvNotice(null); setCarriedOver(false); setCvReading(true)
+    const out = await extractFile(file)
+    setCvReading(false)
+    if ('error' in out) {
+      const isPlainText = file.name.toLowerCase().endsWith('.txt') || file.type === 'text/plain'
+      setCvError(isPlainText ? t.cv.tooShort : out.error)
+      return
     }
+    const result = await setCv(out.text, file.name, { saveToAccount })
+    if (saveToAccount) setCvNotice(result.saved ? { text: t.cv.saved, ok: true } : { text: t.cv.saveFailed(result.error || ''), ok: false })
   }
 
   function toggleJobType(t: JobTypeOption) {
@@ -199,19 +208,18 @@ function SmartJobSearchPage() {
     setLoggedJobs(prev => { const next = new Set(prev); if (next.has(jobId)) next.delete(jobId); else next.add(jobId); return next })
   }
 
+  // Resets this page's own search state only. The CV is shared across the whole app and is
+  // never wiped as a side effect — the user removes it explicitly via the CV box.
   function resetAll() {
-    setLinkedinFileName(''); setLinkedinText(''); setCvFileName(''); setCvText(''); setCarriedOver(false)
+    setLinkedinFileName(''); setLinkedinText(''); setLinkedinError(''); setCarriedOver(false)
+    setCvError(''); setCvNotice(null)
     setTargetRole(''); setJobTypes(['Full-time']); setExperience(EXPERIENCE_OPTIONS[3] || '')
     setLocation('Stuttgart, Germany'); setCountry('de'); setDaysOld('')
     setJobs([]); setSelectedJob(null); setProfile(null); setError(''); setUsedQuery('')
     setLoggedJobs(new Set())
-    if (linkedinRef.current) linkedinRef.current.value = ''
-    if (cvRef.current) cvRef.current.value = ''
     sessionStorage.removeItem(SS.jobs); sessionStorage.removeItem(SS.usedQuery)
-    sessionStorage.removeItem(SS.sjsCvText); sessionStorage.removeItem(SS.sjsCvName)
-    sessionStorage.removeItem(SS.sjsTargetRole); sessionStorage.removeItem(SS.cvText)
-    sessionStorage.removeItem(SS.targetRole)
-    sessionStorage.removeItem(SS.cvbJob)
+    sessionStorage.removeItem(SS.sjsTargetRole); sessionStorage.removeItem(SS.targetRole)
+    clearJob()
   }
 
   function generateMatchChips(job: Job, extractedProfile: Profile | null): { label: string; positive: boolean }[] {
@@ -294,8 +302,18 @@ function SmartJobSearchPage() {
     setLoading(false)
   }
 
-  // Try to scrape full JD from the job URL; fall back to manual paste if blocked
-  async function openCvBuilder(job: Job) {
+  // The ONE write path for "the job I'm applying to": normalized, tagged with its source, and any
+  // tailored CV from a previous job dropped so CV Builder / Cover Letter start from this posting.
+  function commitJobAndGo(job: Job, description: string, dest: JobDest) {
+    const ref = normalizeJob({ ...job, job_description: description, job_source: 'adzuna' })
+    if (!ref) return
+    writeJob(ref)
+    sessionStorage.removeItem(SS.cvbTailored)
+    router.push(JOB_DEST_PATH[dest])
+  }
+
+  // Try to scrape the full JD from the job URL; fall back to manual paste if blocked
+  async function openWithFullJd(job: Job, dest: JobDest) {
     setFetchingJd(true)
     try {
       const res = await fetch(API.fetchJd, {
@@ -305,32 +323,24 @@ function SmartJobSearchPage() {
       })
       const data = await res.json()
       if (data.text) {
-        // Scrape succeeded — enrich job with full JD and navigate
-        const enriched = { ...job, job_description: data.text }
-        sessionStorage.setItem(SS.cvbJob, JSON.stringify(enriched))
-        sessionStorage.removeItem(SS.cvbTailored)
-        router.push('/app/cv-builder')
+        commitJobAndGo(job, data.text, dest)
+        setFetchingJd(false)
         return
       }
     } catch { /* fall through to manual */ }
     setFetchingJd(false)
     // Scrape blocked — show paste fallback
-    setJdFallback({ job, manualJd: '' })
+    setJdFallback({ job, manualJd: '', dest })
   }
+
+  const openCvBuilder = (job: Job) => openWithFullJd(job, 'cv')
+  const openCoverLetter = (job: Job) => openWithFullJd(job, 'cl')
 
   function confirmJdFallback() {
     if (!jdFallback) return
-    const enriched = { ...jdFallback.job, job_description: jdFallback.manualJd || jdFallback.job.job_description }
-    sessionStorage.setItem(SS.cvbJob, JSON.stringify(enriched))
-    sessionStorage.removeItem(SS.cvbTailored)
+    const { job, manualJd, dest } = jdFallback
     setJdFallback(null)
-    router.push('/app/cv-builder')
-  }
-
-  // Save job to sessionStorage and navigate to Cover Letter Builder
-  function openCoverLetter(job: Job) {
-    sessionStorage.setItem(SS.cvbJob, JSON.stringify(job))
-    router.push('/app/cover-letter')
+    commitJobAndGo(job, manualJd.trim() || job.job_description, dest)
   }
 
   async function openJobCase(job: Job) {
@@ -424,8 +434,8 @@ function SmartJobSearchPage() {
           {/* Cover Letter -- saves job + navigates to Cover Letter Builder */}
           <button
             onClick={() => openCoverLetter(job)}
-            disabled={!cvText}
-            style={{ fontSize: 11, padding: '5px 12px', borderRadius: 7, border: '1px solid #dce4ef', background: '#fff', color: cvText ? '#185FA5' : '#8fa3b8', cursor: cvText ? 'pointer' : 'not-allowed', fontFamily: 'inherit', fontWeight: 500 }}
+            disabled={!cvText || fetchingJd}
+            style={{ fontSize: 11, padding: '5px 12px', borderRadius: 7, border: '1px solid #dce4ef', background: '#fff', color: cvText ? '#185FA5' : '#8fa3b8', cursor: cvText && !fetchingJd ? 'pointer' : 'not-allowed', fontFamily: 'inherit', fontWeight: 500 }}
           >
             {t.smartApply.results.coverLetter}
           </button>
@@ -643,9 +653,10 @@ function SmartJobSearchPage() {
               {cvText && (
                 <button
                   onClick={() => openCoverLetter(selectedJob)}
-                  style={{ padding: '11px 28px', borderRadius: 10, background: 'linear-gradient(135deg, #042C53, #185FA5)', color: '#fff', border: 'none', cursor: 'pointer', fontFamily: "'Outfit', sans-serif", fontSize: 14, fontWeight: 700 }}
+                  disabled={fetchingJd}
+                  style={{ padding: '11px 28px', borderRadius: 10, background: fetchingJd ? '#8fa3b8' : 'linear-gradient(135deg, #042C53, #185FA5)', color: '#fff', border: 'none', cursor: fetchingJd ? 'not-allowed' : 'pointer', fontFamily: "'Outfit', sans-serif", fontSize: 14, fontWeight: 700 }}
                 >
-                  {t.smartApply.results.openCoverLetter}
+                  {fetchingJd ? 'Fetching job description…' : t.smartApply.results.openCoverLetter}
                 </button>
               )}
             </div>
@@ -663,14 +674,39 @@ function SmartJobSearchPage() {
         <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.6)', marginTop: 3 }}>{t.smartApply.sidebar.subtitle}</div>
       </div>
 
-      {carriedOver && (
+      {carriedOver && cvText && (
         <div style={{ background: 'rgba(74,222,128,0.15)', border: '1px solid rgba(74,222,128,0.3)', borderRadius: 8, padding: '8px 12px', fontSize: 12, color: '#4ade80', fontWeight: 500 }}>
           {t.smartApply.sidebar.carriedOver}
         </div>
       )}
 
-      <UploadBox label={t.smartApply.sidebar.linkedinLabel} sublabel={t.smartApply.sidebar.linkedinSub} fileName={linkedinFileName} inputRef={linkedinRef} onFile={handleLinkedinFile} onClear={clearLinkedinFile} accept=".pdf" />
-      <UploadBox label={t.smartApply.sidebar.cvLabel} sublabel={t.smartApply.sidebar.cvSub} fileName={cvFileName} inputRef={cvRef} onFile={handleCvFile} onClear={clearCvFile} accept=".pdf,.docx,.txt" />
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+        <UploadBox label={t.smartApply.sidebar.linkedinLabel} sublabel={t.smartApply.sidebar.linkedinSub} fileName={linkedinFileName} inputRef={linkedinRef} onFile={handleLinkedinFile} onClear={clearLinkedinFile} removeLabel={t.cv.remove} accept=".pdf" />
+        {linkedinError && <FlowError message={linkedinError} compact />}
+      </div>
+
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+        <UploadBox
+          label={t.smartApply.sidebar.cvLabel}
+          sublabel={t.smartApply.sidebar.cvSub}
+          fileName={cvText ? (cvFileName || t.smartApply.sidebar.cvLabel) : ''}
+          statusText={cvReading || (cvLoading && !cvText) ? t.cv.reading : cvSource === 'saved' ? t.cv.usingSaved : undefined}
+          busy={cvReading || (cvLoading && !cvText)}
+          inputRef={cvRef}
+          onFile={handleCvFile}
+          onClear={clearCvFile}
+          onReplace={() => cvRef.current?.click()}
+          replaceLabel={t.cv.replace}
+          removeLabel={t.cv.remove}
+          accept=".pdf,.docx,.txt"
+        />
+        <label style={{ display: 'flex', alignItems: 'flex-start', gap: 7, fontSize: 11, color: 'rgba(255,255,255,0.7)', lineHeight: 1.4, cursor: 'pointer' }}>
+          <input type="checkbox" checked={saveToAccount} onChange={e => setSaveToAccount(e.target.checked)} style={{ marginTop: 1, accentColor: '#378ADD', flexShrink: 0 }} />
+          <span>{t.cv.saveToAccount}</span>
+        </label>
+        {cvNotice && <div style={{ fontSize: 11, color: cvNotice.ok ? '#4ade80' : '#fbbf24', lineHeight: 1.4 }}>{cvNotice.text}</div>}
+        {cvError && <FlowError message={cvError} compact />}
+      </div>
 
       <div style={{ height: 1, background: 'rgba(255,255,255,0.1)' }} />
 
@@ -725,7 +761,7 @@ function SmartJobSearchPage() {
 
       <div style={{ height: 1, background: 'rgba(255,255,255,0.1)' }} />
 
-      {(cvText || linkedinText || jobs.length > 0) && (
+      {(linkedinText || jobs.length > 0 || targetRole) && (
         <button onClick={resetAll} style={{ width: '100%', padding: 9, borderRadius: 10, border: '1px solid rgba(255,255,255,0.2)', background: 'rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.7)', fontFamily: "'Outfit', sans-serif", fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
           {t.smartApply.sidebar.resetBtn}
         </button>
@@ -887,7 +923,7 @@ function SmartJobSearchPage() {
             <div style={{ fontWeight: 700, fontSize: 17, marginBottom: 8, color: '#152233' }}>Paste the job description</div>
             <p style={{ fontSize: 13, color: '#6b7c93', marginBottom: 16, lineHeight: 1.6 }}>
               We couldn&apos;t fetch the full job description from this site — it&apos;s likely blocking automated access.
-              Please open the job posting and paste the description below so we can tailor your CV accurately.
+              Please open the job posting and paste the description below so we can tailor your application accurately.
             </p>
             <a href={jdFallback.job.job_apply_link} target="_blank" rel="noopener noreferrer" style={{ fontSize: 12, color: '#378ADD', display: 'inline-block', marginBottom: 14 }}>
               Open job posting →
@@ -904,7 +940,7 @@ function SmartJobSearchPage() {
                 Cancel
               </button>
               <button onClick={confirmJdFallback} style={{ padding: '9px 20px', borderRadius: 8, border: 'none', background: 'linear-gradient(135deg, #042C53, #185FA5)', color: '#fff', cursor: 'pointer', fontSize: 13, fontWeight: 700, fontFamily: 'inherit' }}>
-                Build CV
+                {jdFallback.dest === 'cv' ? t.smartApply.results.buildCv : t.smartApply.results.coverLetter}
               </button>
             </div>
           </div>

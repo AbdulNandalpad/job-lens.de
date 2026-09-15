@@ -6,6 +6,8 @@ import Navbar from '../../components/Navbar'
 import { c, f, sh, g } from '@/lib/theme'
 import { JOB_CASE, SS, API } from '@/lib/constants'
 import { useCredits } from '@/lib/useCredits'
+import { useCurrentCv } from '@/lib/useCurrentCv'
+import { cvTextFromTailored } from '@/lib/cv'
 import AdminGate from '@/components/AdminGate'
 import { useLanguage } from '@/lib/i18n'
 import { fireConfetti } from '@/lib/confetti'
@@ -18,6 +20,11 @@ type Requirement = { id: string; skill: string; description: string; essential: 
 type Evidence    = { requirementId: string; text: string; url: string }
 type Question    = { question: string; skill_being_tested: string }
 type JobQuality  = 'clear' | 'vague' | 'poor'
+// Where the CV the AI matches against came from — drives the status labels only.
+type CvOrigin    = 'upload' | 'saved' | 'session' | 'tailored' | null
+
+// Below this the extractor usually returned a scanned image or a cover page, not a CV.
+const CV_MIN_CHARS = 100
 
 // No mock data — all data comes from real API calls
 
@@ -177,10 +184,13 @@ function SidebarContent({ step, credits, cvFound, cvSource, questions, lang }: {
   step: Step
   credits: number | null
   cvFound: boolean
-  cvSource: 'session' | 'upload' | null
+  cvSource: CvOrigin
   questions: Question[]
   lang: string
 }) {
+  const cvOriginLabel = lang === 'DE'
+    ? { upload: ' aus Datei', saved: ' von deinem Konto', session: ' vom vorherigen Scan', tailored: ' aus dem CV Builder' }
+    : { upload: ' from file', saved: ' from your account', session: ' from previous scan', tailored: ' from CV Builder' }
   if (step === 'paste' || step === 'analysing') return (
     <div>
       <SBLabel>{lang === 'DE' ? 'Was als Nächstes passiert' : 'What happens next'}</SBLabel>
@@ -205,8 +215,8 @@ function SidebarContent({ step, credits, cvFound, cvSource, questions, lang }: {
           <div style={{ padding: '9px 11px', background: 'rgba(29,158,117,0.08)', border: '1px solid rgba(29,158,117,0.18)', borderRadius: 8 }}>
             <div style={{ fontSize: 11, color: c.success, fontWeight: 600, marginBottom: 3 }}>
               {lang === 'DE'
-                ? `✓ Lebenslauf geladen${cvSource === 'upload' ? ' aus Datei' : cvSource === 'session' ? ' vom vorherigen Scan' : ''}`
-                : `✓ CV loaded${cvSource === 'upload' ? ' from file' : cvSource === 'session' ? ' from previous scan' : ''}`}
+                ? `✓ Lebenslauf geladen${cvSource ? cvOriginLabel[cvSource] : ''}`
+                : `✓ CV loaded${cvSource ? cvOriginLabel[cvSource] : ''}`}
             </div>
             <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.45)', lineHeight: 1.5 }}>
               {lang === 'DE'
@@ -534,11 +544,28 @@ export default function JobCaseNewPage() {
   const { credits } = useCredits()
 
   const [step, setStep]          = useState<Step>('paste')
-  const [cvFound, setCvFound]    = useState(false)
-  const [cvSource, setCvSource]  = useState<'session' | 'upload' | null>(null)
+
+  // ONE CV: the hook owns the user's CV (this session → saved on the account). This page
+  // never keeps its own copy — an upload here is visible on every other page too.
+  const cv = useCurrentCv()
+  const [tailoredCv, setTailoredCv] = useState('')
+  const [cvUploadedHere, setCvUploadedHere] = useState(false)
   const [cvUploading, setCvUploading] = useState(false)
+  const [cvError, setCvError]     = useState('')
+  const [cvSaveNote, setCvSaveNote] = useState<{ ok: boolean; text: string } | null>(null)
+  const [saveToAccount, setSaveToAccount] = useState(false)
   const [cvRequired, setCvRequired] = useState(false) // shows error if user tries to analyse without CV
   const cvInputRef = useRef<HTMLInputElement>(null)
+
+  // The CV the AI matches against: the user's own CV first; a CV Builder tailored CV
+  // (as plain text, never its raw JSON) only when there is no CV on the session or account.
+  const ownCv = cv.cvText.trim().length > CV_MIN_CHARS ? cv.cvText : ''
+  const effectiveCvText = ownCv || tailoredCv
+  const cvFound = effectiveCvText.length > 0
+  const cvSource: CvOrigin = !cvFound ? null
+    : cvUploadedHere ? 'upload'
+    : ownCv ? (cv.source === 'saved' ? 'saved' : 'session')
+    : 'tailored'
 
   const [jobText, setJobText]    = useState('')
   const [jobUrl, setJobUrl]      = useState('')
@@ -592,16 +619,15 @@ export default function JobCaseNewPage() {
   const [tabSwitches, setTabSwitches] = useState(0)
   const [submitted, setSubmitted]     = useState(false)
 
-  // Read CV text from Career Scan / CV Builder / ATS scan session
+  // Fallback only: a tailored CV from CV Builder, rendered as text
   useEffect(() => {
-    const cv = sessionStorage.getItem(SS.cvText)
-      || sessionStorage.getItem(SS.cvbTailored)
-      || sessionStorage.getItem(SS.atsSuggestions)
-    if (cv && cv.trim().length > 100) {
-      setCvFound(true)
-      setCvSource('session')
-    }
+    try {
+      const text = cvTextFromTailored(sessionStorage.getItem(SS.cvbTailored) || '')
+      if (text.trim().length > CV_MIN_CHARS) setTailoredCv(text)
+    } catch {}
   }, [])
+
+  useEffect(() => { setSaveToAccount(cv.rememberedConsent) }, [cv.rememberedConsent])
 
   // Pre-fill from job search if navigated via Job Case button, else restore draft
   useEffect(() => {
@@ -649,22 +675,26 @@ export default function JobCaseNewPage() {
 
   async function handleCvUpload(file: File) {
     setCvUploading(true)
+    setCvError('')
+    setCvSaveNote(null)
     try {
-      const form = new FormData()
-      form.append('file', file)
-      const res = await fetch(API.extractPdf, { method: 'POST', body: form })
-      const data = await res.json()
-      if (data.text && data.text.trim().length > 100) {
-        sessionStorage.setItem(SS.cvText, data.text)
-        setCvFound(true)
-        setCvSource('upload')
-        setCvRequired(false)
-      }
-    } catch {
-      // upload failed — let user try again
+      const out = await cv.extractFile(file)
+      if ('error' in out) { setCvError(out.error); return }
+      if (out.text.trim().length <= CV_MIN_CHARS) { setCvError(t.cv.tooShort); return }
+      const result = await cv.setCv(out.text, file.name, { saveToAccount })
+      setCvUploadedHere(true)
+      setCvRequired(false)
+      if (saveToAccount) setCvSaveNote(result.saved ? { ok: true, text: t.cv.saved } : { ok: false, text: t.cv.saveFailed(result.error || '') })
     } finally {
       setCvUploading(false)
     }
+  }
+
+  function handleCvRemove() {
+    cv.clearCv()
+    setCvUploadedHere(false)
+    setCvError('')
+    setCvSaveNote(null)
   }
 
   async function analyse() {
@@ -672,11 +702,10 @@ export default function JobCaseNewPage() {
     setAnalyseError('')
     setStep('analysing')
     try {
-      const cvText = sessionStorage.getItem(SS.cvText) || sessionStorage.getItem(SS.cvbTailored) || sessionStorage.getItem(SS.atsSuggestions) || ''
       const res = await fetch(API.jobCaseAnalyse, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ jobText, jobUrl, cvText }),
+        body: JSON.stringify({ jobText, jobUrl, cvText: effectiveCvText }),
       })
       const data = await res.json()
       if (!res.ok) { setAnalyseError(data.error ?? 'Analysis failed'); setStep('paste'); return }
@@ -698,13 +727,12 @@ export default function JobCaseNewPage() {
   async function generateTest() {
     setStep('questions')
     try {
-      const cvText = sessionStorage.getItem(SS.cvText) || sessionStorage.getItem(SS.cvbTailored) || sessionStorage.getItem(SS.atsSuggestions) || ''
       // Fetch test questions + interview prep (top 3 skills + scenarios) in parallel
       const [testRes, prepRes] = await Promise.all([
         fetch(API.jobCaseGenerateTest, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ requirements: reqs, evidence, cvText }),
+          body: JSON.stringify({ requirements: reqs, evidence, cvText: effectiveCvText }),
         }),
         fetch(API.jobCaseInterviewPrep, {
           method: 'POST',
@@ -728,7 +756,6 @@ export default function JobCaseNewPage() {
     setStep('generating')
     setCreateError('')
     try {
-      const cvText = sessionStorage.getItem(SS.cvText) || sessionStorage.getItem(SS.cvbTailored) || sessionStorage.getItem(SS.atsSuggestions) || ''
       const res = await fetch(API.jobCaseCreate, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -739,7 +766,7 @@ export default function JobCaseNewPage() {
           questions, answers, tabSwitches,
           videoStorageKey,
           consent,
-          cvText,
+          cvText: effectiveCvText,
         }),
       })
       const data = await res.json().catch(() => ({}))
@@ -888,19 +915,37 @@ export default function JobCaseNewPage() {
                     <input className="jc-input" placeholder={lang === 'DE' ? 'Stellen-URL (optional)' : 'Job URL (optional)'} value={jobUrl} onChange={e => setJobUrl(e.target.value)} style={{ marginBottom: 10 }} />
                     <textarea className="jc-input" placeholder={lang === 'DE' ? 'Vollständige Stellenbeschreibung hier einfügen…' : 'Paste the full job description here…'} rows={10} value={jobText} onChange={e => setJobText(e.target.value)} style={{ minHeight: 200 }} />
 
-                    {/* CV — required for AI skill matching */}
+                    {/* CV — required for AI skill matching; the same CV every other page uses */}
                     <div style={{ marginTop: 14, padding: '12px 14px', background: cvFound ? 'rgba(29,158,117,0.06)' : cvRequired ? 'rgba(226,75,74,0.05)' : 'rgba(55,138,221,0.04)', border: `1px solid ${cvFound ? 'rgba(29,158,117,0.2)' : cvRequired ? 'rgba(226,75,74,0.3)' : c.border}`, borderRadius: 8 }}>
                       {cvFound ? (
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
-                          <div style={{ fontSize: 11, fontWeight: 600, color: c.success }}>
-                            {lang === 'DE'
-                              ? `✓ Lebenslauf geladen${cvSource === 'session' ? ' vom vorherigen Scan' : ' aus Datei'}`
-                              : `✓ CV loaded${cvSource === 'session' ? ' from your previous scan' : ' from file'}`}
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap' }}>
+                          <div style={{ minWidth: 0, flex: 1 }}>
+                            <div style={{ fontSize: 11, fontWeight: 600, color: c.success, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                              {cvSource === 'saved'
+                                ? t.cv.usingSaved
+                                : cv.fileName && cvSource !== 'tailored'
+                                  ? t.cv.onFile(cv.fileName)
+                                  : (lang === 'DE'
+                                      ? `Lebenslauf geladen${cvSource === 'tailored' ? ' aus dem CV Builder' : ' vom vorherigen Scan'}`
+                                      : `CV loaded${cvSource === 'tailored' ? ' from CV Builder' : ' from your previous scan'}`)}
+                            </div>
+                            {cvSource === 'saved' && cv.fileName && (
+                              <div style={{ fontSize: 11, color: c.textMuted, marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.cv.onFile(cv.fileName)}</div>
+                            )}
                           </div>
-                          <button type="button" onClick={() => cvInputRef.current?.click()} style={{ fontSize: 11, color: c.textMuted, background: 'none', border: `1px solid ${c.border}`, borderRadius: 5, padding: '3px 9px', cursor: 'pointer', fontFamily: f.body }}>
-                            {lang === 'DE' ? 'Ersetzen' : 'Replace'}
-                          </button>
+                          <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
+                            <button type="button" disabled={cvUploading} onClick={() => cvInputRef.current?.click()} style={{ fontSize: 11, color: c.textMuted, background: 'none', border: `1px solid ${c.border}`, borderRadius: 5, padding: '3px 9px', cursor: cvUploading ? 'not-allowed' : 'pointer', fontFamily: f.body, display: 'flex', alignItems: 'center', gap: 5 }}>
+                              {cvUploading ? <><Spinner /> {t.cv.reading}</> : t.cv.replace}
+                            </button>
+                            {cvSource !== 'tailored' && (
+                              <button type="button" disabled={cvUploading} onClick={handleCvRemove} style={{ fontSize: 11, color: c.textMuted, background: 'none', border: `1px solid ${c.border}`, borderRadius: 5, padding: '3px 9px', cursor: cvUploading ? 'not-allowed' : 'pointer', fontFamily: f.body }}>
+                                {t.cv.remove}
+                              </button>
+                            )}
+                          </div>
                         </div>
+                      ) : cv.loading ? (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, color: c.textMuted }}><Spinner /> {t.cv.reading}</div>
                       ) : (
                         <>
                           <div style={{ fontSize: 12, fontWeight: 600, color: cvRequired ? c.danger : c.text, marginBottom: 6 }}>
@@ -920,11 +965,17 @@ export default function JobCaseNewPage() {
                             style={{ fontSize: 12, color: '#fff', background: g.button, border: 'none', borderRadius: 7, padding: '8px 16px', cursor: cvUploading ? 'not-allowed' : 'pointer', fontFamily: f.body, display: 'flex', alignItems: 'center', gap: 6, opacity: cvUploading ? 0.6 : 1, boxShadow: sh.glow }}
                           >
                             {cvUploading
-                              ? <><Spinner light /> {lang === 'DE' ? 'Lebenslauf wird extrahiert…' : 'Extracting CV…'}</>
-                              : (lang === 'DE' ? '↑ Lebenslauf hochladen (PDF / DOCX)' : '↑ Upload CV (PDF / DOCX)')}
+                              ? <><Spinner light /> {t.cv.reading}</>
+                              : `${t.cv.upload} (${t.cv.uploadHint})`}
                           </button>
                         </>
                       )}
+                      <label style={{ display: 'flex', alignItems: 'flex-start', gap: 7, marginTop: 10, fontSize: 11, color: c.textMuted, lineHeight: 1.5, cursor: 'pointer' }}>
+                        <input type="checkbox" checked={saveToAccount} onChange={e => setSaveToAccount(e.target.checked)} style={{ marginTop: 2, flexShrink: 0 }} />
+                        <span>{t.cv.saveToAccount}</span>
+                      </label>
+                      {cvSaveNote && <div style={{ fontSize: 11, color: cvSaveNote.ok ? c.success : c.warning, marginTop: 6 }}>{cvSaveNote.text}</div>}
+                      {cvError && <div role="alert" style={{ fontSize: 11, color: c.danger, marginTop: 6 }}>{cvError}</div>}
                       <input
                         ref={cvInputRef}
                         type="file"
@@ -942,7 +993,7 @@ export default function JobCaseNewPage() {
                             <button className="jc-btn" onClick={() => {
                               if (!cvFound) { setCvRequired(true); return }
                               analyse()
-                            }} disabled={!jobText.trim() && !jobUrl.trim()}>{lang === 'DE' ? 'Analysieren →' : 'Analyse →'}</button>
+                            }} disabled={(!jobText.trim() && !jobUrl.trim()) || cv.loading}>{lang === 'DE' ? 'Analysieren →' : 'Analyse →'}</button>
                           </>
                       }
                     </div>

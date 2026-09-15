@@ -7,7 +7,8 @@ import { useRouter, usePathname } from 'next/navigation'
 import { theme } from '@/lib/theme'
 import { SS, LS, API, CREDIT_COST, LIVE_VOICE_MAX_SECONDS, KIRA_MAINTENANCE, KIRA_OPEN_EVENT } from '@/lib/constants'
 import { useLanguage } from '@/lib/i18n'
-import { useSavedCv } from '@/lib/useSavedCv'
+import { useCurrentCv } from '@/lib/useCurrentCv'
+import { normalizeJob, writeJob } from '@/lib/job'
 
 const { colors: c, fonts: f, gradients: g } = theme
 
@@ -313,10 +314,9 @@ export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
   const { lang }   = useLanguage()
   const router     = useRouter()
   const pathname   = usePathname()
-  // Fallback CV source: the account's persisted CV (same one KiraHome checks
-  // via hasCv). Without this, Kira Home could say "your CV is on file" while
-  // this widget — sourced only from sessionStorage — insisted no CV existed.
-  const { hasCv: hasSavedCv, cvText: savedCvText } = useSavedCv()
+  // One CV: session upload → account CV → none, same precedence every page uses,
+  // so Kira never disagrees with KiraHome about whether a CV is on file.
+  const currentCv = useCurrentCv()
   const key    = market === 'in' ? 'in_EN' : `eu_${lang}`
   const accent = market === 'in' ? '#FF9933' : c.accent
 
@@ -326,8 +326,13 @@ export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
   const [msgs,        setMsgs]        = useState<Msg[]>([])
   const [input,       setInput]       = useState('')
   const [loading,     setLoading]     = useState(false)
-  const [cvName,      setCvName]      = useState('')
   const [cvUploading, setCvUploading] = useState(false)
+  // Header badge label — truthy exactly when a CV is available (gates CV_REQUIRED_FEATURES).
+  const cvName = currentCv.cvText
+    ? (currentCv.fileName
+        ? (currentCv.fileName.length > 22 ? currentCv.fileName.slice(0, 19) + '…' : currentCv.fileName)
+        : (currentCv.source === 'saved' ? 'CV on file' : 'CV ready'))
+    : ''
   // Fetched but not shown anywhere yet — no greeting/message currently uses the user's name.
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [userName,    setUserName]    = useState('')
@@ -408,27 +413,14 @@ export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
   // Re-read interview context whenever the panel opens
   useEffect(() => { if (open) refreshInterviewCtx() }, [open])
 
-  // Fall back to the account's saved CV once it loads, if this session never
-  // uploaded one directly. Keeps "is a CV on file" consistent with KiraHome.
-  useEffect(() => {
-    if (!cvRef.current && hasSavedCv && savedCvText) {
-      cvRef.current = savedCvText
-      setCvName('CV on file')
-    }
-  }, [hasSavedCv, savedCvText])
+  // cvRef mirrors the hook so async paths (voice tasks, chat send) read the latest CV
+  // without re-rendering closures.
+  useEffect(() => { cvRef.current = currentCv.cvText }, [currentCv.cvText])
 
-  // ── Init: CV, saved messages, user name ─────────────────────────────────
+  // ── Init: saved messages, user name ─────────────────────────────────────
   useEffect(() => {
     setMounted(true)
     refreshInterviewCtx()
-
-    const cv = sessionStorage.getItem(SS.cvText) || ''
-    if (cv) {
-      cvRef.current = cv
-      setCvName('CV ready')
-    }
-    // else: leave cvRef empty for now — the saved-CV effect below fills it
-    // in once useSavedCv() resolves (it loads asynchronously on every mount).
 
     try {
       const saved = localStorage.getItem(LS.aiMessages)
@@ -468,21 +460,12 @@ export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
     if (!file) return
     setCvUploading(true)
     try {
-      let text = ''
-      if (file.name.endsWith('.txt')) {
-        text = await file.text()
-      } else {
-        const form = new FormData()
-        form.append('file', file)
-        const res  = await fetch(API.extractPdf, { method: 'POST', body: form })
-        const data = await res.json()
-        if (!data.text) throw new Error('empty')
-        text = data.text
-      }
+      const out = await currentCv.extractFile(file)
+      if ('error' in out) throw new Error(out.error)
+      const text = out.text
       cvRef.current = text
-      sessionStorage.setItem(SS.cvText, text)
+      await currentCv.setCv(text, file.name)
       const label = file.name.length > 22 ? file.name.slice(0, 19) + '…' : file.name
-      setCvName(label)
       setMsgs(prev => [...prev, { role: 'assistant', content: lang === 'DE'
         ? `Lebenslauf "${label}" geladen! Ich kann jetzt Jobs für dich bewerten.`
         : `Got your CV! I can now score job matches and tailor your applications.` }])
@@ -509,13 +492,21 @@ export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
         : 'Upload your CV using the clip icon above — then I can tailor it for this role.' }])
       return
     }
-    sessionStorage.setItem(SS.cvbJob, JSON.stringify({
+    const ref = normalizeJob({
       job_title:       job.title,
       employer_name:   job.company,
       job_city:        job.location,
       job_description: job.description,
       job_apply_link:  job.apply_url,
-    }))
+      job_source:      'kira',
+    })
+    if (!ref) {
+      setMsgs(prev => [...prev, { role: 'assistant', content: lang === 'DE'
+        ? 'Diese Stelle hat keinen lesbaren Titel — bitte wähle eine andere.'
+        : 'That job has no usable title — please pick another one.' }])
+      return
+    }
+    writeJob(ref)
     if (realtimeModeRef.current) exitRealtimeMode('widget_closed')
     setOpen(false); setMaximized(false)
     router.push(market === 'in' ? '/in/cv-builder' : '/app/cv-builder')
@@ -529,7 +520,7 @@ export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
         ws.send(JSON.stringify({ type: 'kira.task_result', requestId: task.requestId, output }))
       }
     }
-    const cv = cvRef.current || sessionStorage.getItem(SS.cvText) || ''
+    const cv = cvRef.current
     if (!cv) {
       reply('No CV is uploaded yet — ask the user to upload their CV first using the clip icon in the chat header.')
       return
@@ -611,10 +602,12 @@ export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
   }
 
   async function runJobTask(tool: string, job: KiraTaskJob, fullJd: boolean, announce: (out: string) => void) {
-    const cv = cvRef.current || sessionStorage.getItem(SS.cvText) || ''
+    const cv = cvRef.current
     const clLang = market !== 'in' && lang === 'DE' ? 'DE' : 'EN'
     const jdNote = fullJd ? '' : ' One note: this is based on the short job summary the user chose to continue with.'
-    sessionStorage.setItem(SS.cvbJob, JSON.stringify(job))
+    const ref = normalizeJob({ ...job, job_source: 'kira' })
+    if (!ref) { announce('That job has no usable title — ask the user which role they mean.'); return }
+    writeJob(ref)
     const jobLabel = `${job.job_title}${job.employer_name ? ` at ${job.employer_name}` : ''}`
 
     try {
@@ -984,7 +977,7 @@ export default function AIWidget({ market = 'eu' }: { market?: 'eu' | 'in' }) {
       if (ctxRes.ok) kiraCtx = await ctxRes.json()
     } catch { /* non-fatal */ }
 
-    const cvText = typeof window !== 'undefined' ? (sessionStorage.getItem('jl_cv_text') ?? '') : ''
+    const cvText = cvRef.current
 
     realtimeRetryRef.current  = 0
     realtimeJobsRef.current   = 0

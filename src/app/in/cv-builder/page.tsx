@@ -2,12 +2,16 @@
 
 import React, { useState, useEffect, useRef, useLayoutEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import Link from 'next/link'
 import { useCredits } from '@/lib/useCredits'
+import { useCurrentCv } from '@/lib/useCurrentCv'
 import CrossMarketModal from '@/components/CrossMarketModal'
 import SkillGapModal from '@/components/SkillGapModal'
+import FlowError from '@/components/FlowError'
 import { CREDIT_COST, LOW_CREDIT_WARN, MARKET, SS, API, BUNDLE } from '@/lib/constants'
 import type { BundleState } from '@/lib/pricingCore'
+import { type CVData, parseCvJson } from '@/lib/cv'
+import { type JobRef, normalizeJob, readJob, writeJob } from '@/lib/job'
+import { readJsonOrError } from '@/lib/apiError'
 import SvgIcon from '@/components/SvgIcon'
 
 const accent = '#FF9933'
@@ -15,25 +19,6 @@ const accent = '#FF9933'
 type Template = 'clean' | 'saffron' | 'classic' | 'modern' | 'executive' | 'executive2'
 type Tone = 'professional' | 'concise' | 'detailed'
 type Lang = 'EN'
-
-interface CVData {
-  name: string
-  title: string
-  tagline: string
-  email: string
-  phone: string
-  location: string
-  linkedin: string
-  summary: string
-  stats: { label: string; value: string }[]
-  skills: { name: string; level: number }[]
-  experience: { role: string; company: string; period: string; location: string; type: string; bullets: string[] }[]
-  education: { degree: string; school: string; year: string }[]
-  certifications: string[]
-  languages: { name: string; level: number }[]
-  tools: string[]
-  highlights: string[]
-}
 
 // ── Template 1: Clean / Saffron / Classic (single-column ATS) ─────────────
 function IndiaCV({ cv, ac }: { cv: CVData; ac: string }) {
@@ -580,28 +565,6 @@ function CVScaleWrapper({ scale, children }: { scale: number; children: React.Re
   )
 }
 
-function normalizeCv(data: Partial<CVData>): CVData {
-  const sa = <T,>(v: unknown): T[] => Array.isArray(v) ? v as T[] : []
-  return {
-    tagline: '', email: '', phone: '', location: '', linkedin: '',
-    ...data,
-    name:           typeof data.name    === 'string' ? data.name    : '',
-    title:          typeof data.title   === 'string' ? data.title   : '',
-    summary:        typeof data.summary === 'string' ? data.summary : '',
-    stats:          sa(data.stats),
-    skills:         sa(data.skills),
-    certifications: sa(data.certifications),
-    languages:      sa(data.languages),
-    tools:          sa(data.tools),
-    highlights:     sa(data.highlights),
-    education:      sa(data.education),
-    experience:     sa(data.experience).map((raw) => {
-      const e = raw as Partial<CVData['experience'][0]>
-      return { role: '', company: '', period: '', location: '', type: '', ...e, bullets: Array.isArray(e?.bullets) ? e.bullets! : [] }
-    }),
-  }
-}
-
 // Inline English copy for the server-enforced application package (mirrors t.pricing.* on DACH)
 const PRICING_COPY = {
   packageIncludes: (n: number) => `Includes the cover letter + ${n} changes for this job (${BUNDLE.windowHours} h)`,
@@ -621,6 +584,14 @@ function formatUntil(iso: string | null | undefined): string {
   return sameDay ? time : `tomorrow ${time}`
 }
 
+interface TailorResponse {
+  cv?: string
+  enhanced?: string
+  result?: string
+  creditsRemaining?: number
+  pricing?: { bundle?: BundleState; admin?: boolean }
+}
+
 export default function IndiaCVBuilderPage() {
   const router = useRouter()
   const fileInputRef  = useRef<HTMLInputElement>(null)
@@ -628,10 +599,12 @@ export default function IndiaCVBuilderPage() {
   const previewRef    = useRef<HTMLDivElement>(null)
   const previewAreaRef = useRef<HTMLDivElement>(null)
 
-  const [cvText,        setCvText]        = useState('')
-  const [cvFileName,    setCvFileName]    = useState('')
+  const { cvText, fileName: cvFileName, source: cvSource, rememberedConsent, setCv, clearCv, extractFile } = useCurrentCv()
   const [fileLoading,   setFileLoading]   = useState(false)
-  const [job,           setJob]           = useState<{ job_title: string; employer_name: string; job_description?: string; job_apply_link?: string } | null>(null)
+  const [saveConsent,   setSaveConsent]   = useState(false)
+  const [cvNotice,      setCvNotice]      = useState<{ kind: 'ok' | 'error'; text: string } | null>(null)
+  const [downloadError, setDownloadError] = useState<string | null>(null)
+  const [job,           setJob]           = useState<JobRef | null>(null)
   const [jobLabel,      setJobLabel]      = useState('')
   const [template,      setTemplate]      = useState<Template>('clean')
   const [tone,          setTone]          = useState<Tone>('professional')
@@ -671,13 +644,15 @@ export default function IndiaCVBuilderPage() {
 
   const { credits, setCredits, needsCrossMarket, crossMarketAmount } = useCredits()
 
-  // Sync enriched jobDesc back to sessionStorage so cover letter always gets the full JD
+  // Textarea buffer: setCv() trims, which would eat a trailing newline mid-edit — the hook's cvText stays the truth.
+  const [cvDraft, setCvDraft] = useState('')
+  useEffect(() => { setCvDraft(d => (d.trim() === cvText.trim() ? d : cvText)) }, [cvText])
+  useEffect(() => { setSaveConsent(rememberedConsent) }, [rememberedConsent])
+
+  // Sync enriched jobDesc back to the shared job so cover letter always gets the full JD
   useEffect(() => {
     if (!job || !jobDesc) return
-    try {
-      const updated = { ...job, job_description: jobDesc }
-      sessionStorage.setItem(SS.cvbJob, JSON.stringify(updated))
-    } catch { }
+    writeJob({ ...job, job_description: jobDesc })
   }, [jobDesc, job])
   const CV_COST = CREDIT_COST.tailorCv
   const [crossWarnPending, setCrossWarnPending] = useState<(() => void) | null>(null)
@@ -705,7 +680,7 @@ export default function IndiaCVBuilderPage() {
     return () => { cancelled = true }
   }, [jobTitle, jobEmployer])
 
-  function applyPricing(data: { pricing?: { bundle?: BundleState; admin?: boolean } } | null | undefined) {
+  function applyPricing(data: TailorResponse | null | undefined) {
     if (data?.pricing?.bundle) setPricing({ bundle: data.pricing.bundle, admin: !!data.pricing.admin })
   }
 
@@ -727,20 +702,15 @@ export default function IndiaCVBuilderPage() {
 
   // ── Restore session ──
   useEffect(() => {
-    const sjs  = sessionStorage.getItem(SS.sjsCvText) || ''
-    const cvt  = sessionStorage.getItem(SS.cvText) || ''
-    const lnt  = sessionStorage.getItem(SS.linkedinText) || ''
-    const cv   = sjs || cvt || lnt
-    if (lnt && !sjs && !cvt) setCvFileName('LinkedIn Profile')
-    const jobRaw    = sessionStorage.getItem(SS.inSelectedJob) || sessionStorage.getItem(SS.cvbJob)
     const savedRole = sessionStorage.getItem(SS.sjsTargetRole) || ''
-    setCvText(cv)
-    if (jobRaw) { try { const p = JSON.parse(jobRaw); setJob(p); setJobLabel(`${p.employer_name} - ${p.job_title}`); if (p.job_description) setJobDesc(p.job_description) } catch { } }
+    const p = readJob()
+    if (p) { setJob(p); setJobLabel(`${p.employer_name} - ${p.job_title}`); if (p.job_description) setJobDesc(p.job_description) }
     else if (savedRole) setJobLabel(savedRole)
     const saved     = sessionStorage.getItem(SS.cvbTailored)
     const savedData = sessionStorage.getItem(SS.cvbData)
     if (saved) setRawCv(saved)
-    if (savedData) { try { setCvData(normalizeCv(JSON.parse(savedData))) } catch { } }
+    const restored = parseCvJson(savedData)
+    if (restored) setCvData(restored)
     const atsRaw = sessionStorage.getItem(SS.atsSuggestions)
     if (atsRaw) {
       try { const s = JSON.parse(atsRaw); setAtsSuggestions(s); setTemplate('clean'); setAtsFromScan(true) } catch { }
@@ -752,7 +722,7 @@ export default function IndiaCVBuilderPage() {
     if (!url) return
     setFetchingJd(true)
     try {
-      const res = await fetch('/api/fetch-jd', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ url }) })
+      const res = await fetch(API.fetchJd, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ url }) })
       const data = await res.json()
       if (data.text) {
         setJobDesc(data.text)
@@ -769,26 +739,51 @@ export default function IndiaCVBuilderPage() {
     setFetchingJd(false)
   }
 
-  async function handleCvFile(file: File) {
-    setCvFileName(file.name); setCvText(''); setFileLoading(true)
-    if (originalFileUrl) URL.revokeObjectURL(originalFileUrl)
-    setOriginalFileUrl(URL.createObjectURL(file))
-    setOriginalFileIsPdf(file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf'))
-    if (file.name.endsWith('.txt') || file.type === 'text/plain') {
-      const r = new FileReader()
-      r.onload = e => { const text = (e.target?.result as string) ?? ''; setCvText(text); sessionStorage.setItem(SS.cvText, text); setFileLoading(false) }
-      r.readAsText(file)
-    } else {
-      const form = new FormData(); form.append('file', file)
-      try {
-        const res  = await fetch(API.extractPdf, { method: 'POST', body: form })
-        const data = await res.json()
-        if (data.text) { setCvText(data.text); sessionStorage.setItem(SS.cvText, data.text) }
-        else { alert(data.error || 'Could not read file.'); setCvFileName('') }
-      } catch { alert('Failed to read file.'); setCvFileName('') }
-      setFileLoading(false)
-    }
+  function showSaveOutcome(out: { saved: boolean; error?: string }) {
+    setCvNotice(out.saved ? { kind: 'ok', text: 'Saved to your account' } : { kind: 'error', text: `Could not save: ${out.error || ''}` })
   }
+
+  async function handleCvFile(file: File) {
+    setCvNotice(null); setFileLoading(true)
+    const extracted = await extractFile(file)
+    if ('error' in extracted) {
+      setCvNotice({ kind: 'error', text: extracted.error })
+    } else if (extracted.text.trim().length < 50) {
+      setCvNotice({ kind: 'error', text: 'That file has too little text to be a CV — try another file or paste the text.' })
+    } else {
+      if (originalFileUrl) URL.revokeObjectURL(originalFileUrl)
+      setOriginalFileUrl(URL.createObjectURL(file))
+      setOriginalFileIsPdf(file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf'))
+      const out = await setCv(extracted.text, file.name, { saveToAccount: saveConsent })
+      if (saveConsent) showSaveOutcome(out)
+    }
+    setFileLoading(false)
+    if (fileInputRef.current) fileInputRef.current.value = ''
+  }
+
+  function onCvTextChange(value: string) {
+    setCvDraft(value)
+    setCvNotice(null)
+    void setCv(value, value.trim() ? cvFileName : '')
+  }
+
+  // Ticking the box after an upload saves the CV that is already here — the tick is the consent.
+  async function onConsentChange(checked: boolean) {
+    setSaveConsent(checked)
+    if (!checked || cvSource !== 'session' || !cvText.trim()) return
+    showSaveOutcome(await setCv(cvText, cvFileName, { saveToAccount: true }))
+  }
+
+  // Removing the CV also drops the CV built from it — those are this page's own results.
+  function clearOwnResults() {
+    if (originalFileUrl) URL.revokeObjectURL(originalFileUrl)
+    setOriginalFileUrl(null); setCvData(null); setRawCv(''); setPreviewTab('generated'); setCvNotice(null)
+    if (fileInputRef.current) fileInputRef.current.value = ''
+    sessionStorage.removeItem(SS.cvbTailored); sessionStorage.removeItem(SS.cvbData)
+  }
+  // clearCv() on the account CV would re-adopt it at once, so "Remove" detaches it for this session via an empty session CV.
+  function removeSavedCv() { void setCv('', ''); clearOwnResults() }
+  function clearSessionCv() { clearCv(); setCvDraft(''); clearOwnResults() }
 
   function handlePhotoFile(file: File) {
     const r = new FileReader()
@@ -823,20 +818,23 @@ ${atsSuggestions?.section_gaps?.length ? `- ATS SECTION GAPS to address: ${atsSu
 
     try {
       const res  = await fetch(API.tailorCv, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ cvText, job, template, tone, lang, systemPrompt, returnJson: true, market: MARKET.in }) })
-      const data = await res.json().catch(() => ({}))
-      applyPricing(data)
-      if (!res.ok) {
+      const out = await readJsonOrError<TailorResponse>(res)
+      applyPricing(out.data as TailorResponse | null)
+      if (!out.ok) {
         // Server already refunded on failure — keep the previous tailored CV on screen
-        if (res.status === 402 && typeof data.credits === 'number') setCredits(data.credits)
-        setGenerateError({ message: data.error || `Request failed (${res.status})`, status: res.status })
+        if (typeof out.credits === 'number') setCredits(out.credits)
+        setGenerateError({ message: out.message, status: out.status })
         return
       }
+      const data = out.data
       if (typeof data.creditsRemaining === 'number') setCredits(data.creditsRemaining)
-      const raw  = data.cv || data.enhanced || data.result || ''
-      if (!raw) { setGenerateError({ message: `Request failed (${res.status})`, status: res.status }); return }
-      setRawCv(raw); sessionStorage.setItem(SS.cvbTailored, raw)
-      try { const parsed = normalizeCv(JSON.parse(raw.replace(/```json|```/g, '').trim())); setCvData(parsed); setPreviewTab('generated'); sessionStorage.setItem(SS.cvbData, JSON.stringify(parsed)) } catch { setCvData(null) }
-    } catch { setGenerateError({ message: 'Network error. Please try again.', status: 0 }) }
+      const raw = data.cv || data.enhanced || data.result || ''
+      const parsed = parseCvJson(raw)
+      if (!raw || !parsed) { setGenerateError({ message: 'The CV came back incomplete. Please try again.', status: out.status }); return }
+      setRawCv(raw); setCvData(parsed); setPreviewTab('generated')
+      sessionStorage.setItem(SS.cvbTailored, raw)
+      sessionStorage.setItem(SS.cvbData, JSON.stringify(parsed))
+    } catch { setGenerateError({ message: 'Network error. Please check your connection and try again.', status: 0 }) }
     finally { setLoading(false) }
   }
 
@@ -844,7 +842,7 @@ ${atsSuggestions?.section_gaps?.length ? `- ATS SECTION GAPS to address: ${atsSu
     if (job?.job_description && cvText) {
       setSkillGapLoading(true)
       try {
-        const res = await fetch('/api/cv/skill-gap', {
+        const res = await fetch(API.cvSkillGap, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ cvText, jobDescription: job.job_description }),
@@ -876,26 +874,29 @@ ${atsSuggestions?.section_gaps?.length ? `- ATS SECTION GAPS to address: ${atsSu
     try {
       const atsCtx = atsSuggestions?.missing_keywords?.length ? ` Ensure these ATS keywords are present: ${atsSuggestions.missing_keywords.join(', ')}.` : ''
       const res = await fetch(API.tailorCv, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ cvText, job, template, tone, lang, systemPrompt: `Apply the feedback and return updated JSON matching the same schema. Return ONLY valid JSON.${atsCtx}`, returnJson: true, feedback, currentCv: rawCv, market: MARKET.in }) })
-      const data = await res.json().catch(() => ({}))
-      applyPricing(data)
-      if (!res.ok) {
-        if (res.status === 402 && typeof data.credits === 'number') setCredits(data.credits)
-        setFeedbackError({ message: data.error || `Request failed (${res.status})`, status: res.status })
+      const out = await readJsonOrError<TailorResponse>(res)
+      applyPricing(out.data as TailorResponse | null)
+      if (!out.ok) {
+        if (typeof out.credits === 'number') setCredits(out.credits)
+        setFeedbackError({ message: out.message, status: out.status })
         return
       }
+      const data = out.data
       if (typeof data.creditsRemaining === 'number') setCredits(data.creditsRemaining)
-      const raw  = data.cv || ''
-      if (!raw) { setFeedbackError({ message: `Request failed (${res.status})`, status: res.status }); return }
-      setRawCv(raw); sessionStorage.setItem(SS.cvbTailored, raw)
-      try { const parsed = normalizeCv(JSON.parse(raw.replace(/```json|```/g, '').trim())); setCvData(parsed); setPreviewTab('generated'); sessionStorage.setItem(SS.cvbData, JSON.stringify(parsed)) } catch { }
+      const raw = data.cv || ''
+      const parsed = parseCvJson(raw)
+      if (!raw || !parsed) { setFeedbackError({ message: 'The updated CV came back incomplete. Please try again.', status: out.status }); return }
+      setRawCv(raw); setCvData(parsed); setPreviewTab('generated')
+      sessionStorage.setItem(SS.cvbTailored, raw)
+      sessionStorage.setItem(SS.cvbData, JSON.stringify(parsed))
       setFeedback('')
-    } catch { setFeedbackError({ message: 'Network error. Please try again.', status: 0 }) }
+    } catch { setFeedbackError({ message: 'Network error. Please check your connection and try again.', status: 0 }) }
     finally { setApplyingFeedback(false) }
   }
 
   async function downloadPDF() {
     if (!cvData) return
-    setDownloading('pdf')
+    setDownloading('pdf'); setDownloadError(null)
     try {
       const ac = templates.find(t => t.id === template)?.ac || accent
       const res = await fetch(API.cvPdf, {
@@ -914,13 +915,13 @@ ${atsSuggestions?.section_gaps?.length ? `- ATS SECTION GAPS to address: ${atsSu
       a.click()
       document.body.removeChild(a)
       URL.revokeObjectURL(url)
-    } catch (err) { console.error('PDF error:', err); alert('PDF generation failed.') }
+    } catch (err) { console.error('PDF error:', err); setDownloadError('PDF generation failed. Please try again or download as Word.') }
     setDownloading(null)
   }
 
   async function downloadDOCX() {
     if (!cvData) return
-    setDownloading('docx')
+    setDownloading('docx'); setDownloadError(null)
     try {
       const { Document, Packer, Paragraph, TextRun, BorderStyle } = await import('docx')
       const teal = '00A58A', navyH = '0d2137', greyH = '6b7c93'
@@ -950,32 +951,20 @@ ${atsSuggestions?.section_gaps?.length ? `- ATS SECTION GAPS to address: ${atsSu
       const blob = await Packer.toBlob(docx)
       const url  = URL.createObjectURL(blob)
       const a = document.createElement('a'); a.href = url; a.download = `CV_${(job?.employer_name || cvData.name || 'JobLens').replace(/[^a-zA-Z0-9]/g, '_')}.docx`; a.click(); URL.revokeObjectURL(url)
-    } catch (err) { console.error('DOCX error:', err); alert('DOCX generation failed.') }
+    } catch (err) { console.error('DOCX error:', err); setDownloadError('Word generation failed. Please try again or download as PDF.') }
     setDownloading(null)
   }
 
   function goToCoverLetter() {
-    sessionStorage.setItem(SS.cvbTailored, rawCv)
-    if (job) sessionStorage.setItem(SS.cvbJob, JSON.stringify(job))
+    if (rawCv) sessionStorage.setItem(SS.cvbTailored, rawCv)
+    if (job) writeJob(job)
     router.push('/in/cover-letter')
   }
+  // The ATS page scans the tailored CV only for this visit (?cv=tailored) — the user's own CV stays the source for the next job.
   function goToAtsCheck() {
-    if (cvData) {
-      const lines: string[] = []
-      lines.push(cvData.name, cvData.title)
-      const contact = [cvData.email, cvData.phone, cvData.location, cvData.linkedin].filter(Boolean)
-      if (contact.length) lines.push(contact.join(' | '))
-      if (cvData.summary) lines.push('\nSUMMARY', cvData.summary)
-      if (cvData.skills?.length) lines.push('\nSKILLS', cvData.skills.map((s: { name: string }) => s.name).join(', '))
-      if (cvData.tools?.length) lines.push('\nTECH STACK', cvData.tools.join(', '))
-      if (cvData.experience?.length) { lines.push('\nEXPERIENCE'); cvData.experience.forEach((exp: { role: string; company: string; period: string; bullets: string[] }) => { lines.push(`${exp.role} at ${exp.company} (${exp.period})`); exp.bullets?.forEach((b: string) => lines.push(`• ${b}`)) }) }
-      if (cvData.education?.length) { lines.push('\nEDUCATION'); cvData.education.forEach((e: { degree: string; school: string; year: string }) => lines.push(`${e.degree} - ${e.school} (${e.year})`)) }
-      if (cvData.certifications?.length) { lines.push('\nCERTIFICATIONS'); cvData.certifications.forEach((c: string) => lines.push(`• ${c}`)) }
-      if (cvData.languages?.length) { lines.push('\nLANGUAGES'); lines.push(cvData.languages.map((l: { name: string }) => l.name).join(', ')) }
-      sessionStorage.setItem(SS.cvText, lines.join('\n'))
-    }
+    if (rawCv) sessionStorage.setItem(SS.cvbTailored, rawCv)
     sessionStorage.removeItem(SS.atsSuggestions)
-    router.push('/in/career-scan')
+    router.push('/in/career-scan?cv=tailored')
   }
 
   // ── Template definitions ──
@@ -1086,6 +1075,70 @@ ${atsSuggestions?.section_gaps?.length ? `- ATS SECTION GAPS to address: ${atsSu
     if (template === 'executive')   return <ExecutiveCV   cv={cvData} ac={t.ac} photo={photoUrl || undefined} />
     if (template === 'executive2')  return <ExecutiveV2CV cv={cvData} ac={t.ac} photo={photoUrl || undefined} />
     return <IndiaCV cv={cvData} ac={t.ac} />
+  }
+
+  function renderCvInput(mobile: boolean) {
+    const green = '#1D9E75'
+    const smallBtn: React.CSSProperties = { padding: '5px 10px', borderRadius: 7, border: '1px solid rgba(255,255,255,0.15)', background: 'transparent', color: 'rgba(255,255,255,0.6)', fontSize: 11, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }
+    const notice = cvNotice && (
+      <div style={{ marginTop: 8 }}>
+        {cvNotice.kind === 'ok'
+          ? <div style={{ fontSize: 11, color: green, display: 'flex', alignItems: 'center', gap: 6 }}><SvgIcon name="check-circle" size={13} color={green} />{cvNotice.text}</div>
+          : <FlowError compact message={cvNotice.text} />}
+      </div>
+    )
+
+    if (cvSource === 'saved') {
+      return (
+        <>
+          <div style={{ padding: '9px 10px', background: 'rgba(29,158,117,0.12)', border: '1px solid rgba(29,158,117,0.3)', borderRadius: 8 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <SvgIcon name="document" size={16} color={green} />
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: 11, fontWeight: 600, color: 'rgba(255,255,255,0.8)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {cvFileName ? `CV on file: ${cvFileName}` : 'Using your saved CV'}
+                </div>
+                {cvFileName && <div style={{ fontSize: 10, color: green, marginTop: 2 }}>Using your saved CV</div>}
+              </div>
+            </div>
+            <div style={{ display: 'flex', gap: 6, marginTop: 8 }}>
+              <button type="button" onClick={() => fileInputRef.current?.click()} disabled={fileLoading} style={{ ...smallBtn, flex: 1, cursor: fileLoading ? 'wait' : 'pointer' }}>
+                {fileLoading ? 'Reading your CV…' : 'Replace'}
+              </button>
+              <button type="button" onClick={removeSavedCv} style={{ ...smallBtn, flex: 1 }}>Remove</button>
+            </div>
+          </div>
+          {notice}
+        </>
+      )
+    }
+
+    return (
+      <>
+        {cvFileName && cvText ? (
+          <div style={{ padding: '7px 10px', background: 'rgba(29,158,117,0.12)', border: '1px solid rgba(29,158,117,0.3)', borderRadius: 8, display: 'flex', alignItems: 'center', gap: 8 }}>
+            <SvgIcon name="document" size={14} color={green} />
+            <span style={{ flex: 1, minWidth: 0, fontSize: 11, color: 'rgba(255,255,255,0.75)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{`CV on file: ${cvFileName}`}</span>
+            <button type="button" onClick={clearSessionCv} style={{ ...smallBtn, padding: '2px 8px', flexShrink: 0 }}>Remove</button>
+          </div>
+        ) : (
+          <div onClick={() => !fileLoading && fileInputRef.current?.click()} onDragOver={e => e.preventDefault()} onDrop={e => { e.preventDefault(); if (e.dataTransfer.files?.[0]) handleCvFile(e.dataTransfer.files[0]) }}
+            style={{ padding: mobile ? '14px 12px' : '16px 12px', border: '1.5px dashed rgba(255,255,255,0.18)', borderRadius: 9, cursor: fileLoading ? 'wait' : 'pointer', textAlign: 'center' }}>
+            {fileLoading
+              ? <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}><div style={{ width: 10, height: 10, borderRadius: '50%', border: '2px solid rgba(255,255,255,0.15)', borderTopColor: accent, animation: 'spin 0.7s linear infinite' }} />Reading your CV…</div>
+              : <><div style={{ marginBottom: 6, display: 'flex', justifyContent: 'center' }}><SvgIcon name="document" size={mobile ? 18 : 20} color="rgba(255,255,255,0.5)" /></div><div style={{ fontSize: 12, fontWeight: 600, color: 'rgba(255,255,255,0.7)' }}>Upload your CV</div><div style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)', marginTop: 3 }}>PDF, DOCX or TXT</div></>}
+          </div>
+        )}
+        <textarea value={cvDraft} onChange={e => onCvTextChange(e.target.value)} rows={cvText ? 3 : 4}
+          placeholder="…or paste your CV text here"
+          style={{ width: '100%', boxSizing: 'border-box', marginTop: 8, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 7, color: '#E6F1FB', fontSize: 11, padding: '7px 10px', resize: 'vertical', outline: 'none', fontFamily: 'inherit', lineHeight: 1.5 }} />
+        <label style={{ display: 'flex', gap: 7, alignItems: 'flex-start', fontSize: 10.5, color: 'rgba(255,255,255,0.5)', lineHeight: 1.4, cursor: 'pointer', marginTop: 6 }}>
+          <input type="checkbox" checked={saveConsent} onChange={e => onConsentChange(e.target.checked)} style={{ marginTop: 1, accentColor: accent, flexShrink: 0 }} />
+          <span>Save to my account for next time</span>
+        </label>
+        {notice}
+      </>
+    )
   }
 
   const canGenerate = !loading && !!cvText.trim() && canAfford
@@ -1221,13 +1274,13 @@ ${atsSuggestions?.section_gaps?.length ? `- ATS SECTION GAPS to address: ${atsSu
                   style={{ width: '100%', boxSizing: 'border-box', marginTop: 6, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 7, color: '#E6F1FB', fontSize: 12, padding: '8px 10px', resize: 'vertical', outline: 'none', fontFamily: 'inherit', lineHeight: 1.5 }} />
                 <button disabled={!manualTitle.trim()}
                   onClick={() => {
-                    const title = manualTitle.trim()
-                    if (!title) return
-                    const j = { job_title: title, employer_name: manualCompany.trim(), job_description: manualJd.trim() }
+                    if (!manualTitle.trim()) return
+                    const j = normalizeJob({ job_title: manualTitle, employer_name: manualCompany, job_description: manualJd, job_source: 'manual' })
+                    if (!j) return
                     setJob(j)
-                    setJobLabel(j.employer_name ? `${title} — ${j.employer_name}` : title)
-                    setJobDesc(j.job_description || '')
-                    sessionStorage.setItem(SS.cvbJob, JSON.stringify(j))
+                    setJobLabel(j.employer_name ? `${j.job_title} — ${j.employer_name}` : j.job_title)
+                    setJobDesc(j.job_description)
+                    writeJob(j)
                   }}
                   style={{ width: '100%', marginTop: 8, padding: '8px 0', borderRadius: 7, border: 'none', background: manualTitle.trim() ? accent : 'rgba(255,255,255,0.12)', color: '#fff', fontSize: 12, fontWeight: 700, cursor: manualTitle.trim() ? 'pointer' : 'default', fontFamily: 'inherit' }}>
                   Attach job
@@ -1236,19 +1289,7 @@ ${atsSuggestions?.section_gaps?.length ? `- ATS SECTION GAPS to address: ${atsSu
             )}
 
             <input ref={fileInputRef} type="file" accept=".pdf,.docx,.txt" style={{ display: 'none' }} onChange={e => e.target.files?.[0] && handleCvFile(e.target.files[0])} />
-            {!cvText ? (
-              <div onClick={() => fileInputRef.current?.click()} onDragOver={e => e.preventDefault()} onDrop={e => { e.preventDefault(); if (e.dataTransfer.files?.[0]) handleCvFile(e.dataTransfer.files[0]) }}
-                style={{ marginTop: 12, padding: '16px 12px', border: '1.5px dashed rgba(255,255,255,0.18)', borderRadius: 9, cursor: 'pointer', textAlign: 'center' }}>
-                {fileLoading
-                  ? <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}><div style={{ width: 10, height: 10, borderRadius: '50%', border: '2px solid rgba(255,255,255,0.15)', borderTopColor: accent, animation: 'spin 0.7s linear infinite' }} />Reading...</div>
-                  : <><div style={{ marginBottom: 6, display: 'flex', justifyContent: 'center' }}><SvgIcon name="document" size={20} color="rgba(255,255,255,0.5)" /></div><div style={{ fontSize: 12, fontWeight: 600, color: 'rgba(255,255,255,0.7)' }}>Upload your CV</div><div style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)', marginTop: 3 }}>PDF · DOCX · TXT</div></>}
-              </div>
-            ) : (
-              <div style={{ marginTop: 12, padding: '7px 10px', background: 'rgba(29,158,117,0.12)', border: '1px solid rgba(29,158,117,0.3)', borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6 }}>
-                <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.7)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' as const }}>✓ {cvFileName || 'CV loaded'}</span>
-                <button onClick={() => { setCvText(''); setCvFileName(''); if (originalFileUrl) URL.revokeObjectURL(originalFileUrl); setOriginalFileUrl(null); setCvData(null); setRawCv(''); setPreviewTab('generated'); if (fileInputRef.current) fileInputRef.current.value = ''; sessionStorage.removeItem(SS.cvbTailored); sessionStorage.removeItem(SS.cvbData); sessionStorage.removeItem(SS.cvText) }} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.35)', cursor: 'pointer', fontSize: 16, padding: 0, flexShrink: 0 }}>×</button>
-              </div>
-            )}
+            <div style={{ marginTop: 12 }}>{renderCvInput(false)}</div>
           </div>
 
           {/* ── Photo upload (used in Executive template) ── */}
@@ -1347,9 +1388,9 @@ ${atsSuggestions?.section_gaps?.length ? `- ATS SECTION GAPS to address: ${atsSu
           <div style={{ padding: '14px 16px', borderTop: '1px solid rgba(255,255,255,0.08)', flexShrink: 0 }}>
             {credits !== null && credits <= LOW_CREDIT_WARN && <div style={{ background: 'rgba(245,158,11,0.15)', border: '1px solid rgba(245,158,11,0.4)', borderRadius: 8, padding: '7px 10px', fontSize: 11, color: '#fcd34d', marginBottom: 8, lineHeight: 1.5 }}>{credits === 0 ? 'No credits left. Top up on Account page.' : `${credits} credit${credits === 1 ? '' : 's'} remaining.`}</div>}
             {generateError && (
-              <div style={{ marginBottom: 8, fontSize: 11, color: '#f87171', background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.25)', borderRadius: 6, padding: '7px 10px', lineHeight: 1.5 }}>
-                ⚠ {generateError.message}
-                {generateError.status === 402 && <> · <Link href="/in/account" style={{ color: '#f87171', fontWeight: 700 }}>Top up credits →</Link></>}
+              <div style={{ marginBottom: 8 }}>
+                <FlowError compact message={generateError.message}
+                  secondary={generateError.status === 402 ? { label: 'Top up credits', href: '/in/account' } : undefined} />
               </div>
             )}
             <button className="cvb-gen" onClick={handleGenerate} disabled={!canGenerate}
@@ -1375,8 +1416,7 @@ ${atsSuggestions?.section_gaps?.length ? `- ATS SECTION GAPS to address: ${atsSu
           {/* Mobile settings panel */}
           {mobOpen && (
             <div className="jl-mob" style={{ background: 'linear-gradient(180deg, #152233 0%, #0e1a28 100%)', borderBottom: '1px solid rgba(255,255,255,0.1)', flexDirection: 'column', overflowY: 'auto', maxHeight: '65vh', padding: '16px', gap: 14, flexShrink: 0 }}>
-              {!cvText && <div onClick={() => fileInputRef.current?.click()} style={{ padding: '14px 12px', border: '1.5px dashed rgba(255,255,255,0.18)', borderRadius: 9, cursor: 'pointer', textAlign: 'center' }}><div style={{ marginBottom: 4, display: 'flex', justifyContent: 'center' }}><SvgIcon name="document" size={18} color="rgba(255,255,255,0.5)" /></div><div style={{ fontSize: 12, fontWeight: 600, color: 'rgba(255,255,255,0.7)' }}>{fileLoading ? 'Reading...' : 'Upload your CV'}</div><div style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)', marginTop: 2 }}>PDF · DOCX · TXT</div></div>}
-              {cvText && cvFileName && <div style={{ padding: '7px 10px', background: 'rgba(29,158,117,0.12)', border: '1px solid rgba(29,158,117,0.3)', borderRadius: 8, fontSize: 10, color: 'rgba(255,255,255,0.7)' }}>✓ {cvFileName}</div>}
+              <div>{renderCvInput(true)}</div>
               {/* Mobile photo upload */}
               <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 10px', background: 'rgba(255,255,255,0.04)', borderRadius: 8, border: '1px solid rgba(255,255,255,0.08)' }}>
                 {photoUrl ? (
@@ -1429,9 +1469,15 @@ ${atsSuggestions?.section_gaps?.length ? `- ATS SECTION GAPS to address: ${atsSu
           </div>
 
           {generateError && (
-            <div style={{ margin: '12px 20px 0', fontSize: 12, color: '#f87171', background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.25)', borderRadius: 8, padding: '8px 12px', lineHeight: 1.5, flexShrink: 0 }}>
-              ⚠ {generateError.message}
-              {generateError.status === 402 && <> · <Link href="/in/account" style={{ color: '#f87171', fontWeight: 700 }}>Top up credits →</Link></>}
+            <div style={{ margin: '12px 20px 0', flexShrink: 0 }}>
+              <FlowError message={generateError.message}
+                onRetry={generateError.status === 402 || !cvText.trim() ? undefined : handleGenerate}
+                secondary={generateError.status === 402 ? { label: 'Top up credits', href: '/in/account' } : undefined} />
+            </div>
+          )}
+          {downloadError && (
+            <div style={{ margin: '12px 20px 0', flexShrink: 0 }}>
+              <FlowError compact message={downloadError} />
             </div>
           )}
 
@@ -1606,9 +1652,9 @@ ${atsSuggestions?.section_gaps?.length ? `- ATS SECTION GAPS to address: ${atsSu
                   <textarea value={feedback} onChange={e => setFeedback(e.target.value)} placeholder="e.g. Make the summary shorter, highlight technical skills more…" rows={2}
                     style={{ width: '100%', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 7, color: '#E6F1FB', fontSize: 12, padding: '8px 10px', resize: 'vertical' as const, fontFamily: "'DM Sans', sans-serif", outline: 'none', boxSizing: 'border-box' as const }} />
                   {feedbackError && (
-                    <div style={{ marginTop: 8, fontSize: 11, color: '#f87171', background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.25)', borderRadius: 6, padding: '7px 10px', lineHeight: 1.5 }}>
-                      ⚠ {feedbackError.message}
-                      {feedbackError.status === 402 && <> · <Link href="/in/account" style={{ color: '#f87171', fontWeight: 700 }}>Top up credits →</Link></>}
+                    <div style={{ marginTop: 8 }}>
+                      <FlowError compact message={feedbackError.message}
+                        secondary={feedbackError.status === 402 ? { label: 'Top up credits', href: '/in/account' } : undefined} />
                     </div>
                   )}
                   <button onClick={handleApplyFeedback} disabled={!canApplyChange}

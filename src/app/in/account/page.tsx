@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase'
-import { API, CREDIT_COST, AI_CHAT_FREE_MESSAGES } from '@/lib/constants'
+import { API, CREDIT_COST, AI_CHAT_FREE_MESSAGES, SS } from '@/lib/constants'
 import SvgIcon, { getIcon } from '@/components/SvgIcon'
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -432,7 +432,7 @@ export default function IndiaAccountPage() {
                     <button onClick={async () => {
                       setDeletingKiraData(true)
                       await fetch('/api/profile/career', { method: 'DELETE' })
-                      ;['jl_cv_text', 'jl_scan_result'].forEach(k => sessionStorage.removeItem(k))
+                      ;[SS.cvText, SS.sjsCvName, SS.scanResult, SS.inCareerScanResult].forEach(k => sessionStorage.removeItem(k))
                       localStorage.removeItem('jl_cv_consent')
                       localStorage.removeItem('jl_ai_messages')
                       setDeletingKiraData(false)

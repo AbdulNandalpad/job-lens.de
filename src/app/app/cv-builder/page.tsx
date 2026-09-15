@@ -2,75 +2,31 @@
 
 import React, { useState, useEffect, useLayoutEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
-import Link from 'next/link'
 import Navbar from '../components/Navbar'
 import { useCredits } from '@/lib/useCredits'
-import { useSavedCv } from '@/lib/useSavedCv'
+import { useCurrentCv } from '@/lib/useCurrentCv'
 import { useLanguage } from '@/lib/i18n'
 import CrossMarketModal from '@/components/CrossMarketModal'
 import SkillGapModal from '@/components/SkillGapModal'
+import FlowError from '@/components/FlowError'
 import { CREDIT_COST, LOW_CREDIT_WARN, MARKET, SS, API, BUNDLE } from '@/lib/constants'
 import type { BundleState } from '@/lib/pricingCore'
+import { type CVData, parseCvJson } from '@/lib/cv'
+import { type JobRef, readJob, writeJob, normalizeJob } from '@/lib/job'
+import { readJsonOrError } from '@/lib/apiError'
+import { c } from '@/lib/theme'
 import SvgIcon from '@/components/SvgIcon'
 
 type Template = 'executive' | 'modern' | 'minimal' | 'technical'
 type Tone = 'professional' | 'concise' | 'detailed'
 type Lang = 'EN' | 'DE'
 
-interface CVData {
-  name: string
-  title: string
-  tagline: string
-  email: string
-  phone: string
-  location: string
-  linkedin: string
-  summary: string
-  stats: { label: string; value: string }[]
-  skills: { name: string; level: number }[]
-  experience: {
-    role: string
-    company: string
-    period: string
-    location: string
-    type: string
-    bullets: string[]
-  }[]
-  education: { degree: string; school: string; year: string }[]
-  certifications: string[]
-  languages: { name: string; level: number }[]
-  tools: string[]
-  highlights: string[]
-  matchGaps: { requirement: string; missing: string; workaround: string; idealAddition: string }[]
-}
-
-const EMPTY_CV: CVData = {
-  name: '', title: '', tagline: '', email: '', phone: '', location: '', linkedin: '',
-  summary: '', stats: [], skills: [], experience: [], education: [],
-  certifications: [], languages: [], tools: [], highlights: [], matchGaps: []
-}
-
-function normalizeCv(data: Partial<CVData>): CVData {
-  const sa = <T,>(v: unknown): T[] => Array.isArray(v) ? v as T[] : []
-  return {
-    ...EMPTY_CV,
-    ...data,
-    name:           typeof data.name    === 'string' ? data.name    : '',
-    title:          typeof data.title   === 'string' ? data.title   : '',
-    summary:        typeof data.summary === 'string' ? data.summary : '',
-    stats:          sa(data.stats),
-    skills:         sa(data.skills),
-    certifications: sa(data.certifications),
-    languages:      sa(data.languages),
-    tools:          sa(data.tools),
-    highlights:     sa(data.highlights),
-    matchGaps:      sa(data.matchGaps),
-    education:      sa(data.education),
-    experience:     sa(data.experience).map((raw) => {
-      const e = raw as Partial<CVData['experience'][0]>
-      return { role: '', company: '', period: '', location: '', type: '', ...e, bullets: Array.isArray(e?.bullets) ? e.bullets! : [] }
-    }),
-  }
+interface TailorCvResponse {
+  cv?: string
+  enhanced?: string
+  result?: string
+  creditsRemaining?: number
+  pricing?: { bundle?: BundleState; admin?: boolean }
 }
 
 // -- TEMPLATE RENDERERS ------------------------------------------------------
@@ -749,10 +705,11 @@ export default function CVBuilderPage() {
   const [mobileScale, setMobileScale] = useState(1)
   const [photoUrl, setPhotoUrl] = useState('')
 
-  const [cvText, setCvText] = useState('')
-  const [cvFileName, setCvFileName] = useState('')
+  const { cvText, fileName: cvFileName, source: cvSource, rememberedConsent, setCv, clearCv, extractFile } = useCurrentCv()
+  const [saveConsent, setSaveConsent] = useState(false)
+  const [cvNotice, setCvNotice] = useState<{ kind: 'ok' | 'error'; text: string } | null>(null)
   const [fileLoading, setFileLoading] = useState(false)
-  const [job, setJob] = useState<{ job_title: string; employer_name: string; job_description?: string; job_apply_link?: string } | null>(null)
+  const [job, setJob] = useState<JobRef | null>(null)
   const [jobLabel, setJobLabel] = useState('')
   const [jobDesc, setJobDesc] = useState('')        // editable full job description
   const [jobDescOpen, setJobDescOpen] = useState(false)
@@ -775,15 +732,22 @@ export default function CVBuilderPage() {
   const [feedback, setFeedback] = useState('')
   const [applyingFeedback, setApplyingFeedback] = useState(false)
   const [feedbackError, setFeedbackError] = useState<string | null>(null)
+  const [feedbackErrorStatus, setFeedbackErrorStatus] = useState(0)
   const [feedbackSuccess, setFeedbackSuccess] = useState(false)
   const [generateError, setGenerateError] = useState<{ message: string; status: number } | null>(null)
   const [showClearCvConfirm, setShowClearCvConfirm] = useState(false)
   const [previewTab, setPreviewTab] = useState<'original' | 'generated'>('generated')
   const [originalFileUrl, setOriginalFileUrl] = useState<string | null>(null)
   const [originalFileIsPdf, setOriginalFileIsPdf] = useState(true)
-  const [usingSavedCv, setUsingSavedCv] = useState(false)   // true when the CV came from "Use my saved CV", not a fresh upload — no original file bytes exist to preview
+  const [downloadError, setDownloadError] = useState<string | null>(null)
+  // The account CV is stored as text only — no original file bytes exist to preview
+  const usingSavedCv = cvSource === 'saved'
+  const cvChipBtn: React.CSSProperties = {
+    flex: 1, padding: '6px 10px', borderRadius: 8, border: '1px solid rgba(255,255,255,0.2)',
+    background: 'rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.85)', fontSize: 11, fontWeight: 600,
+    cursor: 'pointer', fontFamily: 'inherit',
+  }
   const { credits, setCredits, needsCrossMarket, crossMarketAmount } = useCredits()
-  const { hasCv: hasSavedCv, cvText: savedCvText, fileName: savedCvFileName, loadingSavedCv } = useSavedCv()
   const CV_COST = CREDIT_COST.tailorCv
   // Server-decided package state for the current job (src/lib/pricing.ts) — display only; the route re-derives it on every call
   const [pricing, setPricing] = useState<{ bundle: BundleState; admin: boolean } | null>(null)
@@ -810,114 +774,103 @@ export default function CVBuilderPage() {
     r.readAsDataURL(file)
   }
 
-  function clearCvAndPreview() {
-    setCvText('')
-    setCvFileName('')
+  // Clears this page's own results only (tailored CV + preview); the shared CV is a separate, explicit action.
+  function clearPreviewResults() {
     setCvData(null)
     setRawCv('')
     setFeedback('')
     setFeedbackError(null)
     setFeedbackSuccess(false)
-    if (originalFileUrl) URL.revokeObjectURL(originalFileUrl)
-    setOriginalFileUrl(null)
-    setUsingSavedCv(false)
     setPreviewTab('generated')
-    if (fileInputRef.current) fileInputRef.current.value = ''
     sessionStorage.removeItem(SS.cvbTailored)
     sessionStorage.removeItem(SS.cvbData)
-    sessionStorage.removeItem(SS.cvText)
+  }
+
+  // Session upload → clearCv() falls back to the account CV (if any). For the account CV itself,
+  // clearCv() would re-adopt it at once, so "Remove" detaches it for this session via an empty session CV.
+  function removeCurrentCv() {
+    if (cvSource === 'saved') void setCv('', '')
+    else clearCv()
+    setCvNotice(null)
+    setOriginalFileUrl(null)
+    if (fileInputRef.current) fileInputRef.current.value = ''
+  }
+
+  function clearCvAndPreview() {
+    clearPreviewResults()
+    removeCurrentCv()
     setShowClearCvConfirm(false)
   }
 
-  async function handleCvFile(file: File) {
-    setCvFileName(file.name)
-    setCvText('')
-    setFileLoading(true)
-    // Capture the original file as a browser object URL for the before/after view
-    if (originalFileUrl) URL.revokeObjectURL(originalFileUrl)
-    setOriginalFileUrl(URL.createObjectURL(file))
-    setOriginalFileIsPdf(file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf'))
-    setUsingSavedCv(false)
-    if (file.name.endsWith('.txt') || file.type === 'text/plain') {
-      const r = new FileReader()
-      r.onload = e => {
-        const text = (e.target?.result as string) ?? ''
-        setCvText(text)
-        sessionStorage.setItem(SS.cvText, text)
-        setFileLoading(false)
-      }
-      r.readAsText(file)
-    } else {
-      const form = new FormData()
-      form.append('file', file)
-      try {
-        const res = await fetch(API.extractPdf, { method: 'POST', body: form })
-        const data = await res.json()
-        if (data.text) {
-          setCvText(data.text)
-          sessionStorage.setItem(SS.cvText, data.text)
-        } else {
-          alert(data.error || 'Could not read file. Try a different format.')
-          setCvFileName('')
-        }
-      } catch { alert('Failed to read file. Please try again.'); setCvFileName('') }
-      setFileLoading(false)
-    }
+  function showSaveOutcome(out: { saved: boolean; error?: string }) {
+    setCvNotice(out.saved ? { kind: 'ok', text: t.cv.saved } : { kind: 'error', text: t.cv.saveFailed(out.error || '') })
   }
 
-  function useSavedCvNow() {
-    if (!savedCvText) return
-    const name = savedCvFileName || (lang === 'DE' ? 'Gespeicherter Lebenslauf' : 'Saved CV')
-    setCvText(savedCvText)
-    setCvFileName(name)
-    sessionStorage.setItem(SS.cvText, savedCvText)
-    // Build an object URL for the saved text so the original/generated preview
-    // toggle keeps working, same as a fresh upload does.
-    if (originalFileUrl) URL.revokeObjectURL(originalFileUrl)
-    const blob = new Blob([savedCvText], { type: 'text/plain' })
-    setOriginalFileUrl(URL.createObjectURL(blob))
-    setOriginalFileIsPdf(false)
-    setUsingSavedCv(true)
+  async function handleCvFile(file: File) {
+    setCvNotice(null)
+    setFileLoading(true)
+    const extracted = await extractFile(file)
+    if ('error' in extracted) {
+      setCvNotice({ kind: 'error', text: extracted.error })
+    } else if (extracted.text.trim().length < 50) {
+      setCvNotice({ kind: 'error', text: t.cv.tooShort })
+    } else {
+      // Keep the original file as an object URL for the before/after view
+      setOriginalFileUrl(URL.createObjectURL(file))
+      setOriginalFileIsPdf(file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf'))
+      const out = await setCv(extracted.text, file.name, { saveToAccount: saveConsent })
+      if (saveConsent) showSaveOutcome(out)
+    }
+    setFileLoading(false)
+    if (fileInputRef.current) fileInputRef.current.value = ''
+  }
+
+  // Ticking the box after an upload saves the CV that is already here — the tick is the consent.
+  async function onConsentChange(checked: boolean) {
+    setSaveConsent(checked)
+    if (!checked || cvSource !== 'session' || !cvText.trim()) return
+    showSaveOutcome(await setCv(cvText, cvFileName, { saveToAccount: true }))
   }
 
   function toggleSection(id: string) {
     setOpenSections(prev => ({ ...prev, [id]: !prev[id] }))
   }
 
+  useEffect(() => { setSaveConsent(rememberedConsent) }, [rememberedConsent])
+
   // Revoke objectURL when a new file is uploaded or component unmounts — prevents memory leak
   useEffect(() => {
     return () => { if (originalFileUrl) URL.revokeObjectURL(originalFileUrl) }
   }, [originalFileUrl])
 
+  // The account CV has no file bytes; a text blob keeps the original/generated toggle working like an upload does
   useEffect(() => {
-    const cv = sessionStorage.getItem(SS.sjsCvText) || sessionStorage.getItem(SS.cvText) || ''
-    const jobRaw = sessionStorage.getItem(SS.cvbJob)
+    if (cvSource !== 'saved' || !cvText) return
+    setOriginalFileUrl(URL.createObjectURL(new Blob([cvText], { type: 'text/plain' })))
+    setOriginalFileIsPdf(false)
+  }, [cvSource, cvText])
+
+  useEffect(() => {
+    const savedJob = readJob()
     const savedRole = sessionStorage.getItem(SS.sjsTargetRole) || ''
-    setCvText(cv)
-    if (jobRaw) {
-      try {
-        const parsed = JSON.parse(jobRaw)
-        setJob(parsed)
-        setJobLabel(`${parsed.employer_name} - ${parsed.job_title}`)
-        setJobDesc(parsed.job_description || '')
-      } catch { }
+    if (savedJob) {
+      setJob(savedJob)
+      setJobLabel(`${savedJob.employer_name} - ${savedJob.job_title}`)
+      setJobDesc(savedJob.job_description || '')
     } else if (savedRole) {
       setJobLabel(savedRole)
     }
-    // restore saved cv
+    // restore this page's last result
     const saved = sessionStorage.getItem(SS.cvbTailored)
-    const savedData = sessionStorage.getItem(SS.cvbData)
+    const savedData = parseCvJson(sessionStorage.getItem(SS.cvbData))
     if (saved) setRawCv(saved)
-    if (savedData) { try { setCvData(normalizeCv(JSON.parse(savedData))) } catch { } }
+    if (savedData) setCvData(savedData)
   }, [])
 
-  // Sync enriched jobDesc back to sessionStorage so cover letter always gets the full JD
+  // Sync enriched jobDesc back to the shared job so cover letter always gets the full JD
   useEffect(() => {
     if (!job || !jobDesc) return
-    try {
-      const updated = { ...job, job_description: jobDesc }
-      sessionStorage.setItem(SS.cvbJob, JSON.stringify(updated))
-    } catch { }
+    writeJob({ ...job, job_description: jobDesc })
   }, [jobDesc, job])
 
   // Ask the server what this job costs right now (mount + whenever the job identity changes); on failure the copy falls back to "charged"
@@ -995,25 +948,24 @@ export default function CVBuilderPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ cvText, job: effJob, template, tone, pages, lang, confirmedSkills, returnJson: true }),
       })
-      const data = await res.json().catch(() => ({}))
-      absorbPricing(data)
-      if (!res.ok) {
+      const out = await readJsonOrError<TailorCvResponse>(res)
+      absorbPricing(out.data as TailorCvResponse | null)
+      if (!out.ok) {
         // Server already refunded on failure — keep the previous tailored CV on screen
-        if (res.status === 402 && typeof data.credits === 'number') setCredits(data.credits)
-        setGenerateError({ message: data.error || t.common.requestFailed(res.status), status: res.status })
+        if (out.status === 402 && typeof out.credits === 'number') setCredits(out.credits)
+        setGenerateError({ message: out.message, status: out.status })
         return
       }
+      const data = out.data
       if (typeof data.creditsRemaining === 'number') setCredits(data.creditsRemaining)
       const raw = data.cv || data.enhanced || data.result || ''
-      if (!raw) { setGenerateError({ message: t.common.requestFailed(res.status), status: res.status }); return }
+      const parsed = parseCvJson(raw)
+      if (!raw || !parsed) { setGenerateError({ message: t.common.requestFailed(out.status), status: out.status }); return }
       setRawCv(raw)
+      setCvData(parsed)
+      setPreviewTab('generated')
       sessionStorage.setItem(SS.cvbTailored, raw)
-      try {
-        const parsed = normalizeCv(JSON.parse(raw.replace(/```json|```/g, '').trim()))
-        setCvData(parsed)
-        setPreviewTab('generated')
-        sessionStorage.setItem(SS.cvbData, JSON.stringify(parsed))
-      } catch { setCvData(null) }
+      sessionStorage.setItem(SS.cvbData, JSON.stringify(parsed))
     } catch {
       setGenerateError({ message: t.common.networkError, status: 0 })
     } finally {
@@ -1062,9 +1014,10 @@ export default function CVBuilderPage() {
 
   async function applyFeedback() {
     if (!feedback.trim() || !rawCv) return
-    if (changeBlocked) { setFeedbackError(t.coverLetter.sidebar.needCredits(CV_COST, credits ?? 0)); return }
+    if (changeBlocked) { setFeedbackError(t.coverLetter.sidebar.needCredits(CV_COST, credits ?? 0)); setFeedbackErrorStatus(402); return }
     setApplyingFeedback(true)
     setFeedbackError(null)
+    setFeedbackErrorStatus(0)
     setFeedbackSuccess(false)
 
     try {
@@ -1078,28 +1031,18 @@ export default function CVBuilderPage() {
           market: MARKET.eu,
         }),
       })
-      const data = await res.json().catch(() => ({}))
-      absorbPricing(data)
+      const out = await readJsonOrError<TailorCvResponse>(res)
+      absorbPricing(out.data as TailorCvResponse | null)
 
-      if (res.status === 401) {
-        setFeedbackError(lang === 'DE' ? 'Bitte melde dich erneut an.' : 'Session expired — please sign in again.')
-        setApplyingFeedback(false)
-        return
-      }
-      if (res.status === 402) {
-        if (typeof data.credits === 'number') setCredits(data.credits)
-        setFeedbackError(data.error || t.coverLetter.sidebar.needCredits(CV_COST, credits ?? 0))
-        setApplyingFeedback(false)
-        return
-      }
-      if (!res.ok) {
-        const msg = (data as { error?: string }).error || `Server error (${res.status})`
-        setFeedbackError(lang === 'DE' ? `Fehler vom Server: ${msg}` : `Server error: ${msg}`)
-        console.error('[applyFeedback] API error:', res.status, msg)
+      if (!out.ok) {
+        if (out.status === 402 && typeof out.credits === 'number') setCredits(out.credits)
+        setFeedbackError(out.message)
+        setFeedbackErrorStatus(out.status)
         setApplyingFeedback(false)
         return
       }
 
+      const data = out.data
       if (typeof data.creditsRemaining === 'number') setCredits(data.creditsRemaining)
       const raw: string = data.cv || ''
 
@@ -1111,24 +1054,7 @@ export default function CVBuilderPage() {
         return
       }
 
-      // Robust JSON extraction — Claude occasionally wraps output in markdown
-      let parsed: CVData | null = null
-      let parseErrMsg = ''
-      try {
-        let jsonStr = raw.trim()
-        // Strip markdown code fences (```json … ``` or ``` … ```)
-        jsonStr = jsonStr.replace(/^```(?:json)?\s*/im, '').replace(/\s*```\s*$/im, '').trim()
-        // Find outermost JSON object in case of leading/trailing prose
-        const jsonStart = jsonStr.indexOf('{')
-        const jsonEnd   = jsonStr.lastIndexOf('}')
-        if (jsonStart !== -1 && jsonEnd !== -1 && jsonEnd > jsonStart) {
-          jsonStr = jsonStr.slice(jsonStart, jsonEnd + 1)
-        }
-        parsed = normalizeCv(JSON.parse(jsonStr))
-      } catch (e) {
-        parseErrMsg = e instanceof Error ? e.message : String(e)
-        console.error('[applyFeedback] JSON parse failed:', parseErrMsg, '\nRaw snippet:', raw.slice(0, 300))
-      }
+      const parsed = parseCvJson(raw)
 
       if (parsed) {
         setCvData(parsed)
@@ -1142,15 +1068,14 @@ export default function CVBuilderPage() {
         // AI processed the request but response wasn't valid JSON — tell user exactly why
         setFeedbackError(
           lang === 'DE'
-            ? `Änderungen wurden verarbeitet, konnten aber nicht dargestellt werden (Parse-Fehler: ${parseErrMsg}). Versuche es mit einer anderen Formulierung oder generiere den CV neu.`
-            : `Changes processed but couldn't be rendered (parse error: ${parseErrMsg}). Try rephrasing your request or regenerate the CV.`
+            ? 'Änderungen wurden verarbeitet, konnten aber nicht dargestellt werden. Versuche es mit einer anderen Formulierung oder generiere den CV neu.'
+            : "Changes processed but couldn't be rendered. Try rephrasing your request or regenerate the CV."
         )
       }
 
     } catch (networkErr) {
-      const msg = networkErr instanceof Error ? networkErr.message : 'Unknown network error'
-      setFeedbackError(lang === 'DE' ? `Verbindungsfehler: ${msg}` : `Connection error: ${msg}`)
       console.error('[applyFeedback] Network error:', networkErr)
+      setFeedbackError(t.common.networkError)
     }
 
     setApplyingFeedback(false)
@@ -1161,6 +1086,7 @@ export default function CVBuilderPage() {
   async function downloadPDF() {
     if (!cvData) return
     setDownloading('pdf')
+    setDownloadError(null)
     try {
       const res = await fetch(API.cvPdf, {
         method: 'POST',
@@ -1180,7 +1106,7 @@ export default function CVBuilderPage() {
       URL.revokeObjectURL(url)
     } catch (err) {
       console.error('PDF error:', err)
-      alert('PDF generation failed. Please try again.')
+      setDownloadError(lang === 'DE' ? 'PDF konnte nicht erstellt werden. Bitte erneut versuchen.' : 'PDF generation failed. Please try again.')
     }
     setDownloading(null)
   }
@@ -1361,13 +1287,13 @@ export default function CVBuilderPage() {
       URL.revokeObjectURL(url)
     } catch (err) {
       console.error('DOCX error:', err)
-      alert('DOCX generation failed. Please try again.')
+      setDownloadError(lang === 'DE' ? 'DOCX konnte nicht erstellt werden. Bitte erneut versuchen.' : 'DOCX generation failed. Please try again.')
     }
     setDownloading(null)
   }
 
   function goToCoverLetter() {
-    sessionStorage.setItem(SS.cvbTailored, rawCv)
+    if (rawCv) sessionStorage.setItem(SS.cvbTailored, rawCv)
     router.push('/app/cover-letter')
   }
 
@@ -1589,11 +1515,12 @@ export default function CVBuilderPage() {
                   onClick={() => {
                     const title = manualTitle.trim()
                     if (!title) return
-                    const j = { job_title: title, employer_name: manualCompany.trim(), job_description: manualJd.trim() }
+                    const j = normalizeJob({ job_title: title, employer_name: manualCompany.trim(), job_description: manualJd.trim(), job_source: 'manual' })
+                    if (!j) return
                     setJob(j)
-                    setJobLabel(j.employer_name ? `${title} — ${j.employer_name}` : title)
-                    setJobDesc(j.job_description || '')
-                    sessionStorage.setItem(SS.cvbJob, JSON.stringify(j))
+                    setJobLabel(j.employer_name ? `${j.job_title} — ${j.employer_name}` : j.job_title)
+                    setJobDesc(j.job_description)
+                    writeJob(j)
                   }}
                   style={{ width: '100%', marginTop: 8, padding: '8px 0', borderRadius: 7, border: 'none', background: manualTitle.trim() ? currentAccent : 'rgba(255,255,255,0.12)', color: '#fff', fontSize: 12, fontWeight: 700, cursor: manualTitle.trim() ? 'pointer' : 'default', fontFamily: 'inherit' }}>
                   {lang === 'DE' ? 'Stelle anhängen' : 'Attach job'}
@@ -1602,14 +1529,27 @@ export default function CVBuilderPage() {
             )}
             <input ref={fileInputRef} type="file" accept=".pdf,.docx,.txt" style={{ display: 'none' }}
               onChange={e => e.target.files?.[0] && handleCvFile(e.target.files[0])} />
-            {!cvText && !loadingSavedCv && hasSavedCv && (
-              <button onClick={useSavedCvNow}
-                style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 12, padding: '10px 12px', borderRadius: 8, border: '1px solid rgba(55,138,221,0.4)', background: 'rgba(55,138,221,0.12)', color: '#85B7EB', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left' as const, width: '100%' }}>
-                <span style={{ fontSize: 14 }}>📄</span>
-                {lang === 'DE' ? `Gespeicherten Lebenslauf verwenden${savedCvFileName ? ` (${savedCvFileName})` : ''}` : `Use my saved CV${savedCvFileName ? ` (${savedCvFileName})` : ''}`}
-              </button>
-            )}
-            {!cvText ? (
+            {cvSource === 'saved' && cvText ? (
+              <div style={{ marginTop: 12, padding: '10px 12px', background: 'rgba(29,158,117,0.12)', border: `1px solid ${c.success}`, borderRadius: 8 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <SvgIcon name="document" size={16} color={c.success} />
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: 12, fontWeight: 600, color: c.success, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' as const }}>
+                      {cvFileName ? t.cv.onFile(cvFileName) : t.cv.usingSaved}
+                    </div>
+                    {cvFileName && <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.5)', marginTop: 2 }}>{t.cv.usingSaved}</div>}
+                  </div>
+                </div>
+                <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
+                  <button type="button" onClick={() => fileInputRef.current?.click()} disabled={fileLoading} style={cvChipBtn}>
+                    {fileLoading ? t.cv.reading : t.cv.replace}
+                  </button>
+                  <button type="button" onClick={() => { if (cvData) setShowClearCvConfirm(true); else removeCurrentCv() }} style={cvChipBtn}>
+                    {t.cv.remove}
+                  </button>
+                </div>
+              </div>
+            ) : !cvText ? (
               <div onClick={() => fileInputRef.current?.click()}
                 onDragOver={e => e.preventDefault()}
                 onDrop={e => { e.preventDefault(); if (e.dataTransfer.files?.[0]) handleCvFile(e.dataTransfer.files[0]) }}
@@ -1637,10 +1577,24 @@ export default function CVBuilderPage() {
                     if (cvData) {
                       setShowClearCvConfirm(true)
                     } else {
-                      setCvText(''); setCvFileName(''); if (fileInputRef.current) fileInputRef.current.value = ''
+                      removeCurrentCv()
                     }
                   }}
+                  aria-label={t.cv.remove}
                   style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.35)', cursor: 'pointer', fontSize: 16, padding: 0, flexShrink: 0, lineHeight: 1 }}>×</button>
+              </div>
+            )}
+            {cvSource !== 'saved' && (
+              <label style={{ display: 'flex', gap: 8, alignItems: 'flex-start', marginTop: 8, fontSize: 10.5, color: 'rgba(255,255,255,0.55)', lineHeight: 1.4, cursor: 'pointer' }}>
+                <input type="checkbox" checked={saveConsent} onChange={e => onConsentChange(e.target.checked)} style={{ marginTop: 1, accentColor: c.accent, flexShrink: 0 }} />
+                <span>{t.cv.saveToAccount}</span>
+              </label>
+            )}
+            {cvNotice && (
+              <div style={{ marginTop: 8 }}>
+                {cvNotice.kind === 'ok'
+                  ? <div style={{ fontSize: 11, color: c.success, display: 'flex', alignItems: 'center', gap: 6 }}><SvgIcon name="check-circle" size={13} color={c.success} />{cvNotice.text}</div>
+                  : <FlowError compact message={cvNotice.text} />}
               </div>
             )}
           </div>
@@ -1849,9 +1803,9 @@ export default function CVBuilderPage() {
               </div>
             )}
             {generateError && (
-              <div style={{ marginBottom: 8, fontSize: 11, color: '#f87171', background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.25)', borderRadius: 6, padding: '7px 10px', lineHeight: 1.5 }}>
-                ⚠ {generateError.message}
-                {generateError.status === 402 && <> · <Link href="/app/account" style={{ color: '#f87171', fontWeight: 700 }}>{t.common.topUp}</Link></>}
+              <div style={{ marginBottom: 8 }}>
+                <FlowError compact message={generateError.message}
+                  secondary={generateError.status === 402 ? { label: t.common.topUp, href: '/app/account' } : undefined} />
               </div>
             )}
             <button className="cvb-gen" onClick={handleGenerate} disabled={loading || !cvText.trim() || cannotAffordCv}
@@ -1897,10 +1851,16 @@ export default function CVBuilderPage() {
             )}
           </div>
 
+          {downloadError && (
+            <div style={{ margin: '12px 24px 0', flexShrink: 0 }}>
+              <FlowError compact message={downloadError} onRetry={downloadPDF} retryLabel={t.common.tryAgain} />
+            </div>
+          )}
+
           {generateError && (
-            <div style={{ margin: '12px 24px 0', fontSize: 12, color: '#f87171', background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.25)', borderRadius: 8, padding: '8px 12px', lineHeight: 1.5, flexShrink: 0 }}>
-              ⚠ {generateError.message}
-              {generateError.status === 402 && <> · <Link href="/app/account" style={{ color: '#f87171', fontWeight: 700 }}>{t.common.topUp}</Link></>}
+            <div style={{ margin: '12px 24px 0', flexShrink: 0 }}>
+              <FlowError message={generateError.message} onRetry={handleGenerate} retryLabel={t.common.tryAgain}
+                secondary={generateError.status === 402 ? { label: t.common.topUp, href: '/app/account' } : undefined} />
             </div>
           )}
 
@@ -2151,8 +2111,9 @@ export default function CVBuilderPage() {
                   />
                   {/* Error message */}
                   {feedbackError && (
-                    <div style={{ marginTop: 6, fontSize: 11, color: '#f87171', background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.25)', borderRadius: 6, padding: '7px 10px', lineHeight: 1.5 }}>
-                      ⚠ {feedbackError}
+                    <div style={{ marginTop: 6 }}>
+                      <FlowError compact message={feedbackError}
+                        secondary={feedbackErrorStatus === 402 ? { label: t.common.topUp, href: '/app/account' } : undefined} />
                     </div>
                   )}
                   {/* Success message */}

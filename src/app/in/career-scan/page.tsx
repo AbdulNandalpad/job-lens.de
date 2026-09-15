@@ -3,7 +3,12 @@
 import { useState, useRef, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useCredits } from '@/lib/useCredits'
+import { useCurrentCv } from '@/lib/useCurrentCv'
+import { readJob } from '@/lib/job'
+import { cvTextFromTailored } from '@/lib/cv'
+import { readJsonOrError, toUserMessage } from '@/lib/apiError'
 import CrossMarketModal from '@/components/CrossMarketModal'
+import FlowError from '@/components/FlowError'
 import { CREDIT_COST, MARKET, SS, API } from '@/lib/constants'
 import SvgIcon from '@/components/SvgIcon'
 import CareerCard from '@/components/CareerCard'
@@ -91,7 +96,12 @@ function readinessBadge(r: string) {
 
 export default function IndiaCareerScanPage() {
   const router = useRouter()
-  const [cvText, setCvText] = useState('')
+  const { cvText, fileName, source: cvSource, rememberedConsent, setCv, clearCv, extractFile } = useCurrentCv()
+  // Textarea buffer: setCv() trims, which would eat a trailing newline mid-edit — the hook's cvText stays the truth.
+  const [cvDraft, setCvDraft] = useState('')
+  const [saveConsent, setSaveConsent] = useState(false)
+  const [cvNotice, setCvNotice] = useState<{ kind: 'ok' | 'error'; text: string } | null>(null)
+  const [scanError, setScanError] = useState<{ message: string; topUp?: boolean } | null>(null)
   const [jdText, setJdText] = useState('')
   const [result, setResult] = useState<ATSResult | null>(null)
   const [loading, setLoading] = useState(false)
@@ -104,49 +114,73 @@ export default function IndiaCareerScanPage() {
   const COST = CREDIT_COST.careerScan
   const [crossWarnPending, setCrossWarnPending] = useState<(() => void) | null>(null)
   const [jobFromSearch, setJobFromSearch] = useState<{ title: string; employer: string } | null>(null)
+  // Set only when arriving from the CV Builder's "ATS Check": scan the generated CV without replacing the user's own CV.
+  const [tailoredCv, setTailoredCv] = useState('')
+  const scanCv = tailoredCv || cvText
+
+  useEffect(() => { setCvDraft(d => (d.trim() === cvText.trim() ? d : cvText)) }, [cvText])
+  useEffect(() => { setSaveConsent(rememberedConsent) }, [rememberedConsent])
 
   useEffect(() => {
-    const savedCv = sessionStorage.getItem(SS.cvText) || ''
-    if (savedCv) setCvText(savedCv)
+    try {
+      if (new URLSearchParams(window.location.search).get('cv') === 'tailored') {
+        setTailoredCv(cvTextFromTailored(sessionStorage.getItem(SS.cvbTailored) || ''))
+      }
+    } catch {}
     // Pre-fill JD when coming from jobs page
-    const jobRaw = sessionStorage.getItem(SS.inSelectedJob)
-    if (jobRaw) {
-      try {
-        const job = JSON.parse(jobRaw)
-        if (job.job_description) {
-          setJdText(job.job_description)
-          setJobFromSearch({ title: job.job_title, employer: job.employer_name })
-        }
-      } catch {}
+    const job = readJob()
+    if (job?.job_description) {
+      setJdText(job.job_description)
+      setJobFromSearch({ title: job.job_title, employer: job.employer_name })
     }
   }, [])
 
-  async function handleFile(file: File) {
-    setFileLoading(true)
-    if (file.name.endsWith('.txt') || file.type === 'text/plain') {
-      const r = new FileReader()
-      r.onload = e => { const txt = (e.target?.result as string) ?? ''; setCvText(txt); sessionStorage.setItem(SS.cvText, txt); setFileLoading(false) }
-      r.readAsText(file)
-    } else {
-      const form = new FormData()
-      form.append('file', file)
-      try {
-        const res = await fetch(API.extractPdf, { method: 'POST', body: form })
-        const data = await res.json()
-        if (data.text) { setCvText(data.text); sessionStorage.setItem(SS.cvText, data.text) }
-        else alert(data.error || 'Could not read file.')
-      } catch { alert('Failed to read file.') }
-      setFileLoading(false)
-    }
+  function showSaveOutcome(out: { saved: boolean; error?: string }) {
+    setCvNotice(out.saved ? { kind: 'ok', text: 'Saved to your account' } : { kind: 'error', text: `Could not save: ${out.error || 'unknown error'}` })
   }
 
+  async function handleFile(file: File) {
+    setCvNotice(null)
+    setFileLoading(true)
+    const extracted = await extractFile(file)
+    if ('error' in extracted) {
+      setCvNotice({ kind: 'error', text: extracted.error })
+    } else if (extracted.text.trim().length < 50) {
+      setCvNotice({ kind: 'error', text: 'That file has too little text to be a CV — try another file or paste the text.' })
+    } else {
+      const out = await setCv(extracted.text, file.name, { saveToAccount: saveConsent })
+      if (saveConsent) showSaveOutcome(out)
+    }
+    setFileLoading(false)
+    if (fileRef.current) fileRef.current.value = ''
+  }
+
+  function onCvTextChange(value: string) {
+    setCvDraft(value)
+    setCvNotice(null)
+    void setCv(value, value.trim() ? fileName : '')
+  }
+
+  // Ticking the box after a paste/upload saves the CV that is already here — the tick is the consent.
+  async function onConsentChange(checked: boolean) {
+    setSaveConsent(checked)
+    if (!checked || cvSource !== 'session' || !cvText.trim()) return
+    showSaveOutcome(await setCv(cvText, fileName, { saveToAccount: true }))
+  }
+
+  // Session upload → clearCv() falls back to the account CV (if any). For the account CV itself,
+  // clearCv() would re-adopt it at once, so "Remove" detaches it for this session via an empty session CV.
+  function removeSessionCv() { clearCv(); setCvNotice(null); if (fileRef.current) fileRef.current.value = '' }
+  function detachSavedCv() { void setCv('', ''); setCvNotice(null) }
+
   async function analyze() {
-    if (!cvText.trim()) { alert('Please add your CV text first.'); return }
-    if (!jdText.trim()) { alert('Please paste the job description.'); return }
+    if (!scanCv.trim()) { setScanError({ message: 'Please add your CV text first.' }); return }
+    if (!jdText.trim()) { setScanError({ message: 'Please paste the job description.' }); return }
     if (credits !== null && credits < COST) {
-      alert(`You need ${COST} credits for an ATS scan. Please top up on the Account page.`)
+      setScanError({ message: `You need ${COST} credits for an ATS scan.`, topUp: true })
       return
     }
+    setScanError(null)
     setLoading(true)
     setResult(null)
 
@@ -154,17 +188,17 @@ export default function IndiaCareerScanPage() {
       const res = await fetch(API.indiaCareerScan, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ cvText, jdText }),
+        body: JSON.stringify({ cvText: scanCv, jdText }),
       })
-      if (res.status === 402) {
-        const d = await res.json()
-        if (typeof d.credits === 'number') setCredits(d.credits)
-        alert('Not enough credits. Please top up on the Account page.')
+      const out = await readJsonOrError<ATSResult & { error?: string }>(res)
+      if (!out.ok) {
+        if (typeof out.credits === 'number') setCredits(out.credits)
+        setScanError({ message: out.message, topUp: out.status === 402 })
         setLoading(false)
         return
       }
-      const data = await res.json()
-      if (data.error) { alert(data.error); setLoading(false); return }
+      const data = out.data
+      if (data.error) { setScanError({ message: data.error }); setLoading(false); return }
       if (typeof data.creditsRemaining === 'number') setCredits(data.creditsRemaining)
       setPrevScore(result?.ats_score ?? null)
       setResult(data)
@@ -179,7 +213,7 @@ export default function IndiaCareerScanPage() {
           section_gaps: data.section_gaps || [],
         }))
       } catch {}
-    } catch { alert('Analysis failed. Please try again.') }
+    } catch (err) { setScanError({ message: toUserMessage(err) }) }
     setLoading(false)
   }
 
@@ -271,21 +305,66 @@ export default function IndiaCareerScanPage() {
                   <div style={{ background: '#fff', borderRadius: 14, padding: 20, boxShadow: '0 2px 12px rgba(4,44,83,0.06)', border: '1px solid #edf1f6' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
                       <label style={{ fontSize: 13, fontWeight: 700, color: navy, fontFamily: "'Outfit',sans-serif" }}>Your CV</label>
-                      <button onClick={() => fileRef.current?.click()}
-                        style={{ fontSize: 11, padding: '4px 12px', borderRadius: 8, border: `1px solid ${blue}`, background: 'transparent', color: blue, cursor: 'pointer', fontWeight: 600 }}>
-                        {fileLoading ? 'Reading...' : 'Upload PDF / DOCX'}
-                      </button>
+                      {(cvSource !== 'saved' || fileLoading) && (
+                        <button onClick={() => fileRef.current?.click()} disabled={fileLoading}
+                          style={{ fontSize: 11, padding: '4px 12px', borderRadius: 8, border: `1px solid ${blue}`, background: 'transparent', color: blue, cursor: fileLoading ? 'wait' : 'pointer', fontWeight: 600 }}>
+                          {fileLoading ? 'Reading your CV…' : 'Upload your CV'}
+                        </button>
+                      )}
                       <input ref={fileRef} type="file" accept=".pdf,.docx,.txt" style={{ display: 'none' }}
                         onChange={e => e.target.files?.[0] && handleFile(e.target.files[0])} />
                     </div>
+
+                    {cvSource === 'saved' ? (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 12px', borderRadius: 10, border: `1.5px solid ${green}`, background: 'rgba(29,158,117,0.08)', marginBottom: 10 }}>
+                        <SvgIcon name="document" size={18} color={green} />
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ fontSize: 12, fontWeight: 600, color: green, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' as const }}>
+                            {fileName ? `CV on file: ${fileName}` : 'Using your saved CV'}
+                          </div>
+                          {fileName && <div style={{ fontSize: 11, color: green, marginTop: 2 }}>Using your saved CV</div>}
+                        </div>
+                        <button type="button" onClick={() => fileRef.current?.click()} style={{ fontSize: 11, padding: '4px 10px', borderRadius: 8, border: `1px solid ${green}`, background: 'transparent', color: green, cursor: 'pointer', fontWeight: 600 }}>Replace</button>
+                        <button type="button" onClick={detachSavedCv} style={{ fontSize: 11, padding: '4px 10px', borderRadius: 8, border: '1px solid #dce4ef', background: 'transparent', color: '#6b7c93', cursor: 'pointer', fontWeight: 600 }}>Remove</button>
+                      </div>
+                    ) : (
+                      <>
+                        {fileName && cvText && (
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '6px 12px', borderRadius: 10, border: '1px solid #dce4ef', background: '#fafbfd', marginBottom: 10 }}>
+                            <SvgIcon name="document" size={16} color={navy} />
+                            <div style={{ flex: 1, minWidth: 0, fontSize: 12, fontWeight: 600, color: navy, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' as const }}>CV on file: {fileName}</div>
+                            <button type="button" onClick={removeSessionCv} style={{ fontSize: 11, padding: '3px 10px', borderRadius: 8, border: '1px solid #dce4ef', background: 'transparent', color: '#6b7c93', cursor: 'pointer', fontWeight: 600 }}>Remove</button>
+                          </div>
+                        )}
+                        <label style={{ display: 'flex', gap: 8, alignItems: 'flex-start', fontSize: 11, color: '#6b7c93', lineHeight: 1.4, cursor: 'pointer', marginBottom: 10 }}>
+                          <input type="checkbox" checked={saveConsent} onChange={e => onConsentChange(e.target.checked)} style={{ marginTop: 1, accentColor: orange, flexShrink: 0 }} />
+                          <span>Save to my account for next time</span>
+                        </label>
+                      </>
+                    )}
+
+                    {cvNotice && (
+                      <div style={{ marginBottom: 10 }}>
+                        {cvNotice.kind === 'ok'
+                          ? <div style={{ fontSize: 11, color: green, display: 'flex', alignItems: 'center', gap: 6 }}><SvgIcon name="check-circle" size={13} color={green} />{cvNotice.text}</div>
+                          : <FlowError compact message={cvNotice.text} />}
+                      </div>
+                    )}
+
                     <textarea
-                      value={cvText}
-                      onChange={e => setCvText(e.target.value)}
-                      placeholder="Paste your CV text here, or upload a file above..."
+                      value={cvDraft}
+                      onChange={e => onCvTextChange(e.target.value)}
+                      placeholder="Paste your CV text here, or upload a file above (PDF, DOCX or TXT)..."
                       rows={10}
                       style={{ width: '100%', resize: 'vertical', padding: '10px 12px', borderRadius: 8, border: '1px solid #dce4ef', fontSize: 12, color: '#374151', fontFamily: "'DM Sans',sans-serif", lineHeight: 1.6, outline: 'none', boxSizing: 'border-box' }}
                     />
                     {cvText && <div style={{ fontSize: 11, color: '#9aafbc', marginTop: 6 }}>{cvText.length.toLocaleString()} characters</div>}
+                    {tailoredCv && (
+                      <div style={{ marginTop: 8, padding: '8px 10px', borderRadius: 8, background: 'rgba(255,153,51,0.1)', border: '1px solid rgba(255,153,51,0.35)', fontSize: 11, color: '#042C53', lineHeight: 1.5 }}>
+                        Scanning your tailored CV from the CV Builder.{' '}
+                        <button type="button" onClick={() => setTailoredCv('')} style={{ background: 'none', border: 'none', padding: 0, color: '#e67300', fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', textDecoration: 'underline' }}>Scan my original CV instead</button>
+                      </div>
+                    )}
                   </div>
 
                   {/* JD input */}
@@ -310,6 +389,14 @@ export default function IndiaCareerScanPage() {
                       style={{ width: '100%', resize: 'vertical', padding: '10px 12px', borderRadius: 8, border: '1px solid #dce4ef', fontSize: 12, color: '#374151', fontFamily: "'DM Sans',sans-serif", lineHeight: 1.6, outline: 'none', boxSizing: 'border-box' }}
                     />
                   </div>
+
+                  {scanError && (
+                    <FlowError
+                      message={scanError.message}
+                      onRetry={scanError.topUp ? undefined : () => { setScanError(null); handleAnalyze() }}
+                      secondary={scanError.topUp ? { label: 'Top up credits', href: '/in/account' } : undefined}
+                    />
+                  )}
 
                   {/* Credits + Analyze */}
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -404,8 +491,8 @@ export default function IndiaCareerScanPage() {
                     <div style={{ marginTop: 16, display: 'flex', justifyContent: 'flex-end' }}>
                       <button
                         onClick={() => {
+                          // The CV itself is already shared via useCurrentCv — only this page's output goes here
                           try {
-                            sessionStorage.setItem(SS.cvText, cvText)
                             sessionStorage.setItem(SS.atsSuggestions, JSON.stringify({
                               missing_keywords: result.missing_keywords,
                               quick_fixes: result.quick_fixes,

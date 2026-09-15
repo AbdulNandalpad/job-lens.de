@@ -6,6 +6,10 @@ import Navbar from '../components/Navbar'
 import { theme } from '@/lib/theme'
 import { useLanguage } from '@/lib/i18n'
 import { SS, API } from '@/lib/constants'
+import { useCurrentCv } from '@/lib/useCurrentCv'
+import { cvTextFromTailored } from '@/lib/cv'
+import { readJob, type JobRef } from '@/lib/job'
+import { readJsonOrError, toUserMessage } from '@/lib/apiError'
 
 const { colors: c, gradients: g, fonts: f } = theme
 
@@ -14,40 +18,33 @@ function todayIso() {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
 }
 
-interface Job {
-  job_title: string
-  employer_name: string
-  job_city?: string
-  job_country?: string
-  job_apply_link?: string
-  job_employment_type?: string
-  job_min_salary?: number
-  job_max_salary?: number
-  job_salary_currency?: string
-  matchScore?: number
-}
-
 export default function ApplyNowPage() {
   const router = useRouter()
   const { lang, t } = useLanguage()
-  const [job, setJob] = useState<Job | null>(null)
+  const { cvText, fileName, source: cvSource, loading: cvLoading } = useCurrentCv()
+  const [job, setJob] = useState<JobRef | null>(null)
   const [cvReady, setCvReady] = useState(false)
   const [clReady, setClReady] = useState(false)
   const [applied, setApplied] = useState(false)
   const [logged, setLogged] = useState(false)
   const [saving, setSaving] = useState(false)
   const [saveError, setSaveError] = useState('')
-  const [hasCv, setHasCv] = useState(false)
+  const [tailoredText, setTailoredText] = useState('')
   const [hasCl, setHasCl] = useState(false)
 
   useEffect(() => {
-    const jobRaw = sessionStorage.getItem(SS.cvbJob)
-    const cv = sessionStorage.getItem(SS.cvbTailored) || sessionStorage.getItem(SS.sjsCvText) || ''
-    const cl = sessionStorage.getItem(SS.clLetter) || ''
-    if (jobRaw) { try { setJob(JSON.parse(jobRaw)) } catch { } }
-    setHasCv(cv.length > 0)
-    setHasCl(cl.length > 0)
+    setJob(readJob())
+    try {
+      setTailoredText(cvTextFromTailored(sessionStorage.getItem(SS.cvbTailored) || ''))
+      setHasCl((sessionStorage.getItem(SS.clLetter) || '').length > 0)
+    } catch {
+      // storage unavailable (private mode) — page still renders its checklist
+    }
   }, [])
+
+  const hasTailored = tailoredText.length > 0
+  // The tailored CV from CV Builder wins; otherwise the user's current CV (this session or saved on the account)
+  const hasCv = hasTailored || cvText.length > 0
 
   // Persist to the applications tracker (the same store /app/tracker reads)
   async function saveToTracker() {
@@ -67,12 +64,12 @@ export default function ApplyNowPage() {
           applied_at: todayIso(),
         }),
       })
-      const data = await res.json().catch(() => ({}))
-      if (!res.ok) { setSaveError(data.error || t.common.requestFailed(res.status)); return }
+      const out = await readJsonOrError(res)
+      if (!out.ok) { setSaveError(out.message); return }
       setLogged(true)
       setTimeout(() => router.push('/app/tracker'), 800)
-    } catch {
-      setSaveError(t.common.networkError)
+    } catch (err) {
+      setSaveError(toUserMessage(err))
     } finally {
       setSaving(false)
     }
@@ -83,16 +80,22 @@ export default function ApplyNowPage() {
     : null
   const location = [job?.job_city, job?.job_country].filter(Boolean).join(', ')
 
+  const cvDesc = hasTailored
+    ? (lang === 'DE' ? 'Angepasster Lebenslauf im CV Builder erstellt' : 'Tailored CV built in CV Builder')
+    : hasCv
+      ? (cvSource === 'saved' ? t.cv.usingSaved : fileName ? t.cv.onFile(fileName) : (lang === 'DE' ? 'Lebenslauf aus dieser Sitzung' : 'CV from this session'))
+      : cvLoading
+        ? t.cv.reading
+        : (lang === 'DE' ? 'Gehe zum CV Builder, um deinen Lebenslauf zu erstellen' : 'Go to CV Builder to create your CV first')
+
   const checklist = [
     {
       id: 'cv',
       done: cvReady,
       toggle: () => setCvReady(p => !p),
       label: lang === 'DE' ? 'Lebenslauf heruntergeladen' : 'CV downloaded',
-      desc: hasCv
-        ? (lang === 'DE' ? 'Angepasster Lebenslauf im CV Builder erstellt' : 'Tailored CV built in CV Builder')
-        : (lang === 'DE' ? 'Gehe zum CV Builder, um deinen Lebenslauf zu erstellen' : 'Go to CV Builder to create your CV first'),
-      action: !hasCv ? () => router.push('/app/cv-builder') : null,
+      desc: cvDesc,
+      action: (!hasCv && !cvLoading) ? () => router.push('/app/cv-builder') : null,
       actionLabel: lang === 'DE' ? 'Zum CV Builder →' : 'Go to CV Builder →',
     },
     {
@@ -131,7 +134,6 @@ export default function ApplyNowPage() {
             <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
               {job.job_employment_type && <span style={{ fontSize: 11, background: c.primaryLight, color: c.navy, padding: '4px 12px', borderRadius: 20, fontWeight: 600 }}>{job.job_employment_type}</span>}
               {salary && <span style={{ fontSize: 11, background: c.bg, color: c.textMuted, padding: '4px 12px', borderRadius: 20, fontWeight: 600 }}>{salary}</span>}
-              {job.matchScore && <span style={{ fontSize: 11, background: c.successLight, color: c.success, padding: '4px 12px', borderRadius: 20, fontWeight: 700 }}>{job.matchScore}% match</span>}
             </div>
           </div>
         ) : (
