@@ -48,7 +48,8 @@ export async function POST(req: NextRequest) {
   const admin = createAdminSupabase()
   const { data, error } = await admin
     .from('applications')
-    .insert({ user_id: user.id, company, role, status, location, job_url, notes, applied_at })
+    // date_applied is the table's original NOT NULL date column (see migration 016); keep it in sync.
+    .insert({ user_id: user.id, company, role, status, location, job_url, notes, applied_at, date_applied: applied_at, source: 'job-lens' })
     .select('id, company, role, status, location, job_url, notes, applied_at, created_at')
     .single()
 

@@ -27,7 +27,7 @@ export async function GET() {
     admin.from('profiles').select('id, credits, eu_credits, in_credits, status, created_at').eq('id', uid).maybeSingle(),
     admin.from('user_memories').select('memory_text, created_at').eq('user_id', uid),
     admin.from('usage_events').select('action, credits_used, created_at').eq('user_id', uid),
-    admin.from('purchase_events').select('amount, credits_added, currency, created_at').eq('user_id', uid),
+    admin.from('purchase_events').select('amount_eur, amount_inr, credits_added, invoice_number, created_at').eq('user_id', uid),
     admin.from('job_cases').select('job_title, company_name, match_score, pitch_narrative, status, created_at, expires_at').eq('user_id', uid),
     admin.from('applications').select('company, role, status, applied_at, created_at').eq('user_id', uid),
     admin.from('training_feedback').select('feature, rating, created_at').eq('user_id', uid),

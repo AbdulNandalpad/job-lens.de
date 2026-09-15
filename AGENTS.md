@@ -14,7 +14,7 @@ Before writing ANY code, check that the thing you are referencing actually exist
 - **sessionStorage keys** — only the keys in `src/lib/constants.ts → SS` exist. Do not invent new `jl_*` keys. If you need a new key, add it to `SS` first.
 - **Components** — check that the component file exists before importing it. Do not import `<SomeComponent>` unless you have confirmed the file exists.
 - **Hooks** — same rule. Do not use `useXxx()` unless `src/lib/useXxx.ts` or `src/hooks/useXxx.ts` exists.
-- **DB columns** — the `profiles` table has: `id`, `credits`, `eu_credits`, `in_credits`, `status`, `paypal_payer_email`, `full_name`, `avatar_url`, `created_at`, `signup_country`, `market`, `normalized_email`, `cv_text` (encrypted), `cv_file_name`, `cv_updated_at`, `cv_consent_at`. `usage_events` has `id`, `user_id`, `action`, `credits_used`, `job_key` (migration 015), `created_at`. Do not reference columns that are not in this list.
+- **DB columns** — the `profiles` table has: `id`, `credits`, `eu_credits`, `in_credits`, `status`, `full_name`, `avatar_url`, `created_at`, `signup_country`, `market`, `normalized_email`, `cv_text` (encrypted), `cv_file_name`, `cv_updated_at`, `cv_consent_at`. `usage_events` has `id`, `user_id`, `action`, `credits_used`, `job_key` (migration 015), `created_at`. `applications` has `id`, `user_id`, `company`, `role`, `status`, `location`, `job_url`, `notes`, `applied_at`, `date_applied` (legacy), `source`, `created_at`, `updated_at` (migration 016). The PayPal payer email lives on `purchase_events`, not `profiles`. Do not reference columns that are not in this list.
 - **Theme tokens** — always import from `src/lib/theme.ts`. Never hardcode hex colours.
 
 ---

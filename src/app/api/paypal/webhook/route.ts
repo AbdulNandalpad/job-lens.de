@@ -135,11 +135,6 @@ export async function POST(req: NextRequest) {
     // Atomic increment — no read-then-write race condition
     await admin.rpc('increment_eu_credits', { user_id: userId, amount: creditsToAdd })
 
-    // Store payer email separately (non-critical, best-effort)
-    if (payerEmail) {
-      await admin.from('profiles').update({ paypal_payer_email: payerEmail }).eq('id', userId)
-    }
-
     console.error(`[paypal] +${creditsToAdd} eu_credits → user ${userId}`)
     return NextResponse.json({ ok: true, credits_added: creditsToAdd })
 
