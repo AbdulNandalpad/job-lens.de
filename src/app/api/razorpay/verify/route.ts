@@ -27,7 +27,9 @@ export async function POST(req: NextRequest) {
     }
     const payment = await payRes.json()
 
-    if (payment.status !== 'captured' && payment.status !== 'authorized') {
+    // Only a captured payment is money we actually hold; an authorised one can still
+    // expire or be voided, so credits wait for the capture webhook.
+    if (payment.status !== 'captured') {
       return NextResponse.json({ error: 'Payment not completed', status: payment.status }, { status: 402 })
     }
 

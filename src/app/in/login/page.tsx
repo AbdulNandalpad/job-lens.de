@@ -14,6 +14,7 @@ function IndiaLoginForm() {
   const supabase = createClient()
   const searchParams = useSearchParams()
   const next = searchParams.get('next') || '/in/kira'
+  const error = searchParams.get('error') || ''
 
   const signInWithGoogle = async () => {
     // Store destination in a cookie before the OAuth round-trip.
@@ -79,6 +80,16 @@ function IndiaLoginForm() {
         </div>
 
         {/* Google sign-in */}
+        {error === 'blocked' && (
+          <div style={{ marginBottom: 16, padding: '10px 12px', borderRadius: 8, background: '#FBE6E4', border: '1px solid #F3C8C5', color: '#C2352F', fontSize: 13, lineHeight: 1.5 }}>
+            This account has been blocked. Contact support@job-lens.de if you think this is a mistake.
+          </div>
+        )}
+        {error === 'auth' && (
+          <div style={{ marginBottom: 16, padding: '10px 12px', borderRadius: 8, background: '#FBF1D9', border: '1px solid #EAD9A6', color: '#9A6B00', fontSize: 13, lineHeight: 1.5 }}>
+            Sign-in did not complete. Please try again.
+          </div>
+        )}
         <button onClick={signInWithGoogle} style={{
           width:'100%', padding:'13px 20px', borderRadius:10,
           border:'1px solid rgba(255,255,255,0.15)',

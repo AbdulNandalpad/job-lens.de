@@ -86,7 +86,9 @@ export async function GET(request: Request) {
           : {}
         await admin
           .from('profiles')
-          .update({ market, normalized_email: normalized, ...countryPatch })
+          // `market` is deliberately NOT refreshed here: it is set once at signup.
+          // Re-stamping it on every login let one visit to /in/login lock a DACH user out of /app.
+          .update({ normalized_email: normalized, ...countryPatch })
           .eq('id', data.user.id)
 
       } else {

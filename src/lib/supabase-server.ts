@@ -60,6 +60,21 @@ export function createAdminSupabase() {
  * Reuses ip_rate_limits table — stores hashed userId as the key.
  * Returns true when the limit is exceeded (caller should return 429).
  */
+/**
+ * Blocked accounts must not reach features that spend nothing per call (free AI messages,
+ * free analyses): the credit RPC already refuses them, but only where a credit is charged.
+ */
+export async function isUserBlocked(userId: string): Promise<boolean> {
+  try {
+    const admin = createAdminSupabase()
+    const { data } = await admin.from('profiles').select('status').eq('id', userId).single()
+    return data?.status === 'blocked'
+  } catch (err) {
+    console.error('Blocked-status check failed:', err)
+    return false
+  }
+}
+
 export async function isUserRateLimited(
   userId: string,
   endpoint: string,
@@ -91,18 +106,26 @@ export async function refundCredits(
 ): Promise<void> {
   try {
     const admin = createAdminSupabase()
-    // Atomic increment — avoids TOCTOU race on concurrent refunds.
-    // Refunds always go back to common credits (the first pool deducted).
-    // A 0-credit refund is log-only: it exists so a failed included revision or
-    // letter is not counted against the package (see src/lib/pricing.ts).
-    if (amount > 0) {
-      const { error } = await admin.rpc('increment_credits', { p_user_id: userId, p_amount: amount })
-      if (error) {
-        console.error('Credit refund RPC failed:', error.message)
-        return
+    // One atomic RPC (migration 017): reverses the matching charge into the pools it was
+    // taken from — paid EU/India credits must not come back as free credits — and writes
+    // the refund_* ledger row. A 0-credit refund is log-only: it exists so a failed
+    // included revision or letter is not counted against the package (see pricingCore).
+    const { error } = await admin.rpc('refund_last_usage', {
+      p_user_id: userId,
+      p_amount:  amount,
+      p_action:  action,
+      p_job_key: jobKey ?? null,
+    })
+    if (error) {
+      // Until migration 017 runs, refund_last_usage does not exist: fall back to the old
+      // path (free pool) so a refund is never silently lost during the deploy window.
+      console.error('Credit refund RPC failed, using fallback:', error.message)
+      if (amount > 0) {
+        const { error: incErr } = await admin.rpc('increment_credits', { p_user_id: userId, p_amount: amount })
+        if (incErr) { console.error('Credit refund fallback failed:', incErr.message); return }
       }
+      await admin.from('usage_events').insert({ user_id: userId, action: `refund_${action}`, credits_used: -amount, job_key: jobKey ?? null })
     }
-    await admin.from('usage_events').insert({ user_id: userId, action: `refund_${action}`, credits_used: -amount, job_key: jobKey ?? null })
   } catch (err) {
     console.error('Credit refund failed:', err)
   }

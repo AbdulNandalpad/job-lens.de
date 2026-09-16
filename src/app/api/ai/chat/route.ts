@@ -1,6 +1,6 @@
 import { NextRequest } from 'next/server'
 import Anthropic from '@anthropic-ai/sdk'
-import { createServerSupabase, createAdminSupabase, checkAndDeductCredits, refundCredits, isUserRateLimited } from '@/lib/supabase-server'
+import { createServerSupabase, createAdminSupabase, checkAndDeductCredits, refundCredits, isUserRateLimited, isUserBlocked } from '@/lib/supabase-server'
 import { MARKET, CREDIT_COST, AI_CHAT_FREE_MESSAGES, IN_REVISION } from '@/lib/constants'
 
 export const maxDuration = 60
@@ -376,6 +376,7 @@ export async function POST(req: NextRequest) {
   const supabase = await createServerSupabase()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return new Response('Unauthorized', { status: 401 })
+  if (await isUserBlocked(user.id)) return new Response('Account blocked', { status: 403 })
 
   // Parse body
   const body = await req.json()

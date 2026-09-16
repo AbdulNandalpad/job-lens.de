@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import { useSearchParams } from 'next/navigation'
 import Navbar from '../components/Navbar'
 import { useLanguage } from '@/lib/i18n'
-import { SS, API } from '@/lib/constants'
+import { SS, API, IN_REVISION } from '@/lib/constants'
 import SvgIcon, { type IconName } from '@/components/SvgIcon'
 import { useCurrentCv } from '@/lib/useCurrentCv'
 import { normalizeJob, writeJob, clearJob } from '@/lib/job'
@@ -100,6 +100,16 @@ function SmartJobSearchPage() {
   const [linkedinText, setLinkedinText] = useState('')
   const [linkedinError, setLinkedinError] = useState('')
   const [carriedOver, setCarriedOver] = useState(false)
+  const [isAdmin, setIsAdmin] = useState(false)
+
+  // Job Case is hidden while IN_REVISION; admins keep the entry point for testing.
+  useEffect(() => {
+    fetch(API.userProfile)
+      .then(r => r.ok ? r.json() : null)
+      .then(d => setIsAdmin(!!d?.isAdmin))
+      .catch(() => setIsAdmin(false))
+  }, [])
+
 
   const [targetRole, setTargetRole] = useState('')
   const [jobTypes, setJobTypes] = useState<JobTypeOption[]>(['Full-time'])
@@ -619,9 +629,11 @@ function SmartJobSearchPage() {
                 <button onClick={() => toggleLogged(selectedJob.job_id)} style={{ fontSize: 13, padding: '9px 16px', borderRadius: 8, border: `1px solid ${loggedJobs.has(selectedJob.job_id) ? '#b6ecd8' : '#dce4ef'}`, background: loggedJobs.has(selectedJob.job_id) ? '#f0fbf6' : '#fff', color: loggedJobs.has(selectedJob.job_id) ? '#1D9E75' : '#6b7c93', cursor: 'pointer', fontFamily: 'inherit', fontWeight: 500 }}>
                   {loggedJobs.has(selectedJob.job_id) ? t.smartApply.results.applied : t.smartApply.results.logApplied}
                 </button>
-                <button onClick={() => openJobCase(selectedJob)} style={{ fontSize: 13, padding: '9px 16px', borderRadius: 8, border: '1px solid rgba(4,44,83,0.2)', background: 'rgba(4,44,83,0.04)', color: '#042C53', cursor: 'pointer', fontFamily: "'Outfit', sans-serif", fontWeight: 600 }}>
-                  Job Case →
-                </button>
+                {(!IN_REVISION.jobCase || isAdmin) && (
+                  <button onClick={() => openJobCase(selectedJob)} style={{ fontSize: 13, padding: '9px 16px', borderRadius: 8, border: '1px solid rgba(4,44,83,0.2)', background: 'rgba(4,44,83,0.04)', color: '#042C53', cursor: 'pointer', fontFamily: "'Outfit', sans-serif", fontWeight: 600 }}>
+                    Job Case →
+                  </button>
+                )}
               </div>
             </div>
           )}

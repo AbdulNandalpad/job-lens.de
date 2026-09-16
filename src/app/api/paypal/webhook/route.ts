@@ -1,13 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createAdminSupabase } from '@/lib/supabase-server'
 import { reportError } from '@/lib/error-reporter'
+import { PAYPAL_PACKS } from '@/lib/constants'
 
-// Credit amounts per purchase price (EUR)
-const CREDIT_PACKS: Record<string, number> = {
-  '4.99':  20,
-  '9.99':  50,
-  '13.99': 120,
-}
+// Credit amounts per purchase price (EUR) — shared with the Account page so the
+// advertised pack size and the granted credits can never drift apart.
+const CREDIT_PACKS = PAYPAL_PACKS
 
 export async function POST(req: NextRequest) {
   try {

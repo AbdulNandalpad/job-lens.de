@@ -195,6 +195,14 @@ export const API = {
 // ── Razorpay credit packs (India) ────────────────────────────────────────────
 // amount in INR (rupees) → credits granted. Single source of truth shared by
 // the account page UI, order route, verify route, and webhook.
+// PayPal packs: EUR amount -> credits granted. The webhook and the Account page
+// MUST read the same map; they drifted before (€13.99 was labelled 75 and granted 120).
+export const PAYPAL_PACKS: Record<string, number> = {
+  '4.99':  20,
+  '9.99':  50,
+  '13.99': 75,
+}
+
 export const RAZORPAY_PACKS: Record<string, number> = {
   '149': 10,
   '499': 35,

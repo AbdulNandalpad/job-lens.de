@@ -6,16 +6,16 @@ import Navbar from '../components/Navbar'
 import { createClient } from '@/lib/supabase'
 import { theme } from '@/lib/theme'
 import { useLanguage } from '@/lib/i18n'
-import { CREDIT_COST, AI_CHAT_FREE_MESSAGES, API, SS } from '@/lib/constants'
+import { CREDIT_COST, AI_CHAT_FREE_MESSAGES, API, SS, PAYPAL_PACKS } from '@/lib/constants'
 import { useSavedCv } from '@/lib/useSavedCv'
 import { getIcon } from '@/components/SvgIcon'
 
 const { colors: c, gradients: g, fonts: f } = theme
 
 const PACKS = [
-  { label: 'Starter',     credits: 20,  price: '€4.99',  desc: '~5 full applications',          itemName: 'Job-Lens AI — Starter Pack (20 Credits)',     amount: '4.99'  },
-  { label: 'Job Hunt',    credits: 50,  price: '€9.99',  desc: '~12 full applications',          itemName: 'Job-Lens AI — Job Hunt Pack (50 Credits)',     amount: '9.99',  popular: true },
-  { label: 'Full Sprint', credits: 75,  price: '€13.99', desc: '~18 applications · best value',  itemName: 'Job-Lens AI — Full Sprint Pack (75 Credits)',  amount: '13.99' },
+  { label: 'Starter',     credits: PAYPAL_PACKS['4.99'],  price: '€4.99',  desc: '~5 full applications',          itemName: `Job-Lens AI — Starter Pack (${PAYPAL_PACKS['4.99']} Credits)`,     amount: '4.99'  },
+  { label: 'Job Hunt',    credits: PAYPAL_PACKS['9.99'],  price: '€9.99',  desc: '~12 full applications',          itemName: `Job-Lens AI — Job Hunt Pack (${PAYPAL_PACKS['9.99']} Credits)`,     amount: '9.99',  popular: true },
+  { label: 'Full Sprint', credits: PAYPAL_PACKS['13.99'], price: '€13.99', desc: '~18 applications · best value',  itemName: `Job-Lens AI — Full Sprint Pack (${PAYPAL_PACKS['13.99']} Credits)`,  amount: '13.99' },
 ]
 
 

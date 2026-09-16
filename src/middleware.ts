@@ -93,7 +93,7 @@ export async function middleware(request: NextRequest) {
   }
 
   // Check blocked status + market lock for app routes (both DE and IN markets)
-  if (user && (path.startsWith('/app') || path.startsWith('/in/'))) {
+  if (user && (path.startsWith('/app') || path === '/in' || path.startsWith('/in/'))) {
     const admin = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.SUPABASE_SERVICE_ROLE_KEY!,
@@ -107,7 +107,7 @@ export async function middleware(request: NextRequest) {
 
     if (profile?.status === 'blocked') {
       const url = request.nextUrl.clone()
-      url.pathname = '/login'
+      url.pathname = path === '/in' || path.startsWith('/in/') ? '/in/login' : '/login'
       url.searchParams.set('error', 'blocked')
       url.searchParams.delete('next')
       return NextResponse.redirect(url)
