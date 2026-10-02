@@ -10,7 +10,7 @@ import { useCredits } from '@/lib/useCredits'
 import { useCurrentCv } from '@/lib/useCurrentCv'
 import { readJob, writeJob, clearJob, normalizeJob, jobDraftKey, type JobRef, type JobSource } from '@/lib/job'
 import { parseCvJson, cvTextFromTailored, type CVData } from '@/lib/cv'
-import { readJsonOrError, toUserMessage } from '@/lib/apiError'
+import { readJsonOrError, toUserMessage, pollJob, type ApiResult } from '@/lib/apiError'
 import { downloadLetterPdf } from '@/lib/letterPdf'
 import type { BundleState } from '@/lib/pricingCore'
 import FlowError from '@/components/FlowError'
@@ -399,6 +399,17 @@ export default function ApplyFlow({ market }: { market: Market }) {
   }, [template])
   useEffect(() => { if (hydrated && step >= 4 && cvData && !pdfUrl && phase === 'idle') renderPdf(cvData) }, [hydrated, step, cvData, pdfUrl, phase, renderPdf])
 
+  // Tailoring runs as an async job (Railway, no 60s cap) instead of a single Vercel
+  // request: start it, then poll status until it settles. Each poll is fast, so this
+  // can wait as long as generation actually needs without risking a gateway timeout.
+  type TailorCvResult = { status: 'pending' | 'done' | 'error'; error?: string; cv?: string; creditsRemaining?: number; pricing?: unknown }
+  const runTailorCv = async (payload: Record<string, unknown>): Promise<ApiResult<TailorCvResult>> => {
+    const startRes = await fetch(API.tailorCvStart, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) })
+    const started = await readJsonOrError<{ jobId?: string }>(startRes)
+    if (!started.ok || !started.data.jobId) return started as ApiResult<TailorCvResult>
+    return pollJob<TailorCvResult>(`${API.tailorCvStatus}?jobId=${encodeURIComponent(started.data.jobId)}`)
+  }
+
   const generateLetter = async (data: CVData) => {
     if (!job) return
     setPhase('letter'); setLetterError(null)
@@ -416,8 +427,7 @@ export default function ApplyFlow({ market }: { market: Market }) {
     if (!job || !cv.cvText) return
     setError(null); setLetterError(null); setPhase('cv')
     try {
-      const res = await fetch(API.tailorCv, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ cvText: cv.cvText, job, template, tone: 'professional', pages, lang: outLang, confirmedSkills: fit?.confirmed || [], returnJson: true, market }) })
-      const out = await readJsonOrError<{ cv?: string }>(res)
+      const out = await runTailorCv({ cvText: cv.cvText, job, template, tone: 'professional', pages, lang: outLang, confirmedSkills: fit?.confirmed || [], market })
       applyPricing(out.ok ? out.data : out.data)
       if (!out.ok) { setError({ message: out.message, status: out.status, retry: create }); setPhase('idle'); return }
       const parsed = parseCvJson(out.data.cv || '')
@@ -440,8 +450,7 @@ export default function ApplyFlow({ market }: { market: Market }) {
     setChangeErr(null); setPhase('change')
     try {
       if (target === 'cv') {
-        const res = await fetch(API.tailorCv, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ cvText: cv.cvText, job, template, tone: 'professional', pages, lang: outLang, returnJson: true, market, feedback: text.trim(), currentCv: cvJson }) })
-        const out = await readJsonOrError<{ cv?: string }>(res)
+        const out = await runTailorCv({ cvText: cv.cvText, job, template, tone: 'professional', pages, lang: outLang, market, feedback: text.trim(), currentCv: cvJson })
         applyPricing(out.ok ? out.data : out.data)
         if (!out.ok) { setChangeErr(out.message); setPhase('idle'); return }
         const parsed = parseCvJson(out.data.cv || '')

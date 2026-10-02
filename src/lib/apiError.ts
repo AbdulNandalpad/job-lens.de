@@ -27,3 +27,30 @@ export function toUserMessage(err: unknown): string {
   if (err instanceof DOMException && err.name === 'AbortError') return 'Request cancelled.'
   return 'Something went wrong. Please try again.'
 }
+
+/**
+ * Poll a `{ status: 'pending' | 'done' | 'error', ... }` endpoint (the async job pattern
+ * used by /api/tailor-cv/start + /status, which moves long AI generation off Vercel's
+ * 60s function cap) until it settles. Each individual request is fast — only the overall
+ * wait is long — so there is no server-side timeout risk here, only a client-side give-up.
+ */
+export async function pollJob<T extends { status: 'pending' | 'done' | 'error'; error?: string }>(
+  statusUrl: string,
+  opts: { intervalMs?: number; timeoutMs?: number } = {},
+): Promise<ApiResult<T>> {
+  const intervalMs = opts.intervalMs ?? 2000
+  const timeoutMs = opts.timeoutMs ?? 150_000
+  const deadline = Date.now() + timeoutMs
+
+  while (Date.now() < deadline) {
+    const res = await fetch(statusUrl)
+    const out = await readJsonOrError<T>(res)
+    if (!out.ok) return out
+    if (out.data.status === 'done') return out
+    if (out.data.status === 'error') {
+      return { ok: false, status: 502, message: out.data.error || 'Generation failed — please try again.', data: out.data }
+    }
+    await new Promise(r => setTimeout(r, intervalMs))
+  }
+  return { ok: false, status: 504, message: 'This is taking longer than expected — please try again.', data: null }
+}

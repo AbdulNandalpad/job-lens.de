@@ -149,6 +149,8 @@ export const API = {
   careerScan:       '/api/career-scan',
   indiaCareerScan:  '/api/india/career-scan',
   tailorCv:         '/api/tailor-cv',
+  tailorCvStart:    '/api/tailor-cv/start',
+  tailorCvStatus:   '/api/tailor-cv/status',
   coverLetter:      '/api/cover-letter',
   analyseProfile:   '/api/analyse-profile',
   jobs:             '/api/jobs',

@@ -1,6 +1,7 @@
 import express, { Request, Response } from 'express'
 import Anthropic from '@anthropic-ai/sdk'
 import { analyzeForm, executeApply, submitApply, FieldMapping } from './engine'
+import { startTailorCvJob, getTailorCvJob, TailorCvInput } from './tailorCv'
 
 const app = express()
 app.use(express.json({ limit: '10mb' }))
@@ -103,6 +104,34 @@ app.post('/submit', async (req: Request, res: Response) => {
   } finally {
     res.end()
   }
+})
+
+// Async job pattern: Vercel's own function has a hard 60s cap (Hobby plan) that
+// tailor-cv's Claude call can occasionally exceed. This service has no such cap, so the
+// Vercel route only starts the job here and polls /tailor-cv/status — each of its own
+// requests stays well under 60s regardless of how long generation actually takes.
+app.post('/tailor-cv/start', (req: Request, res: Response) => {
+  if (!authorized(req, res)) return
+
+  const { jobId, input } = req.body as { jobId: string; input: TailorCvInput }
+  if (!jobId || typeof jobId !== 'string' || !input?.cvText) {
+    res.status(400).json({ error: 'jobId and input.cvText are required' })
+    return
+  }
+
+  startTailorCvJob(jobId, input, anthropic)
+  res.status(202).json({ jobId })
+})
+
+app.get('/tailor-cv/status/:jobId', (req: Request, res: Response) => {
+  if (!authorized(req, res)) return
+
+  const job = getTailorCvJob(req.params.jobId)
+  if (!job) {
+    res.status(404).json({ error: 'Unknown or expired job' })
+    return
+  }
+  res.json(job)
 })
 
 const PORT = parseInt(process.env.PORT || '3001', 10)
