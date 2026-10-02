@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { after } from 'next/server'
 import { createHash } from 'crypto'
 import Anthropic from '@anthropic-ai/sdk'
-import { createServerSupabase, checkAndDeductCredits, refundCredits, createAdminSupabase, isUserRateLimited } from '@/lib/supabase-server'
+import { createServerSupabase, checkAndDeductCredits, peekCredits, createAdminSupabase, isUserRateLimited } from '@/lib/supabase-server'
 import { CREDIT_COST, MARKET } from '@/lib/constants'
 import { saveMemoriesFromInteraction } from '@/lib/memory'
 
@@ -125,9 +125,11 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ...cached.result, fromCache: true })
   }
 
-  const credits = await checkAndDeductCredits(user.id, COST, 'career_scan', user.email ?? '', MARKET.eu)
-  if (!credits.ok) {
-    return NextResponse.json({ error: 'Insufficient credits', credits: credits.remaining, required: COST }, { status: 402 })
+  // Affordability is only a pre-flight UX check here — the real, atomic deduction happens
+  // after generation succeeds, so a timeout/crash mid-call never charges for nothing delivered.
+  const afford = await peekCredits(user.id, COST, user.email ?? '')
+  if (!afford.ok) {
+    return NextResponse.json({ error: 'Insufficient credits', credits: afford.remaining, required: COST }, { status: 402 })
   }
 
   try {
@@ -151,8 +153,14 @@ export async function POST(req: NextRequest) {
       data = JSON.parse(extractJson(raw))
     } catch (parseErr) {
       console.error('Career scan JSON parse failed:', parseErr, '\nRaw:', raw.slice(0, 500))
-      await refundCredits(user.id, COST, 'career_scan')
-      return NextResponse.json({ error: 'Analysis failed — credits refunded' }, { status: 500 })
+      return NextResponse.json({ error: 'Analysis failed — please try again. Nothing was charged.' }, { status: 500 })
+    }
+
+    // Only charge now that a valid result actually exists to hand back — this is the one
+    // atomic, authoritative deduction (peekCredits above was a UX pre-check only).
+    const credits = await checkAndDeductCredits(user.id, COST, 'career_scan', user.email ?? '', MARKET.eu)
+    if (!credits.ok) {
+      return NextResponse.json({ error: 'Insufficient credits', credits: credits.remaining, required: COST }, { status: 402 })
     }
 
     const safe = {
@@ -195,7 +203,6 @@ export async function POST(req: NextRequest) {
     return NextResponse.json(safe)
   } catch (err) {
     console.error('Career scan error:', err)
-    await refundCredits(user.id, COST, 'career_scan')
-    return NextResponse.json({ error: 'Analysis failed — credits refunded' }, { status: 500 })
+    return NextResponse.json({ error: 'Analysis failed — please try again. Nothing was charged.' }, { status: 500 })
   }
 }

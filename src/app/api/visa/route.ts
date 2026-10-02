@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import Anthropic from '@anthropic-ai/sdk'
-import { createServerSupabase, checkAndDeductCredits, refundCredits } from '@/lib/supabase-server'
+import { createServerSupabase, checkAndDeductCredits, peekCredits } from '@/lib/supabase-server'
 import { CREDIT_COST, MARKET } from '@/lib/constants'
 import type { VisaOptionId } from '@/lib/visaGuides'
 
@@ -37,11 +37,11 @@ export async function POST(req: NextRequest) {
   // for DACH users who never had a market field to send.
   const resolvedMarket: 'eu' | 'in' = raw.market === MARKET.in ? MARKET.in : MARKET.eu
 
-  const credits = await checkAndDeductCredits(
-    user.id, COST, 'visa_check', user.email ?? '', resolvedMarket
-  )
-  if (!credits.ok) {
-    return NextResponse.json({ error: 'Insufficient credits', credits: credits.remaining, required: COST }, { status: 402 })
+  // Affordability is only a pre-flight UX check here — the real, atomic deduction happens
+  // after generation succeeds, so a timeout/crash mid-call never charges for nothing delivered.
+  const afford = await peekCredits(user.id, COST, user.email ?? '')
+  if (!afford.ok) {
+    return NextResponse.json({ error: 'Insufficient credits', credits: afford.remaining, required: COST }, { status: 402 })
   }
 
   const prompt = `You are an expert in German immigration law, specifically the Fachkräfteeinwanderungsgesetz (FEG) and the Chancenkarte (Opportunity Card) system.
@@ -131,9 +131,15 @@ Return ONLY valid JSON (no markdown):
       if (!validOptions) throw new Error('visaOptions missing, empty, or contains an invalid id/title/matchScore')
       result = parsed
     } catch (validationErr) {
-      console.error('[visa] output validation failed, refunding credit:', validationErr instanceof Error ? validationErr.message : validationErr)
-      await refundCredits(user.id, COST, 'visa_check_invalid_output')
-      return NextResponse.json({ error: 'Analysis failed — please try again. Your credit has been refunded.' }, { status: 502 })
+      console.error('[visa] output validation failed:', validationErr instanceof Error ? validationErr.message : validationErr)
+      return NextResponse.json({ error: 'Analysis failed — please try again. Nothing was charged.' }, { status: 502 })
+    }
+
+    // Only charge now that a valid result actually exists to hand back — this is the one
+    // atomic, authoritative deduction (peekCredits above was a UX pre-check only).
+    const credits = await checkAndDeductCredits(user.id, COST, 'visa_check', user.email ?? '', resolvedMarket)
+    if (!credits.ok) {
+      return NextResponse.json({ error: 'Insufficient credits', credits: credits.remaining, required: COST }, { status: 402 })
     }
 
     // Always override usefulLinks with verified official German immigration resources.
@@ -153,7 +159,6 @@ Return ONLY valid JSON (no markdown):
     return NextResponse.json({ ...result, creditsRemaining: credits.remaining })
   } catch (err) {
     console.error('Visa check error:', err)
-    await refundCredits(user.id, COST, 'visa_check_failed')
-    return NextResponse.json({ error: 'Failed to analyse visa eligibility' }, { status: 500 })
+    return NextResponse.json({ error: 'Failed to analyse visa eligibility — nothing was charged.' }, { status: 500 })
   }
 }

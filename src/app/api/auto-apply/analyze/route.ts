@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createServerSupabase, checkAndDeductCredits, isUserRateLimited, refundCredits } from '@/lib/supabase-server'
+import { createServerSupabase, checkAndDeductCredits, isUserRateLimited, peekCredits } from '@/lib/supabase-server'
 import { CREDIT_COST, AUTO_APPLY_MAINTENANCE } from '@/lib/constants'
 
 export const maxDuration = 60
@@ -44,9 +44,11 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Invalid job URL' }, { status: 400 })
   }
 
-  const credits = await checkAndDeductCredits(user.id, COST, 'auto_apply', user.email ?? '', market)
-  if (!credits.ok) {
-    return NextResponse.json({ error: 'Insufficient credits', credits: credits.remaining, required: COST }, { status: 402 })
+  // Affordability is only a pre-flight UX check here — the real, atomic deduction happens
+  // after analysis succeeds, so a timeout/crash mid-call never charges for nothing delivered.
+  const afford = await peekCredits(user.id, COST, user.email ?? '')
+  if (!afford.ok) {
+    return NextResponse.json({ error: 'Insufficient credits', credits: afford.remaining, required: COST }, { status: 402 })
   }
 
   const railwayUrl = process.env.RAILWAY_BROWSER_URL
@@ -65,13 +67,15 @@ export async function POST(req: NextRequest) {
       })
       const data = await res.json()
       if (!res.ok) {
-        await refundCredits(user.id, COST, 'auto_apply_analyze_failed')
         return NextResponse.json({ error: data.error || 'Browser service error' }, { status: res.status })
+      }
+      const credits = await checkAndDeductCredits(user.id, COST, 'auto_apply', user.email ?? '', market)
+      if (!credits.ok) {
+        return NextResponse.json({ error: 'Insufficient credits', credits: credits.remaining, required: COST }, { status: 402 })
       }
       return NextResponse.json({ ...data, creditsRemaining: credits.remaining })
     } catch (err) {
       console.error('[auto-apply/analyze] Railway call failed:', err)
-      await refundCredits(user.id, COST, 'auto_apply_analyze_failed')
       return NextResponse.json({ error: 'Browser service unavailable. Please try again.' }, { status: 503 })
     }
   }
@@ -83,14 +87,16 @@ export async function POST(req: NextRequest) {
       const { analyzeForm } = await import('@/lib/auto-apply-engine')
       const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
       const result = await analyzeForm(jobUrl, cvText, coverLetter || undefined, anthropic, credentials, storageState)
+      const credits = await checkAndDeductCredits(user.id, COST, 'auto_apply', user.email ?? '', market)
+      if (!credits.ok) {
+        return NextResponse.json({ error: 'Insufficient credits', credits: credits.remaining, required: COST }, { status: 402 })
+      }
       return NextResponse.json({ ...result, creditsRemaining: credits.remaining })
     } catch (err) {
       console.error('[auto-apply/analyze]', err)
-      await refundCredits(user.id, COST, 'auto_apply_analyze_failed')
       return NextResponse.json({ error: err instanceof Error ? err.message : String(err) }, { status: 500 })
     }
   }
 
-  await refundCredits(user.id, COST, 'auto_apply_analyze_failed')
   return NextResponse.json({ error: 'Auto Apply is not yet configured. Please check back soon.' }, { status: 503 })
 }

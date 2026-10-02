@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { after } from 'next/server'
 import Anthropic from '@anthropic-ai/sdk'
-import { createServerSupabase, checkAndDeductCredits, isUserRateLimited, refundCredits } from '@/lib/supabase-server'
+import { createServerSupabase, checkAndDeductCredits, isUserRateLimited, peekCredits } from '@/lib/supabase-server'
 import { CREDIT_COST, MARKET, USAGE_ACTION } from '@/lib/constants'
 import { retrieveMemories, formatMemoriesForPrompt, saveMemoriesFromInteraction } from '@/lib/memory'
 import { jobKey, resolveBundle } from '@/lib/pricing'
@@ -56,11 +56,12 @@ export async function POST(req: NextRequest) {
     if (bundle.active && bundle.revisionsLeft > 0) { cost = 0; action = USAGE_ACTION.tailorCvRevision }
   }
 
-  const credits = await checkAndDeductCredits(user.id, cost, action, user.email ?? '', resolvedMarket, key)
-  if (!credits.ok) {
-    return NextResponse.json({ error: 'Insufficient credits', credits: credits.remaining, required: cost }, { status: 402 })
+  // Affordability is only a pre-flight UX check here — the real, atomic deduction happens
+  // after generation succeeds, so a timeout/crash mid-call never charges for nothing delivered.
+  const afford = await peekCredits(user.id, cost, user.email ?? '')
+  if (!afford.ok) {
+    return NextResponse.json({ error: 'Insufficient credits', credits: afford.remaining, required: cost }, { status: 402 })
   }
-  const pricing = async () => ({ charged: cost, bundle: await resolveBundle(user.id, key), admin: !!credits.bypass })
 
   try {
     // Recall durable facts about this user for prompt injection
@@ -193,13 +194,20 @@ Return ONLY the JSON object. No markdown, no backticks, no explanation.`
         if (!hasName || !hasExperience) throw new Error('CV JSON missing required fields (name/experience)')
         cv = cleaned
       } catch (validationErr) {
-        console.error('[tailor-cv] output validation failed, refunding:', validationErr instanceof Error ? validationErr.message : validationErr, wasTruncated ? '(truncated at max_tokens)' : '')
-        await refundCredits(user.id, cost, action, key)
+        console.error('[tailor-cv] output validation failed:', validationErr instanceof Error ? validationErr.message : validationErr, wasTruncated ? '(truncated at max_tokens)' : '')
         const errorMsg = wasTruncated
           ? 'The response was too long and got cut off — please try a shorter or more specific request. Nothing was charged.'
           : 'Generation failed — please try again. Nothing was charged.'
-        return NextResponse.json({ error: errorMsg, pricing: await pricing() }, { status: 502 })
+        return NextResponse.json({ error: errorMsg }, { status: 502 })
       }
+
+      // Only charge now that a valid CV actually exists to hand back — this is the one
+      // atomic, authoritative deduction (peekCredits above was a UX pre-check only).
+      const credits = await checkAndDeductCredits(user.id, cost, action, user.email ?? '', resolvedMarket, key)
+      if (!credits.ok) {
+        return NextResponse.json({ error: 'Insufficient credits', credits: credits.remaining, required: cost }, { status: 402 })
+      }
+      const pricing = async () => ({ charged: cost, bundle: await resolveBundle(user.id, key), admin: !!credits.bypass })
 
       after(() => saveMemoriesFromInteraction(user.id, saveCtx))
       return NextResponse.json({ cv, creditsRemaining: credits.remaining, pricing: await pricing() })
@@ -264,12 +272,16 @@ Return the complete tailored CV in plain text format.`,
     if (message.usage) console.error(`[tailor-cv:plain] tokens in=${message.usage.input_tokens} out=${message.usage.output_tokens}`)
 
     const cv = (message.content[0] as { text: string }).text
+    const credits = await checkAndDeductCredits(user.id, cost, action, user.email ?? '', resolvedMarket, key)
+    if (!credits.ok) {
+      return NextResponse.json({ error: 'Insufficient credits', credits: credits.remaining, required: cost }, { status: 402 })
+    }
+    const pricing = async () => ({ charged: cost, bundle: await resolveBundle(user.id, key), admin: !!credits.bypass })
     after(() => saveMemoriesFromInteraction(user.id, saveCtx))
     return NextResponse.json({ cv, creditsRemaining: credits.remaining, pricing: await pricing() })
 
   } catch (err) {
     console.error('Tailor CV error:', err)
-    await refundCredits(user.id, cost, action, key)
     return NextResponse.json({ error: 'Failed to tailor CV — nothing was charged. Please try again.' }, { status: 500 })
   }
 }

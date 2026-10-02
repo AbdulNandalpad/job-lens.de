@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import Anthropic from '@anthropic-ai/sdk'
-import { createServerSupabase, checkAndDeductCredits, refundCredits } from '@/lib/supabase-server'
+import { createServerSupabase, checkAndDeductCredits, peekCredits } from '@/lib/supabase-server'
 import { CREDIT_COST, MARKET } from '@/lib/constants'
 
 export const maxDuration = 60
@@ -21,9 +21,11 @@ export async function POST(req: NextRequest) {
 
   if (!role) return NextResponse.json({ error: 'Role is required' }, { status: 400 })
 
-  const credits = await checkAndDeductCredits(user.id, COST, 'interview_prep', user.email ?? '', market)
-  if (!credits.ok) {
-    return NextResponse.json({ error: 'Insufficient credits', credits: credits.remaining, required: COST }, { status: 402 })
+  // Affordability is only a pre-flight UX check here — the real, atomic deduction happens
+  // after generation succeeds, so a timeout/crash mid-call never charges for nothing delivered.
+  const afford = await peekCredits(user.id, COST, user.email ?? '')
+  if (!afford.ok) {
+    return NextResponse.json({ error: 'Insufficient credits', credits: afford.remaining, required: COST }, { status: 402 })
   }
 
   const marketContext = market === MARKET.in
@@ -70,10 +72,16 @@ Return ONLY valid JSON — no markdown, no explanation:
     const data = JSON.parse(found[0])
     if (!Array.isArray(data.questions) || data.questions.length === 0) throw new Error('Invalid questions')
 
+    // Only charge now that valid questions actually exist to hand back — this is the one
+    // atomic, authoritative deduction (peekCredits above was a UX pre-check only).
+    const credits = await checkAndDeductCredits(user.id, COST, 'interview_prep', user.email ?? '', market)
+    if (!credits.ok) {
+      return NextResponse.json({ error: 'Insufficient credits', credits: credits.remaining, required: COST }, { status: 402 })
+    }
+
     return NextResponse.json({ questions: data.questions, creditsRemaining: credits.remaining })
   } catch (err) {
     console.error('[interview/questions]', err)
-    await refundCredits(user.id, COST, 'interview_prep')
-    return NextResponse.json({ error: 'Failed to generate questions — credits refunded' }, { status: 500 })
+    return NextResponse.json({ error: 'Failed to generate questions — nothing was charged.' }, { status: 500 })
   }
 }

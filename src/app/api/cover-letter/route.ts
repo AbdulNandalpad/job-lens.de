@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { after } from 'next/server'
 import Anthropic from '@anthropic-ai/sdk'
-import { createServerSupabase, checkAndDeductCredits, isUserRateLimited, refundCredits } from '@/lib/supabase-server'
+import { createServerSupabase, checkAndDeductCredits, isUserRateLimited, peekCredits } from '@/lib/supabase-server'
 import { CREDIT_COST, MARKET, USAGE_ACTION } from '@/lib/constants'
 import { retrieveMemories, formatMemoriesForPrompt, saveMemoriesFromInteraction } from '@/lib/memory'
 import { jobKey, resolveBundle } from '@/lib/pricing'
@@ -47,11 +47,12 @@ export async function POST(req: NextRequest) {
     cost = 0; action = USAGE_ACTION.coverLetterBundled
   }
 
-  const credits = await checkAndDeductCredits(user.id, cost, action, user.email ?? '', resolvedMarket, key)
-  if (!credits.ok) {
-    return NextResponse.json({ error: 'Insufficient credits', credits: credits.remaining, required: cost }, { status: 402 })
+  // Affordability is only a pre-flight UX check here — the real, atomic deduction happens
+  // after generation succeeds, so a timeout/crash mid-call never charges for nothing delivered.
+  const afford = await peekCredits(user.id, cost, user.email ?? '')
+  if (!afford.ok) {
+    return NextResponse.json({ error: 'Insufficient credits', credits: afford.remaining, required: cost }, { status: 402 })
   }
-  const pricing = async () => ({ charged: cost, bundle: await resolveBundle(user.id, key), admin: !!credits.bypass })
 
   try {
     // Recall what we know about this user and inject it into the prompt
@@ -112,10 +113,17 @@ Write the cover letter:`
 
     const coverLetter = (message.content[0] as { text: string }).text.trim()
     if (coverLetter.length < 80) {
-      console.error('[cover-letter] output too short, refunding')
-      await refundCredits(user.id, cost, action, key)
-      return NextResponse.json({ error: 'Generation failed — please try again. Nothing was charged.', pricing: await pricing() }, { status: 502 })
+      console.error('[cover-letter] output too short')
+      return NextResponse.json({ error: 'Generation failed — please try again. Nothing was charged.' }, { status: 502 })
     }
+
+    // Only charge now that a valid letter actually exists to hand back — this is the one
+    // atomic, authoritative deduction (peekCredits above was a UX pre-check only).
+    const credits = await checkAndDeductCredits(user.id, cost, action, user.email ?? '', resolvedMarket, key)
+    if (!credits.ok) {
+      return NextResponse.json({ error: 'Insufficient credits', credits: credits.remaining, required: cost }, { status: 402 })
+    }
+    const pricing = async () => ({ charged: cost, bundle: await resolveBundle(user.id, key), admin: !!credits.bypass })
 
     // Extract + persist durable facts after the response (non-blocking)
     after(() => saveMemoriesFromInteraction(
@@ -126,7 +134,6 @@ Write the cover letter:`
     return NextResponse.json({ coverLetter, creditsRemaining: credits.remaining, pricing: await pricing() })
   } catch (err) {
     console.error('Cover letter error:', err)
-    await refundCredits(user.id, cost, action, key)
     return NextResponse.json({ error: 'Failed to generate cover letter — nothing was charged. Please try again.' }, { status: 500 })
   }
 }

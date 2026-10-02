@@ -131,6 +131,42 @@ export async function refundCredits(
   }
 }
 
+/**
+ * Read-only affordability check — no deduction. Used to fail fast (before an expensive
+ * AI call) when the user plainly cannot afford it. This is a UX pre-check only, not the
+ * source of truth: the real, atomic check happens in checkAndDeductCredits, called AFTER
+ * the generation succeeds (see "deduct after the job is done" — a timeout/crash mid-call
+ * must never leave a user charged with nothing delivered). A balance that changes between
+ * this peek and the post-success deduct is caught by that later atomic check, not here.
+ */
+export async function peekCredits(
+  userId: string,
+  cost: number,
+  userEmail?: string,
+): Promise<{ ok: boolean; remaining: number; bypass?: boolean }> {
+  const adminEmails = (process.env.ADMIN_EMAILS || '').split(',').map(e => e.trim().toLowerCase())
+  if (userEmail && adminEmails.includes(userEmail.toLowerCase())) {
+    return { ok: true, remaining: 9999, bypass: true }
+  }
+  if (cost <= 0) return { ok: true, remaining: 9999 }
+
+  try {
+    const admin = createAdminSupabase()
+    const { data, error } = await admin
+      .from('profiles')
+      .select('credits, eu_credits, in_credits, status')
+      .eq('id', userId)
+      .single()
+    if (error || !data) return { ok: false, remaining: 0 }
+    if (data.status === 'blocked') return { ok: false, remaining: 0 }
+    const total = (data.credits ?? 0) + (data.eu_credits ?? 0) + (data.in_credits ?? 0)
+    return { ok: total >= cost, remaining: total }
+  } catch (err) {
+    console.error('peekCredits failed:', err)
+    return { ok: false, remaining: 0 }
+  }
+}
+
 export async function checkAndDeductCredits(
   userId: string,
   cost: number,

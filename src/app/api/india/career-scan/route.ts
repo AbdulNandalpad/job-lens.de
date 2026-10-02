@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import Anthropic from '@anthropic-ai/sdk'
-import { createServerSupabase, checkAndDeductCredits, refundCredits, isUserRateLimited } from '@/lib/supabase-server'
+import { createServerSupabase, checkAndDeductCredits, peekCredits, isUserRateLimited } from '@/lib/supabase-server'
 import { CREDIT_COST, MARKET } from '@/lib/constants'
 
 export const maxDuration = 60
@@ -87,23 +87,22 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Too many requests. Please wait a minute.' }, { status: 429 })
   }
 
-  const credits = await checkAndDeductCredits(user.id, COST, 'india_ats_scan', user.email ?? '', MARKET.in)
-  if (!credits.ok) {
-    return NextResponse.json({ error: 'Insufficient credits', credits: credits.remaining, required: COST }, { status: 402 })
+  const { cvText, jdText } = await req.json()
+  if (!cvText?.trim()) {
+    return NextResponse.json({ error: 'CV text is required' }, { status: 400 })
+  }
+  if (!jdText?.trim()) {
+    return NextResponse.json({ error: 'Job description is required' }, { status: 400 })
+  }
+
+  // Affordability is only a pre-flight UX check here — the real, atomic deduction happens
+  // after generation succeeds, so a timeout/crash mid-call never charges for nothing delivered.
+  const afford = await peekCredits(user.id, COST, user.email ?? '')
+  if (!afford.ok) {
+    return NextResponse.json({ error: 'Insufficient credits', credits: afford.remaining, required: COST }, { status: 402 })
   }
 
   try {
-    const { cvText, jdText } = await req.json()
-
-    if (!cvText?.trim()) {
-      await refundCredits(user.id, COST, 'india_ats_scan')
-      return NextResponse.json({ error: 'CV text is required' }, { status: 400 })
-    }
-    if (!jdText?.trim()) {
-      await refundCredits(user.id, COST, 'india_ats_scan')
-      return NextResponse.json({ error: 'Job description is required' }, { status: 400 })
-    }
-
     const message = await anthropic.messages.create({
       model: 'claude-sonnet-4-6',
       max_tokens: 3000,
@@ -119,8 +118,14 @@ export async function POST(req: NextRequest) {
       data = JSON.parse(extractJson(raw))
     } catch (parseErr) {
       console.error('ATS scan JSON parse failed:', parseErr, '\nRaw:', raw.slice(0, 500))
-      await refundCredits(user.id, COST, 'india_ats_scan')
-      return NextResponse.json({ error: 'Analysis failed — credits refunded' }, { status: 500 })
+      return NextResponse.json({ error: 'Analysis failed — please try again. Nothing was charged.' }, { status: 500 })
+    }
+
+    // Only charge now that a valid result actually exists to hand back — this is the one
+    // atomic, authoritative deduction (peekCredits above was a UX pre-check only).
+    const credits = await checkAndDeductCredits(user.id, COST, 'india_ats_scan', user.email ?? '', MARKET.in)
+    if (!credits.ok) {
+      return NextResponse.json({ error: 'Insufficient credits', credits: credits.remaining, required: COST }, { status: 402 })
     }
 
     const clamp = (v: unknown, fallback: number) =>
@@ -150,7 +155,6 @@ export async function POST(req: NextRequest) {
     return NextResponse.json(safe)
   } catch (err) {
     console.error('ATS scan error:', err)
-    await refundCredits(user.id, COST, 'india_ats_scan')
-    return NextResponse.json({ error: 'Analysis failed — credits refunded' }, { status: 500 })
+    return NextResponse.json({ error: 'Analysis failed — please try again. Nothing was charged.' }, { status: 500 })
   }
 }

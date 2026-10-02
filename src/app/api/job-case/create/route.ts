@@ -11,7 +11,7 @@
  */
 import { NextRequest, NextResponse } from 'next/server'
 import Anthropic from '@anthropic-ai/sdk'
-import { createServerSupabase, createAdminSupabase, checkAndDeductCredits, refundCredits } from '@/lib/supabase-server'
+import { createServerSupabase, createAdminSupabase, checkAndDeductCredits, peekCredits, refundCredits } from '@/lib/supabase-server'
 import { JOB_CASE, MARKET, IN_REVISION } from '@/lib/constants'
 import { nanoid } from 'nanoid'
 import { reportError } from '@/lib/error-reporter'
@@ -142,7 +142,6 @@ Scoring: specificity (does it cite a real example?), outcome (measurable result?
 }
 
 export async function POST(req: NextRequest) {
-  let deductedUserId: string | null = null
   try {
     const supabase = await createServerSupabase()
     const { data: { user } } = await supabase.auth.getUser()
@@ -174,17 +173,13 @@ export async function POST(req: NextRequest) {
     }
 
     const creditMarket = market === MARKET.in ? MARKET.in : MARKET.eu
-    const deduction = await checkAndDeductCredits(
-      user.id,
-      JOB_CASE.creditCost,
-      'job_case_creation',
-      user.email,
-      creditMarket
-    )
-    if (!deduction.ok) {
-      return NextResponse.json({ error: 'Insufficient credits', remaining: deduction.remaining }, { status: 402 })
+    // Affordability is only a pre-flight UX check here — the real, atomic deduction happens
+    // after the case is actually created, so a timeout/crash mid-call never charges for
+    // nothing delivered.
+    const afford = await peekCredits(user.id, JOB_CASE.creditCost, user.email)
+    if (!afford.ok) {
+      return NextResponse.json({ error: 'Insufficient credits', remaining: afford.remaining }, { status: 402 })
     }
-    deductedUserId = user.id
 
     // Run AI match analysis + test scoring in parallel
     const [matchResult, testResult] = await Promise.all([
@@ -196,6 +191,19 @@ export async function POST(req: NextRequest) {
       }),
       scoreTestAnswers({ questions: questions ?? [], answers: answers ?? [] }),
     ])
+
+    // Only charge now that the AI analysis actually succeeded — this is the one atomic,
+    // authoritative deduction (peekCredits above was a UX pre-check only).
+    const deduction = await checkAndDeductCredits(
+      user.id,
+      JOB_CASE.creditCost,
+      'job_case_creation',
+      user.email,
+      creditMarket
+    )
+    if (!deduction.ok) {
+      return NextResponse.json({ error: 'Insufficient credits', remaining: deduction.remaining }, { status: 402 })
+    }
 
     const slug = nanoid(12)
     const admin = createAdminSupabase()
@@ -261,9 +269,6 @@ export async function POST(req: NextRequest) {
   } catch (err) {
     console.error('/api/job-case/create error:', err)
     await reportError({ route: '/api/job-case/create', error: err, severity: 'critical' })
-    if (deductedUserId) {
-      await refundCredits(deductedUserId, JOB_CASE.creditCost, 'job_case_creation')
-    }
-    return NextResponse.json({ error: 'Internal error' }, { status: 500 })
+    return NextResponse.json({ error: 'Internal error — nothing was charged.' }, { status: 500 })
   }
 }

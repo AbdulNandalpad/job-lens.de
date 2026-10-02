@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import Anthropic from '@anthropic-ai/sdk'
-import { createServerSupabase, checkAndDeductCredits, refundCredits } from '@/lib/supabase-server'
+import { createServerSupabase, checkAndDeductCredits, peekCredits } from '@/lib/supabase-server'
 import { CREDIT_COST, MARKET } from '@/lib/constants'
 
 export const maxDuration = 60
@@ -18,11 +18,11 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'No Zeugnis text provided' }, { status: 400 })
   }
 
-  const credits = await checkAndDeductCredits(
-    user.id, CREDIT_COST.zeugnisDecoder, 'zeugnis_decoder', user.email ?? '', MARKET.eu
-  )
-  if (!credits.ok) {
-    return NextResponse.json({ error: 'Insufficient credits', credits: credits.remaining, required: CREDIT_COST.zeugnisDecoder }, { status: 402 })
+  // Affordability is only a pre-flight UX check here — the real, atomic deduction happens
+  // after generation succeeds, so a timeout/crash mid-call never charges for nothing delivered.
+  const afford = await peekCredits(user.id, CREDIT_COST.zeugnisDecoder, user.email ?? '')
+  if (!afford.ok) {
+    return NextResponse.json({ error: 'Insufficient credits', credits: afford.remaining, required: CREDIT_COST.zeugnisDecoder }, { status: 402 })
   }
 
   const prompt = `You are an expert in German employment law and Arbeitszeugnisse (German work reference letters).
@@ -87,14 +87,21 @@ Return ONLY valid JSON in this exact structure (no markdown, no explanation outs
       result = JSON.parse(jsonStr)
     } catch (parseErr) {
       console.error('Zeugnis decode JSON parse failed:', parseErr, '\nRaw:', raw.slice(0, 500))
-      await refundCredits(user.id, CREDIT_COST.zeugnisDecoder, 'zeugnis_decoder_failed')
-      return NextResponse.json({ error: 'Failed to decode Zeugnis — credits refunded' }, { status: 500 })
+      return NextResponse.json({ error: 'Failed to decode Zeugnis — please try again. Nothing was charged.' }, { status: 500 })
+    }
+
+    // Only charge now that a valid result actually exists to hand back — this is the one
+    // atomic, authoritative deduction (peekCredits above was a UX pre-check only).
+    const credits = await checkAndDeductCredits(
+      user.id, CREDIT_COST.zeugnisDecoder, 'zeugnis_decoder', user.email ?? '', MARKET.eu
+    )
+    if (!credits.ok) {
+      return NextResponse.json({ error: 'Insufficient credits', credits: credits.remaining, required: CREDIT_COST.zeugnisDecoder }, { status: 402 })
     }
 
     return NextResponse.json({ ...result, creditsRemaining: credits.remaining })
   } catch (err) {
     console.error('Zeugnis decode error:', err)
-    await refundCredits(user.id, CREDIT_COST.zeugnisDecoder, 'zeugnis_decoder_failed')
-    return NextResponse.json({ error: 'Failed to decode Zeugnis — credits refunded' }, { status: 500 })
+    return NextResponse.json({ error: 'Failed to decode Zeugnis — nothing was charged.' }, { status: 500 })
   }
 }
