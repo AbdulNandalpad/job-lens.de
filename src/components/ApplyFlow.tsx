@@ -424,8 +424,9 @@ export default function ApplyFlow({ market }: { market: Market }) {
       if (!parsed) { setError({ message: t.errors.tryAgain, retry: create }); setPhase('idle'); return }
       setCvJson(out.data.cv || ''); setCvData(parsed); setPdfUrl(null); pdfBlobRef.current = null
       try { sessionStorage.setItem(SS.cvbTailored, out.data.cv || ''); sessionStorage.setItem(SS.cvbData, JSON.stringify(parsed)) } catch {}
-      await generateLetter(parsed)
-      await renderPdf(parsed)
+      // Letter and PDF only depend on the tailored CV, not on each other — run them
+      // concurrently so one click isn't exposed to two sequential 60s timeout windows.
+      await Promise.all([generateLetter(parsed), renderPdf(parsed)])
     } catch (e) { setError({ message: toUserMessage(e), retry: create }); setPhase('idle') }
   })
 
